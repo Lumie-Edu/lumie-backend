@@ -1,8 +1,11 @@
 package com.lumie.messaging.event;
 
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
 public class SubscriptionCreatedEvent extends BillingEvent {
 
     private final Long subscriptionId;
