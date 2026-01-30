@@ -51,12 +51,12 @@ public class TenantGrpcService extends TenantServiceGrpc.TenantServiceImplBase {
 
         try {
             boolean isValid = validateTenantUseCase.isValidAndActive(request.getSlug());
-            Long tenantId = validateTenantUseCase.getTenantIdBySlug(request.getSlug());
+            long tenantId = validateTenantUseCase.getTenantIdBySlug(request.getSlug()).orElse(0L);
 
             ValidateTenantResponse response = ValidateTenantResponse.newBuilder()
                     .setValid(isValid)
                     .setMessage(isValid ? "Tenant is valid and active" : "Tenant is invalid or not active")
-                    .setTenantId(tenantId != null ? tenantId : 0)
+                    .setTenantId(tenantId)
                     .build();
 
             responseObserver.onNext(response);

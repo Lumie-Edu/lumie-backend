@@ -27,7 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class TenantApplicationServiceTest {
+class TenantCommandServiceTest {
 
     @Mock
     private TenantPersistencePort tenantPersistencePort;
@@ -36,7 +36,7 @@ class TenantApplicationServiceTest {
     private EventPublisherPort eventPublisherPort;
 
     @InjectMocks
-    private TenantApplicationService tenantApplicationService;
+    private TenantCommandService tenantCommandService;
 
     private CreateTenantRequest createRequest;
 
@@ -54,12 +54,9 @@ class TenantApplicationServiceTest {
     @DisplayName("테넌트 생성 성공")
     void createTenantSuccess() {
         when(tenantPersistencePort.existsBySlug("test-academy")).thenReturn(false);
-        when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> {
-            Tenant tenant = invocation.getArgument(0);
-            return tenant;
-        });
+        when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        TenantResponse response = tenantApplicationService.createTenant(createRequest);
+        TenantResponse response = tenantCommandService.createTenant(createRequest);
 
         assertThat(response.slug()).isEqualTo("test-academy");
         assertThat(response.name()).isEqualTo("Test Academy");
@@ -75,20 +72,11 @@ class TenantApplicationServiceTest {
     void createTenantDuplicateSlug() {
         when(tenantPersistencePort.existsBySlug("test-academy")).thenReturn(true);
 
-        assertThatThrownBy(() -> tenantApplicationService.createTenant(createRequest))
+        assertThatThrownBy(() -> tenantCommandService.createTenant(createRequest))
                 .isInstanceOf(DuplicateResourceException.class);
 
         verify(tenantPersistencePort, never()).save(any());
         verify(eventPublisherPort, never()).publish(any());
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 테넌트 조회 시 예외")
-    void getTenantNotFound() {
-        when(tenantPersistencePort.findBySlug("non-existent")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> tenantApplicationService.getTenantBySlug("non-existent"))
-                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -103,33 +91,36 @@ class TenantApplicationServiceTest {
                 .displayName("업데이트된 학원")
                 .build();
 
-        TenantResponse response = tenantApplicationService.updateTenant("test-academy", updateRequest);
+        TenantResponse response = tenantCommandService.updateTenant("test-academy", updateRequest);
 
         assertThat(response.name()).isEqualTo("Updated Academy");
         assertThat(response.displayName()).isEqualTo("업데이트된 학원");
     }
 
     @Test
-    @DisplayName("테넌트 유효성 검증 - 활성 상태")
-    void validateActiveTenant() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
-        tenant.startProvisioning();
-        tenant.activate();
-        when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(tenant));
+    @DisplayName("존재하지 않는 테넌트 업데이트 시 예외")
+    void updateTenantNotFound() {
+        when(tenantPersistencePort.findBySlug("non-existent")).thenReturn(Optional.empty());
 
-        boolean isValid = tenantApplicationService.isValidAndActive("test-academy");
+        UpdateTenantRequest updateRequest = UpdateTenantRequest.builder()
+                .name("Updated Academy")
+                .build();
 
-        assertThat(isValid).isTrue();
+        assertThatThrownBy(() -> tenantCommandService.updateTenant("non-existent", updateRequest))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("테넌트 유효성 검증 - 비활성 상태")
-    void validateInactiveTenant() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
-        when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(tenant));
+    @DisplayName("테넌트 삭제 (소프트 삭제)")
+    void deleteTenant() {
+        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null, null);
+        when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(existingTenant));
+        when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        boolean isValid = tenantApplicationService.isValidAndActive("test-academy");
+        tenantCommandService.deleteTenant("test-academy");
 
-        assertThat(isValid).isFalse();
+        ArgumentCaptor<Tenant> tenantCaptor = ArgumentCaptor.forClass(Tenant.class);
+        verify(tenantPersistencePort).save(tenantCaptor.capture());
+        assertThat(tenantCaptor.getValue().getStatus()).isEqualTo(TenantStatus.DELETED);
     }
 }

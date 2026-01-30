@@ -3,6 +3,7 @@ package com.lumie.tenant.infrastructure.exception;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.tenant.domain.exception.InvalidTenantStateException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,13 @@ public class GlobalExceptionHandler {
         log.warn("Business exception: {}", e.getMessage());
         return ResponseEntity.status(e.getErrorCode().getStatus())
                 .body(ErrorResponse.of(e.getErrorCode().getCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidTenantStateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTenantState(InvalidTenantStateException e) {
+        log.warn("Invalid tenant state transition: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("T002", e.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

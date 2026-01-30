@@ -1,6 +1,7 @@
 package com.lumie.tenant.domain.entity;
 
 import com.lumie.common.domain.BaseEntity;
+import com.lumie.tenant.domain.exception.InvalidTenantStateException;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.domain.vo.TenantSlug;
 import com.lumie.tenant.domain.vo.TenantStatus;
@@ -62,43 +63,52 @@ public class Tenant extends BaseEntity {
     }
 
     public static Tenant create(String slug, String name, String displayName, String ownerEmail, TenantPlan plan) {
-        Tenant tenant = Tenant.builder()
+        return Tenant.builder()
                 .slug(TenantSlug.of(slug))
                 .name(name)
                 .displayName(displayName)
                 .ownerEmail(ownerEmail)
                 .plan(plan)
                 .build();
-        tenant.settings = TenantSettings.createDefault(tenant);
-        return tenant;
+    }
+
+    public void initializeSettings() {
+        if (this.settings == null) {
+            this.settings = TenantSettings.createDefault(this);
+        }
+    }
+
+    public TenantSettings getOrCreateSettings() {
+        if (this.settings == null) {
+            this.settings = TenantSettings.createDefault(this);
+        }
+        return this.settings;
     }
 
     public void startProvisioning() {
-        if (this.status != TenantStatus.PENDING) {
-            throw new IllegalStateException("Tenant can only be provisioned from PENDING status");
-        }
+        validateStateTransition(TenantStatus.PENDING);
         this.status = TenantStatus.PROVISIONING;
     }
 
     public void activate() {
-        if (this.status != TenantStatus.PROVISIONING) {
-            throw new IllegalStateException("Tenant can only be activated from PROVISIONING status");
-        }
+        validateStateTransition(TenantStatus.PROVISIONING);
         this.status = TenantStatus.ACTIVE;
     }
 
     public void suspend() {
-        if (this.status != TenantStatus.ACTIVE) {
-            throw new IllegalStateException("Tenant can only be suspended from ACTIVE status");
-        }
+        validateStateTransition(TenantStatus.ACTIVE);
         this.status = TenantStatus.SUSPENDED;
     }
 
     public void reactivate() {
-        if (this.status != TenantStatus.SUSPENDED) {
-            throw new IllegalStateException("Tenant can only be reactivated from SUSPENDED status");
-        }
+        validateStateTransition(TenantStatus.SUSPENDED);
         this.status = TenantStatus.ACTIVE;
+    }
+
+    private void validateStateTransition(TenantStatus requiredStatus) {
+        if (this.status != requiredStatus) {
+            throw new InvalidTenantStateException(this.status, requiredStatus);
+        }
     }
 
     public void markAsDeleted() {

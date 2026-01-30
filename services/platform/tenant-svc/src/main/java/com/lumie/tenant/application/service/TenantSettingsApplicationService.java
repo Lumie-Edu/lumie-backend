@@ -6,7 +6,6 @@ import com.lumie.tenant.application.dto.response.TenantSettingsResponse;
 import com.lumie.tenant.application.port.in.GetTenantSettingsUseCase;
 import com.lumie.tenant.application.port.in.UpdateTenantSettingsUseCase;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
-import com.lumie.tenant.application.port.out.TenantSettingsPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.domain.entity.TenantSettings;
 import lombok.RequiredArgsConstructor;
@@ -21,17 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class TenantSettingsApplicationService implements GetTenantSettingsUseCase, UpdateTenantSettingsUseCase {
 
     private final TenantPersistencePort tenantPersistencePort;
-    private final TenantSettingsPersistencePort tenantSettingsPersistencePort;
 
     @Override
+    @Transactional
     public TenantSettingsResponse getSettings(String slug) {
         log.debug("Getting settings for tenant: {}", slug);
 
-        Tenant tenant = tenantPersistencePort.findBySlug(slug)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", slug));
-
-        TenantSettings settings = tenantSettingsPersistencePort.findByTenantId(tenant.getId())
-                .orElseGet(() -> createDefaultSettings(tenant));
+        Tenant tenant = findTenantOrThrow(slug);
+        TenantSettings settings = tenant.getOrCreateSettings();
+        tenantPersistencePort.save(tenant);
 
         return TenantSettingsResponse.from(settings);
     }
@@ -41,21 +38,17 @@ public class TenantSettingsApplicationService implements GetTenantSettingsUseCas
     public TenantSettingsResponse updateSettings(String slug, TenantSettingsRequest request) {
         log.info("Updating settings for tenant: {}", slug);
 
-        Tenant tenant = tenantPersistencePort.findBySlug(slug)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", slug));
-
-        TenantSettings settings = tenantSettingsPersistencePort.findByTenantId(tenant.getId())
-                .orElseGet(() -> createDefaultSettings(tenant));
-
+        Tenant tenant = findTenantOrThrow(slug);
+        TenantSettings settings = tenant.getOrCreateSettings();
         settings.update(request.logoUrl(), request.theme());
-        TenantSettings savedSettings = tenantSettingsPersistencePort.save(settings);
+        tenantPersistencePort.save(tenant);
 
         log.info("Settings updated for tenant: {}", slug);
-        return TenantSettingsResponse.from(savedSettings);
+        return TenantSettingsResponse.from(settings);
     }
 
-    private TenantSettings createDefaultSettings(Tenant tenant) {
-        TenantSettings settings = TenantSettings.createDefault(tenant);
-        return tenantSettingsPersistencePort.save(settings);
+    private Tenant findTenantOrThrow(String slug) {
+        return tenantPersistencePort.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", slug));
     }
 }

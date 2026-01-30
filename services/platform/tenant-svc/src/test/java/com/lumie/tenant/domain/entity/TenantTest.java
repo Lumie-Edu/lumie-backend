@@ -1,5 +1,6 @@
 package com.lumie.tenant.domain.entity;
 
+import com.lumie.tenant.domain.exception.InvalidTenantStateException;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.domain.vo.TenantStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -75,7 +76,7 @@ class TenantTest {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
 
         assertThatThrownBy(tenant::activate)
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidTenantStateException.class)
                 .hasMessageContaining("PROVISIONING");
     }
 
@@ -137,12 +138,15 @@ class TenantTest {
     }
 
     @Test
-    @DisplayName("Tenant 생성 시 Settings도 함께 생성됨")
-    void createTenantWithSettings() {
+    @DisplayName("getOrCreateSettings 호출 시 Settings 생성됨")
+    void getOrCreateSettingsCreatesSettings() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
 
-        assertThat(tenant.getSettings()).isNotNull();
-        assertThat(tenant.getSettings().getTenant()).isEqualTo(tenant);
-        assertThat(tenant.getSettings().getTheme()).isEmpty();
+        // Settings는 명시적 호출 전까지 null
+        TenantSettings settings = tenant.getOrCreateSettings();
+
+        assertThat(settings).isNotNull();
+        assertThat(settings.getTenant()).isEqualTo(tenant);
+        assertThat(settings.getTheme()).isEmpty();
     }
 }
