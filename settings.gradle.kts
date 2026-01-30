@@ -9,5 +9,6 @@ include(
     "libs:grpc-api",
     "libs:messaging",
     "services:platform:tenant-svc",
-    "services:platform:auth-svc"
+    "services:platform:auth-svc",
+    "services:platform:billing-svc"
 )

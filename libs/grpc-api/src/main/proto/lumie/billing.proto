@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package lumie;
+
+option java_multiple_files = true;
+option java_package = "com.lumie.grpc.billing";
+option java_outer_classname = "BillingProto";
+
+service BillingService {
+  rpc GetSubscription(GetSubscriptionRequest) returns (SubscriptionResponse);
+  rpc CheckQuota(CheckQuotaRequest) returns (CheckQuotaResponse);
+  rpc GetPlanFeatures(GetPlanFeaturesRequest) returns (PlanFeaturesResponse);
+}
+
+message GetSubscriptionRequest {
+  string tenant_slug = 1;
+}
+
+message SubscriptionResponse {
+  int64 id = 1;
+  int64 tenant_id = 2;
+  string tenant_slug = 3;
+  string plan_id = 4;
+  string plan_name = 5;
+  string status = 6;
+  string started_at = 7;
+  string expires_at = 8;
+  PlanLimits limits = 9;
+}
+
+message CheckQuotaRequest {
+  string tenant_slug = 1;
+  string metric_type = 2;
+}
+
+message CheckQuotaResponse {
+  bool allowed = 1;
+  int64 current_usage = 2;
+  int64 limit = 3;
+  string metric_type = 4;
+  string message = 5;
+}
+
+message GetPlanFeaturesRequest {
+  string plan_id = 1;
+}
+
+message PlanFeaturesResponse {
+  string plan_id = 1;
+  string plan_name = 2;
+  PlanLimits limits = 3;
+  repeated string features = 4;
+}
+
+message PlanLimits {
+  int32 max_students = 1;
+  int32 max_academies = 2;
+  int32 max_admins = 3;
+  int32 omr_monthly_quota = 4;
+}
