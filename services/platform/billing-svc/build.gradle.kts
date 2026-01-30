@@ -20,14 +20,17 @@ dependencies {
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
 
-    // gRPC - enforce consistent version
+    // gRPC - server with excluded io.grpc for version control
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE") {
         exclude(group = "io.grpc")
     }
+    // gRPC client (for tenant-svc communication)
     implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE") {
         exclude(group = "io.grpc")
     }
+    // gRPC core dependencies with consistent version
     implementation("io.grpc:grpc-netty-shaded:${property("grpcVersion")}")
+    implementation("io.grpc:grpc-inprocess:${property("grpcVersion")}")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
