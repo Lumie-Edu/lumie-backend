@@ -20,8 +20,8 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public TopicExchange lumieDlxExchange() {
-        return new TopicExchange(RabbitMqConstants.LUMIE_DLX_EXCHANGE);
+    public FanoutExchange lumieDlxExchange() {
+        return new FanoutExchange(RabbitMqConstants.LUMIE_DLX_EXCHANGE);
     }
 
     @Bean
@@ -64,8 +64,7 @@ public class RabbitMqConfig {
     public Binding billingSubscriptionDlqBinding() {
         return BindingBuilder
                 .bind(billingSubscriptionDlq())
-                .to(lumieDlxExchange())
-                .with(RabbitMqConstants.BILLING_SUBSCRIPTION_DLQ);
+                .to(lumieDlxExchange());
     }
 
     @Bean
@@ -80,8 +79,7 @@ public class RabbitMqConfig {
     public Binding billingQuotaDlqBinding() {
         return BindingBuilder
                 .bind(billingQuotaDlq())
-                .to(lumieDlxExchange())
-                .with(RabbitMqConstants.BILLING_QUOTA_DLQ);
+                .to(lumieDlxExchange());
     }
 
     @Bean
