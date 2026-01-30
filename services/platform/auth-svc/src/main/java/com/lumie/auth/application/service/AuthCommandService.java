@@ -2,12 +2,15 @@ package com.lumie.auth.application.service;
 
 import com.lumie.auth.application.dto.request.LoginRequest;
 import com.lumie.auth.application.dto.request.RefreshTokenRequest;
+import com.lumie.auth.application.dto.request.RegisterRequest;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
 import com.lumie.auth.application.dto.response.UserResponse;
 import com.lumie.auth.application.port.in.LoginUseCase;
 import com.lumie.auth.application.port.in.LogoutUseCase;
 import com.lumie.auth.application.port.in.RefreshTokenUseCase;
+import com.lumie.auth.application.port.in.RegisterUseCase;
+import com.lumie.auth.domain.vo.Role;
 import com.lumie.auth.application.port.out.AuthEventPublisherPort;
 import com.lumie.auth.application.port.out.TenantServicePort;
 import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
@@ -30,7 +33,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshTokenUseCase {
+public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshTokenUseCase, RegisterUseCase {
 
     private final TenantServicePort tenantServicePort;
     private final UserLookupPort userLookupPort;
@@ -38,6 +41,44 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
     private final AuthEventPublisherPort eventPublisherPort;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public LoginResponse register(String tenantSlug, RegisterRequest request) {
+        log.info("Registration attempt for email: {} on tenant: {}", request.email(), tenantSlug);
+
+        // 1. Validate tenant via gRPC
+        TenantData tenant = tenantServicePort.validateTenant(tenantSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
+
+        if (!tenant.isActive()) {
+            throw new IllegalStateException("Tenant is not active: " + tenantSlug);
+        }
+
+        // 2. Check if email already exists
+        if (userLookupPort.existsByEmail(tenant.schemaName(), request.email())) {
+            throw new EmailAlreadyExistsException("Email already registered: " + request.email());
+        }
+
+        // 3. Hash password and create user
+        String passwordHash = passwordEncoder.encode(request.password());
+        UserData user = userLookupPort.createUser(
+                tenant.schemaName(),
+                request.email(),
+                request.name(),
+                passwordHash,
+                Role.STUDENT
+        );
+
+        // 4. Generate tokens
+        TokenPair tokenPair = generateTokenPair(user, tenantSlug, tenant.id());
+
+        // 5. Save refresh token to Redis
+        saveRefreshToken(user.id(), tenantSlug, tenant.id(), user.role(), tokenPair);
+
+        log.info("Registration successful for user: {} on tenant: {}", user.id(), tenantSlug);
+
+        return LoginResponse.of(tokenPair, user.toUserResponse(tenantSlug, tenant.id()));
+    }
 
     @Override
     public LoginResponse login(String tenantSlug, LoginRequest request) {
@@ -211,6 +252,12 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
 
     public static class InvalidTokenException extends RuntimeException {
         public InvalidTokenException(String message) {
+            super(message);
+        }
+    }
+
+    public static class EmailAlreadyExistsException extends RuntimeException {
+        public EmailAlreadyExistsException(String message) {
             super(message);
         }
     }

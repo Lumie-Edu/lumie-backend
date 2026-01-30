@@ -40,6 +40,27 @@ public interface UserLookupPort {
     UserData findOrCreateOAuth2User(String schemaName, String email, String name, String provider);
 
     /**
+     * Creates a new user with email/password credentials.
+     *
+     * @param schemaName the tenant's PostgreSQL schema name
+     * @param email the user's email
+     * @param name the user's name
+     * @param passwordHash the hashed password
+     * @param role the user's role
+     * @return the created user data
+     */
+    UserData createUser(String schemaName, String email, String name, String passwordHash, Role role);
+
+    /**
+     * Checks if a user with the given email exists.
+     *
+     * @param schemaName the tenant's PostgreSQL schema name
+     * @param email the user's email
+     * @return true if the user exists
+     */
+    boolean existsByEmail(String schemaName, String email);
+
+    /**
      * User data record from tenant schema.
      */
     record UserData(

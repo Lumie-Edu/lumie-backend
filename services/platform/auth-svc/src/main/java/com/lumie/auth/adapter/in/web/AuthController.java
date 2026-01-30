@@ -2,11 +2,13 @@ package com.lumie.auth.adapter.in.web;
 
 import com.lumie.auth.application.dto.request.LoginRequest;
 import com.lumie.auth.application.dto.request.RefreshTokenRequest;
+import com.lumie.auth.application.dto.request.RegisterRequest;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
 import com.lumie.auth.application.port.in.LoginUseCase;
 import com.lumie.auth.application.port.in.LogoutUseCase;
 import com.lumie.auth.application.port.in.RefreshTokenUseCase;
+import com.lumie.auth.application.port.in.RegisterUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +19,18 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
+    private final RegisterUseCase registerUseCase;
     private final LoginUseCase loginUseCase;
     private final LogoutUseCase logoutUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
+
+    @PostMapping("/register")
+    public ResponseEntity<LoginResponse> register(
+            @RequestHeader("X-Tenant-Slug") String tenantSlug,
+            @Valid @RequestBody RegisterRequest request) {
+        LoginResponse response = registerUseCase.register(tenantSlug, request);
+        return ResponseEntity.status(201).body(response);
+    }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(

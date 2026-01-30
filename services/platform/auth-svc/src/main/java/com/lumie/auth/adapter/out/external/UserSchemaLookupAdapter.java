@@ -102,6 +102,42 @@ public class UserSchemaLookupAdapter implements UserLookupPort {
         );
     }
 
+    @Override
+    public UserData createUser(String schemaName, String email, String name, String passwordHash, Role role) {
+        log.debug("Creating new user in schema: {}", schemaName);
+
+        String sanitizedSchema = sanitizeSchemaName(schemaName);
+        String insertSql = String.format(
+                "INSERT INTO %s.users (email, name, password_hash, role, enabled) " +
+                        "VALUES (?, ?, ?, ?, true) RETURNING id",
+                sanitizedSchema
+        );
+
+        Long newUserId = jdbcTemplate.queryForObject(insertSql, Long.class, email, name, passwordHash, role.name());
+
+        log.info("Created new user: {} in schema: {}", email, schemaName);
+
+        return new UserData(
+                newUserId,
+                email,
+                name,
+                passwordHash,
+                role,
+                true
+        );
+    }
+
+    @Override
+    public boolean existsByEmail(String schemaName, String email) {
+        String sql = String.format(
+                "SELECT COUNT(*) FROM %s.users WHERE email = ?",
+                sanitizeSchemaName(schemaName)
+        );
+
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email);
+        return count != null && count > 0;
+    }
+
     private String sanitizeSchemaName(String schemaName) {
         if (!schemaName.matches("^[a-z_][a-z0-9_]*$")) {
             throw new IllegalArgumentException("Invalid schema name: " + schemaName);
