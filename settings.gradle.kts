@@ -1,8 +1,13 @@
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+}
+
 rootProject.name = "lumie-backend"
 
 include(
     "libs:common",
     "libs:grpc-api",
     "libs:messaging",
-    "services:platform:tenant-svc"
+    "services:platform:tenant-svc",
+    "services:platform:auth-svc"
 )

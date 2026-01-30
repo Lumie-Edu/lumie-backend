@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package lumie;
+
+option java_multiple_files = true;
+option java_package = "com.lumie.grpc.auth";
+option java_outer_classname = "AuthProto";
+
+service AuthService {
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  rpc GetUserInfo(GetUserInfoRequest) returns (UserInfoResponse);
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string message = 2;
+  TokenClaims claims = 3;
+}
+
+message TokenClaims {
+  string sub = 1;           // User ID
+  string tenant_slug = 2;   // Tenant slug
+  int64 tenant_id = 3;      // Tenant ID
+  string role = 4;          // User role (DEVELOPER, ADMIN, STUDENT)
+  int64 iat = 5;            // Issued at (Unix timestamp)
+  int64 exp = 6;            // Expiration (Unix timestamp)
+  string jti = 7;           // JWT ID (unique identifier)
+}
+
+message GetUserInfoRequest {
+  string token = 1;
+}
+
+message UserInfoResponse {
+  bool success = 1;
+  string message = 2;
+  UserInfo user = 3;
+}
+
+message UserInfo {
+  int64 id = 1;
+  string email = 2;
+  string name = 3;
+  string role = 4;
+  string tenant_slug = 5;
+  int64 tenant_id = 6;
+}
