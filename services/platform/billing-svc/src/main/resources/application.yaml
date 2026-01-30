@@ -23,8 +23,9 @@ spring:
         default_schema: public
     open-in-view: false
 
+  # Flyway disabled - migrations managed centrally by db-migrations module
   flyway:
-    enabled: false  # Migrations managed centrally by db-migrations module
+    enabled: false
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
