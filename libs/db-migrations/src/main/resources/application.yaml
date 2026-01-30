@@ -20,3 +20,7 @@ logging:
     root: INFO
     org.flywaydb: INFO
     com.lumie: INFO
+
+# Shutdown after migrations complete
+spring.main:
+  web-application-type: none
