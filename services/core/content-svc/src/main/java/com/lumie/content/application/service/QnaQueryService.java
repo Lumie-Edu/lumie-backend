@@ -28,10 +28,10 @@ public class QnaQueryService {
                 .map(QnaBoardResponse::from);
     }
 
-    public Page<QnaBoardResponse> listQnasByStudent(Long studentId, Pageable pageable) {
-        log.debug("Listing Q&As for student: {}", studentId);
+    public Page<QnaBoardResponse> listQnasByAuthor(Long authorId, Pageable pageable) {
+        log.debug("Listing Q&As for author: {}", authorId);
 
-        return qnaBoardRepository.findByStudentId(studentId, pageable)
+        return qnaBoardRepository.findByAuthorId(authorId, pageable)
                 .map(QnaBoardResponse::from);
     }
 

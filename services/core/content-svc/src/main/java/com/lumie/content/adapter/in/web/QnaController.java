@@ -38,11 +38,11 @@ public class QnaController {
         return ResponseEntity.ok(queryService.listUnansweredQnas(pageable));
     }
 
-    @GetMapping("/student/{studentId}")
-    public ResponseEntity<Page<QnaBoardResponse>> listQnasByStudent(
-            @PathVariable Long studentId,
+    @GetMapping("/author/{authorId}")
+    public ResponseEntity<Page<QnaBoardResponse>> listQnasByAuthor(
+            @PathVariable Long authorId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.listQnasByStudent(studentId, pageable));
+        return ResponseEntity.ok(queryService.listQnasByAuthor(authorId, pageable));
     }
 
     @GetMapping("/{id}")
