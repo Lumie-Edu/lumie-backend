@@ -15,11 +15,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
+    open-in-view: false
     show-sql: false
     properties:
       hibernate:
         format_sql: true
-        default_schema: public
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        multi_tenancy: SCHEMA
 
   data:
     redis:

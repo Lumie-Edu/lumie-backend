@@ -1,5 +1,6 @@
 package com.lumie.messaging.event;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lumie.common.domain.AbstractDomainEvent;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -18,6 +19,7 @@ public abstract class TenantEvent extends AbstractDomainEvent {
         this.slug = slug;
     }
 
+    @JsonIgnore
     public String getRoutingKey() {
         return String.format("tenant.%s.%s", getEventType().toLowerCase().replace("event", ""), slug);
     }
