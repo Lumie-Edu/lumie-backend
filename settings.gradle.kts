@@ -13,5 +13,6 @@ include(
     "services:platform:auth-svc",
     "services:platform:billing-svc",
     "services:core:academy-svc",
-    "services:core:exam-svc"
+    "services:core:exam-svc",
+    "services:core:content-svc"
 )
