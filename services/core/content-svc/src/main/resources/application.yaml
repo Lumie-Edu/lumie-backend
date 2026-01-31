@@ -1,3 +1,4 @@
+# Content Service Configuration
 spring:
   application:
     name: content-svc
