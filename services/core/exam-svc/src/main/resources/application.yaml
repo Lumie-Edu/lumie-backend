@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: exam-svc
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:lumie}
+    username: ${DB_USERNAME:lumie}
+    password: ${DB_PASSWORD:lumie}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        multiTenancy: SCHEMA
+    open-in-view: false
+
+  flyway:
+    enabled: false
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: /
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+grpc:
+  server:
+    port: 9090
+  client:
+    tenant-svc:
+      address: static://${TENANT_SVC_GRPC_HOST:localhost}:9090
+      negotiation-type: plaintext
+    billing-svc:
+      address: static://${BILLING_SVC_GRPC_HOST:localhost}:9090
+      negotiation-type: plaintext
+    academy-svc:
+      address: static://${ACADEMY_SVC_GRPC_HOST:localhost}:9090
+      negotiation-type: plaintext
+
+server:
+  port: 8080
+  shutdown: graceful
+
+spring.lifecycle:
+  timeout-per-shutdown-phase: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+# External Services
+lumie:
+  services:
+    grading:
+      url: ${GRADING_SVC_URL:http://grading-svc.lumie-support.svc:8000}
+
+logging:
+  level:
+    root: INFO
+    com.lumie: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    com.lumie: INFO
+    org.hibernate.SQL: WARN
