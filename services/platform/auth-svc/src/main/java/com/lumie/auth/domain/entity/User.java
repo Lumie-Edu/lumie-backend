@@ -23,6 +23,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
+    private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final String STATUS_INACTIVE = "INACTIVE";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -41,25 +44,29 @@ public class User {
     private Role role;
 
     @Column(nullable = false)
-    private boolean enabled;
+    private String status;
 
     @Column(name = "oauth_provider")
     private String oauthProvider;
 
-    private User(String email, String passwordHash, String name, Role role, boolean enabled, String oauthProvider) {
+    private User(String email, String passwordHash, String name, Role role, String status, String oauthProvider) {
         this.email = email;
         this.passwordHash = passwordHash;
         this.name = name;
         this.role = role;
-        this.enabled = enabled;
+        this.status = status;
         this.oauthProvider = oauthProvider;
     }
 
     public static User create(String email, String name, String passwordHash, Role role) {
-        return new User(email, passwordHash, name, role, true, null);
+        return new User(email, passwordHash, name, role, STATUS_ACTIVE, null);
     }
 
     public static User createOAuth2User(String email, String name, String provider) {
-        return new User(email, "", name, Role.STUDENT, true, provider);
+        return new User(email, "", name, Role.STUDENT, STATUS_ACTIVE, provider);
+    }
+
+    public boolean isEnabled() {
+        return STATUS_ACTIVE.equals(status);
     }
 }
