@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package lumie;
+
+option java_multiple_files = true;
+option java_package = "com.lumie.grpc.academy";
+option java_outer_classname = "AcademyProto";
+
+service AcademyService {
+  rpc GetStudent(GetStudentRequest) returns (StudentResponse);
+  rpc GetStudentsByAcademy(GetStudentsByAcademyRequest) returns (StudentListResponse);
+  rpc ValidateStudent(ValidateStudentRequest) returns (ValidateStudentResponse);
+  rpc GetAcademy(GetAcademyRequest) returns (AcademyResponse);
+}
+
+message GetStudentRequest {
+  string tenant_slug = 1;
+  int64 student_id = 2;
+}
+
+message StudentResponse {
+  int64 id = 1;
+  int64 user_id = 2;
+  string student_name = 3;
+  string student_phone = 4;
+  int64 academy_id = 5;
+  string academy_name = 6;
+  bool is_active = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message GetStudentsByAcademyRequest {
+  string tenant_slug = 1;
+  int64 academy_id = 2;
+  int32 page = 3;
+  int32 size = 4;
+}
+
+message StudentListResponse {
+  repeated StudentResponse students = 1;
+  int64 total_count = 2;
+  int32 page = 3;
+  int32 size = 4;
+}
+
+message ValidateStudentRequest {
+  string tenant_slug = 1;
+  int64 student_id = 2;
+}
+
+message ValidateStudentResponse {
+  bool valid = 1;
+  string message = 2;
+  int64 student_id = 3;
+}
+
+message GetAcademyRequest {
+  string tenant_slug = 1;
+  int64 academy_id = 2;
+}
+
+message AcademyResponse {
+  int64 id = 1;
+  string academy_name = 2;
+  string academy_phone = 3;
+  string academy_address = 4;
+  bool is_active = 5;
+  int64 student_count = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}

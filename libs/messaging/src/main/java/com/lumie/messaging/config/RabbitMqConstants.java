@@ -27,4 +27,13 @@ public final class RabbitMqConstants {
     public static final String BILLING_SUBSCRIPTION_CREATED_ROUTING_KEY = "billing.subscription.created.*";
     public static final String BILLING_SUBSCRIPTION_UPGRADED_ROUTING_KEY = "billing.subscription.upgraded.*";
     public static final String BILLING_QUOTA_EXCEEDED_ROUTING_KEY = "billing.quota.exceeded.*";
+
+    // Queues - Member (Academy)
+    public static final String MEMBER_EVENTS_QUEUE = "member.events";
+    public static final String MEMBER_EVENTS_DLQ = "member.events.dlq";
+
+    // Routing Keys - Member
+    public static final String MEMBER_CREATED_ROUTING_KEY = "member.created.*";
+    public static final String MEMBER_UPDATED_ROUTING_KEY = "member.updated.*";
+    public static final String MEMBER_DELETED_ROUTING_KEY = "member.deleted.*";
 }

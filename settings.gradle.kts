@@ -11,5 +11,6 @@ include(
     "libs:db-migrations",
     "services:platform:tenant-svc",
     "services:platform:auth-svc",
-    "services:platform:billing-svc"
+    "services:platform:billing-svc",
+    "services:core:academy-svc"
 )
