@@ -26,6 +26,7 @@ dependencies {
     }
     // gRPC core dependencies with consistent version
     implementation("io.grpc:grpc-netty-shaded:${property("grpcVersion")}")
+    implementation("io.grpc:grpc-inprocess:${property("grpcVersion")}")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
