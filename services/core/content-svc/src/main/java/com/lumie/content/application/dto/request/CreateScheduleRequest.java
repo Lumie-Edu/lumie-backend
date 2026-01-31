@@ -10,8 +10,8 @@ public record CreateScheduleRequest(
         @NotNull(message = "Academy ID is required")
         Long academyId,
 
-        @NotNull(message = "Counselor ID is required")
-        Long counselorId,
+        @NotNull(message = "Admin ID is required")
+        Long adminId,
 
         @NotNull(message = "Schedule date is required")
         LocalDate scheduleDate,

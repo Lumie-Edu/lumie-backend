@@ -6,8 +6,8 @@ import jakarta.validation.constraints.NotNull;
 public record CreateQnaRequest(
         Long academyId,
 
-        @NotNull(message = "Author ID is required")
-        Long authorId,
+        @NotNull(message = "Student ID is required")
+        Long studentId,
 
         @NotBlank(message = "Title is required")
         String title,

@@ -8,7 +8,7 @@ import java.util.List;
 public record QnaDetailResponse(
         Long id,
         Long academyId,
-        Long authorId,
+        Long studentId,
         String title,
         String content,
         String category,
@@ -27,7 +27,7 @@ public record QnaDetailResponse(
         return new QnaDetailResponse(
                 qnaBoard.getId(),
                 qnaBoard.getAcademyId(),
-                qnaBoard.getAuthorId(),
+                qnaBoard.getStudentId(),
                 qnaBoard.getTitle(),
                 qnaBoard.getContent(),
                 qnaBoard.getCategory(),

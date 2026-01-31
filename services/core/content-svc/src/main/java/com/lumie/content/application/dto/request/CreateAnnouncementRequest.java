@@ -13,7 +13,7 @@ public record CreateAnnouncementRequest(
         @NotBlank(message = "Content is required")
         String content,
 
-        Boolean isPinned,
+        Boolean isImportant,
 
         Boolean isPublic
 ) {

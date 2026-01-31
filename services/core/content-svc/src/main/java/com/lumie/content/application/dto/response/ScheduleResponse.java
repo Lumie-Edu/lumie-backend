@@ -9,7 +9,7 @@ import java.time.LocalTime;
 public record ScheduleResponse(
         Long id,
         Long academyId,
-        Long counselorId,
+        Long adminId,
         LocalDate scheduleDate,
         LocalTime startTime,
         LocalTime endTime,
@@ -25,7 +25,7 @@ public record ScheduleResponse(
         return new ScheduleResponse(
                 schedule.getId(),
                 schedule.getAcademyId(),
-                schedule.getCounselorId(),
+                schedule.getAdminId(),
                 schedule.getScheduleDate(),
                 schedule.getStartTime(),
                 schedule.getEndTime(),

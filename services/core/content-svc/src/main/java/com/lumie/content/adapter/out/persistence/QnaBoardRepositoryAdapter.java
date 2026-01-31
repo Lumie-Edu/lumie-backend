@@ -36,8 +36,8 @@ public class QnaBoardRepositoryAdapter implements QnaBoardRepository {
     }
 
     @Override
-    public Page<QnaBoard> findByAuthorId(Long authorId, Pageable pageable) {
-        return jpaRepository.findByAuthorId(authorId, pageable);
+    public Page<QnaBoard> findByStudentId(Long studentId, Pageable pageable) {
+        return jpaRepository.findByStudentId(studentId, pageable);
     }
 
     @Override

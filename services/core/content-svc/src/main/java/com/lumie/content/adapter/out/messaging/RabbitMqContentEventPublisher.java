@@ -29,7 +29,7 @@ public class RabbitMqContentEventPublisher implements ContentEventPublisherPort 
                 "tenantSlug", tenantSlug,
                 "qnaId", qnaBoard.getId(),
                 "qnaTitle", qnaBoard.getTitle(),
-                "authorId", qnaBoard.getAuthorId(),
+                "studentId", qnaBoard.getStudentId(),
                 "timestamp", LocalDateTime.now().toString()
         );
 

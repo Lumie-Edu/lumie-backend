@@ -23,8 +23,8 @@ public class QnaBoard extends BaseEntity {
     @Column(name = "academy_id")
     private Long academyId;
 
-    @Column(name = "author_id", nullable = false)
-    private Long authorId;
+    @Column(name = "student_id", nullable = false)
+    private Long studentId;
 
     @Column(name = "title", nullable = false, length = 200)
     private String title;
@@ -49,10 +49,10 @@ public class QnaBoard extends BaseEntity {
     private List<QnaComment> comments = new ArrayList<>();
 
     @Builder
-    private QnaBoard(Long academyId, Long authorId, String title, String content,
+    private QnaBoard(Long academyId, Long studentId, String title, String content,
                      String category, Boolean isPrivate) {
         this.academyId = academyId;
-        this.authorId = authorId;
+        this.studentId = studentId;
         this.title = title;
         this.content = content;
         this.category = category;
@@ -61,11 +61,11 @@ public class QnaBoard extends BaseEntity {
         this.viewCount = 0;
     }
 
-    public static QnaBoard create(Long academyId, Long authorId, String title, String content,
+    public static QnaBoard create(Long academyId, Long studentId, String title, String content,
                                    String category, Boolean isPrivate) {
         return QnaBoard.builder()
                 .academyId(academyId)
-                .authorId(authorId)
+                .studentId(studentId)
                 .title(title)
                 .content(content)
                 .category(category)

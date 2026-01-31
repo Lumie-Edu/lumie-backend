@@ -33,7 +33,7 @@ public class QnaCommandService {
 
         QnaBoard qnaBoard = QnaBoard.create(
                 request.academyId(),
-                request.authorId(),
+                request.studentId(),
                 request.title(),
                 request.content(),
                 request.category(),

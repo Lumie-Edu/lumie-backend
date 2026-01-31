@@ -25,14 +25,14 @@ public class AnnouncementQueryService {
     public Page<AnnouncementResponse> listAnnouncements(Pageable pageable) {
         log.debug("Listing announcements with pagination");
 
-        return announcementRepository.findAllOrderByPinnedDescCreatedAtDesc(pageable)
+        return announcementRepository.findAllOrderByImportantDescCreatedAtDesc(pageable)
                 .map(AnnouncementResponse::from);
     }
 
-    public List<AnnouncementResponse> listPinnedAnnouncements() {
-        log.debug("Listing pinned announcements");
+    public List<AnnouncementResponse> listImportantAnnouncements() {
+        log.debug("Listing important announcements");
 
-        return announcementRepository.findByIsPinnedTrue().stream()
+        return announcementRepository.findByIsImportantTrue().stream()
                 .map(AnnouncementResponse::from)
                 .toList();
     }

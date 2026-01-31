@@ -32,13 +32,13 @@ public class AnnouncementRepositoryAdapter implements AnnouncementRepository {
     }
 
     @Override
-    public Page<Announcement> findAllOrderByPinnedDescCreatedAtDesc(Pageable pageable) {
-        return jpaRepository.findAllOrderByPinnedDescCreatedAtDesc(pageable);
+    public Page<Announcement> findAllOrderByImportantDescCreatedAtDesc(Pageable pageable) {
+        return jpaRepository.findAllOrderByImportantDescCreatedAtDesc(pageable);
     }
 
     @Override
-    public List<Announcement> findByIsPinnedTrue() {
-        return jpaRepository.findByIsPinnedTrue();
+    public List<Announcement> findByIsImportantTrue() {
+        return jpaRepository.findByIsImportantTrue();
     }
 
     @Override

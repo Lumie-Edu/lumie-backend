@@ -25,7 +25,7 @@ public class ScheduleCommandService {
 
         Schedule schedule = Schedule.create(
                 request.academyId(),
-                request.counselorId(),
+                request.adminId(),
                 request.scheduleDate(),
                 request.startTime(),
                 request.endTime(),

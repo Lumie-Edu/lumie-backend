@@ -31,8 +31,8 @@ public class Announcement extends BaseEntity {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "is_pinned", nullable = false)
-    private Boolean isPinned;
+    @Column(name = "is_important", nullable = false)
+    private Boolean isImportant;
 
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic;
@@ -45,39 +45,39 @@ public class Announcement extends BaseEntity {
 
     @Builder
     private Announcement(Long academyId, Long authorId, String title, String content,
-                         Boolean isPinned, Boolean isPublic, LocalDateTime publishedAt) {
+                         Boolean isImportant, Boolean isPublic, LocalDateTime publishedAt) {
         this.academyId = academyId;
         this.authorId = authorId;
         this.title = title;
         this.content = content;
-        this.isPinned = isPinned != null ? isPinned : false;
+        this.isImportant = isImportant != null ? isImportant : false;
         this.isPublic = isPublic != null ? isPublic : true;
         this.viewCount = 0;
         this.publishedAt = publishedAt;
     }
 
     public static Announcement create(Long academyId, Long authorId, String title, String content,
-                                       Boolean isPinned, Boolean isPublic) {
+                                       Boolean isImportant, Boolean isPublic) {
         return Announcement.builder()
                 .academyId(academyId)
                 .authorId(authorId)
                 .title(title)
                 .content(content)
-                .isPinned(isPinned)
+                .isImportant(isImportant)
                 .isPublic(isPublic)
                 .publishedAt(LocalDateTime.now())
                 .build();
     }
 
-    public void update(String title, String content, Boolean isPinned, Boolean isPublic) {
+    public void update(String title, String content, Boolean isImportant, Boolean isPublic) {
         if (title != null && !title.isBlank()) {
             this.title = title;
         }
         if (content != null && !content.isBlank()) {
             this.content = content;
         }
-        if (isPinned != null) {
-            this.isPinned = isPinned;
+        if (isImportant != null) {
+            this.isImportant = isImportant;
         }
         if (isPublic != null) {
             this.isPublic = isPublic;
@@ -88,11 +88,11 @@ public class Announcement extends BaseEntity {
         this.viewCount++;
     }
 
-    public void pin() {
-        this.isPinned = true;
+    public void markImportant() {
+        this.isImportant = true;
     }
 
-    public void unpin() {
-        this.isPinned = false;
+    public void unmarkImportant() {
+        this.isImportant = false;
     }
 }

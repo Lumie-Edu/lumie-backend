@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 public record QnaBoardResponse(
         Long id,
         Long academyId,
-        Long authorId,
+        Long studentId,
         String title,
         String content,
         String category,
@@ -22,7 +22,7 @@ public record QnaBoardResponse(
         return new QnaBoardResponse(
                 qnaBoard.getId(),
                 qnaBoard.getAcademyId(),
-                qnaBoard.getAuthorId(),
+                qnaBoard.getStudentId(),
                 qnaBoard.getTitle(),
                 qnaBoard.getContent(),
                 qnaBoard.getCategory(),

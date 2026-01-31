@@ -25,8 +25,8 @@ public class Schedule extends BaseEntity {
     @Column(name = "academy_id", nullable = false)
     private Long academyId;
 
-    @Column(name = "counselor_id", nullable = false)
-    private Long counselorId;
+    @Column(name = "admin_id", nullable = false)
+    private Long adminId;
 
     @Column(name = "schedule_date", nullable = false)
     private LocalDate scheduleDate;
@@ -51,11 +51,11 @@ public class Schedule extends BaseEntity {
     private List<Reservation> reservations = new ArrayList<>();
 
     @Builder
-    private Schedule(Long academyId, Long counselorId, LocalDate scheduleDate,
+    private Schedule(Long academyId, Long adminId, LocalDate scheduleDate,
                      LocalTime startTime, LocalTime endTime, Integer slotDurationMinutes,
                      Integer maxReservations, Boolean isAvailable) {
         this.academyId = academyId;
-        this.counselorId = counselorId;
+        this.adminId = adminId;
         this.scheduleDate = scheduleDate;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -64,12 +64,12 @@ public class Schedule extends BaseEntity {
         this.isAvailable = isAvailable != null ? isAvailable : true;
     }
 
-    public static Schedule create(Long academyId, Long counselorId, LocalDate scheduleDate,
+    public static Schedule create(Long academyId, Long adminId, LocalDate scheduleDate,
                                    LocalTime startTime, LocalTime endTime, Integer slotDurationMinutes,
                                    Integer maxReservations) {
         return Schedule.builder()
                 .academyId(academyId)
-                .counselorId(counselorId)
+                .adminId(adminId)
                 .scheduleDate(scheduleDate)
                 .startTime(startTime)
                 .endTime(endTime)

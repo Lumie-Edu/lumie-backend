@@ -48,8 +48,8 @@ public class ScheduleRepositoryAdapter implements ScheduleRepository {
     }
 
     @Override
-    public List<Schedule> findByCounselorIdAndScheduleDateBetween(Long counselorId, LocalDate startDate, LocalDate endDate) {
-        return jpaRepository.findByCounselorIdAndScheduleDateBetween(counselorId, startDate, endDate);
+    public List<Schedule> findByAdminIdAndScheduleDateBetween(Long adminId, LocalDate startDate, LocalDate endDate) {
+        return jpaRepository.findByAdminIdAndScheduleDateBetween(adminId, startDate, endDate);
     }
 
     @Override
