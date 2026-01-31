@@ -1,34 +1,31 @@
 package com.lumie.tenant.adapter.out.schema;
 
 import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.flywaydb.core.Flyway;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 
+/**
+ * Manages tenant schema lifecycle using JdbcTemplate for DDL operations.
+ * DDL operations (CREATE/DROP SCHEMA) are auto-commit and don't require transaction management.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class TenantSchemaManager implements SchemaProvisioningPort {
 
     private final DataSource dataSource;
-
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void createSchema(String schemaName) {
         log.info("Creating schema: {}", schemaName);
-        String sanitized = sanitizeSchemaName(schemaName);
-        entityManager.createNativeQuery("CREATE SCHEMA IF NOT EXISTS " + sanitized)
-                .executeUpdate();
+        String sql = String.format("CREATE SCHEMA IF NOT EXISTS %s", sanitizeSchemaName(schemaName));
+        jdbcTemplate.execute(sql);
         log.info("Schema created: {}", schemaName);
     }
 
@@ -49,22 +46,17 @@ public class TenantSchemaManager implements SchemaProvisioningPort {
     }
 
     @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void dropSchema(String schemaName) {
         log.warn("Dropping schema: {}", schemaName);
-        String sanitized = sanitizeSchemaName(schemaName);
-        entityManager.createNativeQuery("DROP SCHEMA IF EXISTS " + sanitized + " CASCADE")
-                .executeUpdate();
+        String sql = String.format("DROP SCHEMA IF EXISTS %s CASCADE", sanitizeSchemaName(schemaName));
+        jdbcTemplate.execute(sql);
         log.warn("Schema dropped: {}", schemaName);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean schemaExists(String schemaName) {
-        Long count = (Long) entityManager.createNativeQuery(
-                        "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = :schemaName")
-                .setParameter("schemaName", schemaName)
-                .getSingleResult();
+        String sql = "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, schemaName);
         return count != null && count > 0;
     }
 

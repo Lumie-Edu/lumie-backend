@@ -1,5 +1,6 @@
 package com.lumie.common.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -17,6 +18,7 @@ public abstract class AbstractDomainEvent implements DomainEvent {
     }
 
     @Override
+    @JsonIgnore
     public String getEventType() {
         return this.getClass().getSimpleName();
     }
