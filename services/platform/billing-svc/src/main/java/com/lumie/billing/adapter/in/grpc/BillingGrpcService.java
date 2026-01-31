@@ -48,17 +48,17 @@ public class BillingGrpcService extends BillingServiceGrpc.BillingServiceImplBas
         log.debug("gRPC CheckQuota request: tenantSlug={}, metricType={}",
                 request.getTenantSlug(), request.getMetricType());
 
-        try {
-            MetricType metricType = MetricType.valueOf(request.getMetricType());
-            com.lumie.billing.application.dto.response.QuotaCheckResponse quotaCheck =
-                    checkQuotaUseCase.checkQuota(request.getTenantSlug(), metricType);
+        // TODO: TossPayments 연동 전까지 모든 quota 체크 자동 통과 (Enterprise 요금제)
+        CheckQuotaResponse response = CheckQuotaResponse.newBuilder()
+                .setAllowed(true)
+                .setCurrentUsage(0)
+                .setLimit(Long.MAX_VALUE)
+                .setMetricType(request.getMetricType())
+                .setMessage("Billing integration pending - unlimited access granted")
+                .build();
 
-            responseObserver.onNext(toGrpcCheckQuotaResponse(quotaCheck));
-            responseObserver.onCompleted();
-        } catch (Exception e) {
-            log.error("Failed to check quota for tenant: {}", request.getTenantSlug(), e);
-            responseObserver.onError(e);
-        }
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 
     @Override
