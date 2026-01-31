@@ -10,8 +10,8 @@ import java.util.List;
 
 public interface JpaAnnouncementRepository extends JpaRepository<Announcement, Long> {
 
-    @Query("SELECT a FROM Announcement a ORDER BY a.isImportant DESC, a.createdAt DESC")
-    Page<Announcement> findAllOrderByImportantDescCreatedAtDesc(Pageable pageable);
+    @Query("SELECT a FROM Announcement a ORDER BY a.isPinned DESC, a.createdAt DESC")
+    Page<Announcement> findAllOrderByPinnedDescCreatedAtDesc(Pageable pageable);
 
-    List<Announcement> findByIsImportantTrue();
+    List<Announcement> findByIsPinnedTrue();
 }

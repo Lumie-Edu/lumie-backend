@@ -31,9 +31,9 @@ public class AnnouncementController {
         return ResponseEntity.ok(queryService.listAnnouncements(pageable));
     }
 
-    @GetMapping("/important")
-    public ResponseEntity<List<AnnouncementResponse>> listImportantAnnouncements() {
-        return ResponseEntity.ok(queryService.listImportantAnnouncements());
+    @GetMapping("/pinned")
+    public ResponseEntity<List<AnnouncementResponse>> listPinnedAnnouncements() {
+        return ResponseEntity.ok(queryService.listPinnedAnnouncements());
     }
 
     @GetMapping("/{id}")

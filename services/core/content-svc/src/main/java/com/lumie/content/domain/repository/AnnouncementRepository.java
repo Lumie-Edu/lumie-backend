@@ -15,9 +15,9 @@ public interface AnnouncementRepository {
 
     Page<Announcement> findAll(Pageable pageable);
 
-    Page<Announcement> findAllOrderByImportantDescCreatedAtDesc(Pageable pageable);
+    Page<Announcement> findAllOrderByPinnedDescCreatedAtDesc(Pageable pageable);
 
-    List<Announcement> findByIsImportantTrue();
+    List<Announcement> findByIsPinnedTrue();
 
     void deleteById(Long id);
 
