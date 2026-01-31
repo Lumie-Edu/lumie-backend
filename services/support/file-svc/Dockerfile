@@ -16,9 +16,10 @@ COPY libs libs
 # Copy service
 COPY services/support/file-svc services/support/file-svc
 
-# Build
+# Build and cleanup temp files for Kaniko compatibility
 RUN chmod +x gradlew && \
-    ./gradlew :services:support:file-svc:bootJar -x test --no-daemon
+    ./gradlew :services:support:file-svc:bootJar -x test --no-daemon && \
+    rm -rf /tmp/hsperfdata_* /root/.gradle
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine
