@@ -6,24 +6,28 @@ import java.time.LocalDateTime;
 
 public record AnnouncementResponse(
         Long id,
+        Long academyId,
+        Long authorId,
         String title,
         String content,
-        Long authorId,
-        String authorName,
-        Boolean isImportant,
+        Boolean isPinned,
+        Boolean isPublic,
         Integer viewCount,
+        LocalDateTime publishedAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
     public static AnnouncementResponse from(Announcement announcement) {
         return new AnnouncementResponse(
                 announcement.getId(),
+                announcement.getAcademyId(),
+                announcement.getAuthorId(),
                 announcement.getTitle(),
                 announcement.getContent(),
-                announcement.getAuthorId(),
-                announcement.getAuthorName(),
-                announcement.getIsImportant(),
+                announcement.getIsPinned(),
+                announcement.getIsPublic(),
                 announcement.getViewCount(),
+                announcement.getPublishedAt(),
                 announcement.getCreatedAt(),
                 announcement.getUpdatedAt()
         );

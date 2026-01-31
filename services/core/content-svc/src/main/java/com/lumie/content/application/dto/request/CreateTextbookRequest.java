@@ -1,30 +1,31 @@
 package com.lumie.content.application.dto.request;
 
-import com.lumie.content.domain.vo.TextbookCategory;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
+
 public record CreateTextbookRequest(
-        @NotBlank(message = "Title is required")
-        String title,
+        @NotNull(message = "Academy ID is required")
+        Long academyId,
+
+        @NotBlank(message = "Name is required")
+        String name,
 
         String description,
 
-        @NotNull(message = "Category is required")
-        TextbookCategory category,
+        String author,
 
-        Long fileId,
+        String publisher,
 
-        String fileName,
+        String isbn,
 
-        String fileUrl,
+        String subject,
 
-        Long fileSize,
+        String gradeLevel,
 
-        Long authorId,
+        BigDecimal price,
 
-        String authorName,
-
-        Boolean isImportant
+        String coverImagePath
 ) {
 }

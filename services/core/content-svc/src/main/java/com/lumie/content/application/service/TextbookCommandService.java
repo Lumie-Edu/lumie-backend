@@ -21,19 +21,19 @@ public class TextbookCommandService {
 
     @Transactional
     public TextbookResponse createTextbook(CreateTextbookRequest request) {
-        log.info("Creating textbook: {}", request.title());
+        log.info("Creating textbook: {}", request.name());
 
         Textbook textbook = Textbook.create(
-                request.title(),
+                request.academyId(),
+                request.name(),
                 request.description(),
-                request.category(),
-                request.fileId(),
-                request.fileName(),
-                request.fileUrl(),
-                request.fileSize(),
-                request.authorId(),
-                request.authorName(),
-                request.isImportant()
+                request.author(),
+                request.publisher(),
+                request.isbn(),
+                request.subject(),
+                request.gradeLevel(),
+                request.price(),
+                request.coverImagePath()
         );
 
         Textbook saved = textbookRepository.save(textbook);
@@ -50,14 +50,15 @@ public class TextbookCommandService {
                 .orElseThrow(() -> new ContentException(ContentErrorCode.TEXTBOOK_NOT_FOUND));
 
         textbook.update(
-                request.title(),
+                request.name(),
                 request.description(),
-                request.category(),
-                request.fileId(),
-                request.fileName(),
-                request.fileUrl(),
-                request.fileSize(),
-                request.isImportant()
+                request.author(),
+                request.publisher(),
+                request.isbn(),
+                request.subject(),
+                request.gradeLevel(),
+                request.price(),
+                request.coverImagePath()
         );
 
         Textbook updated = textbookRepository.save(textbook);

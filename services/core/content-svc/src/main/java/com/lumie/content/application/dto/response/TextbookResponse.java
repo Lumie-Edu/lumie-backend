@@ -1,40 +1,41 @@
 package com.lumie.content.application.dto.response;
 
 import com.lumie.content.domain.entity.Textbook;
-import com.lumie.content.domain.vo.TextbookCategory;
+import com.lumie.content.domain.vo.TextbookStatus;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record TextbookResponse(
         Long id,
-        String title,
+        Long academyId,
+        String name,
         String description,
-        TextbookCategory category,
-        Long fileId,
-        String fileName,
-        String fileUrl,
-        Long fileSize,
-        Long authorId,
-        String authorName,
-        Boolean isImportant,
-        Integer downloadCount,
+        String author,
+        String publisher,
+        String isbn,
+        String subject,
+        String gradeLevel,
+        BigDecimal price,
+        String coverImagePath,
+        TextbookStatus status,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
     public static TextbookResponse from(Textbook textbook) {
         return new TextbookResponse(
                 textbook.getId(),
-                textbook.getTitle(),
+                textbook.getAcademyId(),
+                textbook.getName(),
                 textbook.getDescription(),
-                textbook.getCategory(),
-                textbook.getFileId(),
-                textbook.getFileName(),
-                textbook.getFileUrl(),
-                textbook.getFileSize(),
-                textbook.getAuthorId(),
-                textbook.getAuthorName(),
-                textbook.getIsImportant(),
-                textbook.getDownloadCount(),
+                textbook.getAuthor(),
+                textbook.getPublisher(),
+                textbook.getIsbn(),
+                textbook.getSubject(),
+                textbook.getGradeLevel(),
+                textbook.getPrice(),
+                textbook.getCoverImagePath(),
+                textbook.getStatus(),
                 textbook.getCreatedAt(),
                 textbook.getUpdatedAt()
         );

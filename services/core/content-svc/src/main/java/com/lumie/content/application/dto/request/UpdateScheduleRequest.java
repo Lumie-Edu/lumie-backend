@@ -7,8 +7,8 @@ public record UpdateScheduleRequest(
         LocalDate scheduleDate,
         LocalTime startTime,
         LocalTime endTime,
+        Integer slotDurationMinutes,
         Integer maxReservations,
-        String description,
         Boolean isAvailable
 ) {
 }

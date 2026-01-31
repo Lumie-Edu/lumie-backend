@@ -24,11 +24,12 @@ public class AnnouncementCommandService {
         log.info("Creating announcement: {}", request.title());
 
         Announcement announcement = Announcement.create(
+                request.academyId(),
+                request.authorId(),
                 request.title(),
                 request.content(),
-                request.authorId(),
-                request.authorName(),
-                request.isImportant()
+                request.isPinned(),
+                request.isPublic()
         );
 
         Announcement saved = announcementRepository.save(announcement);
@@ -44,7 +45,7 @@ public class AnnouncementCommandService {
         Announcement announcement = announcementRepository.findById(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND));
 
-        announcement.update(request.title(), request.content(), request.isImportant());
+        announcement.update(request.title(), request.content(), request.isPinned(), request.isPublic());
 
         Announcement updated = announcementRepository.save(announcement);
         log.info("Announcement updated: {}", updated.getId());

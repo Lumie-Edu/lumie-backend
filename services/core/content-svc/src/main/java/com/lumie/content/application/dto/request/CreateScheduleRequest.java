@@ -7,10 +7,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 public record CreateScheduleRequest(
-        @NotNull(message = "Admin ID is required")
-        Long adminId,
+        @NotNull(message = "Academy ID is required")
+        Long academyId,
 
-        String adminName,
+        @NotNull(message = "Counselor ID is required")
+        Long counselorId,
 
         @NotNull(message = "Schedule date is required")
         LocalDate scheduleDate,
@@ -21,10 +22,10 @@ public record CreateScheduleRequest(
         @NotNull(message = "End time is required")
         LocalTime endTime,
 
-        @NotNull(message = "Max reservations is required")
-        @Positive(message = "Max reservations must be positive")
-        Integer maxReservations,
+        @Positive(message = "Slot duration must be positive")
+        Integer slotDurationMinutes,
 
-        String description
+        @Positive(message = "Max reservations must be positive")
+        Integer maxReservations
 ) {
 }

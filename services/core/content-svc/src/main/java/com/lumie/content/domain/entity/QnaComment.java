@@ -1,7 +1,6 @@
 package com.lumie.content.domain.entity;
 
 import com.lumie.common.domain.BaseEntity;
-import com.lumie.content.domain.vo.AuthorType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -19,55 +18,40 @@ public class QnaComment extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "qna_board_id", nullable = false)
+    @JoinColumn(name = "qna_id", nullable = false)
     private QnaBoard qnaBoard;
-
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
-    private String content;
 
     @Column(name = "author_id", nullable = false)
     private Long authorId;
 
-    @Column(name = "author_name", nullable = false, length = 100)
-    private String authorName;
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    private String content;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "author_type", nullable = false, length = 20)
-    private AuthorType authorType;
+    @Column(name = "is_answer", nullable = false)
+    private Boolean isAnswer;
 
     @Builder
-    private QnaComment(QnaBoard qnaBoard, String content, Long authorId, String authorName,
-                       AuthorType authorType) {
+    private QnaComment(QnaBoard qnaBoard, Long authorId, String content, Boolean isAnswer) {
         this.qnaBoard = qnaBoard;
-        this.content = content;
         this.authorId = authorId;
-        this.authorName = authorName;
-        this.authorType = authorType;
+        this.content = content;
+        this.isAnswer = isAnswer != null ? isAnswer : false;
     }
 
-    public static QnaComment createFromStudent(QnaBoard qnaBoard, String content, Long studentId,
-                                                String studentName) {
+    public static QnaComment create(QnaBoard qnaBoard, Long authorId, String content, Boolean isAnswer) {
         return QnaComment.builder()
                 .qnaBoard(qnaBoard)
+                .authorId(authorId)
                 .content(content)
-                .authorId(studentId)
-                .authorName(studentName)
-                .authorType(AuthorType.STUDENT)
+                .isAnswer(isAnswer)
                 .build();
     }
 
-    public static QnaComment createFromAdmin(QnaBoard qnaBoard, String content, Long adminId,
-                                              String adminName) {
-        return QnaComment.builder()
-                .qnaBoard(qnaBoard)
-                .content(content)
-                .authorId(adminId)
-                .authorName(adminName)
-                .authorType(AuthorType.ADMIN)
-                .build();
+    public boolean isAnswer() {
+        return Boolean.TRUE.equals(this.isAnswer);
     }
 
-    public boolean isFromAdmin() {
-        return this.authorType == AuthorType.ADMIN;
+    public void markAsAnswer() {
+        this.isAnswer = true;
     }
 }

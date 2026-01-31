@@ -8,15 +8,15 @@ import java.time.LocalTime;
 
 public record ScheduleResponse(
         Long id,
-        Long adminId,
-        String adminName,
+        Long academyId,
+        Long counselorId,
         LocalDate scheduleDate,
         LocalTime startTime,
         LocalTime endTime,
+        Integer slotDurationMinutes,
         Integer maxReservations,
         Integer availableSlots,
         Integer confirmedCount,
-        String description,
         Boolean isAvailable,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -24,15 +24,15 @@ public record ScheduleResponse(
     public static ScheduleResponse from(Schedule schedule) {
         return new ScheduleResponse(
                 schedule.getId(),
-                schedule.getAdminId(),
-                schedule.getAdminName(),
+                schedule.getAcademyId(),
+                schedule.getCounselorId(),
                 schedule.getScheduleDate(),
                 schedule.getStartTime(),
                 schedule.getEndTime(),
+                schedule.getSlotDurationMinutes(),
                 schedule.getMaxReservations(),
                 schedule.getAvailableSlots(),
                 schedule.getConfirmedCount(),
-                schedule.getDescription(),
                 schedule.getIsAvailable(),
                 schedule.getCreatedAt(),
                 schedule.getUpdatedAt()

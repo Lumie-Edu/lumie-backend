@@ -12,7 +12,6 @@ import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.QnaBoardRepository;
 import com.lumie.content.domain.repository.QnaCommentRepository;
-import com.lumie.content.domain.vo.AuthorType;
 import com.lumie.content.infrastructure.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,10 +32,12 @@ public class QnaCommandService {
         log.info("Creating Q&A: {}", request.title());
 
         QnaBoard qnaBoard = QnaBoard.create(
+                request.academyId(),
+                request.authorId(),
                 request.title(),
                 request.content(),
-                request.studentId(),
-                request.studentName()
+                request.category(),
+                request.isPrivate()
         );
 
         QnaBoard saved = qnaBoardRepository.save(qnaBoard);
@@ -52,7 +53,7 @@ public class QnaCommandService {
         QnaBoard qnaBoard = qnaBoardRepository.findById(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
 
-        qnaBoard.update(request.title(), request.content());
+        qnaBoard.update(request.title(), request.content(), request.category(), request.isPrivate());
 
         QnaBoard updated = qnaBoardRepository.save(qnaBoard);
         log.info("Q&A updated: {}", updated.getId());
@@ -79,31 +80,21 @@ public class QnaCommandService {
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(qnaId)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
 
-        boolean hadAdminComment = qnaBoard.hasAdminComment();
+        boolean hadAnswerComment = qnaBoard.hasAnswerComment();
 
-        QnaComment comment;
-        if (request.authorType() == AuthorType.ADMIN) {
-            comment = QnaComment.createFromAdmin(
-                    qnaBoard,
-                    request.content(),
-                    request.authorId(),
-                    request.authorName()
-            );
-        } else {
-            comment = QnaComment.createFromStudent(
-                    qnaBoard,
-                    request.content(),
-                    request.authorId(),
-                    request.authorName()
-            );
-        }
+        QnaComment comment = QnaComment.create(
+                qnaBoard,
+                request.authorId(),
+                request.content(),
+                request.isAnswer()
+        );
 
         qnaBoard.addComment(comment);
         QnaComment saved = qnaCommentRepository.save(comment);
         qnaBoardRepository.save(qnaBoard);
 
-        // Publish event if this is the first admin comment
-        if (!hadAdminComment && comment.isFromAdmin()) {
+        // Publish event if this is the first answer comment
+        if (!hadAnswerComment && comment.isAnswer()) {
             String tenantSlug = TenantContextHolder.getTenantSlug();
             eventPublisher.publishQnaReplied(qnaBoard, tenantSlug);
         }

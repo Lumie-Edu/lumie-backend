@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "schedules")
+@Table(name = "counseling_schedules")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Schedule extends BaseEntity {
@@ -22,11 +22,11 @@ public class Schedule extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "admin_id", nullable = false)
-    private Long adminId;
+    @Column(name = "academy_id", nullable = false)
+    private Long academyId;
 
-    @Column(name = "admin_name", nullable = false, length = 100)
-    private String adminName;
+    @Column(name = "counselor_id", nullable = false)
+    private Long counselorId;
 
     @Column(name = "schedule_date", nullable = false)
     private LocalDate scheduleDate;
@@ -37,11 +37,11 @@ public class Schedule extends BaseEntity {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
+    @Column(name = "slot_duration_minutes", nullable = false)
+    private Integer slotDurationMinutes;
+
     @Column(name = "max_reservations", nullable = false)
     private Integer maxReservations;
-
-    @Column(name = "description", length = 500)
-    private String description;
 
     @Column(name = "is_available", nullable = false)
     private Boolean isAvailable;
@@ -51,36 +51,36 @@ public class Schedule extends BaseEntity {
     private List<Reservation> reservations = new ArrayList<>();
 
     @Builder
-    private Schedule(Long adminId, String adminName, LocalDate scheduleDate,
-                     LocalTime startTime, LocalTime endTime, Integer maxReservations,
-                     String description, Boolean isAvailable) {
-        this.adminId = adminId;
-        this.adminName = adminName;
+    private Schedule(Long academyId, Long counselorId, LocalDate scheduleDate,
+                     LocalTime startTime, LocalTime endTime, Integer slotDurationMinutes,
+                     Integer maxReservations, Boolean isAvailable) {
+        this.academyId = academyId;
+        this.counselorId = counselorId;
         this.scheduleDate = scheduleDate;
         this.startTime = startTime;
         this.endTime = endTime;
-        this.maxReservations = maxReservations;
-        this.description = description;
+        this.slotDurationMinutes = slotDurationMinutes != null ? slotDurationMinutes : 30;
+        this.maxReservations = maxReservations != null ? maxReservations : 1;
         this.isAvailable = isAvailable != null ? isAvailable : true;
     }
 
-    public static Schedule create(Long adminId, String adminName, LocalDate scheduleDate,
-                                   LocalTime startTime, LocalTime endTime, Integer maxReservations,
-                                   String description) {
+    public static Schedule create(Long academyId, Long counselorId, LocalDate scheduleDate,
+                                   LocalTime startTime, LocalTime endTime, Integer slotDurationMinutes,
+                                   Integer maxReservations) {
         return Schedule.builder()
-                .adminId(adminId)
-                .adminName(adminName)
+                .academyId(academyId)
+                .counselorId(counselorId)
                 .scheduleDate(scheduleDate)
                 .startTime(startTime)
                 .endTime(endTime)
+                .slotDurationMinutes(slotDurationMinutes)
                 .maxReservations(maxReservations)
-                .description(description)
                 .isAvailable(true)
                 .build();
     }
 
     public void update(LocalDate scheduleDate, LocalTime startTime, LocalTime endTime,
-                       Integer maxReservations, String description) {
+                       Integer slotDurationMinutes, Integer maxReservations) {
         if (scheduleDate != null) {
             this.scheduleDate = scheduleDate;
         }
@@ -90,11 +90,11 @@ public class Schedule extends BaseEntity {
         if (endTime != null) {
             this.endTime = endTime;
         }
+        if (slotDurationMinutes != null) {
+            this.slotDurationMinutes = slotDurationMinutes;
+        }
         if (maxReservations != null) {
             this.maxReservations = maxReservations;
-        }
-        if (description != null) {
-            this.description = description;
         }
     }
 

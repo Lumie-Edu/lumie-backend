@@ -20,20 +20,26 @@ public class QnaBoard extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "academy_id")
+    private Long academyId;
+
+    @Column(name = "author_id", nullable = false)
+    private Long authorId;
+
     @Column(name = "title", nullable = false, length = 200)
     private String title;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "student_id", nullable = false)
-    private Long studentId;
-
-    @Column(name = "student_name", nullable = false, length = 100)
-    private String studentName;
+    @Column(name = "category", length = 50)
+    private String category;
 
     @Column(name = "is_answered", nullable = false)
     private Boolean isAnswered;
+
+    @Column(name = "is_private", nullable = false)
+    private Boolean isPrivate;
 
     @Column(name = "view_count", nullable = false)
     private Integer viewCount;
@@ -43,30 +49,42 @@ public class QnaBoard extends BaseEntity {
     private List<QnaComment> comments = new ArrayList<>();
 
     @Builder
-    private QnaBoard(String title, String content, Long studentId, String studentName) {
+    private QnaBoard(Long academyId, Long authorId, String title, String content,
+                     String category, Boolean isPrivate) {
+        this.academyId = academyId;
+        this.authorId = authorId;
         this.title = title;
         this.content = content;
-        this.studentId = studentId;
-        this.studentName = studentName;
+        this.category = category;
         this.isAnswered = false;
+        this.isPrivate = isPrivate != null ? isPrivate : false;
         this.viewCount = 0;
     }
 
-    public static QnaBoard create(String title, String content, Long studentId, String studentName) {
+    public static QnaBoard create(Long academyId, Long authorId, String title, String content,
+                                   String category, Boolean isPrivate) {
         return QnaBoard.builder()
+                .academyId(academyId)
+                .authorId(authorId)
                 .title(title)
                 .content(content)
-                .studentId(studentId)
-                .studentName(studentName)
+                .category(category)
+                .isPrivate(isPrivate)
                 .build();
     }
 
-    public void update(String title, String content) {
+    public void update(String title, String content, String category, Boolean isPrivate) {
         if (title != null && !title.isBlank()) {
             this.title = title;
         }
         if (content != null && !content.isBlank()) {
             this.content = content;
+        }
+        if (category != null) {
+            this.category = category;
+        }
+        if (isPrivate != null) {
+            this.isPrivate = isPrivate;
         }
     }
 
@@ -80,12 +98,12 @@ public class QnaBoard extends BaseEntity {
 
     public void addComment(QnaComment comment) {
         this.comments.add(comment);
-        if (comment.isFromAdmin() && !this.isAnswered) {
+        if (comment.isAnswer() && !this.isAnswered) {
             this.markAsAnswered();
         }
     }
 
-    public boolean hasAdminComment() {
-        return comments.stream().anyMatch(QnaComment::isFromAdmin);
+    public boolean hasAnswerComment() {
+        return comments.stream().anyMatch(QnaComment::isAnswer);
     }
 }

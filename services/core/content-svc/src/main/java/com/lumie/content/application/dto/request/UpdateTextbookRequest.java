@@ -1,15 +1,16 @@
 package com.lumie.content.application.dto.request;
 
-import com.lumie.content.domain.vo.TextbookCategory;
+import java.math.BigDecimal;
 
 public record UpdateTextbookRequest(
-        String title,
+        String name,
         String description,
-        TextbookCategory category,
-        Long fileId,
-        String fileName,
-        String fileUrl,
-        Long fileSize,
-        Boolean isImportant
+        String author,
+        String publisher,
+        String isbn,
+        String subject,
+        String gradeLevel,
+        BigDecimal price,
+        String coverImagePath
 ) {
 }

@@ -24,13 +24,13 @@ public class ScheduleCommandService {
         log.info("Creating schedule for date: {}", request.scheduleDate());
 
         Schedule schedule = Schedule.create(
-                request.adminId(),
-                request.adminName(),
+                request.academyId(),
+                request.counselorId(),
                 request.scheduleDate(),
                 request.startTime(),
                 request.endTime(),
-                request.maxReservations(),
-                request.description()
+                request.slotDurationMinutes(),
+                request.maxReservations()
         );
 
         Schedule saved = scheduleRepository.save(schedule);
@@ -50,8 +50,8 @@ public class ScheduleCommandService {
                 request.scheduleDate(),
                 request.startTime(),
                 request.endTime(),
-                request.maxReservations(),
-                request.description()
+                request.slotDurationMinutes(),
+                request.maxReservations()
         );
 
         if (request.isAvailable() != null) {

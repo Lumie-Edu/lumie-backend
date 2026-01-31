@@ -54,9 +54,9 @@ public class ReservationCommandService {
         Reservation reservation = Reservation.create(
                 schedule,
                 request.studentId(),
-                request.studentName(),
-                request.studentPhone(),
-                request.memo()
+                request.reservationTime(),
+                request.topic(),
+                request.notes()
         );
 
         Reservation saved = reservationRepository.save(reservation);
@@ -84,7 +84,7 @@ public class ReservationCommandService {
                 String tenantSlug = TenantContextHolder.getTenantSlug();
                 eventPublisher.publishReservationConfirmed(reservation, tenantSlug);
             }
-            case CANCELLED -> reservation.cancel(request.cancelReason());
+            case CANCELLED -> reservation.cancel();
             case COMPLETED -> reservation.complete();
             default -> throw new ContentException(ContentErrorCode.INVALID_RESERVATION_STATUS);
         }
@@ -96,7 +96,7 @@ public class ReservationCommandService {
     }
 
     @Transactional
-    public void cancelReservation(Long id, String reason) {
+    public void cancelReservation(Long id) {
         log.info("Cancelling reservation: {}", id);
 
         Reservation reservation = reservationRepository.findByIdWithSchedule(id)
@@ -112,7 +112,7 @@ public class ReservationCommandService {
                     "Cannot cancel completed reservation");
         }
 
-        reservation.cancel(reason);
+        reservation.cancel();
         reservationRepository.save(reservation);
         log.info("Reservation cancelled: {}", id);
     }

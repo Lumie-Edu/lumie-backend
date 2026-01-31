@@ -7,11 +7,13 @@ import java.util.List;
 
 public record QnaDetailResponse(
         Long id,
+        Long academyId,
+        Long authorId,
         String title,
         String content,
-        Long studentId,
-        String studentName,
+        String category,
         Boolean isAnswered,
+        Boolean isPrivate,
         Integer viewCount,
         List<QnaCommentResponse> comments,
         LocalDateTime createdAt,
@@ -24,11 +26,13 @@ public record QnaDetailResponse(
 
         return new QnaDetailResponse(
                 qnaBoard.getId(),
+                qnaBoard.getAcademyId(),
+                qnaBoard.getAuthorId(),
                 qnaBoard.getTitle(),
                 qnaBoard.getContent(),
-                qnaBoard.getStudentId(),
-                qnaBoard.getStudentName(),
+                qnaBoard.getCategory(),
                 qnaBoard.getIsAnswered(),
+                qnaBoard.getIsPrivate(),
                 qnaBoard.getViewCount(),
                 commentResponses,
                 qnaBoard.getCreatedAt(),

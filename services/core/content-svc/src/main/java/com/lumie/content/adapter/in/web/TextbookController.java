@@ -5,7 +5,6 @@ import com.lumie.content.application.dto.request.UpdateTextbookRequest;
 import com.lumie.content.application.dto.response.TextbookResponse;
 import com.lumie.content.application.service.TextbookCommandService;
 import com.lumie.content.application.service.TextbookQueryService;
-import com.lumie.content.domain.vo.TextbookCategory;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,27 +27,22 @@ public class TextbookController {
 
     @GetMapping
     public ResponseEntity<Page<TextbookResponse>> listTextbooks(
-            @RequestParam(required = false) TextbookCategory category,
+            @RequestParam(required = false) String subject,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        if (category != null) {
-            return ResponseEntity.ok(queryService.listTextbooksByCategory(category, pageable));
+        if (subject != null && !subject.isBlank()) {
+            return ResponseEntity.ok(queryService.listTextbooksBySubject(subject, pageable));
         }
         return ResponseEntity.ok(queryService.listTextbooks(pageable));
     }
 
-    @GetMapping("/important")
-    public ResponseEntity<List<TextbookResponse>> listImportantTextbooks() {
-        return ResponseEntity.ok(queryService.listImportantTextbooks());
+    @GetMapping("/active")
+    public ResponseEntity<List<TextbookResponse>> listActiveTextbooks() {
+        return ResponseEntity.ok(queryService.listActiveTextbooks());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<TextbookResponse> getTextbook(@PathVariable Long id) {
         return ResponseEntity.ok(queryService.getTextbook(id));
-    }
-
-    @GetMapping("/{id}/download")
-    public ResponseEntity<TextbookResponse> downloadTextbook(@PathVariable Long id) {
-        return ResponseEntity.ok(queryService.downloadTextbook(id));
     }
 
     @PostMapping

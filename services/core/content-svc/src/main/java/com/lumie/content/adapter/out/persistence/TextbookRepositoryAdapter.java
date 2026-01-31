@@ -2,7 +2,7 @@ package com.lumie.content.adapter.out.persistence;
 
 import com.lumie.content.domain.entity.Textbook;
 import com.lumie.content.domain.repository.TextbookRepository;
-import com.lumie.content.domain.vo.TextbookCategory;
+import com.lumie.content.domain.vo.TextbookStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,13 +33,18 @@ public class TextbookRepositoryAdapter implements TextbookRepository {
     }
 
     @Override
-    public Page<Textbook> findByCategory(TextbookCategory category, Pageable pageable) {
-        return jpaRepository.findByCategory(category, pageable);
+    public Page<Textbook> findByAcademyId(Long academyId, Pageable pageable) {
+        return jpaRepository.findByAcademyId(academyId, pageable);
     }
 
     @Override
-    public List<Textbook> findByIsImportantTrue() {
-        return jpaRepository.findByIsImportantTrue();
+    public Page<Textbook> findBySubject(String subject, Pageable pageable) {
+        return jpaRepository.findBySubject(subject, pageable);
+    }
+
+    @Override
+    public List<Textbook> findByStatus(TextbookStatus status) {
+        return jpaRepository.findByStatus(status);
     }
 
     @Override

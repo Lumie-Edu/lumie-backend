@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "announcements")
 @Getter
@@ -17,55 +19,68 @@ public class Announcement extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "academy_id")
+    private Long academyId;
+
+    @Column(name = "author_id", nullable = false)
+    private Long authorId;
+
     @Column(name = "title", nullable = false, length = 200)
     private String title;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "author_id", nullable = false)
-    private Long authorId;
+    @Column(name = "is_pinned", nullable = false)
+    private Boolean isPinned;
 
-    @Column(name = "author_name", nullable = false, length = 100)
-    private String authorName;
-
-    @Column(name = "is_important", nullable = false)
-    private Boolean isImportant;
+    @Column(name = "is_public", nullable = false)
+    private Boolean isPublic;
 
     @Column(name = "view_count", nullable = false)
     private Integer viewCount;
 
+    @Column(name = "published_at")
+    private LocalDateTime publishedAt;
+
     @Builder
-    private Announcement(String title, String content, Long authorId, String authorName,
-                         Boolean isImportant) {
+    private Announcement(Long academyId, Long authorId, String title, String content,
+                         Boolean isPinned, Boolean isPublic, LocalDateTime publishedAt) {
+        this.academyId = academyId;
+        this.authorId = authorId;
         this.title = title;
         this.content = content;
-        this.authorId = authorId;
-        this.authorName = authorName;
-        this.isImportant = isImportant != null ? isImportant : false;
+        this.isPinned = isPinned != null ? isPinned : false;
+        this.isPublic = isPublic != null ? isPublic : true;
         this.viewCount = 0;
+        this.publishedAt = publishedAt;
     }
 
-    public static Announcement create(String title, String content, Long authorId, String authorName,
-                                       Boolean isImportant) {
+    public static Announcement create(Long academyId, Long authorId, String title, String content,
+                                       Boolean isPinned, Boolean isPublic) {
         return Announcement.builder()
+                .academyId(academyId)
+                .authorId(authorId)
                 .title(title)
                 .content(content)
-                .authorId(authorId)
-                .authorName(authorName)
-                .isImportant(isImportant)
+                .isPinned(isPinned)
+                .isPublic(isPublic)
+                .publishedAt(LocalDateTime.now())
                 .build();
     }
 
-    public void update(String title, String content, Boolean isImportant) {
+    public void update(String title, String content, Boolean isPinned, Boolean isPublic) {
         if (title != null && !title.isBlank()) {
             this.title = title;
         }
         if (content != null && !content.isBlank()) {
             this.content = content;
         }
-        if (isImportant != null) {
-            this.isImportant = isImportant;
+        if (isPinned != null) {
+            this.isPinned = isPinned;
+        }
+        if (isPublic != null) {
+            this.isPublic = isPublic;
         }
     }
 
@@ -73,7 +88,11 @@ public class Announcement extends BaseEntity {
         this.viewCount++;
     }
 
-    public void markAsImportant(boolean important) {
-        this.isImportant = important;
+    public void pin() {
+        this.isPinned = true;
+    }
+
+    public void unpin() {
+        this.isPinned = false;
     }
 }

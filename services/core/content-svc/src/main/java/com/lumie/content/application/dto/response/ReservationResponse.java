@@ -13,13 +13,11 @@ public record ReservationResponse(
         LocalDate scheduleDate,
         LocalTime startTime,
         LocalTime endTime,
-        String adminName,
         Long studentId,
-        String studentName,
-        String studentPhone,
+        LocalTime reservationTime,
+        String topic,
+        String notes,
         ReservationStatus status,
-        String memo,
-        String cancelReason,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -30,13 +28,11 @@ public record ReservationResponse(
                 reservation.getSchedule().getScheduleDate(),
                 reservation.getSchedule().getStartTime(),
                 reservation.getSchedule().getEndTime(),
-                reservation.getSchedule().getAdminName(),
                 reservation.getStudentId(),
-                reservation.getStudentName(),
-                reservation.getStudentPhone(),
+                reservation.getReservationTime(),
+                reservation.getTopic(),
+                reservation.getNotes(),
                 reservation.getStatus(),
-                reservation.getMemo(),
-                reservation.getCancelReason(),
                 reservation.getCreatedAt(),
                 reservation.getUpdatedAt()
         );

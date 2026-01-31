@@ -29,8 +29,7 @@ public class RabbitMqContentEventPublisher implements ContentEventPublisherPort 
                 "tenantSlug", tenantSlug,
                 "qnaId", qnaBoard.getId(),
                 "qnaTitle", qnaBoard.getTitle(),
-                "studentId", qnaBoard.getStudentId(),
-                "studentName", qnaBoard.getStudentName(),
+                "authorId", qnaBoard.getAuthorId(),
                 "timestamp", LocalDateTime.now().toString()
         );
 
@@ -52,7 +51,7 @@ public class RabbitMqContentEventPublisher implements ContentEventPublisherPort 
                 "reservationId", reservation.getId(),
                 "scheduleId", reservation.getSchedule().getId(),
                 "studentId", reservation.getStudentId(),
-                "studentName", reservation.getStudentName(),
+                "reservationTime", reservation.getReservationTime().toString(),
                 "scheduleDate", reservation.getSchedule().getScheduleDate().toString(),
                 "startTime", reservation.getSchedule().getStartTime().toString(),
                 "endTime", reservation.getSchedule().getEndTime().toString(),

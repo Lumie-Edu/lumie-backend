@@ -5,7 +5,7 @@ import com.lumie.content.domain.entity.Textbook;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.TextbookRepository;
-import com.lumie.content.domain.vo.TextbookCategory;
+import com.lumie.content.domain.vo.TextbookStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,17 +30,17 @@ public class TextbookQueryService {
                 .map(TextbookResponse::from);
     }
 
-    public Page<TextbookResponse> listTextbooksByCategory(TextbookCategory category, Pageable pageable) {
-        log.debug("Listing textbooks by category: {}", category);
+    public Page<TextbookResponse> listTextbooksBySubject(String subject, Pageable pageable) {
+        log.debug("Listing textbooks by subject: {}", subject);
 
-        return textbookRepository.findByCategory(category, pageable)
+        return textbookRepository.findBySubject(subject, pageable)
                 .map(TextbookResponse::from);
     }
 
-    public List<TextbookResponse> listImportantTextbooks() {
-        log.debug("Listing important textbooks");
+    public List<TextbookResponse> listActiveTextbooks() {
+        log.debug("Listing active textbooks");
 
-        return textbookRepository.findByIsImportantTrue().stream()
+        return textbookRepository.findByStatus(TextbookStatus.ACTIVE).stream()
                 .map(TextbookResponse::from)
                 .toList();
     }
@@ -50,19 +50,6 @@ public class TextbookQueryService {
 
         Textbook textbook = textbookRepository.findById(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.TEXTBOOK_NOT_FOUND));
-
-        return TextbookResponse.from(textbook);
-    }
-
-    @Transactional
-    public TextbookResponse downloadTextbook(Long id) {
-        log.debug("Downloading textbook: {}", id);
-
-        Textbook textbook = textbookRepository.findById(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.TEXTBOOK_NOT_FOUND));
-
-        textbook.incrementDownloadCount();
-        textbookRepository.save(textbook);
 
         return TextbookResponse.from(textbook);
     }

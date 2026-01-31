@@ -8,8 +8,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalTime;
+
 @Entity
-@Table(name = "reservations")
+@Table(name = "counseling_reservations")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Reservation extends BaseEntity {
@@ -25,41 +27,38 @@ public class Reservation extends BaseEntity {
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
-    @Column(name = "student_name", nullable = false, length = 100)
-    private String studentName;
+    @Column(name = "reservation_time", nullable = false)
+    private LocalTime reservationTime;
 
-    @Column(name = "student_phone", length = 20)
-    private String studentPhone;
+    @Column(name = "topic", length = 200)
+    private String topic;
+
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private ReservationStatus status;
 
-    @Column(name = "memo", length = 500)
-    private String memo;
-
-    @Column(name = "cancel_reason", length = 500)
-    private String cancelReason;
-
     @Builder
-    private Reservation(Schedule schedule, Long studentId, String studentName, String studentPhone,
-                        String memo) {
+    private Reservation(Schedule schedule, Long studentId, LocalTime reservationTime,
+                        String topic, String notes) {
         this.schedule = schedule;
         this.studentId = studentId;
-        this.studentName = studentName;
-        this.studentPhone = studentPhone;
+        this.reservationTime = reservationTime;
+        this.topic = topic;
+        this.notes = notes;
         this.status = ReservationStatus.PENDING;
-        this.memo = memo;
     }
 
-    public static Reservation create(Schedule schedule, Long studentId, String studentName,
-                                       String studentPhone, String memo) {
+    public static Reservation create(Schedule schedule, Long studentId, LocalTime reservationTime,
+                                       String topic, String notes) {
         return Reservation.builder()
                 .schedule(schedule)
                 .studentId(studentId)
-                .studentName(studentName)
-                .studentPhone(studentPhone)
-                .memo(memo)
+                .reservationTime(reservationTime)
+                .topic(topic)
+                .notes(notes)
                 .build();
     }
 
@@ -67,13 +66,18 @@ public class Reservation extends BaseEntity {
         this.status = ReservationStatus.CONFIRMED;
     }
 
-    public void cancel(String reason) {
+    public void cancel() {
         this.status = ReservationStatus.CANCELLED;
-        this.cancelReason = reason;
     }
 
     public void complete() {
         this.status = ReservationStatus.COMPLETED;
+    }
+
+    public void updateNotes(String notes) {
+        if (notes != null) {
+            this.notes = notes;
+        }
     }
 
     public boolean isPending() {
