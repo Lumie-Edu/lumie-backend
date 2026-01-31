@@ -47,12 +47,12 @@ public class ScheduleController {
         return ResponseEntity.ok(queryService.listAvailableSchedules(startDate, endDate));
     }
 
-    @GetMapping("/admin/{adminId}")
-    public ResponseEntity<List<ScheduleResponse>> listSchedulesByAdmin(
-            @PathVariable Long adminId,
+    @GetMapping("/counselor/{counselorId}")
+    public ResponseEntity<List<ScheduleResponse>> listSchedulesByCounselor(
+            @PathVariable Long counselorId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(queryService.listSchedulesByAdmin(adminId, startDate, endDate));
+        return ResponseEntity.ok(queryService.listSchedulesByCounselor(counselorId, startDate, endDate));
     }
 
     @GetMapping("/{id}")

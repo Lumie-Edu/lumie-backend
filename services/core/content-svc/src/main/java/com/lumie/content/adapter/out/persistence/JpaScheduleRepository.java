@@ -18,5 +18,5 @@ public interface JpaScheduleRepository extends JpaRepository<Schedule, Long> {
 
     List<Schedule> findByScheduleDateBetweenAndIsAvailableTrue(LocalDate startDate, LocalDate endDate);
 
-    List<Schedule> findByAdminIdAndScheduleDateBetween(Long adminId, LocalDate startDate, LocalDate endDate);
+    List<Schedule> findByCounselorIdAndScheduleDateBetween(Long counselorId, LocalDate startDate, LocalDate endDate);
 }
