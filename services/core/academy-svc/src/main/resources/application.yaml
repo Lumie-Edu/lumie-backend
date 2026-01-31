@@ -88,3 +88,4 @@ logging:
     root: WARN
     com.lumie: INFO
     org.hibernate.SQL: WARN
+
