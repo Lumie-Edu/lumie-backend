@@ -1,0 +1,27 @@
+# Development Dockerfile for Tilt
+# Context: project root
+FROM eclipse-temurin:21-jre-alpine
+
+ARG SERVICE_PATH
+
+WORKDIR /app
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Create non-root user
+RUN addgroup -g 1000 app && adduser -u 1000 -G app -D app
+
+# Copy the pre-built jar
+COPY --chown=app:app ${SERVICE_PATH}/build/libs/*.jar app.jar
+
+USER app
+
+# Expose ports (HTTP + gRPC)
+EXPOSE 8080 9090
+
+# JVM options for development
+ENV JAVA_OPTS="-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"
+
+# Run the application
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
