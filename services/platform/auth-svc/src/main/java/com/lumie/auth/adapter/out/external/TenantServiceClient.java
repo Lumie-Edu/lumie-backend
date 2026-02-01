@@ -1,6 +1,8 @@
 package com.lumie.auth.adapter.out.external;
 
 import com.lumie.auth.application.port.out.TenantServicePort;
+import com.lumie.grpc.tenant.CreateTenantRequest;
+import com.lumie.grpc.tenant.CreateTenantResponse;
 import com.lumie.grpc.tenant.GetTenantBySlugRequest;
 import com.lumie.grpc.tenant.TenantResponse;
 import com.lumie.grpc.tenant.TenantServiceGrpc;
@@ -65,6 +67,34 @@ public class TenantServiceClient implements TenantServicePort {
         } catch (StatusRuntimeException e) {
             log.error("gRPC error getting tenant: {}", slug, e);
             return Optional.empty();
+        }
+    }
+
+    @Override
+    public TenantCreationResult createTenant(String instituteName, String businessRegistrationNumber,
+                                              String ownerEmail, String ownerName) {
+        log.debug("Creating tenant via gRPC: instituteName={}, ownerEmail={}", instituteName, ownerEmail);
+
+        try {
+            CreateTenantRequest request = CreateTenantRequest.newBuilder()
+                    .setInstituteName(instituteName)
+                    .setBusinessRegistrationNumber(businessRegistrationNumber)
+                    .setOwnerEmail(ownerEmail)
+                    .setOwnerName(ownerName)
+                    .build();
+
+            CreateTenantResponse response = tenantServiceStub.createTenant(request);
+
+            return new TenantCreationResult(
+                    response.getSuccess(),
+                    response.getMessage(),
+                    response.getTenantId(),
+                    response.getTenantSlug(),
+                    response.getSchemaName()
+            );
+        } catch (StatusRuntimeException e) {
+            log.error("gRPC error creating tenant: {}", instituteName, e);
+            return new TenantCreationResult(false, "gRPC error: " + e.getMessage(), null, null, null);
         }
     }
 }

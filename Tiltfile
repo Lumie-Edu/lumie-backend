@@ -197,10 +197,9 @@ spec:
         env:%s
         resources:
           requests:
-            cpu: 15m
-            memory: 256Mi
+            cpu: 100m
+            memory: 512Mi
           limits:
-            cpu: 500m
             memory: 1Gi
         livenessProbe:
           httpGet:

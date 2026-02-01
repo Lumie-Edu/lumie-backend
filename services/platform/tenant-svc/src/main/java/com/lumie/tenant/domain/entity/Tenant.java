@@ -44,11 +44,18 @@ public class Tenant extends BaseEntity {
     @Column(name = "plan_id", nullable = false, length = 20)
     private TenantPlan plan;
 
+    @Column(name = "institute_name", length = 200)
+    private String instituteName;
+
+    @Column(name = "business_registration_number", length = 12)
+    private String businessRegistrationNumber;
+
     @OneToOne(mappedBy = "tenant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private TenantSettings settings;
 
     @Builder
-    private Tenant(TenantSlug slug, String name, String displayName, String ownerEmail, TenantPlan plan) {
+    private Tenant(TenantSlug slug, String name, String displayName, String ownerEmail, TenantPlan plan,
+                   String instituteName, String businessRegistrationNumber) {
         this.slug = slug;
         this.name = name;
         this.displayName = displayName;
@@ -56,6 +63,8 @@ public class Tenant extends BaseEntity {
         this.status = TenantStatus.PENDING;
         this.schemaName = slug.toSchemaName();
         this.plan = plan != null ? plan : TenantPlan.FREE;
+        this.instituteName = instituteName;
+        this.businessRegistrationNumber = businessRegistrationNumber;
     }
 
     public static Tenant create(String slug, String name, String displayName, String ownerEmail) {
@@ -69,6 +78,23 @@ public class Tenant extends BaseEntity {
                 .displayName(displayName)
                 .ownerEmail(ownerEmail)
                 .plan(plan)
+                .build();
+    }
+
+    /**
+     * Creates a tenant with auto-generated slug for owner registration.
+     * Slug format: inst-{uuid8}
+     */
+    public static Tenant createWithAutoSlug(String instituteName, String businessRegistrationNumber, String ownerEmail) {
+        String autoSlug = "inst-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        return Tenant.builder()
+                .slug(TenantSlug.of(autoSlug))
+                .name(instituteName)
+                .displayName(instituteName)
+                .ownerEmail(ownerEmail)
+                .instituteName(instituteName)
+                .businessRegistrationNumber(businessRegistrationNumber)
+                .plan(TenantPlan.FREE)
                 .build();
     }
 

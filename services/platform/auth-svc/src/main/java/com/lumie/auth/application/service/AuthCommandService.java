@@ -1,6 +1,7 @@
 package com.lumie.auth.application.service;
 
 import com.lumie.auth.application.dto.request.LoginRequest;
+import com.lumie.auth.application.dto.request.OwnerRegisterRequest;
 import com.lumie.auth.application.dto.request.RefreshTokenRequest;
 import com.lumie.auth.application.dto.request.RegisterRequest;
 import com.lumie.auth.application.dto.response.LoginResponse;
@@ -8,11 +9,13 @@ import com.lumie.auth.application.dto.response.TokenResponse;
 import com.lumie.auth.application.dto.response.UserResponse;
 import com.lumie.auth.application.port.in.LoginUseCase;
 import com.lumie.auth.application.port.in.LogoutUseCase;
+import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
 import com.lumie.auth.application.port.in.RefreshTokenUseCase;
 import com.lumie.auth.application.port.in.RegisterUseCase;
 import com.lumie.auth.domain.vo.Role;
 import com.lumie.auth.application.port.out.AuthEventPublisherPort;
 import com.lumie.auth.application.port.out.TenantServicePort;
+import com.lumie.auth.application.port.out.TenantServicePort.TenantCreationResult;
 import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
@@ -33,7 +36,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshTokenUseCase, RegisterUseCase {
+public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshTokenUseCase, RegisterUseCase, OwnerRegisterUseCase {
 
     private final TenantServicePort tenantServicePort;
     private final UserLookupPort userLookupPort;
@@ -117,6 +120,45 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         log.info("Login successful for user: {} on tenant: {}", user.id(), tenantSlug);
 
         return LoginResponse.of(tokenPair, user.toUserResponse(tenantSlug, tenant.id()));
+    }
+
+    @Override
+    public LoginResponse registerOwner(OwnerRegisterRequest request) {
+        log.info("Owner registration attempt for email: {}, institute: {}", request.email(), request.instituteName());
+
+        // 1. Create tenant via gRPC (synchronous provisioning)
+        TenantCreationResult tenantResult = tenantServicePort.createTenant(
+                request.instituteName(),
+                request.businessRegistrationNumber(),
+                request.email(),
+                request.name()
+        );
+
+        if (!tenantResult.success()) {
+            throw new TenantCreationFailedException("Failed to create tenant: " + tenantResult.message());
+        }
+
+        log.info("Tenant created: slug={}, schemaName={}", tenantResult.tenantSlug(), tenantResult.schemaName());
+
+        // 2. Hash password and create owner user
+        String passwordHash = passwordEncoder.encode(request.password());
+        UserData user = userLookupPort.createUser(
+                tenantResult.schemaName(),
+                request.email(),
+                request.name(),
+                passwordHash,
+                Role.OWNER
+        );
+
+        // 3. Generate tokens
+        TokenPair tokenPair = generateTokenPair(user, tenantResult.tenantSlug(), tenantResult.tenantId());
+
+        // 4. Save refresh token to Redis
+        saveRefreshToken(user.id(), tenantResult.tenantSlug(), tenantResult.tenantId(), user.role(), tokenPair);
+
+        log.info("Owner registration successful: userId={}, tenantSlug={}", user.id(), tenantResult.tenantSlug());
+
+        return LoginResponse.of(tokenPair, user.toUserResponse(tenantResult.tenantSlug(), tenantResult.tenantId()));
     }
 
     @Override
@@ -258,6 +300,12 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
 
     public static class EmailAlreadyExistsException extends RuntimeException {
         public EmailAlreadyExistsException(String message) {
+            super(message);
+        }
+    }
+
+    public static class TenantCreationFailedException extends RuntimeException {
+        public TenantCreationFailedException(String message) {
             super(message);
         }
     }

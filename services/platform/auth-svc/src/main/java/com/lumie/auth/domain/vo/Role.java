@@ -5,9 +5,10 @@ package com.lumie.auth.domain.vo;
  * Lower level values have higher authority.
  */
 public enum Role {
-    DEVELOPER(0),
-    ADMIN(1),
-    STUDENT(2);
+    OWNER(0),
+    DEVELOPER(1),
+    ADMIN(2),
+    STUDENT(3);
 
     private final int level;
 

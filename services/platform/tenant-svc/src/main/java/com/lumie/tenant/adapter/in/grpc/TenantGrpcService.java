@@ -4,6 +4,8 @@ import com.lumie.grpc.tenant.*;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.port.in.GetTenantUseCase;
 import com.lumie.tenant.application.port.in.ValidateTenantUseCase;
+import com.lumie.tenant.application.service.TenantRegistrationService;
+import com.lumie.tenant.application.service.TenantRegistrationService.TenantRegistrationResult;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ public class TenantGrpcService extends TenantServiceGrpc.TenantServiceImplBase {
 
     private final GetTenantUseCase getTenantUseCase;
     private final ValidateTenantUseCase validateTenantUseCase;
+    private final TenantRegistrationService tenantRegistrationService;
 
     @Override
     public void getTenant(GetTenantRequest request, StreamObserver<com.lumie.grpc.tenant.TenantResponse> responseObserver) {
@@ -64,6 +67,39 @@ public class TenantGrpcService extends TenantServiceGrpc.TenantServiceImplBase {
         } catch (Exception e) {
             log.error("Failed to validate tenant: {}", request.getSlug(), e);
             responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void createTenant(CreateTenantRequest request, StreamObserver<CreateTenantResponse> responseObserver) {
+        log.debug("gRPC CreateTenant request: instituteName={}, ownerEmail={}",
+                request.getInstituteName(), request.getOwnerEmail());
+
+        try {
+            TenantRegistrationResult result = tenantRegistrationService.registerTenant(
+                    request.getInstituteName(),
+                    request.getBusinessRegistrationNumber(),
+                    request.getOwnerEmail()
+            );
+
+            CreateTenantResponse response = CreateTenantResponse.newBuilder()
+                    .setSuccess(result.success())
+                    .setMessage(result.message())
+                    .setTenantId(result.tenantId())
+                    .setTenantSlug(result.tenantSlug())
+                    .setSchemaName(result.schemaName())
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Failed to create tenant: {}", request.getInstituteName(), e);
+            CreateTenantResponse response = CreateTenantResponse.newBuilder()
+                    .setSuccess(false)
+                    .setMessage("Failed to create tenant: " + e.getMessage())
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
         }
     }
 
