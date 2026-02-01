@@ -3,7 +3,6 @@ package com.lumie.tenant.adapter.out.schema;
 import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.flywaydb.core.Flyway;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -14,6 +13,7 @@ import java.sql.Statement;
 /**
  * Manages tenant schema lifecycle.
  * DDL operations use direct connections with auto-commit to avoid transaction issues.
+ * Schema migrations are managed manually - Flyway has been removed.
  */
 @Slf4j
 @Component
@@ -32,18 +32,8 @@ public class TenantSchemaManager implements SchemaProvisioningPort {
 
     @Override
     public void migrateSchema(String schemaName) {
-        log.info("Running migrations for schema: {}", schemaName);
-
-        Flyway flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .schemas(schemaName)
-                .locations("classpath:db/tenant-migration")
-                .baselineOnMigrate(true)
-                .table("flyway_schema_history")
-                .load();
-
-        flyway.migrate();
-        log.info("Migrations completed for schema: {}", schemaName);
+        // Flyway removed - migrations are now managed manually
+        log.info("Schema migration skipped (manual management): {}", schemaName);
     }
 
     @Override

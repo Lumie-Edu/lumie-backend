@@ -7,7 +7,6 @@ dependencies {
     implementation(project(":libs:common"))
     implementation(project(":libs:grpc-api"))
     implementation(project(":libs:messaging"))
-    implementation(project(":libs:db-migrations"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -18,8 +17,6 @@ dependencies {
 
     // Database
     runtimeOnly("org.postgresql:postgresql")
-    implementation("org.flywaydb:flyway-core")
-    implementation("org.flywaydb:flyway-database-postgresql")
 
     // gRPC - enforce consistent version
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE") {

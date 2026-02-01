@@ -17,8 +17,6 @@ dependencies {
 
     // Database
     runtimeOnly("org.postgresql:postgresql")
-    implementation("org.flywaydb:flyway-core")
-    implementation("org.flywaydb:flyway-database-postgresql")
 
     // gRPC - server with excluded io.grpc for version control
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE") {

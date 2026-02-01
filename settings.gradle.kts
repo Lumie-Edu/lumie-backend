@@ -8,7 +8,6 @@ include(
     "libs:common",
     "libs:grpc-api",
     "libs:messaging",
-    "libs:db-migrations",
     "services:platform:tenant-svc",
     "services:platform:auth-svc",
     "services:platform:billing-svc",
