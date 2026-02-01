@@ -7,6 +7,7 @@ dependencies {
     implementation(project(":libs:common"))
     implementation(project(":libs:grpc-api"))
     implementation(project(":libs:messaging"))
+    implementation(project(":libs:db-migrations"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
