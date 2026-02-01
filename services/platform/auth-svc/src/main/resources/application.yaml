@@ -16,7 +16,7 @@ spring:
     hibernate:
       ddl-auto: none
     open-in-view: false
-    show-sql: false
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
@@ -93,6 +93,8 @@ logging:
     root: INFO
     com.lumie: DEBUG
     io.jsonwebtoken: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
 
 ---
 spring:

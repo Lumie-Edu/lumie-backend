@@ -4,6 +4,8 @@
 # Example: tilt up auth-svc
 #          tilt up  (starts all services)
 
+allow_k8s_contexts('lumie-dev')
+
 # Configuration
 REGISTRY = 'zot0213.kro.kr'
 NAMESPACE = 'lumie-dev'
@@ -59,8 +61,8 @@ SERVICES = {
 # RabbitMQ/Redis: prod infrastructure (shared)
 COMMON_ENV = {
     'SPRING_PROFILES_ACTIVE': 'dev',
-    # Database (lumie-dev namespace)
-    'DB_HOST': 'lumie-dev-db-rw.lumie-dev.svc.cluster.local',
+    # Database via PgBouncer (session mode for multi-tenancy)
+    'DB_HOST': 'pgbouncer.lumie-dev.svc.cluster.local',
     'DB_PORT': '5432',
     'DB_NAME': 'lumie',
     # RabbitMQ (prod, shared)
@@ -97,12 +99,12 @@ def generate_deployment(name, config):
         - name: DB_USERNAME
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-db-secrets
+              name: lumie-dev-db-app
               key: username
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-db-secrets
+              name: lumie-dev-db-app
               key: password
         - name: RABBITMQ_USERNAME
           value: "lumie"
@@ -137,6 +139,27 @@ def generate_deployment(name, config):
           value: "dev-kakao-client-id"
         - name: KAKAO_CLIENT_SECRET
           value: "dev-kakao-client-secret"'''
+
+    # Add MinIO secrets for file-svc
+    if name == 'file-svc':
+        env_yaml += '''
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-minio-secrets
+              key: access-key
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-minio-secrets
+              key: secret-key
+        - name: MINIO_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-minio-secrets
+              key: endpoint
+        - name: MINIO_BUCKET
+          value: "lumie-dev"'''
 
     return '''
 apiVersion: apps/v1
@@ -210,6 +233,20 @@ spec:
               - ALL
 ''' % (name, NAMESPACE, name, name, name, name, REGISTRY, name, config['port'], grpc_port_yaml, env_yaml)
 
+# Development domain
+DEV_DOMAIN = 'dev.lumie0213.kro.kr'
+
+# API path mapping for each service
+API_PATHS = {
+    'tenant-svc': '/api/tenant',
+    'auth-svc': '/api/auth',
+    'billing-svc': '/api/billing',
+    'academy-svc': '/api/academy',
+    'exam-svc': '/api/exam',
+    'content-svc': '/api/content',
+    'file-svc': '/api/file',
+}
+
 # Function to generate service YAML
 def generate_service(name, config):
     grpc_service = ''
@@ -249,17 +286,51 @@ spec:
     protocol: TCP
 %s''' % (name, NAMESPACE, name, grpc_service)
 
+# Function to generate Ingress YAML for Kong
+def generate_ingress(name, config):
+    if name not in API_PATHS:
+        return ''
+
+    api_path = API_PATHS[name]
+    return '''
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: %s-ingress
+  namespace: %s
+  annotations:
+    konghq.com/strip-path: "true"
+    konghq.com/plugins: lumie-dev-cors
+spec:
+  ingressClassName: kong
+  rules:
+  - host: %s
+    http:
+      paths:
+      - path: %s
+        pathType: Prefix
+        backend:
+          service:
+            name: %s
+            port:
+              number: 8080
+''' % (name, NAMESPACE, DEV_DOMAIN, api_path, name)
+
 # Build and deploy each service
 for name, config in SERVICES.items():
     # Generate K8s resources
     deployment_yaml = generate_deployment(name, config)
     service_yaml = generate_service(name, config)
+    ingress_yaml = generate_ingress(name, config)
 
     k8s_yaml(blob(deployment_yaml))
     k8s_yaml(blob(service_yaml))
+    if ingress_yaml:
+        k8s_yaml(blob(ingress_yaml))
 
-    # Docker build with restart on jar change
-    # For Java, we rebuild the image when jar changes (no true hot-reload)
+    # Docker build (rebuild image when jar changes)
+    # Java doesn't support true hot-reload, so we rebuild on jar change
     docker_build(
         '%s/dev/%s' % (REGISTRY, name),
         context='.',
@@ -270,11 +341,6 @@ for name, config in SERVICES.items():
         only=[
             config['path'] + '/build/libs/',
             'Dockerfile.dev',
-        ],
-        live_update=[
-            # Sync the jar file and restart container
-            sync(config['path'] + '/build/libs/', '/app/'),
-            restart_container(),
         ],
     )
 

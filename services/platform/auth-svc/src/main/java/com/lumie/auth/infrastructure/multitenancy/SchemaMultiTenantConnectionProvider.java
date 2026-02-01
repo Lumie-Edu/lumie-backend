@@ -12,6 +12,8 @@ import java.sql.SQLException;
 /**
  * Hibernate multi-tenant connection provider that switches PostgreSQL schemas.
  * Uses the SCHEMA strategy where each tenant has their own schema within the same database.
+ *
+ * Note: Requires PgBouncer in session mode to maintain search_path across transactions.
  */
 @Slf4j
 @Component
@@ -34,17 +36,25 @@ public class SchemaMultiTenantConnectionProvider implements MultiTenantConnectio
 
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
-        log.debug("Getting connection for tenant: {}", tenantIdentifier);
         Connection connection = dataSource.getConnection();
-        connection.setSchema(tenantIdentifier);
+        log.debug("Getting connection for tenant: {}", tenantIdentifier);
+        setSearchPath(connection, tenantIdentifier);
         return connection;
     }
 
     @Override
     public void releaseConnection(String tenantIdentifier, Connection connection) throws SQLException {
         log.debug("Releasing connection for tenant: {}", tenantIdentifier);
-        connection.setSchema(DEFAULT_SCHEMA);
+        setSearchPath(connection, DEFAULT_SCHEMA);
         connection.close();
+    }
+
+    private void setSearchPath(Connection connection, String schema) throws SQLException {
+        String searchPath = DEFAULT_SCHEMA.equals(schema) ? schema : schema + ", public";
+        log.debug("Setting search_path to: {}", searchPath);
+        try (var stmt = connection.createStatement()) {
+            stmt.execute("SET search_path TO " + searchPath);
+        }
     }
 
     @Override
