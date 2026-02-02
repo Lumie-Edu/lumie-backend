@@ -31,18 +31,13 @@ public class AcademyRepositoryAdapter implements AcademyRepository {
     }
 
     @Override
-    public Optional<Academy> findDefaultAcademy() {
-        return jpaAcademyRepository.findDefaultAcademy();
-    }
-
-    @Override
     public Page<Academy> findAll(Pageable pageable) {
         return jpaAcademyRepository.findAll(pageable);
     }
 
     @Override
-    public Page<Academy> findByStatus(String status, Pageable pageable) {
-        return jpaAcademyRepository.findByStatus(status, pageable);
+    public Page<Academy> findByIsActive(Boolean isActive, Pageable pageable) {
+        return jpaAcademyRepository.findByIsActive(isActive, pageable);
     }
 
     @Override
@@ -51,8 +46,8 @@ public class AcademyRepositoryAdapter implements AcademyRepository {
     }
 
     @Override
-    public long countByStatus(String status) {
-        return jpaAcademyRepository.countByStatus(status);
+    public long countByIsActive(Boolean isActive) {
+        return jpaAcademyRepository.countByIsActive(isActive);
     }
 
     @Override

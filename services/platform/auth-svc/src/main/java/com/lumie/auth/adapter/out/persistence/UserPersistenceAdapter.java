@@ -3,7 +3,6 @@ package com.lumie.auth.adapter.out.persistence;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.domain.entity.User;
 import com.lumie.auth.domain.vo.Role;
-import com.lumie.auth.infrastructure.multitenancy.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
@@ -13,8 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 /**
- * JPA-based implementation of UserLookupPort using Hibernate multi-tenancy.
- * Replaces the JdbcTemplate-based UserSchemaLookupAdapter.
+ * JPA-based implementation of UserLookupPort.
+ * Queries the public.users table directly (no multi-tenancy schema switching needed).
  */
 @Slf4j
 @Component
@@ -26,74 +25,63 @@ public class UserPersistenceAdapter implements UserLookupPort {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<UserData> findByEmail(String schemaName, String email) {
-        log.debug("Looking up user by email in schema: {}", schemaName);
-
-        setTenantContext(schemaName);
-        return userRepository.findByEmail(email)
+    public Optional<UserData> findByUserLoginId(String userLoginId) {
+        log.debug("Looking up user by login ID: {}", userLoginId);
+        return userRepository.findByUserLoginId(userLoginId)
                 .map(this::toUserData);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<UserData> findById(String schemaName, Long userId) {
-        log.debug("Looking up user by ID in schema: {}", schemaName);
-
-        setTenantContext(schemaName);
+    public Optional<UserData> findById(Long userId) {
+        log.debug("Looking up user by ID: {}", userId);
         return userRepository.findById(userId)
                 .map(this::toUserData);
     }
 
     @Override
     @Transactional
-    public UserData findOrCreateOAuth2User(String schemaName, String email, String name, String provider) {
-        log.debug("Finding or creating OAuth2 user in schema: {} provider: {}", schemaName, provider);
+    public UserData findOrCreateOAuth2User(String userLoginId, String name, Long tenantId, String provider) {
+        log.debug("Finding or creating OAuth2 user: {} provider: {}", userLoginId, provider);
 
-        setTenantContext(schemaName);
-
-        return userRepository.findByEmail(email)
+        return userRepository.findByUserLoginId(userLoginId)
                 .map(this::toUserData)
                 .orElseGet(() -> {
-                    User newUser = User.createOAuth2User(email, name, provider);
+                    User newUser = User.createOAuth2User(userLoginId, name, tenantId, provider);
                     User savedUser = userRepository.save(newUser);
-                    log.info("Created new OAuth2 user: {} in schema: {}", email, schemaName);
+                    log.info("Created new OAuth2 user: {} for tenant: {}", userLoginId, tenantId);
                     return toUserData(savedUser);
                 });
     }
 
     @Override
     @Transactional
-    public UserData createUser(String schemaName, String email, String name, String passwordHash, Role role) {
-        log.debug("Creating new user in schema: {}", schemaName);
+    public UserData createUser(String userLoginId, String name, String phone, String passwordHash, Role role, Long tenantId) {
+        log.debug("Creating new user: {} for tenant: {}", userLoginId, tenantId);
 
-        setTenantContext(schemaName);
-
-        User user = User.create(email, name, passwordHash, role);
+        User user = User.create(userLoginId, name, phone, passwordHash, role, tenantId);
         User savedUser = userRepository.save(user);
 
-        log.info("Created new user: {} in schema: {}", email, schemaName);
+        log.info("Created new user: {} for tenant: {}", userLoginId, tenantId);
 
         return toUserData(savedUser);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existsByEmail(String schemaName, String email) {
-        setTenantContext(schemaName);
-        return userRepository.existsByEmail(email);
-    }
-
-    private void setTenantContext(String schemaName) {
-        TenantContext.setTenantId(schemaName);
+    public boolean existsByUserLoginId(String userLoginId) {
+        return userRepository.existsByUserLoginId(userLoginId);
     }
 
     private UserData toUserData(User user) {
         return new UserData(
                 user.getId(),
-                user.getEmail(),
+                user.getUserLoginId(),
                 user.getName(),
+                user.getPhone(),
                 user.getPasswordHash(),
                 user.getRole(),
+                user.getTenantId(),
                 user.isEnabled()
         );
     }

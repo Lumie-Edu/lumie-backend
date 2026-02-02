@@ -14,9 +14,9 @@ public interface JpaScheduleRepository extends JpaRepository<Schedule, Long> {
     @Query("SELECT s FROM Schedule s LEFT JOIN FETCH s.reservations WHERE s.id = :id")
     Optional<Schedule> findByIdWithReservations(@Param("id") Long id);
 
-    List<Schedule> findByScheduleDateBetween(LocalDate startDate, LocalDate endDate);
+    List<Schedule> findByDateBetween(LocalDate startDate, LocalDate endDate);
 
-    List<Schedule> findByScheduleDateBetweenAndIsAvailableTrue(LocalDate startDate, LocalDate endDate);
+    List<Schedule> findByDateBetweenAndIsAvailableTrue(LocalDate startDate, LocalDate endDate);
 
-    List<Schedule> findByAdminIdAndScheduleDateBetween(Long adminId, LocalDate startDate, LocalDate endDate);
+    List<Schedule> findByAdminIdAndDateBetween(Long adminId, LocalDate startDate, LocalDate endDate);
 }

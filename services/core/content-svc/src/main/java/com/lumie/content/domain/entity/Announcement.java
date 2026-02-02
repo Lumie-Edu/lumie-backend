@@ -7,7 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "announcements")
@@ -19,80 +20,90 @@ public class Announcement extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "academy_id")
-    private Long academyId;
-
     @Column(name = "author_id", nullable = false)
     private Long authorId;
 
-    @Column(name = "title", nullable = false, length = 200)
-    private String title;
+    @Column(name = "announcement_title", nullable = false, length = 200)
+    private String announcementTitle;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
-    private String content;
+    @Column(name = "announcement_content", nullable = false, columnDefinition = "TEXT")
+    private String announcementContent;
 
-    @Column(name = "is_important", nullable = false)
-    private Boolean isImportant;
+    @Column(name = "is_it_asset_announcement", nullable = false)
+    private Boolean isItAssetAnnouncement;
 
-    @Column(name = "is_public", nullable = false)
-    private Boolean isPublic;
+    @Column(name = "is_it_important_announcement", nullable = false)
+    private Boolean isItImportantAnnouncement;
 
-    @Column(name = "view_count", nullable = false)
-    private Integer viewCount;
-
-    @Column(name = "published_at")
-    private LocalDateTime publishedAt;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "announcement_academies",
+        joinColumns = @JoinColumn(name = "announcement_id")
+    )
+    @Column(name = "academy_id")
+    private Set<Long> academyIds = new HashSet<>();
 
     @Builder
-    private Announcement(Long academyId, Long authorId, String title, String content,
-                         Boolean isImportant, Boolean isPublic, LocalDateTime publishedAt) {
-        this.academyId = academyId;
+    private Announcement(Long authorId, String announcementTitle, String announcementContent,
+                         Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement,
+                         Set<Long> academyIds) {
         this.authorId = authorId;
-        this.title = title;
-        this.content = content;
-        this.isImportant = isImportant != null ? isImportant : false;
-        this.isPublic = isPublic != null ? isPublic : true;
-        this.viewCount = 0;
-        this.publishedAt = publishedAt;
+        this.announcementTitle = announcementTitle;
+        this.announcementContent = announcementContent;
+        this.isItAssetAnnouncement = isItAssetAnnouncement != null ? isItAssetAnnouncement : false;
+        this.isItImportantAnnouncement = isItImportantAnnouncement != null ? isItImportantAnnouncement : false;
+        this.academyIds = academyIds != null ? academyIds : new HashSet<>();
     }
 
-    public static Announcement create(Long academyId, Long authorId, String title, String content,
-                                       Boolean isImportant, Boolean isPublic) {
+    public static Announcement create(Long authorId, String announcementTitle, String announcementContent,
+                                       Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement,
+                                       Set<Long> academyIds) {
         return Announcement.builder()
-                .academyId(academyId)
                 .authorId(authorId)
-                .title(title)
-                .content(content)
-                .isImportant(isImportant)
-                .isPublic(isPublic)
-                .publishedAt(LocalDateTime.now())
+                .announcementTitle(announcementTitle)
+                .announcementContent(announcementContent)
+                .isItAssetAnnouncement(isItAssetAnnouncement)
+                .isItImportantAnnouncement(isItImportantAnnouncement)
+                .academyIds(academyIds)
                 .build();
     }
 
-    public void update(String title, String content, Boolean isImportant, Boolean isPublic) {
-        if (title != null && !title.isBlank()) {
-            this.title = title;
+    public void update(String announcementTitle, String announcementContent,
+                       Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement) {
+        if (announcementTitle != null && !announcementTitle.isBlank()) {
+            this.announcementTitle = announcementTitle;
         }
-        if (content != null && !content.isBlank()) {
-            this.content = content;
+        if (announcementContent != null && !announcementContent.isBlank()) {
+            this.announcementContent = announcementContent;
         }
-        if (isImportant != null) {
-            this.isImportant = isImportant;
+        if (isItAssetAnnouncement != null) {
+            this.isItAssetAnnouncement = isItAssetAnnouncement;
         }
-        if (isPublic != null) {
-            this.isPublic = isPublic;
+        if (isItImportantAnnouncement != null) {
+            this.isItImportantAnnouncement = isItImportantAnnouncement;
         }
     }
 
-    public void incrementViewCount() {
-        this.viewCount++;
+    public void setAcademyIds(Set<Long> academyIds) {
+        this.academyIds.clear();
+        if (academyIds != null) {
+            this.academyIds.addAll(academyIds);
+        }
+    }
+
+    public void addAcademy(Long academyId) {
+        this.academyIds.add(academyId);
+    }
+
+    public void removeAcademy(Long academyId) {
+        this.academyIds.remove(academyId);
     }
 
     public void markImportant() {
-        this.isImportant = true;
+        this.isItImportantAnnouncement = true;
     }
 
     public void unmarkImportant() {
-        this.isImportant = false;
+        this.isItImportantAnnouncement = false;
     }
 }

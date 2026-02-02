@@ -3,31 +3,28 @@ package com.lumie.content.application.dto.response;
 import com.lumie.content.domain.entity.Announcement;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 public record AnnouncementResponse(
         Long id,
-        Long academyId,
         Long authorId,
-        String title,
-        String content,
-        Boolean isImportant,
-        Boolean isPublic,
-        Integer viewCount,
-        LocalDateTime publishedAt,
+        String announcementTitle,
+        String announcementContent,
+        Boolean isItAssetAnnouncement,
+        Boolean isItImportantAnnouncement,
+        Set<Long> academyIds,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
     public static AnnouncementResponse from(Announcement announcement) {
         return new AnnouncementResponse(
                 announcement.getId(),
-                announcement.getAcademyId(),
                 announcement.getAuthorId(),
-                announcement.getTitle(),
-                announcement.getContent(),
-                announcement.getIsImportant(),
-                announcement.getIsPublic(),
-                announcement.getViewCount(),
-                announcement.getPublishedAt(),
+                announcement.getAnnouncementTitle(),
+                announcement.getAnnouncementContent(),
+                announcement.getIsItAssetAnnouncement(),
+                announcement.getIsItImportantAnnouncement(),
+                announcement.getAcademyIds(),
                 announcement.getCreatedAt(),
                 announcement.getUpdatedAt()
         );

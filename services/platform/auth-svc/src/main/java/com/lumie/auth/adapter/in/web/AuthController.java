@@ -28,25 +28,20 @@ public class AuthController {
     private final RefreshTokenUseCase refreshTokenUseCase;
 
     @PostMapping("/register")
-    public ResponseEntity<LoginResponse> register(
-            @RequestHeader("X-Tenant-Slug") String tenantSlug,
-            @Valid @RequestBody RegisterRequest request) {
-        LoginResponse response = registerUseCase.register(tenantSlug, request);
+    public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
+        LoginResponse response = registerUseCase.register(request);
         return ResponseEntity.status(201).body(response);
     }
 
     @PostMapping("/register/owner")
-    public ResponseEntity<LoginResponse> registerOwner(
-            @Valid @RequestBody OwnerRegisterRequest request) {
+    public ResponseEntity<LoginResponse> registerOwner(@Valid @RequestBody OwnerRegisterRequest request) {
         LoginResponse response = ownerRegisterUseCase.registerOwner(request);
         return ResponseEntity.status(201).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(
-            @RequestHeader("X-Tenant-Slug") String tenantSlug,
-            @Valid @RequestBody LoginRequest request) {
-        LoginResponse response = loginUseCase.login(tenantSlug, request);
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = loginUseCase.login(request);
         return ResponseEntity.ok(response);
     }
 

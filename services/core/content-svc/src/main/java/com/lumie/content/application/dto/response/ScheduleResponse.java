@@ -4,36 +4,27 @@ import com.lumie.content.domain.entity.Schedule;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 public record ScheduleResponse(
         Long id,
-        Long academyId,
         Long adminId,
-        LocalDate scheduleDate,
-        LocalTime startTime,
-        LocalTime endTime,
-        Integer slotDurationMinutes,
-        Integer maxReservations,
-        Integer availableSlots,
-        Integer confirmedCount,
+        LocalDate date,
+        Integer timeSlotId,
         Boolean isAvailable,
+        Boolean hasReservation,
+        Integer confirmedCount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
     public static ScheduleResponse from(Schedule schedule) {
         return new ScheduleResponse(
                 schedule.getId(),
-                schedule.getAcademyId(),
                 schedule.getAdminId(),
-                schedule.getScheduleDate(),
-                schedule.getStartTime(),
-                schedule.getEndTime(),
-                schedule.getSlotDurationMinutes(),
-                schedule.getMaxReservations(),
-                schedule.getAvailableSlots(),
-                schedule.getConfirmedCount(),
+                schedule.getDate(),
+                schedule.getTimeSlotId(),
                 schedule.getIsAvailable(),
+                schedule.hasReservation(),
+                schedule.getConfirmedCount(),
                 schedule.getCreatedAt(),
                 schedule.getUpdatedAt()
         );

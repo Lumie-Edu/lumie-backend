@@ -54,9 +54,8 @@ public class ReservationCommandService {
         Reservation reservation = Reservation.create(
                 schedule,
                 request.studentId(),
-                request.reservationTime(),
-                request.topic(),
-                request.notes()
+                request.adminId(),
+                request.consultationContent()
         );
 
         Reservation saved = reservationRepository.save(reservation);

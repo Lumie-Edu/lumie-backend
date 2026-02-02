@@ -8,12 +8,12 @@ import java.util.Optional;
 
 /**
  * JPA repository for User entity.
- * Automatically uses the current tenant's schema via Hibernate multi-tenancy.
+ * Queries the public.users table directly (no multi-tenancy schema switching).
  */
 @Repository
 public interface UserJpaRepository extends JpaRepository<User, Long> {
 
-    Optional<User> findByEmail(String email);
+    Optional<User> findByUserLoginId(String userLoginId);
 
-    boolean existsByEmail(String email);
+    boolean existsByUserLoginId(String userLoginId);
 }

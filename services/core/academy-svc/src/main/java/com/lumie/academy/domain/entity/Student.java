@@ -1,14 +1,11 @@
 package com.lumie.academy.domain.entity;
 
-import com.lumie.academy.domain.vo.Role;
 import com.lumie.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
 
 @Entity
 @Table(name = "students")
@@ -20,112 +17,105 @@ public class Student extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private User user;
+    @Column(name = "user_id", nullable = false, unique = true)
+    private Long userId;
+
+    @Column(name = "user_login_id", nullable = false, length = 50)
+    private String userLoginId;
+
+    @Column(name = "name", nullable = false, length = 100)
+    private String name;
+
+    @Column(name = "phone", length = 20)
+    private String phone;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "academy_id", nullable = false)
     private Academy academy;
 
-    @Column(name = "student_number", length = 50)
-    private String studentNumber;
+    @Column(name = "student_highschool", length = 100)
+    private String studentHighschool;
 
-    @Column(name = "grade", length = 20)
-    private String grade;
+    @Column(name = "student_birth_year")
+    private Integer studentBirthYear;
 
-    @Column(name = "school_name", length = 100)
-    private String schoolName;
+    @Column(name = "student_memo", columnDefinition = "TEXT")
+    private String studentMemo;
 
-    @Column(name = "parent_name", length = 100)
-    private String parentName;
-
-    @Column(name = "parent_phone", length = 20)
-    private String parentPhone;
-
-    @Column(name = "enrollment_date")
-    private LocalDate enrollmentDate;
-
-    @Column(name = "status", nullable = false, length = 20)
-    private String status = "ACTIVE";
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 
     @Builder
-    private Student(User user, Academy academy, String studentNumber, String grade,
-                   String schoolName, String parentName, String parentPhone, LocalDate enrollmentDate) {
-        this.user = user;
+    private Student(Long userId, String userLoginId, String name, String phone,
+                   Academy academy, String studentHighschool,
+                   Integer studentBirthYear, String studentMemo, Boolean isActive) {
+        this.userId = userId;
+        this.userLoginId = userLoginId;
+        this.name = name;
+        this.phone = phone;
         this.academy = academy;
-        this.studentNumber = studentNumber;
-        this.grade = grade;
-        this.schoolName = schoolName;
-        this.parentName = parentName;
-        this.parentPhone = parentPhone;
-        this.enrollmentDate = enrollmentDate;
-        this.status = "ACTIVE";
+        this.studentHighschool = studentHighschool;
+        this.studentBirthYear = studentBirthYear;
+        this.studentMemo = studentMemo;
+        this.isActive = isActive != null ? isActive : true;
     }
 
-    public static Student create(String email, String passwordHash, String name, String phone,
-                                 Academy academy, String studentNumber, String grade,
-                                 String schoolName, String parentName, String parentPhone) {
-        User user = new User(email, passwordHash, name, phone, Role.STUDENT) {};
+    public static Student create(Long userId, String userLoginId, String name, String phone,
+                                 Academy academy, String studentHighschool,
+                                 Integer studentBirthYear, String studentMemo) {
         return Student.builder()
-                .user(user)
+                .userId(userId)
+                .userLoginId(userLoginId)
+                .name(name)
+                .phone(phone)
                 .academy(academy)
-                .studentNumber(studentNumber)
-                .grade(grade)
-                .schoolName(schoolName)
-                .parentName(parentName)
-                .parentPhone(parentPhone)
-                .enrollmentDate(LocalDate.now())
+                .studentHighschool(studentHighschool)
+                .studentBirthYear(studentBirthYear)
+                .studentMemo(studentMemo)
+                .isActive(true)
                 .build();
     }
 
-    public void updateInfo(String name, String phone, String grade,
-                          String schoolName, String parentName, String parentPhone) {
+    public void updateInfo(String name, String phone, String studentHighschool,
+                          Integer studentBirthYear, String studentMemo) {
         if (name != null && !name.isBlank()) {
-            this.user = new User(user.getEmail(), user.getPasswordHash(), name,
-                                phone != null ? phone : user.getPhone(), Role.STUDENT) {};
+            this.name = name;
         }
-        if (grade != null) {
-            this.grade = grade;
+        if (phone != null) {
+            this.phone = phone;
         }
-        if (schoolName != null) {
-            this.schoolName = schoolName;
+        if (studentHighschool != null) {
+            this.studentHighschool = studentHighschool;
         }
-        if (parentName != null) {
-            this.parentName = parentName;
+        if (studentBirthYear != null) {
+            this.studentBirthYear = studentBirthYear;
         }
-        if (parentPhone != null) {
-            this.parentPhone = parentPhone;
+        if (studentMemo != null) {
+            this.studentMemo = studentMemo;
         }
     }
 
     public void deactivate() {
-        this.status = "INACTIVE";
-        this.user.deactivate();
+        this.isActive = false;
     }
 
     public void activate() {
-        this.status = "ACTIVE";
-        this.user.activate();
+        this.isActive = true;
     }
 
     public boolean isActive() {
-        return "ACTIVE".equals(this.status);
+        return Boolean.TRUE.equals(this.isActive);
     }
 
     public String getStudentName() {
-        return user.getName();
+        return name;
     }
 
     public String getStudentPhone() {
-        return user.getPhone();
+        return phone;
     }
 
     public String getStudentEmail() {
-        return user.getEmail();
-    }
-
-    public Long getUserId() {
-        return user.getId();
+        return userLoginId;
     }
 }

@@ -8,8 +8,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalTime;
-
 @Entity
 @Table(name = "counseling_reservations")
 @Getter
@@ -27,38 +25,31 @@ public class Reservation extends BaseEntity {
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
-    @Column(name = "reservation_time", nullable = false)
-    private LocalTime reservationTime;
+    @Column(name = "admin_id", nullable = false)
+    private Long adminId;
 
-    @Column(name = "topic", length = 200)
-    private String topic;
-
-    @Column(name = "notes", columnDefinition = "TEXT")
-    private String notes;
+    @Column(name = "consultation_content", columnDefinition = "TEXT")
+    private String consultationContent;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private ReservationStatus status;
 
     @Builder
-    private Reservation(Schedule schedule, Long studentId, LocalTime reservationTime,
-                        String topic, String notes) {
+    private Reservation(Schedule schedule, Long studentId, Long adminId, String consultationContent) {
         this.schedule = schedule;
         this.studentId = studentId;
-        this.reservationTime = reservationTime;
-        this.topic = topic;
-        this.notes = notes;
+        this.adminId = adminId;
+        this.consultationContent = consultationContent;
         this.status = ReservationStatus.PENDING;
     }
 
-    public static Reservation create(Schedule schedule, Long studentId, LocalTime reservationTime,
-                                       String topic, String notes) {
+    public static Reservation create(Schedule schedule, Long studentId, Long adminId, String consultationContent) {
         return Reservation.builder()
                 .schedule(schedule)
                 .studentId(studentId)
-                .reservationTime(reservationTime)
-                .topic(topic)
-                .notes(notes)
+                .adminId(adminId)
+                .consultationContent(consultationContent)
                 .build();
     }
 
@@ -74,9 +65,9 @@ public class Reservation extends BaseEntity {
         this.status = ReservationStatus.COMPLETED;
     }
 
-    public void updateNotes(String notes) {
-        if (notes != null) {
-            this.notes = notes;
+    public void updateConsultationContent(String consultationContent) {
+        if (consultationContent != null) {
+            this.consultationContent = consultationContent;
         }
     }
 

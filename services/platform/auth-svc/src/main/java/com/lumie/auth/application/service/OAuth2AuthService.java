@@ -93,26 +93,29 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         // 4. Get user info from provider
         OAuth2UserInfo userInfo = getUserInfo(provider, accessToken, config);
 
-        // 5. Find or create user in tenant schema
+        // 5. Generate userLoginId from OAuth provider (provider_providerId format)
+        String userLoginId = provider.toLowerCase() + "_" + userInfo.providerId();
+
+        // 6. Find or create user in public.users
         UserData user = userLookupPort.findOrCreateOAuth2User(
-                tenant.schemaName(),
-                userInfo.email(),
+                userLoginId,
                 userInfo.name(),
+                tenant.id(),
                 provider
         );
 
-        // 6. Generate tokens
-        TokenPair tokenPair = generateTokenPair(user, tenantSlug, tenant.id());
+        // 7. Generate tokens
+        TokenPair tokenPair = generateTokenPair(user, tenantSlug);
 
-        // 7. Save refresh token
+        // 8. Save refresh token
         saveRefreshToken(user.id(), tenantSlug, tenant.id(), user.role(), tokenPair);
 
-        // 8. Publish login event
-        eventPublisherPort.publishLoginEvent(user.id(), tenantSlug, user.email(), provider);
+        // 9. Publish login event
+        eventPublisherPort.publishLoginEvent(user.id(), tenantSlug, user.userLoginId(), provider);
 
-        log.info("OAuth2 login successful for user: {} via {}", user.email(), provider);
+        log.info("OAuth2 login successful for user: {} via {}", user.userLoginId(), provider);
 
-        return LoginResponse.of(tokenPair, user.toUserResponse(tenantSlug, tenant.id()));
+        return LoginResponse.of(tokenPair, user.toUserResponse(tenantSlug));
     }
 
     private String generateNonce() {
@@ -178,14 +181,14 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
 
         return switch (provider.toLowerCase()) {
             case "google" -> new OAuth2UserInfo(
-                    (String) response.get("email"),
+                    (String) response.get("sub"),  // Google's unique user ID
                     (String) response.get("name")
             );
             case "kakao" -> {
                 Map<String, Object> kakaoAccount = (Map<String, Object>) response.get("kakao_account");
                 Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
                 yield new OAuth2UserInfo(
-                        (String) kakaoAccount.get("email"),
+                        String.valueOf(response.get("id")),  // Kakao's unique user ID
                         (String) profile.get("nickname")
                 );
             }
@@ -193,14 +196,14 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         };
     }
 
-    private TokenPair generateTokenPair(UserData user, String tenantSlug, Long tenantId) {
+    private TokenPair generateTokenPair(UserData user, String tenantSlug) {
         String accessJti = UUID.randomUUID().toString();
         String refreshJti = UUID.randomUUID().toString();
 
         String accessToken = jwtTokenProvider.generateAccessToken(
-                user.id(), tenantSlug, tenantId, user.role(), accessJti);
+                user.id(), tenantSlug, user.tenantId(), user.role(), accessJti);
         String refreshToken = jwtTokenProvider.generateRefreshToken(
-                user.id(), tenantSlug, tenantId, user.role(), refreshJti);
+                user.id(), tenantSlug, user.tenantId(), user.role(), refreshJti);
 
         return TokenPair.of(
                 accessToken,
@@ -227,6 +230,6 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         tokenPersistencePort.saveRefreshToken(authToken);
     }
 
-    private record OAuth2UserInfo(String email, String name) {
+    private record OAuth2UserInfo(String providerId, String name) {
     }
 }

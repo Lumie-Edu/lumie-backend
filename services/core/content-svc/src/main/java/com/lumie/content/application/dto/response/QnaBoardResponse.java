@@ -6,14 +6,10 @@ import java.time.LocalDateTime;
 
 public record QnaBoardResponse(
         Long id,
-        Long academyId,
-        Long studentId,
-        String title,
-        String content,
-        String category,
-        Boolean isAnswered,
-        Boolean isPrivate,
-        Integer viewCount,
+        Long qnaUserId,
+        String qnaTitle,
+        String qnaContent,
+        Boolean isItAnswered,
         Integer commentCount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -21,14 +17,10 @@ public record QnaBoardResponse(
     public static QnaBoardResponse from(QnaBoard qnaBoard) {
         return new QnaBoardResponse(
                 qnaBoard.getId(),
-                qnaBoard.getAcademyId(),
-                qnaBoard.getStudentId(),
-                qnaBoard.getTitle(),
-                qnaBoard.getContent(),
-                qnaBoard.getCategory(),
-                qnaBoard.getIsAnswered(),
-                qnaBoard.getIsPrivate(),
-                qnaBoard.getViewCount(),
+                qnaBoard.getQnaUserId(),
+                qnaBoard.getQnaTitle(),
+                qnaBoard.getQnaContent(),
+                qnaBoard.getIsItAnswered(),
                 qnaBoard.getComments() != null ? qnaBoard.getComments().size() : 0,
                 qnaBoard.getCreatedAt(),
                 qnaBoard.getUpdatedAt()

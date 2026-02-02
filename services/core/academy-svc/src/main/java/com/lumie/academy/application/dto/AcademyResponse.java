@@ -7,13 +7,9 @@ import java.time.LocalDateTime;
 public record AcademyResponse(
     Long id,
     String name,
-    String description,
     String address,
     String phone,
-    String email,
-    String businessNumber,
-    boolean isDefault,
-    String status,
+    Boolean isActive,
     long studentCount,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
@@ -22,13 +18,9 @@ public record AcademyResponse(
         return new AcademyResponse(
             academy.getId(),
             academy.getName(),
-            academy.getDescription(),
             academy.getAddress(),
             academy.getPhone(),
-            academy.getEmail(),
-            academy.getBusinessNumber(),
-            academy.isDefault(),
-            academy.getStatus(),
+            academy.isActive(),
             studentCount,
             academy.getCreatedAt(),
             academy.getUpdatedAt()

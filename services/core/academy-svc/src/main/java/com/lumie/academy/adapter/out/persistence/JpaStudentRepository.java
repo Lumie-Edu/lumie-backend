@@ -11,27 +11,24 @@ import java.util.Optional;
 
 public interface JpaStudentRepository extends JpaRepository<Student, Long> {
 
-    @Query("SELECT s FROM Student s WHERE s.user.id = :userId")
-    Optional<Student> findByUserId(@Param("userId") Long userId);
+    Optional<Student> findByUserId(Long userId);
 
-    @Query("SELECT s FROM Student s WHERE s.user.email = :email")
-    Optional<Student> findByUserEmail(@Param("email") String email);
+    Optional<Student> findByUserLoginId(String userLoginId);
 
     @Query("SELECT s FROM Student s WHERE s.academy.id = :academyId")
     Page<Student> findByAcademyId(@Param("academyId") Long academyId, Pageable pageable);
 
-    @Query("SELECT s FROM Student s WHERE s.academy.id = :academyId AND s.status = :status")
-    Page<Student> findByAcademyIdAndStatus(@Param("academyId") Long academyId,
-                                           @Param("status") String status,
-                                           Pageable pageable);
+    @Query("SELECT s FROM Student s WHERE s.academy.id = :academyId AND s.isActive = :isActive")
+    Page<Student> findByAcademyIdAndIsActive(@Param("academyId") Long academyId,
+                                              @Param("isActive") Boolean isActive,
+                                              Pageable pageable);
 
-    Page<Student> findByStatus(String status, Pageable pageable);
+    Page<Student> findByIsActive(Boolean isActive, Pageable pageable);
 
     @Query("SELECT COUNT(s) FROM Student s WHERE s.academy.id = :academyId")
     long countByAcademyId(@Param("academyId") Long academyId);
 
-    long countByStatus(String status);
+    long countByIsActive(Boolean isActive);
 
-    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE s.user.email = :email")
-    boolean existsByUserEmail(@Param("email") String email);
+    boolean existsByUserLoginId(String userLoginId);
 }

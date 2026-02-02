@@ -8,10 +8,10 @@ import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -39,11 +39,10 @@ public class ExamQueryService {
         return ExamDetailResponse.from(exam);
     }
 
-    public List<ExamResponse> listExams() {
-        log.debug("Listing all exams");
+    public Page<ExamResponse> listExams(Pageable pageable) {
+        log.debug("Listing all exams with pagination");
 
-        return examRepository.findAll().stream()
-                .map(ExamResponse::from)
-                .toList();
+        return examRepository.findAll(pageable)
+                .map(ExamResponse::from);
     }
 }

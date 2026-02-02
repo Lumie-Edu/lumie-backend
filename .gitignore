@@ -43,3 +43,6 @@ application-local.properties
 # Test outputs
 test-results/
 test-output/
+
+# Tilt generated files
+.tilt/

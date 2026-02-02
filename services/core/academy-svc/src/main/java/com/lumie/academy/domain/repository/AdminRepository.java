@@ -14,15 +14,15 @@ public interface AdminRepository {
 
     Optional<Admin> findByUserId(Long userId);
 
-    Optional<Admin> findByUserEmail(String email);
+    Optional<Admin> findByUserLoginId(String userLoginId);
 
-    Page<Admin> findByAcademyId(Long academyId, Pageable pageable);
+    Page<Admin> findByAcademiesId(Long academyId, Pageable pageable);
 
     Page<Admin> findAll(Pageable pageable);
 
-    long countByAcademyId(Long academyId);
+    long countByAcademiesId(Long academyId);
 
-    boolean existsByUserEmail(String email);
+    boolean existsByUserLoginId(String userLoginId);
 
     void delete(Admin admin);
 }

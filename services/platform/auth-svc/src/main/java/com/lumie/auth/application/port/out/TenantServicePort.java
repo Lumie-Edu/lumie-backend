@@ -24,6 +24,14 @@ public interface TenantServicePort {
     Optional<TenantData> getTenantBySlug(String slug);
 
     /**
+     * Validates a tenant by ID and returns tenant information if valid.
+     *
+     * @param tenantId the tenant ID
+     * @return optional containing tenant data if valid
+     */
+    Optional<TenantData> validateTenantById(Long tenantId);
+
+    /**
      * Creates a new tenant with synchronous schema provisioning.
      *
      * @param instituteName the institute name

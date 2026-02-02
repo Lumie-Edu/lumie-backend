@@ -25,9 +25,9 @@ public class StudentQueryService {
         return StudentResponse.from(student);
     }
 
-    public StudentResponse getStudentByEmail(String email) {
-        Student student = studentRepository.findByUserEmail(email)
-                .orElseThrow(() -> new StudentNotFoundException(email));
+    public StudentResponse getStudentByUserLoginId(String userLoginId) {
+        Student student = studentRepository.findByUserLoginId(userLoginId)
+                .orElseThrow(() -> new StudentNotFoundException(userLoginId));
         return StudentResponse.from(student);
     }
 
@@ -37,13 +37,38 @@ public class StudentQueryService {
     }
 
     public Page<StudentResponse> getActiveStudentsByAcademy(Long academyId, Pageable pageable) {
-        return studentRepository.findByAcademyIdAndStatus(academyId, "ACTIVE", pageable)
+        return studentRepository.findByAcademyIdAndIsActive(academyId, true, pageable)
                 .map(StudentResponse::from);
     }
 
     public Page<StudentResponse> getAllActiveStudents(Pageable pageable) {
-        return studentRepository.findAllByStatus("ACTIVE", pageable)
+        return studentRepository.findAllByIsActive(true, pageable)
                 .map(StudentResponse::from);
+    }
+
+    public Page<StudentResponse> getAllStudents(Boolean isActive, Pageable pageable) {
+        if (isActive == null) {
+            return studentRepository.findAll(pageable)
+                    .map(StudentResponse::from);
+        }
+        return studentRepository.findAllByIsActive(isActive, pageable)
+                .map(StudentResponse::from);
+    }
+
+    public Page<StudentResponse> getStudents(Long academyId, Boolean isActive, Pageable pageable) {
+        if (academyId != null && isActive != null) {
+            return studentRepository.findByAcademyIdAndIsActive(academyId, isActive, pageable)
+                    .map(StudentResponse::from);
+        } else if (academyId != null) {
+            return studentRepository.findByAcademyId(academyId, pageable)
+                    .map(StudentResponse::from);
+        } else if (isActive != null) {
+            return studentRepository.findAllByIsActive(isActive, pageable)
+                    .map(StudentResponse::from);
+        } else {
+            return studentRepository.findAll(pageable)
+                    .map(StudentResponse::from);
+        }
     }
 
     public long countStudentsByAcademy(Long academyId) {
@@ -51,10 +76,10 @@ public class StudentQueryService {
     }
 
     public long countActiveStudents() {
-        return studentRepository.countByStatus("ACTIVE");
+        return studentRepository.countByIsActive(true);
     }
 
-    public boolean existsByEmail(String email) {
-        return studentRepository.existsByUserEmail(email);
+    public boolean existsByUserLoginId(String userLoginId) {
+        return studentRepository.existsByUserLoginId(userLoginId);
     }
 }

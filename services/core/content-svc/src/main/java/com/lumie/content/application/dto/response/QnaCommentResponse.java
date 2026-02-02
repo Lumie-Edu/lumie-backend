@@ -7,9 +7,9 @@ import java.time.LocalDateTime;
 public record QnaCommentResponse(
         Long id,
         Long qnaId,
-        Long authorId,
-        String content,
-        Boolean isAnswer,
+        Long studentId,
+        Long adminId,
+        String commentContent,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -17,9 +17,9 @@ public record QnaCommentResponse(
         return new QnaCommentResponse(
                 comment.getId(),
                 comment.getQnaBoard().getId(),
-                comment.getAuthorId(),
-                comment.getContent(),
-                comment.getIsAnswer(),
+                comment.getStudentId(),
+                comment.getAdminId(),
+                comment.getCommentContent(),
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()
         );

@@ -8,12 +8,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "counseling_schedules")
+@Table(name = "counseling_schedules", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"admin_id", "date", "time_slot_id"})
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Schedule extends BaseEntity {
@@ -22,26 +23,14 @@ public class Schedule extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "academy_id", nullable = false)
-    private Long academyId;
-
     @Column(name = "admin_id", nullable = false)
     private Long adminId;
 
-    @Column(name = "schedule_date", nullable = false)
-    private LocalDate scheduleDate;
+    @Column(name = "date", nullable = false)
+    private LocalDate date;
 
-    @Column(name = "start_time", nullable = false)
-    private LocalTime startTime;
-
-    @Column(name = "end_time", nullable = false)
-    private LocalTime endTime;
-
-    @Column(name = "slot_duration_minutes", nullable = false)
-    private Integer slotDurationMinutes;
-
-    @Column(name = "max_reservations", nullable = false)
-    private Integer maxReservations;
+    @Column(name = "time_slot_id", nullable = false)
+    private Integer timeSlotId;
 
     @Column(name = "is_available", nullable = false)
     private Boolean isAvailable;
@@ -51,50 +40,28 @@ public class Schedule extends BaseEntity {
     private List<Reservation> reservations = new ArrayList<>();
 
     @Builder
-    private Schedule(Long academyId, Long adminId, LocalDate scheduleDate,
-                     LocalTime startTime, LocalTime endTime, Integer slotDurationMinutes,
-                     Integer maxReservations, Boolean isAvailable) {
-        this.academyId = academyId;
+    private Schedule(Long adminId, LocalDate date, Integer timeSlotId, Boolean isAvailable) {
         this.adminId = adminId;
-        this.scheduleDate = scheduleDate;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.slotDurationMinutes = slotDurationMinutes != null ? slotDurationMinutes : 30;
-        this.maxReservations = maxReservations != null ? maxReservations : 1;
+        this.date = date;
+        this.timeSlotId = timeSlotId;
         this.isAvailable = isAvailable != null ? isAvailable : true;
     }
 
-    public static Schedule create(Long academyId, Long adminId, LocalDate scheduleDate,
-                                   LocalTime startTime, LocalTime endTime, Integer slotDurationMinutes,
-                                   Integer maxReservations) {
+    public static Schedule create(Long adminId, LocalDate date, Integer timeSlotId) {
         return Schedule.builder()
-                .academyId(academyId)
                 .adminId(adminId)
-                .scheduleDate(scheduleDate)
-                .startTime(startTime)
-                .endTime(endTime)
-                .slotDurationMinutes(slotDurationMinutes)
-                .maxReservations(maxReservations)
+                .date(date)
+                .timeSlotId(timeSlotId)
                 .isAvailable(true)
                 .build();
     }
 
-    public void update(LocalDate scheduleDate, LocalTime startTime, LocalTime endTime,
-                       Integer slotDurationMinutes, Integer maxReservations) {
-        if (scheduleDate != null) {
-            this.scheduleDate = scheduleDate;
+    public void update(LocalDate date, Integer timeSlotId) {
+        if (date != null) {
+            this.date = date;
         }
-        if (startTime != null) {
-            this.startTime = startTime;
-        }
-        if (endTime != null) {
-            this.endTime = endTime;
-        }
-        if (slotDurationMinutes != null) {
-            this.slotDurationMinutes = slotDurationMinutes;
-        }
-        if (maxReservations != null) {
-            this.maxReservations = maxReservations;
+        if (timeSlotId != null) {
+            this.timeSlotId = timeSlotId;
         }
     }
 
@@ -110,17 +77,13 @@ public class Schedule extends BaseEntity {
         if (!this.isAvailable) {
             return false;
         }
-        long confirmedCount = reservations.stream()
-                .filter(r -> r.isConfirmed() || r.isPending())
-                .count();
-        return confirmedCount < this.maxReservations;
+        return reservations.stream()
+                .noneMatch(r -> r.isConfirmed() || r.isPending());
     }
 
-    public int getAvailableSlots() {
-        long confirmedCount = reservations.stream()
-                .filter(r -> r.isConfirmed() || r.isPending())
-                .count();
-        return Math.max(0, this.maxReservations - (int) confirmedCount);
+    public boolean hasReservation() {
+        return reservations.stream()
+                .anyMatch(r -> r.isConfirmed() || r.isPending());
     }
 
     public int getConfirmedCount() {

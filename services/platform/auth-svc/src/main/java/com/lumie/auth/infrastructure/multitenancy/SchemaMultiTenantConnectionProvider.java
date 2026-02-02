@@ -37,9 +37,15 @@ public class SchemaMultiTenantConnectionProvider implements MultiTenantConnectio
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
         Connection connection = dataSource.getConnection();
-        log.debug("Getting connection for tenant: {}", tenantIdentifier);
-        setSearchPath(connection, tenantIdentifier);
-        return connection;
+        try {
+            log.debug("Getting connection for tenant: {}", tenantIdentifier);
+            setSearchPath(connection, tenantIdentifier);
+            return connection;
+        } catch (SQLException e) {
+            log.error("Failed to set search_path for tenant: {}, closing connection", tenantIdentifier, e);
+            connection.close();
+            throw e;
+        }
     }
 
     @Override
@@ -50,7 +56,9 @@ public class SchemaMultiTenantConnectionProvider implements MultiTenantConnectio
     }
 
     private void setSearchPath(Connection connection, String schema) throws SQLException {
-        String searchPath = DEFAULT_SCHEMA.equals(schema) ? schema : schema + ", public";
+        // Quote schema names to handle special characters like hyphens
+        String quotedSchema = "\"" + schema + "\"";
+        String searchPath = DEFAULT_SCHEMA.equals(schema) ? quotedSchema : quotedSchema + ", public";
         log.debug("Setting search_path to: {}", searchPath);
         try (var stmt = connection.createStatement()) {
             stmt.execute("SET search_path TO " + searchPath);

@@ -21,15 +21,15 @@ public class AnnouncementCommandService {
 
     @Transactional
     public AnnouncementResponse createAnnouncement(CreateAnnouncementRequest request) {
-        log.info("Creating announcement: {}", request.title());
+        log.info("Creating announcement: {}", request.announcementTitle());
 
         Announcement announcement = Announcement.create(
-                request.academyId(),
                 request.authorId(),
-                request.title(),
-                request.content(),
-                request.isImportant(),
-                request.isPublic()
+                request.announcementTitle(),
+                request.announcementContent(),
+                request.isItAssetAnnouncement(),
+                request.isItImportantAnnouncement(),
+                request.academyIds()
         );
 
         Announcement saved = announcementRepository.save(announcement);
@@ -45,7 +45,16 @@ public class AnnouncementCommandService {
         Announcement announcement = announcementRepository.findById(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND));
 
-        announcement.update(request.title(), request.content(), request.isImportant(), request.isPublic());
+        announcement.update(
+                request.announcementTitle(),
+                request.announcementContent(),
+                request.isItAssetAnnouncement(),
+                request.isItImportantAnnouncement()
+        );
+
+        if (request.academyIds() != null) {
+            announcement.setAcademyIds(request.academyIds());
+        }
 
         Announcement updated = announcementRepository.save(announcement);
         log.info("Announcement updated: {}", updated.getId());

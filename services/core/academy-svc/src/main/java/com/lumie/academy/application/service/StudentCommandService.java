@@ -9,7 +9,7 @@ import com.lumie.academy.application.port.out.MemberEventPublisherPort;
 import com.lumie.academy.domain.entity.Academy;
 import com.lumie.academy.domain.entity.Student;
 import com.lumie.academy.domain.exception.AcademyNotFoundException;
-import com.lumie.academy.domain.exception.DuplicateEmailException;
+import com.lumie.academy.domain.exception.DuplicateUserLoginIdException;
 import com.lumie.academy.domain.exception.QuotaExceededException;
 import com.lumie.academy.domain.exception.StudentNotFoundException;
 import com.lumie.academy.domain.repository.AcademyRepository;
@@ -22,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,35 +38,30 @@ public class StudentCommandService {
 
     private final StudentRepository studentRepository;
     private final AcademyRepository academyRepository;
-    private final PasswordEncoder passwordEncoder;
     private final BillingServicePort billingServicePort;
     private final MemberEventPublisherPort eventPublisher;
 
-    public StudentResponse registerStudent(StudentRequest request) {
+    public StudentResponse registerStudent(Long userId, StudentRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         checkStudentQuota(tenantSlug);
 
-        if (studentRepository.existsByUserEmail(request.email())) {
-            throw new DuplicateEmailException(request.email());
+        if (studentRepository.existsByUserLoginId(request.userLoginId())) {
+            throw new DuplicateUserLoginIdException(request.userLoginId());
         }
 
         Academy academy = academyRepository.findById(request.academyId())
                 .orElseThrow(() -> new AcademyNotFoundException(request.academyId()));
 
-        String passwordHash = passwordEncoder.encode(request.password());
-
         Student student = Student.create(
-            request.email(),
-            passwordHash,
+            userId,
+            request.userLoginId(),
             request.name(),
             request.phone(),
             academy,
-            request.studentNumber(),
-            request.grade(),
-            request.schoolName(),
-            request.parentName(),
-            request.parentPhone()
+            request.studentHighschool(),
+            request.studentBirthYear(),
+            request.studentMemo()
         );
 
         Student saved = studentRepository.save(student);
@@ -81,7 +75,7 @@ public class StudentCommandService {
             academy.getId()
         ));
 
-        log.info("Student registered: {} in tenant: {}", saved.getStudentEmail(), tenantSlug);
+        log.info("Student registered: {} in tenant: {}", saved.getUserLoginId(), tenantSlug);
         return StudentResponse.from(saved);
     }
 
@@ -94,10 +88,9 @@ public class StudentCommandService {
         student.updateInfo(
             request.name(),
             request.phone(),
-            request.grade(),
-            request.schoolName(),
-            request.parentName(),
-            request.parentPhone()
+            request.studentHighschool(),
+            request.studentBirthYear(),
+            request.studentMemo()
         );
 
         Student updated = studentRepository.save(student);
@@ -152,43 +145,31 @@ public class StudentCommandService {
                 totalRows++;
 
                 try {
-                    String email = getCellStringValue(row.getCell(0));
-                    String password = getCellStringValue(row.getCell(1));
-                    String name = getCellStringValue(row.getCell(2));
-                    String phone = getCellStringValue(row.getCell(3));
-                    String studentNumber = getCellStringValue(row.getCell(4));
-                    String grade = getCellStringValue(row.getCell(5));
-                    String schoolName = getCellStringValue(row.getCell(6));
-                    String parentName = getCellStringValue(row.getCell(7));
-                    String parentPhone = getCellStringValue(row.getCell(8));
+                    String userLoginId = getCellStringValue(row.getCell(0));
+                    String name = getCellStringValue(row.getCell(1));
+                    String phone = getCellStringValue(row.getCell(2));
+                    String studentHighschool = getCellStringValue(row.getCell(3));
+                    Integer studentBirthYear = getCellIntegerValue(row.getCell(4));
+                    String studentMemo = getCellStringValue(row.getCell(5));
 
-                    if (email == null || email.isBlank()) {
-                        errors.add(new BulkImportResult.RowError(i + 1, "email", "Email is required"));
+                    if (userLoginId == null || userLoginId.isBlank()) {
+                        errors.add(new BulkImportResult.RowError(i + 1, "userLoginId", "User login ID is required"));
                         continue;
                     }
 
-                    if (studentRepository.existsByUserEmail(email)) {
-                        errors.add(new BulkImportResult.RowError(i + 1, "email", "Email already exists"));
+                    if (studentRepository.existsByUserLoginId(userLoginId)) {
+                        errors.add(new BulkImportResult.RowError(i + 1, "userLoginId", "User login ID already exists"));
                         continue;
                     }
 
                     checkStudentQuota(tenantSlug);
 
-                    String passwordHash = passwordEncoder.encode(password != null ? password : "default123");
+                    // For bulk import, we need to create users in auth-svc first
+                    // This is a simplified version that assumes users already exist
+                    // TODO: Implement proper bulk user creation via auth-svc gRPC
+                    errors.add(new BulkImportResult.RowError(i + 1, "userLoginId",
+                        "Bulk import requires users to be pre-registered in auth service"));
 
-                    Student student = Student.create(
-                        email, passwordHash, name, phone, academy,
-                        studentNumber, grade, schoolName, parentName, parentPhone
-                    );
-
-                    Student saved = studentRepository.save(student);
-
-                    eventPublisher.publish(new MemberCreatedEvent(
-                        saved.getId(), tenantSlug, "STUDENT",
-                        saved.getStudentName(), saved.getStudentEmail(), academy.getId()
-                    ));
-
-                    successCount++;
                 } catch (QuotaExceededException e) {
                     errors.add(new BulkImportResult.RowError(i + 1, "quota", "Student quota exceeded"));
                     break;
@@ -219,6 +200,21 @@ public class StudentCommandService {
         return switch (cell.getCellType()) {
             case STRING -> cell.getStringCellValue();
             case NUMERIC -> String.valueOf((long) cell.getNumericCellValue());
+            default -> null;
+        };
+    }
+
+    private Integer getCellIntegerValue(Cell cell) {
+        if (cell == null) return null;
+        return switch (cell.getCellType()) {
+            case NUMERIC -> (int) cell.getNumericCellValue();
+            case STRING -> {
+                try {
+                    yield Integer.parseInt(cell.getStringCellValue());
+                } catch (NumberFormatException e) {
+                    yield null;
+                }
+            }
             default -> null;
         };
     }

@@ -7,9 +7,8 @@ public interface RegisterUseCase {
     /**
      * Registers a new user and returns tokens.
      *
-     * @param tenantSlug the tenant slug from X-Tenant-Slug header
-     * @param request the registration request containing email, password, and name
+     * @param request the registration request containing tenantSlug, userLoginId, password, name, and phone
      * @return login response with tokens and user info
      */
-    LoginResponse register(String tenantSlug, RegisterRequest request);
+    LoginResponse register(RegisterRequest request);
 }

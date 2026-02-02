@@ -6,10 +6,7 @@ public record AcademyRequest(
     @NotBlank(message = "Name is required")
     String name,
 
-    String description,
     String address,
-    String phone,
-    String email,
-    String businessNumber
+    String phone
 ) {
 }

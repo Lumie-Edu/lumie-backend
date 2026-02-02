@@ -20,6 +20,7 @@ public enum ContentErrorCode implements ErrorCode {
     RESERVATION_NOT_FOUND("C206", "Reservation not found", 404),
     STUDENT_NOT_FOUND("C207", "Student not found", 404),
     ADMIN_NOT_FOUND("C208", "Admin not found", 404),
+    REVIEW_NOT_FOUND("C209", "Review not found", 404),
 
     // 409 Conflict
     DUPLICATE_RESERVATION("C301", "Duplicate reservation", 409),

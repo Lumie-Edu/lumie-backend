@@ -29,15 +29,12 @@ public class QnaCommandService {
 
     @Transactional
     public QnaBoardResponse createQna(CreateQnaRequest request) {
-        log.info("Creating Q&A: {}", request.title());
+        log.info("Creating Q&A: {}", request.qnaTitle());
 
         QnaBoard qnaBoard = QnaBoard.create(
-                request.academyId(),
-                request.studentId(),
-                request.title(),
-                request.content(),
-                request.category(),
-                request.isPrivate()
+                request.qnaUserId(),
+                request.qnaTitle(),
+                request.qnaContent()
         );
 
         QnaBoard saved = qnaBoardRepository.save(qnaBoard);
@@ -53,7 +50,7 @@ public class QnaCommandService {
         QnaBoard qnaBoard = qnaBoardRepository.findById(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
 
-        qnaBoard.update(request.title(), request.content(), request.category(), request.isPrivate());
+        qnaBoard.update(request.qnaTitle(), request.qnaContent());
 
         QnaBoard updated = qnaBoardRepository.save(qnaBoard);
         log.info("Q&A updated: {}", updated.getId());
@@ -80,21 +77,21 @@ public class QnaCommandService {
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(qnaId)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
 
-        boolean hadAnswerComment = qnaBoard.hasAnswerComment();
+        boolean hadAdminComment = qnaBoard.hasAdminComment();
 
-        QnaComment comment = QnaComment.create(
-                qnaBoard,
-                request.authorId(),
-                request.content(),
-                request.isAnswer()
-        );
+        QnaComment comment;
+        if (request.adminId() != null) {
+            comment = QnaComment.createByAdmin(qnaBoard, request.adminId(), request.commentContent());
+        } else {
+            comment = QnaComment.createByStudent(qnaBoard, request.studentId(), request.commentContent());
+        }
 
         qnaBoard.addComment(comment);
         QnaComment saved = qnaCommentRepository.save(comment);
         qnaBoardRepository.save(qnaBoard);
 
-        // Publish event if this is the first answer comment
-        if (!hadAnswerComment && comment.isAnswer()) {
+        // Publish event if this is the first admin comment (answer)
+        if (!hadAdminComment && comment.isAdminComment()) {
             String tenantSlug = TenantContextHolder.getTenantSlug();
             eventPublisher.publishQnaReplied(qnaBoard, tenantSlug);
         }

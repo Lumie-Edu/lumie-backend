@@ -31,8 +31,8 @@ public class StudentRepositoryAdapter implements StudentRepository {
     }
 
     @Override
-    public Optional<Student> findByUserEmail(String email) {
-        return jpaStudentRepository.findByUserEmail(email);
+    public Optional<Student> findByUserLoginId(String userLoginId) {
+        return jpaStudentRepository.findByUserLoginId(userLoginId);
     }
 
     @Override
@@ -41,13 +41,18 @@ public class StudentRepositoryAdapter implements StudentRepository {
     }
 
     @Override
-    public Page<Student> findByAcademyIdAndStatus(Long academyId, String status, Pageable pageable) {
-        return jpaStudentRepository.findByAcademyIdAndStatus(academyId, status, pageable);
+    public Page<Student> findByAcademyIdAndIsActive(Long academyId, Boolean isActive, Pageable pageable) {
+        return jpaStudentRepository.findByAcademyIdAndIsActive(academyId, isActive, pageable);
     }
 
     @Override
-    public Page<Student> findAllByStatus(String status, Pageable pageable) {
-        return jpaStudentRepository.findByStatus(status, pageable);
+    public Page<Student> findAllByIsActive(Boolean isActive, Pageable pageable) {
+        return jpaStudentRepository.findByIsActive(isActive, pageable);
+    }
+
+    @Override
+    public Page<Student> findAll(Pageable pageable) {
+        return jpaStudentRepository.findAll(pageable);
     }
 
     @Override
@@ -56,13 +61,13 @@ public class StudentRepositoryAdapter implements StudentRepository {
     }
 
     @Override
-    public long countByStatus(String status) {
-        return jpaStudentRepository.countByStatus(status);
+    public long countByIsActive(Boolean isActive) {
+        return jpaStudentRepository.countByIsActive(isActive);
     }
 
     @Override
-    public boolean existsByUserEmail(String email) {
-        return jpaStudentRepository.existsByUserEmail(email);
+    public boolean existsByUserLoginId(String userLoginId) {
+        return jpaStudentRepository.existsByUserLoginId(userLoginId);
     }
 
     @Override

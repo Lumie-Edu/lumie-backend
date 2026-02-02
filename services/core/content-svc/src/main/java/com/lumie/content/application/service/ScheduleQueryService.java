@@ -37,7 +37,7 @@ public class ScheduleQueryService {
             throw new ContentException(ContentErrorCode.INVALID_DATE_RANGE);
         }
 
-        return scheduleRepository.findByScheduleDateBetween(startDate, endDate).stream()
+        return scheduleRepository.findByDateBetween(startDate, endDate).stream()
                 .map(ScheduleResponse::from)
                 .toList();
     }
@@ -49,7 +49,7 @@ public class ScheduleQueryService {
             throw new ContentException(ContentErrorCode.INVALID_DATE_RANGE);
         }
 
-        return scheduleRepository.findByScheduleDateBetweenAndIsAvailableTrue(startDate, endDate).stream()
+        return scheduleRepository.findByDateBetweenAndIsAvailableTrue(startDate, endDate).stream()
                 .map(ScheduleResponse::from)
                 .toList();
     }
@@ -57,7 +57,7 @@ public class ScheduleQueryService {
     public List<ScheduleResponse> listSchedulesByAdmin(Long adminId, LocalDate startDate, LocalDate endDate) {
         log.debug("Listing schedules for admin {} from {} to {}", adminId, startDate, endDate);
 
-        return scheduleRepository.findByAdminIdAndScheduleDateBetween(adminId, startDate, endDate).stream()
+        return scheduleRepository.findByAdminIdAndDateBetween(adminId, startDate, endDate).stream()
                 .map(ScheduleResponse::from)
                 .toList();
     }

@@ -35,13 +35,6 @@ public class AcademyQueryService {
         return AcademyResponse.from(academy, studentCount);
     }
 
-    public AcademyResponse getDefaultAcademy() {
-        Academy academy = academyRepository.findDefaultAcademy()
-                .orElseThrow(() -> new AcademyNotFoundException("default"));
-        long studentCount = studentRepository.countByAcademyId(academy.getId());
-        return AcademyResponse.from(academy, studentCount);
-    }
-
     public Page<AcademyResponse> getAllAcademies(Pageable pageable) {
         return academyRepository.findAll(pageable)
                 .map(academy -> {
@@ -51,7 +44,7 @@ public class AcademyQueryService {
     }
 
     public Page<AcademyResponse> getActiveAcademies(Pageable pageable) {
-        return academyRepository.findByStatus("ACTIVE", pageable)
+        return academyRepository.findByIsActive(true, pageable)
                 .map(academy -> {
                     long studentCount = studentRepository.countByAcademyId(academy.getId());
                     return AcademyResponse.from(academy, studentCount);
@@ -63,6 +56,6 @@ public class AcademyQueryService {
     }
 
     public long countActiveAcademies() {
-        return academyRepository.countByStatus("ACTIVE");
+        return academyRepository.countByIsActive(true);
     }
 }

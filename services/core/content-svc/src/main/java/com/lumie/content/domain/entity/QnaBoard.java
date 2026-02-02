@@ -20,90 +20,59 @@ public class QnaBoard extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "academy_id")
-    private Long academyId;
+    @Column(name = "qna_user_id", nullable = false)
+    private Long qnaUserId;
 
-    @Column(name = "student_id", nullable = false)
-    private Long studentId;
+    @Column(name = "qna_title", nullable = false, length = 200)
+    private String qnaTitle;
 
-    @Column(name = "title", nullable = false, length = 200)
-    private String title;
+    @Column(name = "qna_content", nullable = false, columnDefinition = "TEXT")
+    private String qnaContent;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
-    private String content;
-
-    @Column(name = "category", length = 50)
-    private String category;
-
-    @Column(name = "is_answered", nullable = false)
-    private Boolean isAnswered;
-
-    @Column(name = "is_private", nullable = false)
-    private Boolean isPrivate;
-
-    @Column(name = "view_count", nullable = false)
-    private Integer viewCount;
+    @Column(name = "is_it_answered", nullable = false)
+    private Boolean isItAnswered;
 
     @OneToMany(mappedBy = "qnaBoard", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC")
     private List<QnaComment> comments = new ArrayList<>();
 
     @Builder
-    private QnaBoard(Long academyId, Long studentId, String title, String content,
-                     String category, Boolean isPrivate) {
-        this.academyId = academyId;
-        this.studentId = studentId;
-        this.title = title;
-        this.content = content;
-        this.category = category;
-        this.isAnswered = false;
-        this.isPrivate = isPrivate != null ? isPrivate : false;
-        this.viewCount = 0;
+    private QnaBoard(Long qnaUserId, String qnaTitle, String qnaContent) {
+        this.qnaUserId = qnaUserId;
+        this.qnaTitle = qnaTitle;
+        this.qnaContent = qnaContent;
+        this.isItAnswered = false;
     }
 
-    public static QnaBoard create(Long academyId, Long studentId, String title, String content,
-                                   String category, Boolean isPrivate) {
+    public static QnaBoard create(Long qnaUserId, String qnaTitle, String qnaContent) {
         return QnaBoard.builder()
-                .academyId(academyId)
-                .studentId(studentId)
-                .title(title)
-                .content(content)
-                .category(category)
-                .isPrivate(isPrivate)
+                .qnaUserId(qnaUserId)
+                .qnaTitle(qnaTitle)
+                .qnaContent(qnaContent)
                 .build();
     }
 
-    public void update(String title, String content, String category, Boolean isPrivate) {
-        if (title != null && !title.isBlank()) {
-            this.title = title;
+    public void update(String qnaTitle, String qnaContent) {
+        if (qnaTitle != null && !qnaTitle.isBlank()) {
+            this.qnaTitle = qnaTitle;
         }
-        if (content != null && !content.isBlank()) {
-            this.content = content;
-        }
-        if (category != null) {
-            this.category = category;
-        }
-        if (isPrivate != null) {
-            this.isPrivate = isPrivate;
+        if (qnaContent != null && !qnaContent.isBlank()) {
+            this.qnaContent = qnaContent;
         }
     }
 
     public void markAsAnswered() {
-        this.isAnswered = true;
-    }
-
-    public void incrementViewCount() {
-        this.viewCount++;
+        this.isItAnswered = true;
     }
 
     public void addComment(QnaComment comment) {
         this.comments.add(comment);
-        if (comment.isAnswer() && !this.isAnswered) {
+        if (!this.isItAnswered && comment.getAdminId() != null) {
             this.markAsAnswered();
         }
     }
 
-    public boolean hasAnswerComment() {
-        return comments.stream().anyMatch(QnaComment::isAnswer);
+    public boolean hasAdminComment() {
+        return comments.stream().anyMatch(c -> c.getAdminId() != null);
     }
 }

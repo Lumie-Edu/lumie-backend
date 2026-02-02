@@ -11,18 +11,15 @@ import java.util.Optional;
 
 public interface JpaAdminRepository extends JpaRepository<Admin, Long> {
 
-    @Query("SELECT a FROM Admin a WHERE a.user.id = :userId")
-    Optional<Admin> findByUserId(@Param("userId") Long userId);
+    Optional<Admin> findByUserId(Long userId);
 
-    @Query("SELECT a FROM Admin a WHERE a.user.email = :email")
-    Optional<Admin> findByUserEmail(@Param("email") String email);
+    Optional<Admin> findByUserLoginId(String userLoginId);
 
-    @Query("SELECT a FROM Admin a WHERE a.academy.id = :academyId")
-    Page<Admin> findByAcademyId(@Param("academyId") Long academyId, Pageable pageable);
+    @Query("SELECT DISTINCT a FROM Admin a JOIN a.academies ac WHERE ac.id = :academyId")
+    Page<Admin> findByAcademiesId(@Param("academyId") Long academyId, Pageable pageable);
 
-    @Query("SELECT COUNT(a) FROM Admin a WHERE a.academy.id = :academyId")
-    long countByAcademyId(@Param("academyId") Long academyId);
+    @Query("SELECT COUNT(DISTINCT a) FROM Admin a JOIN a.academies ac WHERE ac.id = :academyId")
+    long countByAcademiesId(@Param("academyId") Long academyId);
 
-    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Admin a WHERE a.user.email = :email")
-    boolean existsByUserEmail(@Param("email") String email);
+    boolean existsByUserLoginId(String userLoginId);
 }

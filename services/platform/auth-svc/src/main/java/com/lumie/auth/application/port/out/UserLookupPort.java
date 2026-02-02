@@ -6,75 +6,76 @@ import com.lumie.auth.domain.vo.Role;
 import java.util.Optional;
 
 /**
- * Output port for user lookup operations from tenant schema.
+ * Output port for user lookup operations from public.users table.
+ * All users are stored in a single global table with tenant_id for identification.
  */
 public interface UserLookupPort {
 
     /**
-     * Finds a user by email in the tenant's schema.
+     * Finds a user by login ID.
      *
-     * @param schemaName the tenant's PostgreSQL schema name
-     * @param email the user's email
+     * @param userLoginId the user's login ID
      * @return optional containing user data if found
      */
-    Optional<UserData> findByEmail(String schemaName, String email);
+    Optional<UserData> findByUserLoginId(String userLoginId);
 
     /**
-     * Finds a user by ID in the tenant's schema.
+     * Finds a user by ID.
      *
-     * @param schemaName the tenant's PostgreSQL schema name
      * @param userId the user's ID
      * @return optional containing user data if found
      */
-    Optional<UserData> findById(String schemaName, Long userId);
+    Optional<UserData> findById(Long userId);
 
     /**
      * Finds or creates a user for OAuth2 login.
      *
-     * @param schemaName the tenant's PostgreSQL schema name
-     * @param email the user's email
+     * @param userLoginId the user's login ID (derived from OAuth provider)
      * @param name the user's name
+     * @param tenantId the tenant ID
      * @param provider the OAuth2 provider (google, kakao)
      * @return the user data
      */
-    UserData findOrCreateOAuth2User(String schemaName, String email, String name, String provider);
+    UserData findOrCreateOAuth2User(String userLoginId, String name, Long tenantId, String provider);
 
     /**
-     * Creates a new user with email/password credentials.
+     * Creates a new user with login ID/password credentials.
      *
-     * @param schemaName the tenant's PostgreSQL schema name
-     * @param email the user's email
+     * @param userLoginId the user's login ID
      * @param name the user's name
+     * @param phone the user's phone number
      * @param passwordHash the hashed password
      * @param role the user's role
+     * @param tenantId the tenant ID
      * @return the created user data
      */
-    UserData createUser(String schemaName, String email, String name, String passwordHash, Role role);
+    UserData createUser(String userLoginId, String name, String phone, String passwordHash, Role role, Long tenantId);
 
     /**
-     * Checks if a user with the given email exists.
+     * Checks if a user with the given login ID exists.
      *
-     * @param schemaName the tenant's PostgreSQL schema name
-     * @param email the user's email
+     * @param userLoginId the user's login ID
      * @return true if the user exists
      */
-    boolean existsByEmail(String schemaName, String email);
+    boolean existsByUserLoginId(String userLoginId);
 
     /**
-     * User data record from tenant schema.
+     * User data record from public.users table.
      */
     record UserData(
             Long id,
-            String email,
+            String userLoginId,
             String name,
+            String phone,
             String passwordHash,
             Role role,
+            Long tenantId,
             boolean enabled
     ) {
-        public UserResponse toUserResponse(String tenantSlug, Long tenantId) {
+        public UserResponse toUserResponse(String tenantSlug) {
             return UserResponse.builder()
                     .id(id)
-                    .email(email)
+                    .userLoginId(userLoginId)
                     .name(name)
                     .role(role)
                     .tenantSlug(tenantSlug)

@@ -28,29 +28,25 @@ public class QnaQueryService {
                 .map(QnaBoardResponse::from);
     }
 
-    public Page<QnaBoardResponse> listQnasByStudent(Long studentId, Pageable pageable) {
-        log.debug("Listing Q&As for student: {}", studentId);
+    public Page<QnaBoardResponse> listQnasByUser(Long qnaUserId, Pageable pageable) {
+        log.debug("Listing Q&As for user: {}", qnaUserId);
 
-        return qnaBoardRepository.findByStudentId(studentId, pageable)
+        return qnaBoardRepository.findByQnaUserId(qnaUserId, pageable)
                 .map(QnaBoardResponse::from);
     }
 
     public Page<QnaBoardResponse> listUnansweredQnas(Pageable pageable) {
         log.debug("Listing unanswered Q&As");
 
-        return qnaBoardRepository.findByIsAnsweredFalse(pageable)
+        return qnaBoardRepository.findByIsItAnsweredFalse(pageable)
                 .map(QnaBoardResponse::from);
     }
 
-    @Transactional
     public QnaDetailResponse getQna(Long id) {
         log.debug("Getting Q&A detail: {}", id);
 
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
-
-        qnaBoard.incrementViewCount();
-        qnaBoardRepository.save(qnaBoard);
 
         return QnaDetailResponse.from(qnaBoard);
     }

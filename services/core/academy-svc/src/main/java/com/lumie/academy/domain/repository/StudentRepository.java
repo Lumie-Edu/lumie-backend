@@ -14,19 +14,21 @@ public interface StudentRepository {
 
     Optional<Student> findByUserId(Long userId);
 
-    Optional<Student> findByUserEmail(String email);
+    Optional<Student> findByUserLoginId(String userLoginId);
 
     Page<Student> findByAcademyId(Long academyId, Pageable pageable);
 
-    Page<Student> findByAcademyIdAndStatus(Long academyId, String status, Pageable pageable);
+    Page<Student> findByAcademyIdAndIsActive(Long academyId, Boolean isActive, Pageable pageable);
 
-    Page<Student> findAllByStatus(String status, Pageable pageable);
+    Page<Student> findAllByIsActive(Boolean isActive, Pageable pageable);
+
+    Page<Student> findAll(Pageable pageable);
 
     long countByAcademyId(Long academyId);
 
-    long countByStatus(String status);
+    long countByIsActive(Boolean isActive);
 
-    boolean existsByUserEmail(String email);
+    boolean existsByUserLoginId(String userLoginId);
 
     void delete(Student student);
 }

@@ -8,7 +8,7 @@ import com.lumie.academy.domain.entity.Academy;
 import com.lumie.academy.domain.entity.Admin;
 import com.lumie.academy.domain.exception.AcademyNotFoundException;
 import com.lumie.academy.domain.exception.AdminNotFoundException;
-import com.lumie.academy.domain.exception.DuplicateEmailException;
+import com.lumie.academy.domain.exception.DuplicateUserLoginIdException;
 import com.lumie.academy.domain.exception.QuotaExceededException;
 import com.lumie.academy.domain.repository.AdminRepository;
 import com.lumie.academy.domain.repository.AcademyRepository;
@@ -17,9 +17,11 @@ import com.lumie.messaging.event.MemberCreatedEvent;
 import com.lumie.messaging.event.MemberUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -29,48 +31,50 @@ public class AdminCommandService {
 
     private final AdminRepository adminRepository;
     private final AcademyRepository academyRepository;
-    private final PasswordEncoder passwordEncoder;
     private final BillingServicePort billingServicePort;
     private final MemberEventPublisherPort eventPublisher;
 
-    public AdminResponse registerAdmin(AdminRequest request) {
+    public AdminResponse registerAdmin(Long userId, AdminRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         checkAdminQuota(tenantSlug);
 
-        if (adminRepository.existsByUserEmail(request.email())) {
-            throw new DuplicateEmailException(request.email());
+        if (adminRepository.existsByUserLoginId(request.userLoginId())) {
+            throw new DuplicateUserLoginIdException(request.userLoginId());
         }
 
-        Academy academy = null;
-        if (request.academyId() != null) {
-            academy = academyRepository.findById(request.academyId())
-                    .orElseThrow(() -> new AcademyNotFoundException(request.academyId()));
+        Set<Academy> academies = new HashSet<>();
+        if (request.academyIds() != null && !request.academyIds().isEmpty()) {
+            for (Long academyId : request.academyIds()) {
+                Academy academy = academyRepository.findById(academyId)
+                        .orElseThrow(() -> new AcademyNotFoundException(academyId));
+                academies.add(academy);
+            }
         }
-
-        String passwordHash = passwordEncoder.encode(request.password());
 
         Admin admin = Admin.create(
-            request.email(),
-            passwordHash,
+            userId,
+            request.userLoginId(),
             request.name(),
             request.phone(),
-            academy,
-            request.adminType()
+            academies,
+            request.adminPosition(),
+            request.adminMemo()
         );
 
         Admin saved = adminRepository.save(admin);
 
+        Long firstAcademyId = academies.isEmpty() ? null : academies.iterator().next().getId();
         eventPublisher.publish(new MemberCreatedEvent(
             saved.getId(),
             tenantSlug,
             "ADMIN",
             saved.getAdminName(),
-            saved.getAdminEmail(),
-            academy != null ? academy.getId() : null
+            saved.getUserLoginId(),
+            firstAcademyId
         ));
 
-        log.info("Admin registered: {} in tenant: {}", saved.getAdminEmail(), tenantSlug);
+        log.info("Admin registered: {} in tenant: {}", saved.getUserLoginId(), tenantSlug);
         return AdminResponse.from(saved);
     }
 
@@ -80,12 +84,16 @@ public class AdminCommandService {
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new AdminNotFoundException(id));
 
-        admin.updateInfo(request.name(), request.phone(), request.adminType());
+        admin.updateInfo(request.name(), request.phone(), request.adminPosition(), request.adminMemo());
 
-        if (request.academyId() != null) {
-            Academy academy = academyRepository.findById(request.academyId())
-                    .orElseThrow(() -> new AcademyNotFoundException(request.academyId()));
-            admin.assignToAcademy(academy);
+        if (request.academyIds() != null) {
+            Set<Academy> academies = new HashSet<>();
+            for (Long academyId : request.academyIds()) {
+                Academy academy = academyRepository.findById(academyId)
+                        .orElseThrow(() -> new AcademyNotFoundException(academyId));
+                academies.add(academy);
+            }
+            admin.setAcademies(academies);
         }
 
         Admin updated = adminRepository.save(admin);

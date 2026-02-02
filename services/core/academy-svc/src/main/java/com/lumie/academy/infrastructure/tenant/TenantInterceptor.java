@@ -1,5 +1,6 @@
 package com.lumie.academy.infrastructure.tenant;
 
+import com.lumie.academy.application.port.out.AuthServicePort;
 import com.lumie.academy.application.port.out.TenantServicePort;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,28 +14,46 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @RequiredArgsConstructor
 public class TenantInterceptor implements HandlerInterceptor {
 
-    private static final String TENANT_HEADER = "X-Tenant-Slug";
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
 
+    private final AuthServicePort authServicePort;
     private final TenantServicePort tenantServicePort;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        String tenantSlug = request.getHeader(TENANT_HEADER);
-
-        if (tenantSlug == null || tenantSlug.isBlank()) {
-            log.warn("Missing tenant header for request: {}", request.getRequestURI());
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        // Extract token from Authorization header
+        String authHeader = request.getHeader(AUTHORIZATION_HEADER);
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            log.warn("Missing or invalid Authorization header for request: {}", request.getRequestURI());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
 
-        if (!tenantServicePort.validateTenant(tenantSlug)) {
-            log.warn("Invalid tenant: {}", tenantSlug);
+        String token = authHeader.substring(BEARER_PREFIX.length());
+
+        // Validate token and extract claims via gRPC to auth-svc
+        var claimsOpt = authServicePort.validateToken(token);
+        if (claimsOpt.isEmpty()) {
+            log.warn("Invalid or expired token for request: {}", request.getRequestURI());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return false;
+        }
+
+        var claims = claimsOpt.get();
+
+        // Validate tenant is still active
+        if (!tenantServicePort.validateTenant(claims.tenantSlug())) {
+            log.warn("Invalid or inactive tenant: {}", claims.tenantSlug());
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return false;
         }
 
-        TenantContextHolder.setTenant(tenantSlug);
-        log.debug("Tenant context set: {}", tenantSlug);
+        // Set context for the request
+        TenantContextHolder.setTenant(claims.tenantSlug());
+        UserContextHolder.setUserId(claims.userId());
+
+        log.debug("Request authenticated: userId={}, tenant={}", claims.userId(), claims.tenantSlug());
         return true;
     }
 
@@ -42,5 +61,6 @@ public class TenantInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
                                 Object handler, Exception ex) {
         TenantContextHolder.clear();
+        UserContextHolder.clear();
     }
 }

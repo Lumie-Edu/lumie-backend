@@ -70,19 +70,8 @@ public class AuthGrpcService extends AuthServiceGrpc.AuthServiceImplBase {
 
             TokenClaims claims = claimsOpt.get();
 
-            // Get tenant schema name
-            var tenantOpt = tenantServicePort.getTenantBySlug(claims.tenantSlug());
-            if (tenantOpt.isEmpty()) {
-                responseBuilder
-                        .setSuccess(false)
-                        .setMessage("Tenant not found");
-                responseObserver.onNext(responseBuilder.build());
-                responseObserver.onCompleted();
-                return;
-            }
-
-            // Get user info from tenant schema
-            var userOpt = userLookupPort.findById(tenantOpt.get().schemaName(), claims.getUserId());
+            // Get user info from public.users
+            var userOpt = userLookupPort.findById(claims.getUserId());
             if (userOpt.isEmpty()) {
                 responseBuilder
                         .setSuccess(false)
@@ -98,7 +87,7 @@ public class AuthGrpcService extends AuthServiceGrpc.AuthServiceImplBase {
                     .setMessage("User info retrieved successfully")
                     .setUser(UserInfo.newBuilder()
                             .setId(user.id())
-                            .setEmail(user.email())
+                            .setEmail(user.userLoginId())
                             .setName(user.name())
                             .setRole(user.role().name())
                             .setTenantSlug(claims.tenantSlug())

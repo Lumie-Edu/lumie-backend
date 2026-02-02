@@ -20,6 +20,7 @@ public enum AcademyErrorCode implements ErrorCode {
 
     // 409 Conflict
     DUPLICATE_EMAIL("A201", "Email already exists", 409),
+    DUPLICATE_USER_LOGIN_ID("A203", "User login ID already exists", 409),
     DUPLICATE_ACADEMY_NAME("A202", "Academy name already exists", 409),
 
     // 403 Forbidden

@@ -21,16 +21,12 @@ public class ScheduleCommandService {
 
     @Transactional
     public ScheduleResponse createSchedule(CreateScheduleRequest request) {
-        log.info("Creating schedule for date: {}", request.scheduleDate());
+        log.info("Creating schedule for date: {}", request.date());
 
         Schedule schedule = Schedule.create(
-                request.academyId(),
                 request.adminId(),
-                request.scheduleDate(),
-                request.startTime(),
-                request.endTime(),
-                request.slotDurationMinutes(),
-                request.maxReservations()
+                request.date(),
+                request.timeSlotId()
         );
 
         Schedule saved = scheduleRepository.save(schedule);
@@ -46,13 +42,7 @@ public class ScheduleCommandService {
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.SCHEDULE_NOT_FOUND));
 
-        schedule.update(
-                request.scheduleDate(),
-                request.startTime(),
-                request.endTime(),
-                request.slotDurationMinutes(),
-                request.maxReservations()
-        );
+        schedule.update(request.date(), request.timeSlotId());
 
         if (request.isAvailable() != null) {
             if (request.isAvailable()) {

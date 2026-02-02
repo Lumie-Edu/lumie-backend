@@ -3,7 +3,7 @@ spring:
     name: tenant-svc
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:lumie}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:lumie}?prepareThreshold=0
     username: ${DB_USERNAME:lumie}
     password: ${DB_PASSWORD:lumie}
     driver-class-name: org.postgresql.Driver
@@ -20,6 +20,11 @@ spring:
       hibernate:
         format_sql: true
         default_schema: public
+
+  # Flyway is managed programmatically for multi-tenant support
+  # See FlywayTenantMigrationService for details
+  flyway:
+    enabled: false
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}

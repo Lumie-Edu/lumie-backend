@@ -14,15 +14,13 @@ public interface AcademyRepository {
 
     Optional<Academy> findByName(String name);
 
-    Optional<Academy> findDefaultAcademy();
-
     Page<Academy> findAll(Pageable pageable);
 
-    Page<Academy> findByStatus(String status, Pageable pageable);
+    Page<Academy> findByIsActive(Boolean isActive, Pageable pageable);
 
     long count();
 
-    long countByStatus(String status);
+    long countByIsActive(Boolean isActive);
 
     boolean existsByName(String name);
 

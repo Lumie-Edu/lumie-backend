@@ -14,7 +14,7 @@ public interface JpaQnaBoardRepository extends JpaRepository<QnaBoard, Long> {
     @Query("SELECT q FROM QnaBoard q LEFT JOIN FETCH q.comments WHERE q.id = :id")
     Optional<QnaBoard> findByIdWithComments(@Param("id") Long id);
 
-    Page<QnaBoard> findByStudentId(Long studentId, Pageable pageable);
+    Page<QnaBoard> findByQnaUserId(Long qnaUserId, Pageable pageable);
 
-    Page<QnaBoard> findByIsAnsweredFalse(Pageable pageable);
+    Page<QnaBoard> findByIsItAnsweredFalse(Pageable pageable);
 }

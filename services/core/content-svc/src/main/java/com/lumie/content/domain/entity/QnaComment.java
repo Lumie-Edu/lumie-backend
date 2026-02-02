@@ -21,37 +21,44 @@ public class QnaComment extends BaseEntity {
     @JoinColumn(name = "qna_id", nullable = false)
     private QnaBoard qnaBoard;
 
-    @Column(name = "author_id", nullable = false)
-    private Long authorId;
+    @Column(name = "student_id")
+    private Long studentId;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
-    private String content;
+    @Column(name = "admin_id")
+    private Long adminId;
 
-    @Column(name = "is_answer", nullable = false)
-    private Boolean isAnswer;
+    @Column(name = "comment_content", nullable = false, columnDefinition = "TEXT")
+    private String commentContent;
 
     @Builder
-    private QnaComment(QnaBoard qnaBoard, Long authorId, String content, Boolean isAnswer) {
+    private QnaComment(QnaBoard qnaBoard, Long studentId, Long adminId, String commentContent) {
         this.qnaBoard = qnaBoard;
-        this.authorId = authorId;
-        this.content = content;
-        this.isAnswer = isAnswer != null ? isAnswer : false;
+        this.studentId = studentId;
+        this.adminId = adminId;
+        this.commentContent = commentContent;
     }
 
-    public static QnaComment create(QnaBoard qnaBoard, Long authorId, String content, Boolean isAnswer) {
+    public static QnaComment createByStudent(QnaBoard qnaBoard, Long studentId, String commentContent) {
         return QnaComment.builder()
                 .qnaBoard(qnaBoard)
-                .authorId(authorId)
-                .content(content)
-                .isAnswer(isAnswer)
+                .studentId(studentId)
+                .commentContent(commentContent)
                 .build();
     }
 
-    public boolean isAnswer() {
-        return Boolean.TRUE.equals(this.isAnswer);
+    public static QnaComment createByAdmin(QnaBoard qnaBoard, Long adminId, String commentContent) {
+        return QnaComment.builder()
+                .qnaBoard(qnaBoard)
+                .adminId(adminId)
+                .commentContent(commentContent)
+                .build();
     }
 
-    public void markAsAnswer() {
-        this.isAnswer = true;
+    public boolean isAdminComment() {
+        return this.adminId != null;
+    }
+
+    public boolean isStudentComment() {
+        return this.studentId != null;
     }
 }

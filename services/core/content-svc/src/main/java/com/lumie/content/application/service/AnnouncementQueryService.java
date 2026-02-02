@@ -22,9 +22,13 @@ public class AnnouncementQueryService {
 
     private final AnnouncementRepository announcementRepository;
 
-    public Page<AnnouncementResponse> listAnnouncements(Pageable pageable) {
-        log.debug("Listing announcements with pagination");
+    public Page<AnnouncementResponse> listAnnouncements(Boolean isAsset, Pageable pageable) {
+        log.debug("Listing announcements with pagination, isAsset={}", isAsset);
 
+        if (isAsset != null) {
+            return announcementRepository.findByIsItAssetAnnouncementOrderByImportantDescCreatedAtDesc(isAsset, pageable)
+                    .map(AnnouncementResponse::from);
+        }
         return announcementRepository.findAllOrderByImportantDescCreatedAtDesc(pageable)
                 .map(AnnouncementResponse::from);
     }
@@ -32,20 +36,16 @@ public class AnnouncementQueryService {
     public List<AnnouncementResponse> listImportantAnnouncements() {
         log.debug("Listing important announcements");
 
-        return announcementRepository.findByIsImportantTrue().stream()
+        return announcementRepository.findByIsItImportantAnnouncementTrue().stream()
                 .map(AnnouncementResponse::from)
                 .toList();
     }
 
-    @Transactional
     public AnnouncementResponse getAnnouncement(Long id) {
         log.debug("Getting announcement: {}", id);
 
         Announcement announcement = announcementRepository.findById(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND));
-
-        announcement.incrementViewCount();
-        announcementRepository.save(announcement);
 
         return AnnouncementResponse.from(announcement);
     }

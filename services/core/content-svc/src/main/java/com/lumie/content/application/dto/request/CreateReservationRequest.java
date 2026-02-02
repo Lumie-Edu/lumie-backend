@@ -2,8 +2,6 @@ package com.lumie.content.application.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 
-import java.time.LocalTime;
-
 public record CreateReservationRequest(
         @NotNull(message = "Schedule ID is required")
         Long scheduleId,
@@ -11,11 +9,9 @@ public record CreateReservationRequest(
         @NotNull(message = "Student ID is required")
         Long studentId,
 
-        @NotNull(message = "Reservation time is required")
-        LocalTime reservationTime,
+        @NotNull(message = "Admin ID is required")
+        Long adminId,
 
-        String topic,
-
-        String notes
+        String consultationContent
 ) {
 }

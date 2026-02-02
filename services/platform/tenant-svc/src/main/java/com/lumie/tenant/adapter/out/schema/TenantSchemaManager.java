@@ -12,8 +12,10 @@ import java.sql.Statement;
 
 /**
  * Manages tenant schema lifecycle.
- * DDL operations use direct connections with auto-commit to avoid transaction issues.
- * Schema migrations are managed manually - Flyway has been removed.
+ * Schema migrations are handled by Flyway.
+ *
+ * Note: Users are stored in public.users with tenant_id for multi-tenant support.
+ * Tenant schemas contain students, admins, etc. that reference public.users.
  */
 @Slf4j
 @Component
@@ -21,6 +23,9 @@ import java.sql.Statement;
 public class TenantSchemaManager implements SchemaProvisioningPort {
 
     private final DataSource dataSource;
+    private final FlywayTenantMigrationService flywayMigrationService;
+
+    private volatile boolean publicSchemaInitialized = false;
 
     @Override
     public void createSchema(String schemaName) {
@@ -32,8 +37,56 @@ public class TenantSchemaManager implements SchemaProvisioningPort {
 
     @Override
     public void migrateSchema(String schemaName) {
-        // Flyway removed - migrations are now managed manually
-        log.info("Schema migration skipped (manual management): {}", schemaName);
+        log.info("Migrating schema: {}", schemaName);
+        String schema = sanitizeSchemaName(schemaName);
+
+        // Ensure public.users table exists before creating tenant tables
+        ensurePublicSchema();
+
+        // Run Flyway migrations for the tenant schema
+        flywayMigrationService.migrateSchema(schema);
+
+        // Grant permissions (must be done after tables are created)
+        grantPermissions(schema);
+
+        log.info("Schema migration completed: {}", schemaName);
+    }
+
+    /**
+     * Ensures the public schema has necessary tables (users).
+     * Uses Flyway for migration tracking.
+     */
+    private synchronized void ensurePublicSchema() {
+        if (publicSchemaInitialized) {
+            return;
+        }
+
+        log.info("Ensuring public schema is initialized");
+        flywayMigrationService.migratePublicSchema();
+
+        // Grant permissions on public.users
+        executeWithAutoCommit("GRANT ALL PRIVILEGES ON public.users TO lumie");
+        try {
+            executeWithAutoCommit("GRANT USAGE, SELECT ON SEQUENCE public.users_id_seq TO lumie");
+        } catch (Exception e) {
+            log.debug("Sequence grant may have failed (might not exist yet): {}", e.getMessage());
+        }
+
+        publicSchemaInitialized = true;
+        log.info("Public schema initialized");
+    }
+
+    private void grantPermissions(String schema) {
+        String[] grantStatements = {
+            String.format("GRANT USAGE ON SCHEMA %s TO lumie", schema),
+            String.format("GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA %s TO lumie", schema),
+            String.format("GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA %s TO lumie", schema)
+        };
+
+        for (String sql : grantStatements) {
+            executeWithAutoCommit(sql);
+        }
+        log.info("Granted permissions on schema: {}", schema);
     }
 
     @Override

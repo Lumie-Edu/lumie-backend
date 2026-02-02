@@ -16,9 +16,9 @@ public interface QnaBoardRepository {
 
     Page<QnaBoard> findAll(Pageable pageable);
 
-    Page<QnaBoard> findByStudentId(Long studentId, Pageable pageable);
+    Page<QnaBoard> findByQnaUserId(Long qnaUserId, Pageable pageable);
 
-    Page<QnaBoard> findByIsAnsweredFalse(Pageable pageable);
+    Page<QnaBoard> findByIsItAnsweredFalse(Pageable pageable);
 
     void deleteById(Long id);
 

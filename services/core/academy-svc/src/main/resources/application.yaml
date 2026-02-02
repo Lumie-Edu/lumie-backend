@@ -3,7 +3,7 @@ spring:
     name: academy-svc
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:lumie}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:lumie}?prepareThreshold=0
     username: ${DB_USERNAME:lumie}
     password: ${DB_PASSWORD:lumie}
     driver-class-name: org.postgresql.Driver
@@ -42,6 +42,9 @@ grpc:
   server:
     port: 9090
   client:
+    auth-svc:
+      address: static://${AUTH_SVC_GRPC_HOST:localhost}:9090
+      negotiation-type: plaintext
     tenant-svc:
       address: static://${TENANT_SVC_GRPC_HOST:localhost}:9090
       negotiation-type: plaintext

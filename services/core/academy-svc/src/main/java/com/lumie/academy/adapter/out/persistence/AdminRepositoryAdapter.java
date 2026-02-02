@@ -31,13 +31,13 @@ public class AdminRepositoryAdapter implements AdminRepository {
     }
 
     @Override
-    public Optional<Admin> findByUserEmail(String email) {
-        return jpaAdminRepository.findByUserEmail(email);
+    public Optional<Admin> findByUserLoginId(String userLoginId) {
+        return jpaAdminRepository.findByUserLoginId(userLoginId);
     }
 
     @Override
-    public Page<Admin> findByAcademyId(Long academyId, Pageable pageable) {
-        return jpaAdminRepository.findByAcademyId(academyId, pageable);
+    public Page<Admin> findByAcademiesId(Long academyId, Pageable pageable) {
+        return jpaAdminRepository.findByAcademiesId(academyId, pageable);
     }
 
     @Override
@@ -46,13 +46,13 @@ public class AdminRepositoryAdapter implements AdminRepository {
     }
 
     @Override
-    public long countByAcademyId(Long academyId) {
-        return jpaAdminRepository.countByAcademyId(academyId);
+    public long countByAcademiesId(Long academyId) {
+        return jpaAdminRepository.countByAcademiesId(academyId);
     }
 
     @Override
-    public boolean existsByUserEmail(String email) {
-        return jpaAdminRepository.existsByUserEmail(email);
+    public boolean existsByUserLoginId(String userLoginId) {
+        return jpaAdminRepository.existsByUserLoginId(userLoginId);
     }
 
     @Override

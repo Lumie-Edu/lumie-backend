@@ -27,8 +27,9 @@ public class AnnouncementController {
 
     @GetMapping
     public ResponseEntity<Page<AnnouncementResponse>> listAnnouncements(
+            @RequestParam(required = false) Boolean isAsset,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.listAnnouncements(pageable));
+        return ResponseEntity.ok(queryService.listAnnouncements(isAsset, pageable));
     }
 
     @GetMapping("/important")

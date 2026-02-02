@@ -11,7 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "academies")
+@Table(name = "academies", uniqueConstraints = {
+    @UniqueConstraint(columnNames = "name"),
+    @UniqueConstraint(columnNames = "phone")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Academy extends BaseEntity {
@@ -20,44 +23,27 @@ public class Academy extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", nullable = false, length = 100)
+    @Column(name = "name", nullable = false, length = 100, unique = true)
     private String name;
-
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
 
     @Column(name = "address", length = 500)
     private String address;
 
-    @Column(name = "phone", length = 20)
+    @Column(name = "phone", length = 20, unique = true)
     private String phone;
 
-    @Column(name = "email", length = 255)
-    private String email;
-
-    @Column(name = "business_number", length = 20)
-    private String businessNumber;
-
-    @Column(name = "is_default", nullable = false)
-    private boolean isDefault = false;
-
-    @Column(name = "status", nullable = false, length = 20)
-    private String status = "ACTIVE";
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 
     @OneToMany(mappedBy = "academy", fetch = FetchType.LAZY)
     private List<Student> students = new ArrayList<>();
 
     @Builder
-    private Academy(String name, String description, String address, String phone,
-                   String email, String businessNumber, boolean isDefault) {
+    private Academy(String name, String address, String phone, Boolean isActive) {
         this.name = name;
-        this.description = description;
         this.address = address;
         this.phone = phone;
-        this.email = email;
-        this.businessNumber = businessNumber;
-        this.isDefault = isDefault;
-        this.status = "ACTIVE";
+        this.isActive = isActive != null ? isActive : true;
     }
 
     public static Academy create(String name, String address, String phone) {
@@ -65,16 +51,13 @@ public class Academy extends BaseEntity {
                 .name(name)
                 .address(address)
                 .phone(phone)
+                .isActive(true)
                 .build();
     }
 
-    public void updateInfo(String name, String description, String address,
-                          String phone, String email, String businessNumber) {
+    public void updateInfo(String name, String address, String phone) {
         if (name != null && !name.isBlank()) {
             this.name = name;
-        }
-        if (description != null) {
-            this.description = description;
         }
         if (address != null) {
             this.address = address;
@@ -82,23 +65,17 @@ public class Academy extends BaseEntity {
         if (phone != null) {
             this.phone = phone;
         }
-        if (email != null) {
-            this.email = email;
-        }
-        if (businessNumber != null) {
-            this.businessNumber = businessNumber;
-        }
     }
 
     public void deactivate() {
-        this.status = "INACTIVE";
+        this.isActive = false;
     }
 
     public void activate() {
-        this.status = "ACTIVE";
+        this.isActive = true;
     }
 
     public boolean isActive() {
-        return "ACTIVE".equals(this.status);
+        return Boolean.TRUE.equals(this.isActive);
     }
 }

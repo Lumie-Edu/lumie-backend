@@ -3,10 +3,12 @@ package com.lumie.academy.adapter.in.web;
 import com.lumie.academy.application.dto.*;
 import com.lumie.academy.application.service.StudentCommandService;
 import com.lumie.academy.application.service.StudentQueryService;
+import com.lumie.academy.infrastructure.tenant.UserContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,7 +26,8 @@ public class StudentController {
 
     @PostMapping
     public ResponseEntity<StudentResponse> registerStudent(@Valid @RequestBody StudentRequest request) {
-        StudentResponse response = studentCommandService.registerStudent(request);
+        Long userId = UserContextHolder.getRequiredUserId();
+        StudentResponse response = studentCommandService.registerStudent(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -35,9 +38,11 @@ public class StudentController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<StudentResponse>> getAllActiveStudents(
-            @PageableDefault(size = 20) Pageable pageable) {
-        Page<StudentResponse> response = studentQueryService.getAllActiveStudents(pageable);
+    public ResponseEntity<Page<StudentResponse>> getStudents(
+            @RequestParam(required = false) Long academyId,
+            @RequestParam(required = false) Boolean isActive,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<StudentResponse> response = studentQueryService.getStudents(academyId, isActive, pageable);
         return ResponseEntity.ok(response);
     }
 

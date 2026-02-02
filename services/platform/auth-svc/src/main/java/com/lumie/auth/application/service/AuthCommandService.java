@@ -6,7 +6,6 @@ import com.lumie.auth.application.dto.request.RefreshTokenRequest;
 import com.lumie.auth.application.dto.request.RegisterRequest;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
-import com.lumie.auth.application.dto.response.UserResponse;
 import com.lumie.auth.application.port.in.LoginUseCase;
 import com.lumie.auth.application.port.in.LogoutUseCase;
 import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
@@ -46,91 +45,97 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public LoginResponse register(String tenantSlug, RegisterRequest request) {
-        log.info("Registration attempt for email: {} on tenant: {}", request.email(), tenantSlug);
+    public LoginResponse register(RegisterRequest request) {
+        log.info("Registration attempt for userLoginId: {} on tenant: {}", request.userLoginId(), request.tenantSlug());
 
         // 1. Validate tenant via gRPC
-        TenantData tenant = tenantServicePort.validateTenant(tenantSlug)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
+        TenantData tenant = tenantServicePort.validateTenant(request.tenantSlug())
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", request.tenantSlug()));
 
         if (!tenant.isActive()) {
-            throw new IllegalStateException("Tenant is not active: " + tenantSlug);
+            throw new IllegalStateException("Tenant is not active: " + request.tenantSlug());
         }
 
-        // 2. Check if email already exists
-        if (userLookupPort.existsByEmail(tenant.schemaName(), request.email())) {
-            throw new EmailAlreadyExistsException("Email already registered: " + request.email());
+        // 2. Check if userLoginId already exists (globally unique)
+        if (userLookupPort.existsByUserLoginId(request.userLoginId())) {
+            throw new UserLoginIdAlreadyExistsException("User login ID already registered: " + request.userLoginId());
         }
 
-        // 3. Hash password and create user
+        // 3. Hash password and create user in public.users
         String passwordHash = passwordEncoder.encode(request.password());
         UserData user = userLookupPort.createUser(
-                tenant.schemaName(),
-                request.email(),
+                request.userLoginId(),
                 request.name(),
+                request.phone(),
                 passwordHash,
-                Role.STUDENT
+                Role.STUDENT,
+                tenant.id()
         );
 
         // 4. Generate tokens
-        TokenPair tokenPair = generateTokenPair(user, tenantSlug, tenant.id());
+        TokenPair tokenPair = generateTokenPair(user, request.tenantSlug());
 
         // 5. Save refresh token to Redis
-        saveRefreshToken(user.id(), tenantSlug, tenant.id(), user.role(), tokenPair);
+        saveRefreshToken(user.id(), request.tenantSlug(), tenant.id(), user.role(), tokenPair);
 
-        log.info("Registration successful for user: {} on tenant: {}", user.id(), tenantSlug);
+        log.info("Registration successful for user: {} on tenant: {}", user.id(), request.tenantSlug());
 
-        return LoginResponse.of(tokenPair, user.toUserResponse(tenantSlug, tenant.id()));
+        return LoginResponse.of(tokenPair, user.toUserResponse(request.tenantSlug()));
     }
 
     @Override
-    public LoginResponse login(String tenantSlug, LoginRequest request) {
-        log.info("Login attempt for email: {} on tenant: {}", request.email(), tenantSlug);
+    public LoginResponse login(LoginRequest request) {
+        log.info("Login attempt for userLoginId: {}", request.userLoginId());
 
-        // 1. Validate tenant via gRPC
-        TenantData tenant = tenantServicePort.validateTenant(tenantSlug)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
-
-        if (!tenant.isActive()) {
-            throw new IllegalStateException("Tenant is not active: " + tenantSlug);
-        }
-
-        // 2. Look up user in tenant schema
-        UserData user = userLookupPort.findByEmail(tenant.schemaName(), request.email())
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+        // 1. Look up user in public.users by userLoginId
+        UserData user = userLookupPort.findByUserLoginId(request.userLoginId())
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
 
         if (!user.enabled()) {
             throw new IllegalStateException("User account is disabled");
         }
 
-        // 3. Verify password
+        // 2. Verify password
         if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
-            throw new InvalidCredentialsException("Invalid email or password");
+            throw new InvalidCredentialsException("Invalid user login ID or password");
+        }
+
+        // 3. Get tenant info for the token (tenant is determined from user record)
+        TenantData tenant = tenantServicePort.validateTenantById(user.tenantId())
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", user.tenantId().toString()));
+
+        if (!tenant.isActive()) {
+            throw new IllegalStateException("Tenant is not active");
         }
 
         // 4. Generate tokens
-        TokenPair tokenPair = generateTokenPair(user, tenantSlug, tenant.id());
+        TokenPair tokenPair = generateTokenPair(user, tenant.slug());
 
         // 5. Save refresh token to Redis
-        saveRefreshToken(user.id(), tenantSlug, tenant.id(), user.role(), tokenPair);
+        saveRefreshToken(user.id(), tenant.slug(), tenant.id(), user.role(), tokenPair);
 
         // 6. Publish login event
-        eventPublisherPort.publishLoginEvent(user.id(), tenantSlug, user.email(), "local");
+        eventPublisherPort.publishLoginEvent(user.id(), tenant.slug(), user.userLoginId(), "local");
 
-        log.info("Login successful for user: {} on tenant: {}", user.id(), tenantSlug);
+        log.info("Login successful for user: {} on tenant: {}", user.id(), tenant.slug());
 
-        return LoginResponse.of(tokenPair, user.toUserResponse(tenantSlug, tenant.id()));
+        return LoginResponse.of(tokenPair, user.toUserResponse(tenant.slug()));
     }
 
     @Override
     public LoginResponse registerOwner(OwnerRegisterRequest request) {
-        log.info("Owner registration attempt for email: {}, institute: {}", request.email(), request.instituteName());
+        log.info("Owner registration attempt for userLoginId: {}, institute: {}", request.userLoginId(), request.instituteName());
 
-        // 1. Create tenant via gRPC (synchronous provisioning)
+        // 1. Check if userLoginId already exists (globally unique)
+        if (userLookupPort.existsByUserLoginId(request.userLoginId())) {
+            throw new UserLoginIdAlreadyExistsException("User login ID already registered: " + request.userLoginId());
+        }
+
+        // 2. Create tenant via gRPC (synchronous provisioning)
         TenantCreationResult tenantResult = tenantServicePort.createTenant(
                 request.instituteName(),
                 request.businessRegistrationNumber(),
-                request.email(),
+                request.userLoginId(),  // Use userLoginId as owner identifier
                 request.name()
         );
 
@@ -138,27 +143,28 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
             throw new TenantCreationFailedException("Failed to create tenant: " + tenantResult.message());
         }
 
-        log.info("Tenant created: slug={}, schemaName={}", tenantResult.tenantSlug(), tenantResult.schemaName());
+        log.info("Tenant created: slug={}, tenantId={}", tenantResult.tenantSlug(), tenantResult.tenantId());
 
-        // 2. Hash password and create owner user
+        // 3. Hash password and create owner user in public.users
         String passwordHash = passwordEncoder.encode(request.password());
         UserData user = userLookupPort.createUser(
-                tenantResult.schemaName(),
-                request.email(),
+                request.userLoginId(),
                 request.name(),
+                request.phone(),
                 passwordHash,
-                Role.OWNER
+                Role.OWNER,
+                tenantResult.tenantId()
         );
 
-        // 3. Generate tokens
-        TokenPair tokenPair = generateTokenPair(user, tenantResult.tenantSlug(), tenantResult.tenantId());
+        // 4. Generate tokens
+        TokenPair tokenPair = generateTokenPair(user, tenantResult.tenantSlug());
 
-        // 4. Save refresh token to Redis
+        // 5. Save refresh token to Redis
         saveRefreshToken(user.id(), tenantResult.tenantSlug(), tenantResult.tenantId(), user.role(), tokenPair);
 
         log.info("Owner registration successful: userId={}, tenantSlug={}", user.id(), tenantResult.tenantSlug());
 
-        return LoginResponse.of(tokenPair, user.toUserResponse(tenantResult.tenantSlug(), tenantResult.tenantId()));
+        return LoginResponse.of(tokenPair, user.toUserResponse(tenantResult.tenantSlug()));
     }
 
     @Override
@@ -222,44 +228,44 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         tokenPersistencePort.findRefreshToken(claims.getUserId(), claims.jti())
                 .orElseThrow(() -> new InvalidTokenException("Refresh token not found"));
 
-        // 4. Validate tenant is still active
-        TenantData tenant = tenantServicePort.validateTenant(claims.tenantSlug())
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", claims.tenantSlug()));
-
-        if (!tenant.isActive()) {
-            throw new IllegalStateException("Tenant is not active");
-        }
-
-        // 5. Look up user to get current data
-        UserData user = userLookupPort.findById(tenant.schemaName(), claims.getUserId())
+        // 4. Look up user to get current data from public.users
+        UserData user = userLookupPort.findById(claims.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", claims.sub()));
 
         if (!user.enabled()) {
             throw new IllegalStateException("User account is disabled");
         }
 
+        // 5. Validate tenant is still active
+        TenantData tenant = tenantServicePort.validateTenantById(user.tenantId())
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", user.tenantId().toString()));
+
+        if (!tenant.isActive()) {
+            throw new IllegalStateException("Tenant is not active");
+        }
+
         // 6. Revoke old refresh token
         tokenPersistencePort.deleteRefreshToken(claims.getUserId(), claims.jti());
 
         // 7. Generate new token pair
-        TokenPair newTokenPair = generateTokenPair(user, claims.tenantSlug(), claims.tenantId());
+        TokenPair newTokenPair = generateTokenPair(user, tenant.slug());
 
         // 8. Save new refresh token
-        saveRefreshToken(user.id(), claims.tenantSlug(), claims.tenantId(), user.role(), newTokenPair);
+        saveRefreshToken(user.id(), tenant.slug(), tenant.id(), user.role(), newTokenPair);
 
         log.info("Token refresh successful for user: {}", user.id());
 
         return TokenResponse.from(newTokenPair);
     }
 
-    private TokenPair generateTokenPair(UserData user, String tenantSlug, Long tenantId) {
+    private TokenPair generateTokenPair(UserData user, String tenantSlug) {
         String accessJti = UUID.randomUUID().toString();
         String refreshJti = UUID.randomUUID().toString();
 
         String accessToken = jwtTokenProvider.generateAccessToken(
-                user.id(), tenantSlug, tenantId, user.role(), accessJti);
+                user.id(), tenantSlug, user.tenantId(), user.role(), accessJti);
         String refreshToken = jwtTokenProvider.generateRefreshToken(
-                user.id(), tenantSlug, tenantId, user.role(), refreshJti);
+                user.id(), tenantSlug, user.tenantId(), user.role(), refreshJti);
 
         return TokenPair.of(
                 accessToken,
@@ -298,8 +304,8 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         }
     }
 
-    public static class EmailAlreadyExistsException extends RuntimeException {
-        public EmailAlreadyExistsException(String message) {
+    public static class UserLoginIdAlreadyExistsException extends RuntimeException {
+        public UserLoginIdAlreadyExistsException(String message) {
             super(message);
         }
     }

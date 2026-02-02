@@ -25,14 +25,14 @@ public class AdminQueryService {
         return AdminResponse.from(admin);
     }
 
-    public AdminResponse getAdminByEmail(String email) {
-        Admin admin = adminRepository.findByUserEmail(email)
-                .orElseThrow(() -> new AdminNotFoundException(email));
+    public AdminResponse getAdminByUserLoginId(String userLoginId) {
+        Admin admin = adminRepository.findByUserLoginId(userLoginId)
+                .orElseThrow(() -> new AdminNotFoundException(userLoginId));
         return AdminResponse.from(admin);
     }
 
     public Page<AdminResponse> getAdminsByAcademy(Long academyId, Pageable pageable) {
-        return adminRepository.findByAcademyId(academyId, pageable)
+        return adminRepository.findByAcademiesId(academyId, pageable)
                 .map(AdminResponse::from);
     }
 
@@ -42,10 +42,10 @@ public class AdminQueryService {
     }
 
     public long countAdminsByAcademy(Long academyId) {
-        return adminRepository.countByAcademyId(academyId);
+        return adminRepository.countByAcademiesId(academyId);
     }
 
-    public boolean existsByEmail(String email) {
-        return adminRepository.existsByUserEmail(email);
+    public boolean existsByUserLoginId(String userLoginId) {
+        return adminRepository.existsByUserLoginId(userLoginId);
     }
 }

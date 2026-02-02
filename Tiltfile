@@ -4,8 +4,6 @@
 # Example: tilt up auth-svc
 #          tilt up  (starts all services)
 
-allow_k8s_contexts('lumie-dev')
-
 # Configuration
 REGISTRY = 'zot0213.kro.kr'
 NAMESPACE = 'lumie-dev'
@@ -21,7 +19,7 @@ SERVICES = {
     'auth-svc': {
         'path': 'services/platform/auth-svc',
         'port': 8080,
-        'grpc_port': None,
+        'grpc_port': 9090,
         'deps': ['tenant-svc'],
     },
     'billing-svc': {
@@ -34,7 +32,7 @@ SERVICES = {
         'path': 'services/core/academy-svc',
         'port': 8080,
         'grpc_port': 9090,
-        'deps': ['tenant-svc', 'billing-svc'],
+        'deps': ['auth-svc', 'tenant-svc', 'billing-svc'],
     },
     'exam-svc': {
         'path': 'services/core/exam-svc',
@@ -72,6 +70,7 @@ COMMON_ENV = {
     'REDIS_SENTINEL_MASTER': 'mymaster',
     'REDIS_SENTINEL_NODES': 'redis.lumie-cache.svc.cluster.local:26379',
     # gRPC endpoints (within lumie-dev namespace)
+    'AUTH_SVC_GRPC_HOST': 'auth-svc-grpc.lumie-dev.svc.cluster.local',
     'TENANT_SVC_GRPC_HOST': 'tenant-svc-grpc.lumie-dev.svc.cluster.local',
     'BILLING_SVC_GRPC_HOST': 'billing-svc-grpc.lumie-dev.svc.cluster.local',
 }
@@ -197,8 +196,8 @@ spec:
         env:%s
         resources:
           requests:
-            cpu: 100m
-            memory: 512Mi
+            cpu: 50m
+            memory: 50Mi
           limits:
             memory: 1Gi
         livenessProbe:
@@ -316,6 +315,9 @@ spec:
               number: 8080
 ''' % (name, NAMESPACE, DEV_DOMAIN, api_path, name)
 
+# Create generated YAML directory
+local('mkdir -p .tilt/generated', quiet=True)
+
 # Build and deploy each service
 for name, config in SERVICES.items():
     # Generate K8s resources
@@ -323,10 +325,23 @@ for name, config in SERVICES.items():
     service_yaml = generate_service(name, config)
     ingress_yaml = generate_ingress(name, config)
 
-    k8s_yaml(blob(deployment_yaml))
-    k8s_yaml(blob(service_yaml))
+    # Combine all YAML for this service
+    combined_yaml = deployment_yaml + '\n---\n' + service_yaml
     if ingress_yaml:
-        k8s_yaml(blob(ingress_yaml))
+        combined_yaml += '\n---\n' + ingress_yaml
+
+    # Write YAML to file for explicit apply/delete
+    yaml_path = '.tilt/generated/%s.yaml' % name
+    local("cat > '%s' << 'TILT_YAML_EOF'\n%s\nTILT_YAML_EOF" % (yaml_path, combined_yaml), quiet=True)
+
+    # Use k8s_custom_deploy for explicit delete_cmd (ensures cleanup on tilt down)
+    k8s_custom_deploy(
+        name,
+        apply_cmd='kubectl apply -f %s' % yaml_path,
+        delete_cmd='kubectl delete -f %s --ignore-not-found' % yaml_path,
+        deps=[yaml_path],
+        image_deps=['%s/dev/%s' % (REGISTRY, name)],
+    )
 
     # Docker build (rebuild image when jar changes)
     # Java doesn't support true hot-reload, so we rebuild on jar change

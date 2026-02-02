@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,21 +39,15 @@ public class AcademyController {
 
     @GetMapping
     public ResponseEntity<Page<AcademyResponse>> getAllAcademies(
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<AcademyResponse> response = academyQueryService.getAllAcademies(pageable);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/active")
     public ResponseEntity<Page<AcademyResponse>> getActiveAcademies(
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<AcademyResponse> response = academyQueryService.getActiveAcademies(pageable);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/default")
-    public ResponseEntity<AcademyResponse> getDefaultAcademy() {
-        AcademyResponse response = academyQueryService.getDefaultAcademy();
         return ResponseEntity.ok(response);
     }
 
@@ -64,16 +59,24 @@ public class AcademyController {
         return ResponseEntity.ok(response);
     }
 
+    @PatchMapping("/{id}/active")
+    public ResponseEntity<Void> toggleAcademyActive(
+            @PathVariable Long id,
+            @RequestParam boolean isActive) {
+        academyCommandService.toggleAcademyActive(id, isActive);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deactivateAcademy(@PathVariable Long id) {
-        academyCommandService.deactivateAcademy(id);
+    public ResponseEntity<Void> deleteAcademy(@PathVariable Long id) {
+        academyCommandService.deleteAcademy(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/students")
     public ResponseEntity<Page<StudentResponse>> getStudentsByAcademy(
             @PathVariable Long id,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<StudentResponse> response = studentQueryService.getActiveStudentsByAcademy(id, pageable);
         return ResponseEntity.ok(response);
     }

@@ -4,6 +4,7 @@ import com.lumie.auth.application.port.out.TenantServicePort;
 import com.lumie.grpc.tenant.CreateTenantRequest;
 import com.lumie.grpc.tenant.CreateTenantResponse;
 import com.lumie.grpc.tenant.GetTenantBySlugRequest;
+import com.lumie.grpc.tenant.GetTenantRequest;
 import com.lumie.grpc.tenant.TenantResponse;
 import com.lumie.grpc.tenant.TenantServiceGrpc;
 import com.lumie.grpc.tenant.ValidateTenantRequest;
@@ -66,6 +67,30 @@ public class TenantServiceClient implements TenantServicePort {
             ));
         } catch (StatusRuntimeException e) {
             log.error("gRPC error getting tenant: {}", slug, e);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<TenantData> validateTenantById(Long tenantId) {
+        log.debug("Validating tenant by ID via gRPC: {}", tenantId);
+
+        try {
+            GetTenantRequest request = GetTenantRequest.newBuilder()
+                    .setTenantId(tenantId)
+                    .build();
+
+            TenantResponse response = tenantServiceStub.getTenant(request);
+
+            return Optional.of(new TenantData(
+                    response.getId(),
+                    response.getSlug(),
+                    response.getName(),
+                    response.getSchemaName(),
+                    response.getStatus()
+            ));
+        } catch (StatusRuntimeException e) {
+            log.error("gRPC error getting tenant by ID: {}", tenantId, e);
             return Optional.empty();
         }
     }

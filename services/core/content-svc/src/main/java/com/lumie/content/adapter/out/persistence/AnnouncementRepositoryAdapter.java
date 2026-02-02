@@ -37,8 +37,13 @@ public class AnnouncementRepositoryAdapter implements AnnouncementRepository {
     }
 
     @Override
-    public List<Announcement> findByIsImportantTrue() {
-        return jpaRepository.findByIsImportantTrue();
+    public Page<Announcement> findByIsItAssetAnnouncementOrderByImportantDescCreatedAtDesc(Boolean isAsset, Pageable pageable) {
+        return jpaRepository.findByIsItAssetAnnouncementOrderByImportantDescCreatedAtDesc(isAsset, pageable);
+    }
+
+    @Override
+    public List<Announcement> findByIsItImportantAnnouncementTrue() {
+        return jpaRepository.findByIsItImportantAnnouncementTrue();
     }
 
     @Override

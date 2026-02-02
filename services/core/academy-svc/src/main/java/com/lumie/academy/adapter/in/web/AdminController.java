@@ -4,10 +4,12 @@ import com.lumie.academy.application.dto.AdminRequest;
 import com.lumie.academy.application.dto.AdminResponse;
 import com.lumie.academy.application.service.AdminCommandService;
 import com.lumie.academy.application.service.AdminQueryService;
+import com.lumie.academy.infrastructure.tenant.UserContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +25,8 @@ public class AdminController {
 
     @PostMapping
     public ResponseEntity<AdminResponse> registerAdmin(@Valid @RequestBody AdminRequest request) {
-        AdminResponse response = adminCommandService.registerAdmin(request);
+        Long userId = UserContextHolder.getRequiredUserId();
+        AdminResponse response = adminCommandService.registerAdmin(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -35,7 +38,7 @@ public class AdminController {
 
     @GetMapping
     public ResponseEntity<Page<AdminResponse>> getAllAdmins(
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<AdminResponse> response = adminQueryService.getAllAdmins(pageable);
         return ResponseEntity.ok(response);
     }

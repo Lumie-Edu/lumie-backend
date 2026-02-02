@@ -18,11 +18,11 @@ public interface ScheduleRepository {
 
     Page<Schedule> findAll(Pageable pageable);
 
-    List<Schedule> findByScheduleDateBetween(LocalDate startDate, LocalDate endDate);
+    List<Schedule> findByDateBetween(LocalDate startDate, LocalDate endDate);
 
-    List<Schedule> findByScheduleDateBetweenAndIsAvailableTrue(LocalDate startDate, LocalDate endDate);
+    List<Schedule> findByDateBetweenAndIsAvailableTrue(LocalDate startDate, LocalDate endDate);
 
-    List<Schedule> findByAdminIdAndScheduleDateBetween(Long adminId, LocalDate startDate, LocalDate endDate);
+    List<Schedule> findByAdminIdAndDateBetween(Long adminId, LocalDate startDate, LocalDate endDate);
 
     void deleteById(Long id);
 

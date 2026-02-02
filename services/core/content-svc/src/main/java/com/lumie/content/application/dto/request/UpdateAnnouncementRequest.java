@@ -1,9 +1,12 @@
 package com.lumie.content.application.dto.request;
 
+import java.util.Set;
+
 public record UpdateAnnouncementRequest(
-        String title,
-        String content,
-        Boolean isImportant,
-        Boolean isPublic
+        String announcementTitle,
+        String announcementContent,
+        Boolean isItAssetAnnouncement,
+        Boolean isItImportantAnnouncement,
+        Set<Long> academyIds
 ) {
 }

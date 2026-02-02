@@ -3,6 +3,8 @@ package com.lumie.exam.adapter.out.persistence;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.repository.ExamRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -27,6 +29,11 @@ public class ExamRepositoryAdapter implements ExamRepository {
     @Override
     public List<Exam> findAll() {
         return jpaRepository.findAll();
+    }
+
+    @Override
+    public Page<Exam> findAll(Pageable pageable) {
+        return jpaRepository.findAll(pageable);
     }
 
     @Override

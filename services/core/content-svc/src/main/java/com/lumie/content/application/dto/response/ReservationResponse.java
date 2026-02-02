@@ -5,18 +5,15 @@ import com.lumie.content.domain.vo.ReservationStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 public record ReservationResponse(
         Long id,
         Long scheduleId,
-        LocalDate scheduleDate,
-        LocalTime startTime,
-        LocalTime endTime,
+        LocalDate date,
+        Integer timeSlotId,
         Long studentId,
-        LocalTime reservationTime,
-        String topic,
-        String notes,
+        Long adminId,
+        String consultationContent,
         ReservationStatus status,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -25,13 +22,11 @@ public record ReservationResponse(
         return new ReservationResponse(
                 reservation.getId(),
                 reservation.getSchedule().getId(),
-                reservation.getSchedule().getScheduleDate(),
-                reservation.getSchedule().getStartTime(),
-                reservation.getSchedule().getEndTime(),
+                reservation.getSchedule().getDate(),
+                reservation.getSchedule().getTimeSlotId(),
                 reservation.getStudentId(),
-                reservation.getReservationTime(),
-                reservation.getTopic(),
-                reservation.getNotes(),
+                reservation.getAdminId(),
+                reservation.getConsultationContent(),
                 reservation.getStatus(),
                 reservation.getCreatedAt(),
                 reservation.getUpdatedAt()

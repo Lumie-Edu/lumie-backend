@@ -34,14 +34,11 @@ public class AcademyCommandService {
             throw new DuplicateResourceException("Academy", request.name());
         }
 
-        Academy academy = Academy.builder()
-                .name(request.name())
-                .description(request.description())
-                .address(request.address())
-                .phone(request.phone())
-                .email(request.email())
-                .businessNumber(request.businessNumber())
-                .build();
+        Academy academy = Academy.create(
+            request.name(),
+            request.address(),
+            request.phone()
+        );
 
         Academy saved = academyRepository.save(academy);
 
@@ -61,11 +58,8 @@ public class AcademyCommandService {
 
         academy.updateInfo(
             request.name(),
-            request.description(),
             request.address(),
-            request.phone(),
-            request.email(),
-            request.businessNumber()
+            request.phone()
         );
 
         Academy updated = academyRepository.save(academy);
@@ -75,16 +69,36 @@ public class AcademyCommandService {
         return AcademyResponse.from(updated, studentCount);
     }
 
-    public void deactivateAcademy(Long id) {
+    public void toggleAcademyActive(Long id, boolean isActive) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         Academy academy = academyRepository.findById(id)
                 .orElseThrow(() -> new AcademyNotFoundException(id));
 
-        academy.deactivate();
+        if (isActive) {
+            academy.activate();
+        } else {
+            academy.deactivate();
+        }
         academyRepository.save(academy);
 
-        log.info("Academy deactivated: {} in tenant: {}", id, tenantSlug);
+        log.info("Academy {} toggled to {}: in tenant: {}", id, isActive ? "active" : "inactive", tenantSlug);
+    }
+
+    public void deleteAcademy(Long id) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+
+        Academy academy = academyRepository.findById(id)
+                .orElseThrow(() -> new AcademyNotFoundException(id));
+
+        long studentCount = studentRepository.countByAcademyId(id);
+        if (studentCount > 0) {
+            throw new IllegalStateException("Cannot delete academy with " + studentCount + " students");
+        }
+
+        academyRepository.delete(academy);
+
+        log.info("Academy permanently deleted: {} in tenant: {}", id, tenantSlug);
     }
 
     private void checkAcademyQuota(String tenantSlug) {

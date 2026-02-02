@@ -135,7 +135,7 @@ public class AcademyGrpcService extends AcademyServiceGrpc.AcademyServiceImplBas
                 .setAcademyName(academy.name())
                 .setAcademyPhone(academy.phone() != null ? academy.phone() : "")
                 .setAcademyAddress(academy.address() != null ? academy.address() : "")
-                .setIsActive(academy.status().equals("ACTIVE"))
+                .setIsActive(academy.isActive())
                 .setStudentCount(academy.studentCount())
                 .setCreatedAt(academy.createdAt().toString())
                 .setUpdatedAt(academy.updatedAt().toString())
@@ -166,7 +166,7 @@ public class AcademyGrpcService extends AcademyServiceGrpc.AcademyServiceImplBas
             .setStudentPhone(dto.phone() != null ? dto.phone() : "")
             .setAcademyId(dto.academyId())
             .setAcademyName(dto.academyName())
-            .setIsActive(dto.status().equals("ACTIVE"))
+            .setIsActive(dto.isActive())
             .setCreatedAt(dto.createdAt().toString())
             .setUpdatedAt(dto.updatedAt().toString())
             .build();
