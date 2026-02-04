@@ -20,11 +20,11 @@ public class ScheduleCommandService {
     private final ScheduleRepository scheduleRepository;
 
     @Transactional
-    public ScheduleResponse createSchedule(CreateScheduleRequest request) {
-        log.info("Creating schedule for date: {}", request.date());
+    public ScheduleResponse createSchedule(CreateScheduleRequest request, Long adminId) {
+        log.info("Creating schedule for date: {} by admin: {}", request.date(), adminId);
 
         Schedule schedule = Schedule.create(
-                request.adminId(),
+                adminId,
                 request.date(),
                 request.timeSlotId()
         );

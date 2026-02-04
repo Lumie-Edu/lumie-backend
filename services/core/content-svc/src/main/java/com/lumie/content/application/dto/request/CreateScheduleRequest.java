@@ -5,9 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 public record CreateScheduleRequest(
-        @NotNull(message = "Admin ID is required")
-        Long adminId,
-
         @NotNull(message = "Date is required")
         LocalDate date,
 
