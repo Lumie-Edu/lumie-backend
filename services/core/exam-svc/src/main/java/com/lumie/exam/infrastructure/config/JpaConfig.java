@@ -1,7 +1,7 @@
 package com.lumie.exam.infrastructure.config;
 
 import com.lumie.exam.infrastructure.tenant.TenantConnectionProvider;
-import com.lumie.exam.infrastructure.tenant.TenantIdentifierResolver;
+import com.lumie.common.tenant.TenantIdentifierResolver;
 import org.hibernate.cfg.AvailableSettings;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.context.annotation.Bean;
