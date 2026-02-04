@@ -36,12 +36,12 @@ import org.springframework.core.Ordered;
 public class TenantAutoConfiguration {
 
     @Bean
-    public FilterRegistrationBean<RequestContextFilter> requestContextFilter(TenantProperties properties) {
+    public FilterRegistrationBean<RequestContextFilter> tenantRequestContextFilterRegistration(TenantProperties properties) {
         FilterRegistrationBean<RequestContextFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new RequestContextFilter(properties.getExcludePaths()));
         registration.addUrlPatterns("/*");
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
-        registration.setName("requestContextFilter");
+        registration.setName("tenantRequestContextFilter");
         return registration;
     }
 
