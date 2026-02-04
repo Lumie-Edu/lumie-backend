@@ -8,6 +8,16 @@
 REGISTRY = 'zot0213.kro.kr'
 NAMESPACE = 'lumie-dev'
 
+# Fixed ClusterIPs for gRPC services (prevents DNS cache issues)
+GRPC_CLUSTER_IPS = {
+    'tenant-svc': '10.43.200.1',
+    'auth-svc': '10.43.200.2',
+    'billing-svc': '10.43.200.3',
+    'academy-svc': '10.43.200.4',
+    'exam-svc': '10.43.200.5',
+    'content-svc': '10.43.200.6',
+}
+
 # Service definitions
 SERVICES = {
     'tenant-svc': {
@@ -38,7 +48,7 @@ SERVICES = {
         'path': 'services/core/exam-svc',
         'port': 8080,
         'grpc_port': 9090,
-        'deps': ['tenant-svc', 'billing-svc'],
+        'deps': ['tenant-svc', 'billing-svc', 'academy-svc'],
     },
     'content-svc': {
         'path': 'services/core/content-svc',
@@ -73,6 +83,7 @@ COMMON_ENV = {
     'AUTH_SVC_GRPC_HOST': 'auth-svc-grpc.lumie-dev.svc.cluster.local',
     'TENANT_SVC_GRPC_HOST': 'tenant-svc-grpc.lumie-dev.svc.cluster.local',
     'BILLING_SVC_GRPC_HOST': 'billing-svc-grpc.lumie-dev.svc.cluster.local',
+    'ACADEMY_SVC_GRPC_HOST': 'academy-svc-grpc.lumie-dev.svc.cluster.local',
 }
 
 # Namespace and Secrets are managed by ArgoCD (lumie-infra/applications/lumie-dev)
@@ -98,12 +109,12 @@ def generate_deployment(name, config):
         - name: DB_USERNAME
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-db-app
+              name: lumie-dev-db-secrets
               key: username
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-db-app
+              name: lumie-dev-db-secrets
               key: password
         - name: RABBITMQ_USERNAME
           value: "lumie"
@@ -138,6 +149,12 @@ def generate_deployment(name, config):
           value: "dev-kakao-client-id"
         - name: KAKAO_CLIENT_SECRET
           value: "dev-kakao-client-secret"'''
+
+    # Add Report service URL for exam-svc
+    if name == 'exam-svc':
+        env_yaml += '''
+        - name: REPORT_SVC_URL
+          value: "http://report-svc.lumie-dev.svc:8000"'''
 
     # Add MinIO secrets for file-svc
     if name == 'file-svc':
@@ -187,7 +204,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: %s
-        image: %s/dev/%s:dev
+        image: %s/dev/%s
         imagePullPolicy: Always
         ports:
         - name: http
@@ -249,6 +266,7 @@ API_PATHS = {
 def generate_service(name, config):
     grpc_service = ''
     if config['grpc_port']:
+        grpc_cluster_ip = GRPC_CLUSTER_IPS.get(name, '')
         grpc_service = '''
 ---
 apiVersion: v1
@@ -258,6 +276,7 @@ metadata:
   namespace: %s
 spec:
   type: ClusterIP
+  clusterIP: %s
   selector:
     app: %s
   ports:
@@ -265,7 +284,7 @@ spec:
     port: 9090
     targetPort: grpc
     protocol: TCP
-''' % (name, NAMESPACE, name)
+''' % (name, NAMESPACE, grpc_cluster_ip, name)
 
     return '''
 apiVersion: v1
@@ -291,7 +310,6 @@ def generate_ingress(name, config):
 
     api_path = API_PATHS[name]
     return '''
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -315,9 +333,6 @@ spec:
               number: 8080
 ''' % (name, NAMESPACE, DEV_DOMAIN, api_path, name)
 
-# Create generated YAML directory
-local('mkdir -p .tilt/generated', quiet=True)
-
 # Build and deploy each service
 for name, config in SERVICES.items():
     # Generate K8s resources
@@ -330,18 +345,8 @@ for name, config in SERVICES.items():
     if ingress_yaml:
         combined_yaml += '\n---\n' + ingress_yaml
 
-    # Write YAML to file for explicit apply/delete
-    yaml_path = '.tilt/generated/%s.yaml' % name
-    local("cat > '%s' << 'TILT_YAML_EOF'\n%s\nTILT_YAML_EOF" % (yaml_path, combined_yaml), quiet=True)
-
-    # Use k8s_custom_deploy for explicit delete_cmd (ensures cleanup on tilt down)
-    k8s_custom_deploy(
-        name,
-        apply_cmd='kubectl apply -f %s' % yaml_path,
-        delete_cmd='kubectl delete -f %s --ignore-not-found' % yaml_path,
-        deps=[yaml_path],
-        image_deps=['%s/dev/%s' % (REGISTRY, name)],
-    )
+    # Apply YAML using k8s_yaml (handles automatic image tag injection)
+    k8s_yaml(blob(combined_yaml))
 
     # Docker build (rebuild image when jar changes)
     # Java doesn't support true hot-reload, so we rebuild on jar change
