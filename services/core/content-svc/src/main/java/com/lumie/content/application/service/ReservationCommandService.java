@@ -11,7 +11,7 @@ import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.ReservationRepository;
 import com.lumie.content.domain.repository.ScheduleRepository;
 import com.lumie.content.domain.vo.ReservationStatus;
-import com.lumie.content.infrastructure.tenant.TenantContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

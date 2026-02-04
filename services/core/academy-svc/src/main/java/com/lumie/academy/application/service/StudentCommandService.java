@@ -14,7 +14,7 @@ import com.lumie.academy.domain.exception.QuotaExceededException;
 import com.lumie.academy.domain.exception.StudentNotFoundException;
 import com.lumie.academy.domain.repository.AcademyRepository;
 import com.lumie.academy.domain.repository.StudentRepository;
-import com.lumie.academy.infrastructure.tenant.TenantContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.messaging.event.MemberCreatedEvent;
 import com.lumie.messaging.event.MemberDeletedEvent;
 import com.lumie.messaging.event.MemberUpdatedEvent;

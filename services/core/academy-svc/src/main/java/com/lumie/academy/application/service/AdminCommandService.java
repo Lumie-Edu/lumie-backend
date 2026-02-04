@@ -12,7 +12,7 @@ import com.lumie.academy.domain.exception.DuplicateUserLoginIdException;
 import com.lumie.academy.domain.exception.QuotaExceededException;
 import com.lumie.academy.domain.repository.AdminRepository;
 import com.lumie.academy.domain.repository.AcademyRepository;
-import com.lumie.academy.infrastructure.tenant.TenantContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.messaging.event.MemberCreatedEvent;
 import com.lumie.messaging.event.MemberUpdatedEvent;
 import lombok.RequiredArgsConstructor;

@@ -9,7 +9,7 @@ import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.exception.FileException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
-import com.lumie.file.infrastructure.tenant.TenantContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,7 +1,7 @@
 package com.lumie.exam.adapter.out.external;
 
 import com.lumie.exam.application.port.out.BillingServicePort;
-import com.lumie.exam.infrastructure.tenant.TenantContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.grpc.billing.BillingServiceGrpc;
 import com.lumie.grpc.billing.CheckQuotaRequest;
 import io.grpc.StatusRuntimeException;

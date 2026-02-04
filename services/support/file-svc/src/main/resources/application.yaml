@@ -1,3 +1,7 @@
+lumie:
+  tenant:
+    hibernate-enabled: false
+
 spring:
   application:
     name: file-svc

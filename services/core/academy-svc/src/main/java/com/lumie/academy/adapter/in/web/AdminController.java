@@ -4,7 +4,7 @@ import com.lumie.academy.application.dto.AdminRequest;
 import com.lumie.academy.application.dto.AdminResponse;
 import com.lumie.academy.application.service.AdminCommandService;
 import com.lumie.academy.application.service.AdminQueryService;
-import com.lumie.academy.infrastructure.tenant.UserContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

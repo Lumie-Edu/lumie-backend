@@ -1,14 +1,17 @@
 package com.lumie.exam.adapter.out.external;
 
 import com.lumie.exam.application.port.out.StudentServicePort;
-import com.lumie.exam.infrastructure.tenant.TenantContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.grpc.academy.AcademyServiceGrpc;
+import com.lumie.grpc.academy.GetStudentByPhoneRequest;
 import com.lumie.grpc.academy.GetStudentRequest;
 import com.lumie.grpc.academy.ValidateStudentRequest;
 import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -51,6 +54,27 @@ public class StudentServiceClient implements StudentServicePort {
         } catch (StatusRuntimeException e) {
             log.error("gRPC error getting student: {}", studentId, e);
             return null;
+        }
+    }
+
+    @Override
+    public Optional<StudentInfo> findByPhone(String phone) {
+        try {
+            var request = GetStudentByPhoneRequest.newBuilder()
+                    .setTenantSlug(TenantContextHolder.getRequiredTenant())
+                    .setPhone(phone)
+                    .build();
+
+            var response = academyServiceStub.getStudentByPhone(request);
+            return Optional.of(new StudentInfo(
+                    response.getId(),
+                    response.getStudentName(),
+                    "",
+                    response.getStudentPhone()
+            ));
+        } catch (StatusRuntimeException e) {
+            log.debug("Student not found by phone: {}", phone);
+            return Optional.empty();
         }
     }
 }

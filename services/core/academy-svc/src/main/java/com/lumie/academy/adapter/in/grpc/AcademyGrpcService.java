@@ -4,10 +4,11 @@ import com.lumie.academy.application.service.AcademyQueryService;
 import com.lumie.academy.application.service.StudentQueryService;
 import com.lumie.academy.domain.exception.AcademyNotFoundException;
 import com.lumie.academy.domain.exception.StudentNotFoundException;
-import com.lumie.academy.infrastructure.tenant.TenantContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.grpc.academy.AcademyResponse;
 import com.lumie.grpc.academy.AcademyServiceGrpc;
 import com.lumie.grpc.academy.GetAcademyRequest;
+import com.lumie.grpc.academy.GetStudentByPhoneRequest;
 import com.lumie.grpc.academy.GetStudentRequest;
 import com.lumie.grpc.academy.GetStudentsByAcademyRequest;
 import com.lumie.grpc.academy.StudentListResponse;
@@ -48,6 +49,33 @@ public class AcademyGrpcService extends AcademyServiceGrpc.AcademyServiceImplBas
                 .asRuntimeException());
         } catch (Exception e) {
             log.error("Error getting student: {}", request.getStudentId(), e);
+            responseObserver.onError(Status.INTERNAL
+                .withDescription(e.getMessage())
+                .asRuntimeException());
+        } finally {
+            TenantContextHolder.clear();
+        }
+    }
+
+    @Override
+    public void getStudentByPhone(GetStudentByPhoneRequest request,
+                                   StreamObserver<StudentResponse> responseObserver) {
+        try {
+            TenantContextHolder.setTenant(request.getTenantSlug());
+
+            com.lumie.academy.application.dto.StudentResponse student =
+                studentQueryService.getStudentByPhone(request.getPhone());
+
+            StudentResponse response = toGrpcStudentResponse(student);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (StudentNotFoundException e) {
+            log.warn("Student not found by phone: {}", request.getPhone());
+            responseObserver.onError(Status.NOT_FOUND
+                .withDescription(e.getMessage())
+                .asRuntimeException());
+        } catch (Exception e) {
+            log.error("Error getting student by phone: {}", request.getPhone(), e);
             responseObserver.onError(Status.INTERNAL
                 .withDescription(e.getMessage())
                 .asRuntimeException());

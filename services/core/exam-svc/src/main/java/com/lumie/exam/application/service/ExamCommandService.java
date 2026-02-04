@@ -8,7 +8,7 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.infrastructure.tenant.TenantContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +29,8 @@ public class ExamCommandService {
         Exam exam = Exam.create(
                 request.name(),
                 request.category(),
+                request.gradingType(),
+                request.gradeScale(),
                 request.totalQuestions(),
                 request.correctAnswers(),
                 request.questionScores(),
@@ -55,6 +57,8 @@ public class ExamCommandService {
         exam.update(
                 request.name(),
                 request.category(),
+                request.gradingType(),
+                request.gradeScale(),
                 request.totalQuestions(),
                 request.correctAnswers(),
                 request.questionScores(),

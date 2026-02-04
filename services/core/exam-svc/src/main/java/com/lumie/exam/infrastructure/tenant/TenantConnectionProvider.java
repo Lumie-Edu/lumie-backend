@@ -1,5 +1,6 @@
 package com.lumie.exam.infrastructure.tenant;
 
+import com.lumie.common.tenant.TenantContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,7 @@ public class TenantConnectionProvider implements MultiTenantConnectionProvider<S
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
         Connection connection = getAnyConnection();
-        String schema = toSchemaName(tenantIdentifier);
+        String schema = TenantContextHolder.getSchemaName();
         log.debug("Setting schema for tenant {}: {}", tenantIdentifier, schema);
 
         try {
@@ -66,12 +67,5 @@ public class TenantConnectionProvider implements MultiTenantConnectionProvider<S
     @Override
     public <T> T unwrap(Class<T> unwrapType) {
         return null;
-    }
-
-    private String toSchemaName(String tenantSlug) {
-        if (tenantSlug == null || tenantSlug.isBlank()) {
-            return "public";
-        }
-        return "tenant_" + tenantSlug.replace("-", "_");
     }
 }

@@ -1,5 +1,6 @@
 package com.lumie.exam.infrastructure.tenant;
 
+import com.lumie.common.tenant.TenantContextHolder;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 import org.springframework.stereotype.Component;
 

@@ -1,7 +1,6 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.exam.application.dto.request.BulkSubmitResultsRequest;
-import com.lumie.exam.application.dto.request.SubmitResultRequest;
+import com.lumie.exam.application.dto.response.BatchOmrGradingResponse;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.port.out.BillingServicePort;
 import com.lumie.exam.application.port.out.ExamEventPublisherPort;
@@ -15,15 +14,16 @@ import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.service.GradeCalculator;
-import com.lumie.exam.infrastructure.tenant.TenantContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -37,34 +37,6 @@ public class ResultCommandService {
     private final BillingServicePort billingService;
     private final OmrServicePort omrService;
     private final ExamEventPublisherPort eventPublisher;
-
-    @Transactional
-    public List<ExamResultResponse> submitResults(Long examId, BulkSubmitResultsRequest request) {
-        log.info("Submitting {} results for exam: {}", request.results().size(), examId);
-
-        Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
-
-        List<ExamResult> savedResults = new ArrayList<>();
-
-        for (SubmitResultRequest resultReq : request.results()) {
-            ExamResult result = processSubmitResult(exam, resultReq);
-            savedResults.add(result);
-        }
-
-        gradeCalculator.calculateAndAssignGrades(exam, savedResults);
-        List<ExamResult> finalResults = resultRepository.saveAll(savedResults);
-
-        String tenantSlug = TenantContextHolder.getTenantSlug();
-        for (ExamResult result : finalResults) {
-            eventPublisher.publishResultSubmitted(result, tenantSlug);
-        }
-
-        log.info("Submitted {} results for exam: {}", finalResults.size(), examId);
-        return finalResults.stream()
-                .map(ExamResultResponse::from)
-                .toList();
-    }
 
     @Transactional
     public ExamResultResponse processOmrGrading(Long examId, Long studentId, byte[] imageData) {
@@ -108,9 +80,8 @@ public class ResultCommandService {
             result.addQuestionResult(questionResult);
         }
 
-        List<ExamResult> allResults = resultRepository.findByExamId(examId);
-        allResults.add(result);
-        gradeCalculator.calculateAndAssignGrades(exam, allResults);
+        // 절대평가일 때만 등급 계산하여 저장 (상대평가는 조회 시 계산)
+        gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, result);
 
         ExamResult savedResult = resultRepository.save(result);
 
@@ -121,38 +92,74 @@ public class ResultCommandService {
         return ExamResultResponse.from(savedResult);
     }
 
-    private ExamResult processSubmitResult(Exam exam, SubmitResultRequest request) {
-        if (resultRepository.existsByExamIdAndStudentId(exam.getId(), request.studentId())) {
-            throw new ExamException(ExamErrorCode.DUPLICATE_RESULT);
-        }
+    @Transactional
+    public BatchOmrGradingResponse processBatchOmrGrading(Long examId, List<MultipartFile> images) {
+        log.info("Processing batch OMR grading for exam: {}, images: {}", examId, images.size());
 
-        int totalScore = 0;
-        List<QuestionResult> questionResults = new ArrayList<>();
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
 
-        for (Map.Entry<String, String> entry : request.answers().entrySet()) {
-            int questionNumber = Integer.parseInt(entry.getKey());
-            String selectedChoice = entry.getValue();
-            String correctAnswer = exam.getCorrectAnswerForQuestion(questionNumber);
-            int maxScore = exam.getScoreForQuestion(questionNumber);
+        String tenantSlug = TenantContextHolder.getTenantSlug();
+        List<BatchOmrGradingResponse.BatchOmrResult> results = new ArrayList<>();
+        int savedCount = 0;
 
-            QuestionResult qr = QuestionResult.create(
-                    questionNumber,
-                    selectedChoice,
-                    correctAnswer,
-                    maxScore
-            );
-            questionResults.add(qr);
+        for (MultipartFile image : images) {
+            String fileName = image.getOriginalFilename();
+            try {
+                byte[] imageData = image.getBytes();
 
-            if (qr.isCorrect()) {
-                totalScore += maxScore;
+                OmrServicePort.OmrGradingResult omrResult = omrService.gradeOmrImage(
+                        imageData,
+                        exam.getCorrectAnswers(),
+                        exam.getQuestionScores(),
+                        exam.getQuestionTypes()
+                );
+
+                String fullPhone = "010" + omrResult.phoneNumber();
+                Optional<StudentServicePort.StudentInfo> studentOpt = studentService.findByPhone(fullPhone);
+
+                if (studentOpt.isEmpty()) {
+                    results.add(BatchOmrGradingResponse.BatchOmrResult.gradedButNotSaved(
+                            fileName, omrResult.phoneNumber(), omrResult.totalScore(), omrResult.grade(),
+                            "학생을 찾을 수 없음: " + fullPhone));
+                    continue;
+                }
+
+                StudentServicePort.StudentInfo student = studentOpt.get();
+
+                ExamResult result = ExamResult.create(exam, student.id(), omrResult.totalScore());
+                for (OmrServicePort.OmrQuestionResult qr : omrResult.results()) {
+                    QuestionResult questionResult = QuestionResult.create(
+                            qr.questionNumber(),
+                            qr.studentAnswer(),
+                            qr.correctAnswer(),
+                            qr.score()
+                    );
+                    result.addQuestionResult(questionResult);
+                }
+
+                gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, result);
+                ExamResult savedResult = resultRepository.save(result);
+                eventPublisher.publishResultSubmitted(savedResult, tenantSlug);
+                billingService.consumeOmrQuota();
+
+                results.add(BatchOmrGradingResponse.BatchOmrResult.success(
+                        fileName, omrResult.phoneNumber(), student.id(), student.name(),
+                        omrResult.totalScore(), omrResult.grade(), true));
+                savedCount++;
+
+            } catch (Exception e) {
+                log.error("Failed to process OMR image: {}", fileName, e);
+                results.add(BatchOmrGradingResponse.BatchOmrResult.failure(fileName, e.getMessage()));
             }
         }
 
-        ExamResult result = ExamResult.create(exam, request.studentId(), totalScore);
-        for (QuestionResult qr : questionResults) {
-            result.addQuestionResult(qr);
-        }
+        int successCount = (int) results.stream().filter(BatchOmrGradingResponse.BatchOmrResult::success).count();
+        int failCount = results.size() - successCount;
 
-        return result;
+        log.info("Batch OMR grading completed for exam: {}, total: {}, success: {}, saved: {}",
+                examId, images.size(), successCount, savedCount);
+
+        return new BatchOmrGradingResponse(images.size(), successCount, failCount, savedCount, results);
     }
 }

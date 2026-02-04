@@ -3,7 +3,7 @@ package com.lumie.academy.adapter.in.web;
 import com.lumie.academy.application.dto.*;
 import com.lumie.academy.application.service.StudentCommandService;
 import com.lumie.academy.application.service.StudentQueryService;
-import com.lumie.academy.infrastructure.tenant.UserContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

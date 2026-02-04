@@ -8,7 +8,7 @@ import com.lumie.academy.domain.exception.AcademyNotFoundException;
 import com.lumie.academy.domain.exception.QuotaExceededException;
 import com.lumie.academy.domain.repository.AcademyRepository;
 import com.lumie.academy.domain.repository.StudentRepository;
-import com.lumie.academy.infrastructure.tenant.TenantContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.exception.DuplicateResourceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

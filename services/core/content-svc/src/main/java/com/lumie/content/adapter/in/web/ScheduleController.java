@@ -5,6 +5,7 @@ import com.lumie.content.application.dto.request.UpdateScheduleRequest;
 import com.lumie.content.application.dto.response.ScheduleResponse;
 import com.lumie.content.application.service.ScheduleCommandService;
 import com.lumie.content.application.service.ScheduleQueryService;
+import com.lumie.common.tenant.UserContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,7 +30,7 @@ public class ScheduleController {
 
     @GetMapping
     public ResponseEntity<Page<ScheduleResponse>> listSchedules(
-            @PageableDefault(size = 20, sort = "scheduleDate", direction = Sort.Direction.ASC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "date", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(queryService.listSchedules(pageable));
     }
 
@@ -62,7 +63,8 @@ public class ScheduleController {
 
     @PostMapping
     public ResponseEntity<ScheduleResponse> createSchedule(@Valid @RequestBody CreateScheduleRequest request) {
-        ScheduleResponse response = commandService.createSchedule(request);
+        Long adminId = UserContextHolder.getRequiredUserId();
+        ScheduleResponse response = commandService.createSchedule(request, adminId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
