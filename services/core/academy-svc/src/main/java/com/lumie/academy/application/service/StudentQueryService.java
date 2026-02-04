@@ -31,6 +31,12 @@ public class StudentQueryService {
         return StudentResponse.from(student);
     }
 
+    public StudentResponse getStudentByPhone(String phone) {
+        Student student = studentRepository.findByPhone(phone)
+                .orElseThrow(() -> new StudentNotFoundException("phone: " + phone));
+        return StudentResponse.from(student);
+    }
+
     public Page<StudentResponse> getStudentsByAcademy(Long academyId, Pageable pageable) {
         return studentRepository.findByAcademyId(academyId, pageable)
                 .map(StudentResponse::from);

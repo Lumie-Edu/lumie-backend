@@ -16,6 +16,8 @@ public interface StudentRepository {
 
     Optional<Student> findByUserLoginId(String userLoginId);
 
+    Optional<Student> findByPhone(String phone);
+
     Page<Student> findByAcademyId(Long academyId, Pageable pageable);
 
     Page<Student> findByAcademyIdAndIsActive(Long academyId, Boolean isActive, Pageable pageable);

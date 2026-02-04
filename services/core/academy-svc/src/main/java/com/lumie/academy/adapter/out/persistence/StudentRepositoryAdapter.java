@@ -36,6 +36,11 @@ public class StudentRepositoryAdapter implements StudentRepository {
     }
 
     @Override
+    public Optional<Student> findByPhone(String phone) {
+        return jpaStudentRepository.findByPhone(phone);
+    }
+
+    @Override
     public Page<Student> findByAcademyId(Long academyId, Pageable pageable) {
         return jpaStudentRepository.findByAcademyId(academyId, pageable);
     }
