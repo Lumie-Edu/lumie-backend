@@ -2,6 +2,7 @@ package com.lumie.exam.application.dto.response;
 
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.GradingType;
 
 import java.time.LocalDateTime;
 
@@ -9,6 +10,7 @@ public record ExamResponse(
         Long id,
         String name,
         ExamCategory category,
+        GradingType gradingType,
         Integer totalQuestions,
         Integer totalPossibleScore,
         Integer passScore,
@@ -20,6 +22,7 @@ public record ExamResponse(
                 exam.getId(),
                 exam.getName(),
                 exam.getCategory(),
+                exam.getGradingType(),
                 exam.getTotalQuestions(),
                 exam.calculateTotalPossibleScore(),
                 exam.getPassScore(),

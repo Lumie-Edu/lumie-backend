@@ -1,5 +1,7 @@
 package com.lumie.exam.domain.repository;
 
+import com.lumie.exam.adapter.out.persistence.AcademyComparisonProjection;
+import com.lumie.exam.adapter.out.persistence.ResultWithAcademyProjection;
 import com.lumie.exam.domain.entity.ExamResult;
 
 import java.util.List;
@@ -22,4 +24,8 @@ public interface ExamResultRepository {
     void deleteById(Long id);
 
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);
+
+    List<AcademyComparisonProjection> findAcademyComparisonByExamId(Long examId);
+
+    List<ResultWithAcademyProjection> findResultsWithAcademyByExamId(Long examId);
 }

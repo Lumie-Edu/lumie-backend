@@ -9,7 +9,7 @@ public record ExamResultResponse(
         Long examId,
         String examName,
         Long studentId,
-        Integer totalScore,
+        Integer score,
         Integer grade,
         Integer correctCount,
         Integer incorrectCount,

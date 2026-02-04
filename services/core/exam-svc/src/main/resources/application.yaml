@@ -75,6 +75,8 @@ lumie:
   services:
     grading:
       url: ${GRADING_SVC_URL:http://grading-svc.lumie-support.svc:8000}
+    report:
+      url: ${REPORT_SVC_URL:http://report-svc.lumie-dev.svc:8000}
 
 logging:
   level:

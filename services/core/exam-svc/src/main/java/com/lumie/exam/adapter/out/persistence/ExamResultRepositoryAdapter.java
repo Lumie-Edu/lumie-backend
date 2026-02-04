@@ -53,4 +53,14 @@ public class ExamResultRepositoryAdapter implements ExamResultRepository {
     public boolean existsByExamIdAndStudentId(Long examId, Long studentId) {
         return jpaRepository.existsByExamIdAndStudentId(examId, studentId);
     }
+
+    @Override
+    public List<AcademyComparisonProjection> findAcademyComparisonByExamId(Long examId) {
+        return jpaRepository.findAcademyComparisonByExamId(examId);
+    }
+
+    @Override
+    public List<ResultWithAcademyProjection> findResultsWithAcademyByExamId(Long examId) {
+        return jpaRepository.findResultsWithAcademyByExamId(examId);
+    }
 }

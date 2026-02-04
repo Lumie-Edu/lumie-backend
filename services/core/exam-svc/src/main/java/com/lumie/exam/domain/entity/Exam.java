@@ -2,6 +2,8 @@ package com.lumie.exam.domain.entity;
 
 import com.lumie.common.domain.BaseEntity;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.GradeScale;
+import com.lumie.exam.domain.vo.GradingType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -31,6 +33,14 @@ public class Exam extends BaseEntity {
     @Column(name = "category", nullable = false, length = 20)
     private ExamCategory category;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grading_type", nullable = false, length = 20)
+    private GradingType gradingType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grade_scale", length = 20)
+    private GradeScale gradeScale;  // 9등급제 또는 5등급제 (상대평가에서만 사용)
+
     @Column(name = "total_questions", nullable = false)
     private Integer totalQuestions;
 
@@ -53,11 +63,13 @@ public class Exam extends BaseEntity {
     private List<ExamResult> results = new ArrayList<>();
 
     @Builder
-    private Exam(String name, ExamCategory category, Integer totalQuestions,
-                 Map<String, String> correctAnswers, Map<String, Integer> questionScores,
+    private Exam(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
+                 Integer totalQuestions, Map<String, String> correctAnswers, Map<String, Integer> questionScores,
                  Map<String, String> questionTypes, Integer passScore) {
         this.name = name;
         this.category = category;
+        this.gradingType = gradingType;
+        this.gradeScale = gradeScale;
         this.totalQuestions = totalQuestions;
         this.correctAnswers = correctAnswers;
         this.questionScores = questionScores;
@@ -65,12 +77,14 @@ public class Exam extends BaseEntity {
         this.passScore = passScore;
     }
 
-    public static Exam create(String name, ExamCategory category, Integer totalQuestions,
-                              Map<String, String> correctAnswers, Map<String, Integer> questionScores,
+    public static Exam create(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
+                              Integer totalQuestions, Map<String, String> correctAnswers, Map<String, Integer> questionScores,
                               Map<String, String> questionTypes, Integer passScore) {
         return Exam.builder()
                 .name(name)
                 .category(category != null ? category : ExamCategory.GRADED)
+                .gradingType(gradingType != null ? gradingType : GradingType.ABSOLUTE)
+                .gradeScale(gradeScale != null ? gradeScale : GradeScale.NINE_GRADE)
                 .totalQuestions(totalQuestions)
                 .correctAnswers(correctAnswers)
                 .questionScores(questionScores)
@@ -79,14 +93,20 @@ public class Exam extends BaseEntity {
                 .build();
     }
 
-    public void update(String name, ExamCategory category, Integer totalQuestions,
-                       Map<String, String> correctAnswers, Map<String, Integer> questionScores,
+    public void update(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
+                       Integer totalQuestions, Map<String, String> correctAnswers, Map<String, Integer> questionScores,
                        Map<String, String> questionTypes, Integer passScore) {
         if (name != null && !name.isBlank()) {
             this.name = name;
         }
         if (category != null) {
             this.category = category;
+        }
+        if (gradingType != null) {
+            this.gradingType = gradingType;
+        }
+        if (gradeScale != null) {
+            this.gradeScale = gradeScale;
         }
         if (totalQuestions != null) {
             this.totalQuestions = totalQuestions;

@@ -27,7 +27,8 @@ public enum ExamErrorCode implements ErrorCode {
     TENANT_INVALID("E302", "Invalid tenant", 403),
 
     // 500 Internal Server Error
-    OMR_GRADING_FAILED("E501", "OMR grading service failed", 500);
+    OMR_GRADING_FAILED("E501", "OMR grading service failed", 500),
+    REPORT_GENERATION_FAILED("E502", "Report generation service failed", 500);
 
     private final String code;
     private final String message;
