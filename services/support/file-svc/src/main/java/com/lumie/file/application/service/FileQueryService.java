@@ -9,7 +9,6 @@ import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.exception.FileException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
-import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,9 +29,8 @@ public class FileQueryService {
 
     @Transactional(readOnly = true)
     public PresignedDownloadResponse generatePresignedDownloadUrl(PresignedDownloadRequest request) {
-        String tenantSlug = TenantContextHolder.getTenant();
-
-        FileMetadata fileMetadata = findFileMetadata(request.fileId(), tenantSlug);
+        FileMetadata fileMetadata = fileMetadataRepository.findById(request.fileId())
+                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
 
         if (!fileMetadata.isUploadCompleted()) {
             throw new FileException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
@@ -56,38 +54,18 @@ public class FileQueryService {
 
     @Transactional(readOnly = true)
     public FileMetadataResponse getFileMetadata(UUID fileId) {
-        String tenantSlug = TenantContextHolder.getTenant();
-
-        FileMetadata fileMetadata = findFileMetadata(fileId, tenantSlug);
+        FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
+                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
 
         return FileMetadataResponse.from(fileMetadata);
     }
 
     @Transactional(readOnly = true)
     public List<FileMetadataResponse> getFilesByEntity(EntityType entityType, Long entityId) {
-        String tenantSlug = TenantContextHolder.getTenant();
-
-        List<FileMetadata> files;
-        if (tenantSlug == null) {
-            files = fileMetadataRepository.findByEntityTypeAndEntityId(entityType, entityId);
-        } else {
-            files = fileMetadataRepository.findByTenantSlugAndEntityTypeAndEntityId(
-                    tenantSlug, entityType, entityId);
-        }
+        List<FileMetadata> files = fileMetadataRepository.findByEntityTypeAndEntityId(entityType, entityId);
 
         return files.stream()
                 .map(FileMetadataResponse::from)
                 .toList();
-    }
-
-    private FileMetadata findFileMetadata(UUID fileId, String tenantSlug) {
-        if (tenantSlug == null) {
-            return fileMetadataRepository.findById(fileId)
-                    .filter(FileMetadata::isPlatformFile)
-                    .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
-        }
-
-        return fileMetadataRepository.findByIdAndTenantSlug(fileId, tenantSlug)
-                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
     }
 }

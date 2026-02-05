@@ -27,18 +27,8 @@ public class FileMetadataRepositoryAdapter implements FileMetadataRepository {
     }
 
     @Override
-    public Optional<FileMetadata> findByIdAndTenantSlug(UUID id, String tenantSlug) {
-        return jpaRepository.findByIdAndTenantSlug(id, tenantSlug);
-    }
-
-    @Override
     public List<FileMetadata> findByEntityTypeAndEntityId(EntityType entityType, Long entityId) {
         return jpaRepository.findByEntityTypeAndEntityId(entityType, entityId);
-    }
-
-    @Override
-    public List<FileMetadata> findByTenantSlugAndEntityTypeAndEntityId(String tenantSlug, EntityType entityType, Long entityId) {
-        return jpaRepository.findByTenantSlugAndEntityTypeAndEntityId(tenantSlug, entityType, entityId);
     }
 
     @Override

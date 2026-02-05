@@ -13,11 +13,7 @@ public interface FileMetadataRepository {
 
     Optional<FileMetadata> findById(UUID id);
 
-    Optional<FileMetadata> findByIdAndTenantSlug(UUID id, String tenantSlug);
-
     List<FileMetadata> findByEntityTypeAndEntityId(EntityType entityType, Long entityId);
-
-    List<FileMetadata> findByTenantSlugAndEntityTypeAndEntityId(String tenantSlug, EntityType entityType, Long entityId);
 
     void deleteById(UUID id);
 

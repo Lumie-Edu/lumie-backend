@@ -5,9 +5,13 @@ import com.lumie.academy.domain.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
+
+import static com.lumie.academy.adapter.out.persistence.StudentSpecification.*;
 
 @Repository
 @RequiredArgsConstructor
@@ -21,8 +25,18 @@ public class StudentRepositoryAdapter implements StudentRepository {
     }
 
     @Override
+    public List<Student> saveAll(List<Student> students) {
+        return jpaStudentRepository.saveAll(students);
+    }
+
+    @Override
     public Optional<Student> findById(Long id) {
         return jpaStudentRepository.findById(id);
+    }
+
+    @Override
+    public List<Student> findAllByIds(List<Long> ids) {
+        return jpaStudentRepository.findAllById(ids);
     }
 
     @Override
@@ -61,6 +75,15 @@ public class StudentRepositoryAdapter implements StudentRepository {
     }
 
     @Override
+    public Page<Student> search(Long academyId, Boolean isActive, String search, String searchField, Pageable pageable) {
+        Specification<Student> spec = Specification
+                .where(hasAcademyId(academyId))
+                .and(hasIsActive(isActive))
+                .and(searchByField(search, searchField));
+        return jpaStudentRepository.findAll(spec, pageable);
+    }
+
+    @Override
     public long countByAcademyId(Long academyId) {
         return jpaStudentRepository.countByAcademyId(academyId);
     }
@@ -78,5 +101,10 @@ public class StudentRepositoryAdapter implements StudentRepository {
     @Override
     public void delete(Student student) {
         jpaStudentRepository.delete(student);
+    }
+
+    @Override
+    public void deleteAll(List<Student> students) {
+        jpaStudentRepository.deleteAllInBatch(students);
     }
 }

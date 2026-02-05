@@ -3,7 +3,6 @@ package com.lumie.academy.adapter.in.web;
 import com.lumie.academy.application.dto.*;
 import com.lumie.academy.application.service.StudentCommandService;
 import com.lumie.academy.application.service.StudentQueryService;
-import com.lumie.common.tenant.UserContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,8 +25,7 @@ public class StudentController {
 
     @PostMapping
     public ResponseEntity<StudentResponse> registerStudent(@Valid @RequestBody StudentRequest request) {
-        Long userId = UserContextHolder.getRequiredUserId();
-        StudentResponse response = studentCommandService.registerStudent(userId, request);
+        StudentResponse response = studentCommandService.registerStudent(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -41,8 +39,10 @@ public class StudentController {
     public ResponseEntity<Page<StudentResponse>> getStudents(
             @RequestParam(required = false) Long academyId,
             @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String searchField,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<StudentResponse> response = studentQueryService.getStudents(academyId, isActive, pageable);
+        Page<StudentResponse> response = studentQueryService.searchStudents(academyId, isActive, search, searchField, pageable);
         return ResponseEntity.ok(response);
     }
 
@@ -54,10 +54,40 @@ public class StudentController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{id}")
+    @PostMapping("/{id}/deactivate")
     public ResponseEntity<Void> deactivateStudent(@PathVariable Long id) {
         studentCommandService.deactivateStudent(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/reactivate")
+    public ResponseEntity<Void> reactivateStudent(@PathVariable Long id) {
+        studentCommandService.reactivateStudent(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
+        studentCommandService.deleteStudent(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/batch/deactivate")
+    public ResponseEntity<BatchOperationResult> batchDeactivate(@RequestBody BatchOperationRequest request) {
+        BatchOperationResult result = studentCommandService.batchDeactivate(request.ids());
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/batch/reactivate")
+    public ResponseEntity<BatchOperationResult> batchReactivate(@RequestBody BatchOperationRequest request) {
+        BatchOperationResult result = studentCommandService.batchReactivate(request.ids());
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/batch/delete")
+    public ResponseEntity<BatchOperationResult> batchDelete(@RequestBody BatchOperationRequest request) {
+        BatchOperationResult result = studentCommandService.batchDelete(request.ids());
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping(value = "/bulk-import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

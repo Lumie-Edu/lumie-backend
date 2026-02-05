@@ -4,13 +4,18 @@ import com.lumie.academy.domain.entity.Student;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface StudentRepository {
 
     Student save(Student student);
 
+    List<Student> saveAll(List<Student> students);
+
     Optional<Student> findById(Long id);
+
+    List<Student> findAllByIds(List<Long> ids);
 
     Optional<Student> findByUserId(Long userId);
 
@@ -26,6 +31,8 @@ public interface StudentRepository {
 
     Page<Student> findAll(Pageable pageable);
 
+    Page<Student> search(Long academyId, Boolean isActive, String search, String searchField, Pageable pageable);
+
     long countByAcademyId(Long academyId);
 
     long countByIsActive(Boolean isActive);
@@ -33,4 +40,6 @@ public interface StudentRepository {
     boolean existsByUserLoginId(String userLoginId);
 
     void delete(Student student);
+
+    void deleteAll(List<Student> students);
 }

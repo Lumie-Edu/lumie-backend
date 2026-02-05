@@ -8,12 +8,14 @@ import com.lumie.file.application.dto.response.PresignedDownloadResponse;
 import com.lumie.file.application.dto.response.PresignedUploadResponse;
 import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
+import com.lumie.file.domain.vo.EntityType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -55,5 +57,13 @@ public class FileController {
     public ResponseEntity<Void> deleteFile(@PathVariable UUID fileId) {
         fileCommandService.deleteFile(fileId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<List<FileMetadataResponse>> getFilesByEntityType(
+            @RequestParam EntityType entityType,
+            @RequestParam(required = false) Long entityId) {
+        List<FileMetadataResponse> response = fileQueryService.getFilesByEntity(entityType, entityId);
+        return ResponseEntity.ok(response);
     }
 }

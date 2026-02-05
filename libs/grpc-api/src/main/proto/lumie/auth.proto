@@ -9,6 +9,8 @@ option java_outer_classname = "AuthProto";
 service AuthService {
   rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
   rpc GetUserInfo(GetUserInfoRequest) returns (UserInfoResponse);
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
 }
 
 message ValidateTokenRequest {
@@ -48,4 +50,28 @@ message UserInfo {
   string role = 4;
   string tenant_slug = 5;
   int64 tenant_id = 6;
+}
+
+message CreateUserRequest {
+  string user_login_id = 1;
+  string password = 2;
+  string name = 3;
+  string phone = 4;
+  string role = 5;
+  int64 tenant_id = 6;
+}
+
+message CreateUserResponse {
+  bool success = 1;
+  string message = 2;
+  int64 user_id = 3;
+}
+
+message DeleteUserRequest {
+  int64 user_id = 1;
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+  string message = 2;
 }

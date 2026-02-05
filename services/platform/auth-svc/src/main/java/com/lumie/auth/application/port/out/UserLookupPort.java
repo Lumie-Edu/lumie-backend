@@ -60,6 +60,14 @@ public interface UserLookupPort {
     boolean existsByUserLoginId(String userLoginId);
 
     /**
+     * Deletes a user by ID.
+     *
+     * @param userId the user's ID
+     * @return true if the user was deleted
+     */
+    boolean deleteUser(Long userId);
+
+    /**
      * User data record from public.users table.
      */
     record UserData(

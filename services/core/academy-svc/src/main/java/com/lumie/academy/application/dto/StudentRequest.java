@@ -11,6 +11,10 @@ public record StudentRequest(
     @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "User login ID can only contain letters, numbers, and underscores")
     String userLoginId,
 
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, max = 128, message = "Password must be between 8 and 128 characters")
+    String password,
+
     @NotBlank(message = "Name is required")
     String name,
 

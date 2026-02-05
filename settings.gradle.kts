@@ -14,5 +14,6 @@ include(
     "services:core:academy-svc",
     "services:core:exam-svc",
     "services:core:content-svc",
+    "services:core:spreadsheet-svc",
     "services:support:file-svc"
 )

@@ -95,6 +95,12 @@ public class Student extends BaseEntity {
         }
     }
 
+    public void changeAcademy(Academy academy) {
+        if (academy != null) {
+            this.academy = academy;
+        }
+    }
+
     public void deactivate() {
         this.isActive = false;
     }

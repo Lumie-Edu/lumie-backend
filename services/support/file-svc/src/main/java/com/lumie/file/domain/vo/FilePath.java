@@ -1,32 +1,29 @@
 package com.lumie.file.domain.vo;
 
+import com.lumie.common.tenant.TenantContextHolder;
+
 import java.util.UUID;
 
 public record FilePath(
-        String tenantSlug,
         EntityType entityType,
         UUID fileId,
         String filename
 ) {
-    private static final String TENANT_PREFIX = "tenants";
-    private static final String PLATFORM_PREFIX = "platform/logos";
-
-    public static FilePath of(String tenantSlug, EntityType entityType, UUID fileId, String filename) {
-        return new FilePath(tenantSlug, entityType, fileId, filename);
-    }
-
-    public static FilePath forPlatformLogo(String filename) {
-        return new FilePath(null, EntityType.LOGO, null, filename);
+    public static FilePath of(EntityType entityType, UUID fileId, String filename) {
+        return new FilePath(entityType, fileId, filename);
     }
 
     public String toObjectKey() {
-        if (entityType == EntityType.LOGO) {
-            return PLATFORM_PREFIX + "/" + filename;
-        }
-        return TENANT_PREFIX + "/" + tenantSlug + "/" + entityType.getPathSegment() + "/" + fileId + "/" + filename;
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        String tenantId = extractTenantId(tenantSlug);
+        return tenantId + "/" + entityType.getPathSegment() + "/" + filename;
     }
 
-    public boolean isPlatformFile() {
-        return entityType == EntityType.LOGO;
+    private String extractTenantId(String tenantSlug) {
+        // inst-c704d223 -> c704d223
+        if (tenantSlug.startsWith("inst-")) {
+            return tenantSlug.substring(5);
+        }
+        return tenantSlug;
     }
 }

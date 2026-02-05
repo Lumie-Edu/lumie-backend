@@ -73,6 +73,19 @@ public class UserPersistenceAdapter implements UserLookupPort {
         return userRepository.existsByUserLoginId(userLoginId);
     }
 
+    @Override
+    @Transactional
+    public boolean deleteUser(Long userId) {
+        log.debug("Deleting user by ID: {}", userId);
+        return userRepository.findById(userId)
+                .map(user -> {
+                    userRepository.delete(user);
+                    log.info("Deleted user: {}", userId);
+                    return true;
+                })
+                .orElse(false);
+    }
+
     private UserData toUserData(User user) {
         return new UserData(
                 user.getId(),

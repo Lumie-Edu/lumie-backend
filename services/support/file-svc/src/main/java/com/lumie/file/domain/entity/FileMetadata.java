@@ -20,9 +20,6 @@ public class FileMetadata extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "tenant_slug", length = 50)
-    private String tenantSlug;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "entity_type", nullable = false, length = 20)
     private EntityType entityType;
@@ -49,10 +46,9 @@ public class FileMetadata extends BaseEntity {
     private boolean uploadCompleted;
 
     @Builder
-    private FileMetadata(String tenantSlug, EntityType entityType, Long entityId,
+    private FileMetadata(EntityType entityType, Long entityId,
                          String originalFilename, String storedFilename, String contentType,
                          Long fileSize, String objectKey, boolean uploadCompleted) {
-        this.tenantSlug = tenantSlug;
         this.entityType = entityType;
         this.entityId = entityId;
         this.originalFilename = originalFilename;
@@ -63,12 +59,11 @@ public class FileMetadata extends BaseEntity {
         this.uploadCompleted = uploadCompleted;
     }
 
-    public static FileMetadata create(String tenantSlug, EntityType entityType, Long entityId,
+    public static FileMetadata create(EntityType entityType, Long entityId,
                                        String originalFilename, String contentType, Long fileSize,
                                        String objectKey) {
         String storedFilename = generateStoredFilename(originalFilename);
         return FileMetadata.builder()
-                .tenantSlug(tenantSlug)
                 .entityType(entityType)
                 .entityId(entityId)
                 .originalFilename(originalFilename)
@@ -80,21 +75,12 @@ public class FileMetadata extends BaseEntity {
                 .build();
     }
 
-    public static FileMetadata createForPlatform(EntityType entityType, String originalFilename,
-                                                  String contentType, Long fileSize, String objectKey) {
-        return create(null, entityType, null, originalFilename, contentType, fileSize, objectKey);
-    }
-
     public void markUploadCompleted() {
         this.uploadCompleted = true;
     }
 
     public void linkToEntity(Long entityId) {
         this.entityId = entityId;
-    }
-
-    public boolean isPlatformFile() {
-        return tenantSlug == null;
     }
 
     private static String generateStoredFilename(String originalFilename) {

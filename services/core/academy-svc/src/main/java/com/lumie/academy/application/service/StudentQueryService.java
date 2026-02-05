@@ -62,19 +62,12 @@ public class StudentQueryService {
     }
 
     public Page<StudentResponse> getStudents(Long academyId, Boolean isActive, Pageable pageable) {
-        if (academyId != null && isActive != null) {
-            return studentRepository.findByAcademyIdAndIsActive(academyId, isActive, pageable)
-                    .map(StudentResponse::from);
-        } else if (academyId != null) {
-            return studentRepository.findByAcademyId(academyId, pageable)
-                    .map(StudentResponse::from);
-        } else if (isActive != null) {
-            return studentRepository.findAllByIsActive(isActive, pageable)
-                    .map(StudentResponse::from);
-        } else {
-            return studentRepository.findAll(pageable)
-                    .map(StudentResponse::from);
-        }
+        return searchStudents(academyId, isActive, null, null, pageable);
+    }
+
+    public Page<StudentResponse> searchStudents(Long academyId, Boolean isActive, String search, String searchField, Pageable pageable) {
+        return studentRepository.search(academyId, isActive, search, searchField, pageable)
+                .map(StudentResponse::from);
     }
 
     public long countStudentsByAcademy(Long academyId) {

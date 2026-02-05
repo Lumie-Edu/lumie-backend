@@ -29,6 +29,7 @@ public class RequestContextFilter extends OncePerRequestFilter {
 
     public static final String USER_ID_HEADER = "X-User-Id";
     public static final String TENANT_SLUG_HEADER = "X-Tenant-Slug";
+    public static final String TENANT_ID_HEADER = "X-Tenant-Id";
     public static final String USER_ROLE_HEADER = "X-User-Role";
 
     private final List<String> excludePaths;
@@ -50,6 +51,7 @@ public class RequestContextFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
             String tenantSlug = request.getHeader(TENANT_SLUG_HEADER);
+            String tenantId = request.getHeader(TENANT_ID_HEADER);
             String userId = request.getHeader(USER_ID_HEADER);
             String userRole = request.getHeader(USER_ROLE_HEADER);
 
@@ -60,6 +62,16 @@ public class RequestContextFilter extends OncePerRequestFilter {
             }
 
             TenantContextHolder.setTenant(tenantSlug);
+
+            if (tenantId != null && !tenantId.isBlank()) {
+                try {
+                    TenantContextHolder.setTenantId(Long.parseLong(tenantId));
+                } catch (NumberFormatException e) {
+                    log.error("Invalid {} header value: {}", TENANT_ID_HEADER, tenantId);
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid tenant ID format");
+                    return;
+                }
+            }
 
             if (userId != null && !userId.isBlank()) {
                 try {
@@ -75,8 +87,8 @@ public class RequestContextFilter extends OncePerRequestFilter {
                 UserContextHolder.setUserRole(userRole);
             }
 
-            log.debug("Context set: tenant={}, userId={}, role={}",
-                    tenantSlug, userId, userRole);
+            log.debug("Context set: tenant={}, tenantId={}, userId={}, role={}",
+                    tenantSlug, tenantId, userId, userRole);
 
             filterChain.doFilter(request, response);
         } finally {
