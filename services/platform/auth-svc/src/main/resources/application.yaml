@@ -43,6 +43,15 @@ jwt:
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800}
   issuer: lumie-auth-svc
 
+cookie:
+  domain: ${COOKIE_DOMAIN:}
+  secure: ${COOKIE_SECURE:true}
+  http-only: true
+  same-site: Lax
+  path: /
+  access-token-name: lumie_access_token
+  refresh-token-name: lumie_refresh_token
+
 oauth2:
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
