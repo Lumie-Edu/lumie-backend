@@ -51,7 +51,7 @@ public class AcademyController {
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<AcademyResponse> updateAcademy(
             @PathVariable Long id,
             @Valid @RequestBody AcademyRequest request) {
