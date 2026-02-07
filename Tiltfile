@@ -5,7 +5,7 @@
 #          tilt up  (starts all services)
 
 # Configuration
-REGISTRY = 'zot0213.kro.kr'
+REGISTRY = 'zot.lumie-infra.com'
 NAMESPACE = 'lumie-dev'
 
 # Fixed ClusterIPs for gRPC services (prevents DNS cache issues)
