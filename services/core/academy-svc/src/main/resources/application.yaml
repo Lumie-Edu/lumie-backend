@@ -51,6 +51,9 @@ grpc:
     billing-svc:
       address: static://${BILLING_SVC_GRPC_HOST:localhost}:9090
       negotiation-type: plaintext
+    admin-svc:
+      address: static://${ADMIN_SVC_GRPC_HOST:localhost}:9090
+      negotiation-type: plaintext
 
 server:
   port: 8080
