@@ -25,6 +25,7 @@ public record StudentRequest(
 
     String studentHighschool,
     Integer studentBirthYear,
+    String parentPhone,
     String studentMemo
 ) {
 }

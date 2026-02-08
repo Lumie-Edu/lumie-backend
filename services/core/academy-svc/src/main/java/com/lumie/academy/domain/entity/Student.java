@@ -39,6 +39,9 @@ public class Student extends BaseEntity {
     @Column(name = "student_birth_year")
     private Integer studentBirthYear;
 
+    @Column(name = "parent_phone", length = 20)
+    private String parentPhone;
+
     @Column(name = "student_memo", columnDefinition = "TEXT")
     private String studentMemo;
 
@@ -48,7 +51,8 @@ public class Student extends BaseEntity {
     @Builder
     private Student(Long userId, String userLoginId, String name, String phone,
                    Academy academy, String studentHighschool,
-                   Integer studentBirthYear, String studentMemo, Boolean isActive) {
+                   Integer studentBirthYear, String parentPhone,
+                   String studentMemo, Boolean isActive) {
         this.userId = userId;
         this.userLoginId = userLoginId;
         this.name = name;
@@ -56,13 +60,15 @@ public class Student extends BaseEntity {
         this.academy = academy;
         this.studentHighschool = studentHighschool;
         this.studentBirthYear = studentBirthYear;
+        this.parentPhone = parentPhone;
         this.studentMemo = studentMemo;
         this.isActive = isActive != null ? isActive : true;
     }
 
     public static Student create(Long userId, String userLoginId, String name, String phone,
                                  Academy academy, String studentHighschool,
-                                 Integer studentBirthYear, String studentMemo) {
+                                 Integer studentBirthYear, String parentPhone,
+                                 String studentMemo) {
         return Student.builder()
                 .userId(userId)
                 .userLoginId(userLoginId)
@@ -71,13 +77,15 @@ public class Student extends BaseEntity {
                 .academy(academy)
                 .studentHighschool(studentHighschool)
                 .studentBirthYear(studentBirthYear)
+                .parentPhone(parentPhone)
                 .studentMemo(studentMemo)
                 .isActive(true)
                 .build();
     }
 
     public void updateInfo(String name, String phone, String studentHighschool,
-                          Integer studentBirthYear, String studentMemo) {
+                          Integer studentBirthYear, String parentPhone,
+                          String studentMemo) {
         if (name != null && !name.isBlank()) {
             this.name = name;
         }
@@ -89,6 +97,9 @@ public class Student extends BaseEntity {
         }
         if (studentBirthYear != null) {
             this.studentBirthYear = studentBirthYear;
+        }
+        if (parentPhone != null) {
+            this.parentPhone = parentPhone;
         }
         if (studentMemo != null) {
             this.studentMemo = studentMemo;

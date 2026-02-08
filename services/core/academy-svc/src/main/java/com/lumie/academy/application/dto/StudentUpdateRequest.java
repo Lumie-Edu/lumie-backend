@@ -5,6 +5,7 @@ public record StudentUpdateRequest(
     String phone,
     String studentHighschool,
     Integer studentBirthYear,
+    String parentPhone,
     String studentMemo,
     Long academyId
 ) {

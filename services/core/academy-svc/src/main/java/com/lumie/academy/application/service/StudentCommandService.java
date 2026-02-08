@@ -82,6 +82,7 @@ public class StudentCommandService {
             academy,
             request.studentHighschool(),
             request.studentBirthYear(),
+            request.parentPhone(),
             request.studentMemo()
         );
 
@@ -111,6 +112,7 @@ public class StudentCommandService {
             request.phone(),
             request.studentHighschool(),
             request.studentBirthYear(),
+            request.parentPhone(),
             request.studentMemo()
         );
 
