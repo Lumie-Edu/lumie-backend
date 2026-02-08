@@ -39,7 +39,5 @@ public interface StudentRepository {
 
     boolean existsByUserLoginId(String userLoginId);
 
-    void delete(Student student);
-
-    void deleteAll(List<Student> students);
+    void detach(Student student);
 }

@@ -56,8 +56,8 @@ public class RequestContextFilter extends OncePerRequestFilter {
             String userRole = request.getHeader(USER_ROLE_HEADER);
 
             if (tenantSlug == null || tenantSlug.isBlank()) {
-                log.warn("Missing {} header for request: {}", TENANT_SLUG_HEADER, request.getRequestURI());
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing tenant slug header");
+                log.debug("No {} header for request: {}", TENANT_SLUG_HEADER, request.getRequestURI());
+                filterChain.doFilter(request, response);
                 return;
             }
 
@@ -67,9 +67,7 @@ public class RequestContextFilter extends OncePerRequestFilter {
                 try {
                     TenantContextHolder.setTenantId(Long.parseLong(tenantId));
                 } catch (NumberFormatException e) {
-                    log.error("Invalid {} header value: {}", TENANT_ID_HEADER, tenantId);
-                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid tenant ID format");
-                    return;
+                    log.warn("Invalid {} header value: {}", TENANT_ID_HEADER, tenantId);
                 }
             }
 
@@ -77,9 +75,7 @@ public class RequestContextFilter extends OncePerRequestFilter {
                 try {
                     UserContextHolder.setUserId(Long.parseLong(userId));
                 } catch (NumberFormatException e) {
-                    log.error("Invalid {} header value: {}", USER_ID_HEADER, userId);
-                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid user ID format");
-                    return;
+                    log.warn("Invalid {} header value: {}", USER_ID_HEADER, userId);
                 }
             }
 

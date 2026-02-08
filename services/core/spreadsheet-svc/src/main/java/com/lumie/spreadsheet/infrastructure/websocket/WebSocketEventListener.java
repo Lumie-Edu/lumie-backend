@@ -1,5 +1,6 @@
 package com.lumie.spreadsheet.infrastructure.websocket;
 
+import com.lumie.spreadsheet.application.dto.websocket.WebSocketResponse;
 import com.lumie.spreadsheet.application.service.CellLockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,22 +72,18 @@ public class WebSocketEventListener {
     }
 
     private void broadcastUserJoined(String spreadsheetId, String userId, String userName, String sessionId) {
-        Map<String, Object> message = Map.of(
-                "type", "USER_JOINED",
-                "userId", userId != null ? userId : "",
-                "userName", userName != null ? userName : "Anonymous",
-                "sessionId", sessionId
+        WebSocketResponse response = WebSocketResponse.userJoined(
+                userId != null ? userId : "",
+                userName != null ? userName : "Anonymous"
         );
-        messagingTemplate.convertAndSend("/topic/spreadsheet/" + spreadsheetId, message);
+        messagingTemplate.convertAndSend("/topic/spreadsheet/" + spreadsheetId, response);
     }
 
     private void broadcastUserLeft(String spreadsheetId, String userId, String userName, String sessionId) {
-        Map<String, Object> message = Map.of(
-                "type", "USER_LEFT",
-                "userId", userId != null ? userId : "",
-                "userName", userName != null ? userName : "Anonymous",
-                "sessionId", sessionId
+        WebSocketResponse response = WebSocketResponse.userLeft(
+                userId != null ? userId : "",
+                userName != null ? userName : "Anonymous"
         );
-        messagingTemplate.convertAndSend("/topic/spreadsheet/" + spreadsheetId, message);
+        messagingTemplate.convertAndSend("/topic/spreadsheet/" + spreadsheetId, response);
     }
 }

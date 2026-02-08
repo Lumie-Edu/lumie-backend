@@ -2,6 +2,7 @@ package com.lumie.academy.adapter.out.persistence;
 
 import com.lumie.academy.domain.entity.Student;
 import com.lumie.academy.domain.repository.StudentRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,7 @@ import static com.lumie.academy.adapter.out.persistence.StudentSpecification.*;
 public class StudentRepositoryAdapter implements StudentRepository {
 
     private final JpaStudentRepository jpaStudentRepository;
+    private final EntityManager entityManager;
 
     @Override
     public Student save(Student student) {
@@ -99,12 +101,7 @@ public class StudentRepositoryAdapter implements StudentRepository {
     }
 
     @Override
-    public void delete(Student student) {
-        jpaStudentRepository.delete(student);
-    }
-
-    @Override
-    public void deleteAll(List<Student> students) {
-        jpaStudentRepository.deleteAllInBatch(students);
+    public void detach(Student student) {
+        entityManager.detach(student);
     }
 }

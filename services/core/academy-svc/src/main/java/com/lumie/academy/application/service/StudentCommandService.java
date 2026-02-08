@@ -176,13 +176,14 @@ public class StudentCommandService {
             throw new IllegalStateException("Cannot delete active student. Deactivate first.");
         }
 
-        // Delete user from auth-svc
-        AuthServicePort.DeleteUserResult deleteResult = authServicePort.deleteUser(student.getUserId());
+        Long userId = student.getUserId();
+        studentRepository.detach(student);
+
+        // Delete user from auth-svc (FK CASCADE automatically deletes student)
+        AuthServicePort.DeleteUserResult deleteResult = authServicePort.deleteUser(userId);
         if (!deleteResult.success()) {
             log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
         }
-
-        studentRepository.delete(student);
 
         log.info("Student permanently deleted: {} in tenant: {}", id, tenantSlug);
     }
@@ -275,17 +276,15 @@ public class StudentCommandService {
             }
         }
 
-        // Delete users from auth-svc (still individual calls, but after validation)
+        // Detach students from persistence context before user deletion
+        toDelete.forEach(studentRepository::detach);
+
+        // Delete users from auth-svc (FK CASCADE automatically deletes students)
         for (Student student : toDelete) {
             AuthServicePort.DeleteUserResult deleteResult = authServicePort.deleteUser(student.getUserId());
             if (!deleteResult.success()) {
                 log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
             }
-        }
-
-        // Batch delete
-        if (!toDelete.isEmpty()) {
-            studentRepository.deleteAll(toDelete);
         }
 
         int successCount = toDelete.size();
