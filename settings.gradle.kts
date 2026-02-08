@@ -12,6 +12,8 @@ include(
     "services:platform:auth-svc",
     "services:platform:billing-svc",
     "services:core:academy-svc",
+    "services:core:attendance-svc",
+    "services:core:admin-svc",
     "services:core:exam-svc",
     "services:core:content-svc",
     "services:core:spreadsheet-svc",

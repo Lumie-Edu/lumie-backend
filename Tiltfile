@@ -17,6 +17,8 @@ GRPC_CLUSTER_IPS = {
     'exam-svc': '10.43.200.5',
     'content-svc': '10.43.200.6',
     'spreadsheet-svc': '10.43.200.7',
+    'admin-svc': '10.43.200.8',
+    'attendance-svc': '10.43.200.9',
 }
 
 # Service definitions
@@ -45,6 +47,12 @@ SERVICES = {
         'grpc_port': 9090,
         'deps': ['auth-svc', 'tenant-svc', 'billing-svc'],
     },
+    'admin-svc': {
+        'path': 'services/core/admin-svc',
+        'port': 8080,
+        'grpc_port': 9090,
+        'deps': ['auth-svc', 'tenant-svc', 'billing-svc'],
+    },
     'exam-svc': {
         'path': 'services/core/exam-svc',
         'port': 8080,
@@ -69,6 +77,12 @@ SERVICES = {
         'grpc_port': 9090,
         'deps': ['tenant-svc'],
     },
+    'attendance-svc': {
+        'path': 'services/core/attendance-svc',
+        'port': 8080,
+        'grpc_port': 9090,
+        'deps': ['auth-svc', 'tenant-svc', 'academy-svc'],
+    },
 }
 
 # Environment variables for all services
@@ -91,6 +105,7 @@ COMMON_ENV = {
     'TENANT_SVC_GRPC_HOST': 'tenant-svc-grpc.lumie-dev.svc.cluster.local',
     'BILLING_SVC_GRPC_HOST': 'billing-svc-grpc.lumie-dev.svc.cluster.local',
     'ACADEMY_SVC_GRPC_HOST': 'academy-svc-grpc.lumie-dev.svc.cluster.local',
+    'ADMIN_SVC_GRPC_HOST': 'admin-svc-grpc.lumie-dev.svc.cluster.local',
 }
 
 # Namespace and Secrets are managed by ArgoCD (lumie-infra/applications/lumie-dev)
@@ -276,6 +291,8 @@ API_PATHS = {
     'exam-svc': '/api/exam',
     'content-svc': '/api/content',
     'file-svc': '/api/file',
+    'admin-svc': '/api/admin',
+    'attendance-svc': '/api/attendance',
 }
 
 # Function to generate service YAML
