@@ -40,6 +40,7 @@ public class FlywayTenantMigrationService {
                 .createSchemas(false)  // Schema is already created by TenantSchemaManager
                 .load();
 
+        flyway.repair();
         flyway.migrate();
         log.info("Flyway migrations completed for schema: {}", schemaName);
     }
@@ -61,6 +62,7 @@ public class FlywayTenantMigrationService {
                 .createSchemas(false)
                 .load();
 
+        flyway.repair();
         flyway.migrate();
         log.info("Flyway migrations completed for public schema");
     }
