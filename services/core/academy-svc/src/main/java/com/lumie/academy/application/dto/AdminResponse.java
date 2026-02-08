@@ -12,7 +12,7 @@ public record AdminResponse(
     String name,
     String phone,
     List<AcademyInfo> academies,
-    String adminPosition,
+    PositionInfo position,
     String adminMemo,
     Boolean isActive,
     LocalDateTime createdAt,
@@ -20,10 +20,16 @@ public record AdminResponse(
 ) {
     public record AcademyInfo(Long id, String name) {}
 
+    public record PositionInfo(Long id, String name) {}
+
     public static AdminResponse from(Admin admin) {
         List<AcademyInfo> academyInfos = admin.getAcademies().stream()
             .map(a -> new AcademyInfo(a.getId(), a.getName()))
             .toList();
+
+        PositionInfo positionInfo = admin.getPosition() != null
+            ? new PositionInfo(admin.getPosition().getId(), admin.getPosition().getName())
+            : null;
 
         return new AdminResponse(
             admin.getId(),
@@ -32,7 +38,7 @@ public record AdminResponse(
             admin.getAdminName(),
             admin.getAdminPhone(),
             academyInfos,
-            admin.getAdminPosition(),
+            positionInfo,
             admin.getAdminMemo(),
             admin.isActive(),
             admin.getCreatedAt(),

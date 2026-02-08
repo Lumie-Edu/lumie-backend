@@ -19,7 +19,7 @@ public record AdminRequest(
 
     List<Long> academyIds,
 
-    String adminPosition,
+    Long positionId,
 
     String adminMemo
 ) {

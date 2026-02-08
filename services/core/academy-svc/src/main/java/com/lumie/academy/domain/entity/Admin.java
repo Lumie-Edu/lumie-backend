@@ -43,48 +43,49 @@ public class Admin extends BaseEntity {
     )
     private Set<Academy> academies = new HashSet<>();
 
-    @Column(name = "admin_position", length = 50)
-    private String adminPosition = "조교";
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "position_id")
+    private Position position;
 
     @Column(name = "admin_memo", columnDefinition = "TEXT")
     private String adminMemo;
 
     @Builder
     private Admin(Long userId, String userLoginId, String name, String phone,
-                 Set<Academy> academies, String adminPosition, String adminMemo, Boolean isActive) {
+                 Set<Academy> academies, Position position, String adminMemo, Boolean isActive) {
         this.userId = userId;
         this.userLoginId = userLoginId;
         this.name = name;
         this.phone = phone;
         this.academies = academies != null ? academies : new HashSet<>();
-        this.adminPosition = adminPosition != null ? adminPosition : "조교";
+        this.position = position;
         this.adminMemo = adminMemo;
         this.isActive = isActive != null ? isActive : true;
     }
 
     public static Admin create(Long userId, String userLoginId, String name, String phone,
-                               Set<Academy> academies, String adminPosition, String adminMemo) {
+                               Set<Academy> academies, Position position, String adminMemo) {
         return Admin.builder()
                 .userId(userId)
                 .userLoginId(userLoginId)
                 .name(name)
                 .phone(phone)
                 .academies(academies)
-                .adminPosition(adminPosition)
+                .position(position)
                 .adminMemo(adminMemo)
                 .isActive(true)
                 .build();
     }
 
-    public void updateInfo(String name, String phone, String adminPosition, String adminMemo) {
+    public void updateInfo(String name, String phone, Position position, String adminMemo) {
         if (name != null && !name.isBlank()) {
             this.name = name;
         }
         if (phone != null) {
             this.phone = phone;
         }
-        if (adminPosition != null) {
-            this.adminPosition = adminPosition;
+        if (position != null) {
+            this.position = position;
         }
         if (adminMemo != null) {
             this.adminMemo = adminMemo;

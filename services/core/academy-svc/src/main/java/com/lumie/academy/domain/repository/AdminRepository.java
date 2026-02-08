@@ -24,5 +24,7 @@ public interface AdminRepository {
 
     boolean existsByUserLoginId(String userLoginId);
 
-    void delete(Admin admin);
+    boolean existsByPositionId(Long positionId);
+
+    void detach(Admin admin);
 }

@@ -22,4 +22,6 @@ public interface JpaAdminRepository extends JpaRepository<Admin, Long> {
     long countByAcademiesId(@Param("academyId") Long academyId);
 
     boolean existsByUserLoginId(String userLoginId);
+
+    boolean existsByPositionId(Long positionId);
 }

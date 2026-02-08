@@ -51,9 +51,21 @@ public class AdminController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{id}")
+    @PostMapping("/{id}/deactivate")
     public ResponseEntity<Void> deactivateAdmin(@PathVariable Long id) {
         adminCommandService.deactivateAdmin(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/reactivate")
+    public ResponseEntity<Void> reactivateAdmin(@PathVariable Long id) {
+        adminCommandService.reactivateAdmin(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAdmin(@PathVariable Long id) {
+        adminCommandService.deleteAdmin(id);
         return ResponseEntity.noContent().build();
     }
 }
