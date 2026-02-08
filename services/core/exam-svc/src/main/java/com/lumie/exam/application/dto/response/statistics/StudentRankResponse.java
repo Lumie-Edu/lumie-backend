@@ -10,6 +10,7 @@ public record StudentRankResponse(
         int rank,
         int totalParticipants,
         double percentile,
+        Integer grade,
         List<TypePercentile> typePercentiles
 ) {
     public record TypePercentile(

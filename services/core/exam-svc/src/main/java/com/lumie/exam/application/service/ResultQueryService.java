@@ -43,8 +43,9 @@ public class ResultQueryService {
         ExamResult result = resultRepository.findById(resultId)
                 .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
 
+        var exam = result.getExam();
         return result.getQuestionResults().stream()
-                .map(QuestionResultResponse::from)
+                .map(qr -> QuestionResultResponse.from(qr, exam))
                 .toList();
     }
 }

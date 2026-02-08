@@ -206,6 +206,14 @@ public class StatisticsQueryService {
         int rank = statisticsCalculator.calculateRank(result.getTotalScore(), allScores);
         double percentile = statisticsCalculator.calculatePercentile(result.getTotalScore(), allScores);
 
+        // 절대평가: DB 저장값, 상대평가: 동적 계산
+        Integer grade = result.getGrade();
+        if (exam.getCategory() == ExamCategory.GRADED &&
+            exam.getGradingType() == GradingType.RELATIVE) {
+            GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
+            grade = gradeCalculator.calculateRelativeGrade(result.getTotalScore(), allScores, gradeScale);
+        }
+
         List<StudentRankResponse.TypePercentile> typePercentiles = calculateTypePercentiles(exam, result, allResults);
 
         return new StudentRankResponse(
@@ -216,6 +224,7 @@ public class StatisticsQueryService {
                 rank,
                 allResults.size(),
                 Math.round(percentile * 10) / 10.0,
+                grade,
                 typePercentiles
         );
     }
