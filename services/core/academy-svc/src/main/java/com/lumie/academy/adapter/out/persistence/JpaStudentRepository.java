@@ -34,4 +34,10 @@ public interface JpaStudentRepository extends JpaRepository<Student, Long>, JpaS
     long countByIsActive(Boolean isActive);
 
     boolean existsByUserLoginId(String userLoginId);
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE s.phone = :phone OR s.parentPhone = :phone")
+    boolean existsByPhoneInAnyField(@Param("phone") String phone);
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE (s.phone = :phone OR s.parentPhone = :phone) AND s.id != :excludeId")
+    boolean existsByPhoneInAnyFieldExcluding(@Param("phone") String phone, @Param("excludeId") Long excludeId);
 }

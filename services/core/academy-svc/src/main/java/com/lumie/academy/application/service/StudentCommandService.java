@@ -11,6 +11,7 @@ import com.lumie.academy.application.port.out.MemberEventPublisherPort;
 import com.lumie.academy.domain.entity.Academy;
 import com.lumie.academy.domain.entity.Student;
 import com.lumie.academy.domain.exception.AcademyNotFoundException;
+import com.lumie.academy.domain.exception.DuplicatePhoneException;
 import com.lumie.academy.domain.exception.DuplicateUserLoginIdException;
 import com.lumie.academy.domain.exception.QuotaExceededException;
 import com.lumie.academy.domain.exception.StudentNotFoundException;
@@ -54,6 +55,8 @@ public class StudentCommandService {
         if (studentRepository.existsByUserLoginId(request.userLoginId())) {
             throw new DuplicateUserLoginIdException(request.userLoginId());
         }
+
+        validatePhoneUniqueness(request.phone(), request.parentPhone(), null);
 
         Academy academy = academyRepository.findById(request.academyId())
                 .orElseThrow(() -> new AcademyNotFoundException(request.academyId()));
@@ -106,6 +109,8 @@ public class StudentCommandService {
 
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new StudentNotFoundException(id));
+
+        validatePhoneUniqueness(request.phone(), request.parentPhone(), id);
 
         student.updateInfo(
             request.name(),
@@ -356,6 +361,27 @@ public class StudentCommandService {
                  successCount, errors.size(), tenantSlug);
 
         return BulkImportResult.partial(totalRows, successCount, errors);
+    }
+
+    private void validatePhoneUniqueness(String phone, String parentPhone, Long excludeId) {
+        if (phone != null && phone.equals(parentPhone)) {
+            throw new DuplicatePhoneException(phone);
+        }
+        if (excludeId == null) {
+            if (phone != null && studentRepository.existsByPhoneInAnyField(phone)) {
+                throw new DuplicatePhoneException(phone);
+            }
+            if (parentPhone != null && studentRepository.existsByPhoneInAnyField(parentPhone)) {
+                throw new DuplicatePhoneException(parentPhone);
+            }
+        } else {
+            if (phone != null && studentRepository.existsByPhoneInAnyFieldExcluding(phone, excludeId)) {
+                throw new DuplicatePhoneException(phone);
+            }
+            if (parentPhone != null && studentRepository.existsByPhoneInAnyFieldExcluding(parentPhone, excludeId)) {
+                throw new DuplicatePhoneException(parentPhone);
+            }
+        }
     }
 
     private void checkStudentQuota(String tenantSlug) {

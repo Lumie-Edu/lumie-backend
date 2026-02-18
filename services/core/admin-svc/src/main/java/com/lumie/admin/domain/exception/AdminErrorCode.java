@@ -41,6 +41,7 @@ public enum AdminErrorCode implements ErrorCode {
     POSITION_IN_USE("A526", "해당 직책을 사용 중인 직원이 있어 삭제할 수 없습니다.", 409),
     OVERLAPPING_SALARY("A527", "Overlapping salary period exists", 409),
     ADMIN_ALREADY_ACTIVE("A528", "Admin is already active", 409),
+    DUPLICATE_PHONE("A529", "이미 사용 중인 전화번호입니다.", 409),
 
     // 403 Forbidden
     QUOTA_EXCEEDED("A530", "Plan quota exceeded", 403),

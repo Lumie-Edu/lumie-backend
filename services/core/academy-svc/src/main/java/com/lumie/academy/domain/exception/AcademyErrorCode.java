@@ -21,6 +21,7 @@ public enum AcademyErrorCode implements ErrorCode {
     DUPLICATE_EMAIL("A201", "Email already exists", 409),
     DUPLICATE_USER_LOGIN_ID("A203", "User login ID already exists", 409),
     DUPLICATE_ACADEMY_NAME("A202", "Academy name already exists", 409),
+    DUPLICATE_PHONE("A204", "이미 사용 중인 전화번호입니다.", 409),
 
     // 403 Forbidden
     QUOTA_EXCEEDED("A301", "Plan quota exceeded", 403),

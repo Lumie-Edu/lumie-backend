@@ -58,6 +58,16 @@ public class AdminRepositoryAdapter implements AdminRepository {
     }
 
     @Override
+    public boolean existsByPhone(String phone) {
+        return jpaAdminRepository.existsByPhone(phone);
+    }
+
+    @Override
+    public boolean existsByPhoneAndIdNot(String phone, Long excludeId) {
+        return jpaAdminRepository.existsByPhoneAndIdNot(phone, excludeId);
+    }
+
+    @Override
     public void delete(Admin admin) {
         jpaAdminRepository.delete(admin);
     }

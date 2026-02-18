@@ -8,6 +8,7 @@ import com.lumie.admin.application.port.out.MemberEventPublisherPort;
 import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.entity.Position;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
+import com.lumie.admin.domain.exception.DuplicatePhoneException;
 import com.lumie.admin.domain.exception.DuplicateUserLoginIdException;
 import com.lumie.admin.domain.exception.PositionNotFoundException;
 import com.lumie.admin.domain.exception.QuotaExceededException;
@@ -43,6 +44,10 @@ public class AdminCommandService {
 
         if (adminRepository.existsByUserLoginId(request.userLoginId())) {
             throw new DuplicateUserLoginIdException(request.userLoginId());
+        }
+
+        if (request.phone() != null && adminRepository.existsByPhone(request.phone())) {
+            throw new DuplicatePhoneException(request.phone());
         }
 
         Set<Long> academyIds = new HashSet<>();
@@ -92,6 +97,10 @@ public class AdminCommandService {
 
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new AdminNotFoundException(id));
+
+        if (request.phone() != null && adminRepository.existsByPhoneAndIdNot(request.phone(), id)) {
+            throw new DuplicatePhoneException(request.phone());
+        }
 
         Position position = null;
         if (request.positionId() != null) {
