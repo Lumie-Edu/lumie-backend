@@ -50,4 +50,9 @@ public class AttendanceRecordRepositoryAdapter implements AttendanceRecordReposi
     public List<AttendanceRecord> findAllById(List<Long> ids) {
         return jpaRepository.findAllById(ids);
     }
+
+    @Override
+    public List<AttendanceRecord> findByStudentIdWithSession(Long studentId) {
+        return jpaRepository.findByStudentIdWithSession(studentId);
+    }
 }

@@ -22,4 +22,6 @@ public interface AttendanceRecordRepository {
     Page<AttendanceRecord> findByStudentId(Long studentId, Pageable pageable);
 
     List<AttendanceRecord> findAllById(List<Long> ids);
+
+    List<AttendanceRecord> findByStudentIdWithSession(Long studentId);
 }

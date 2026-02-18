@@ -1,6 +1,7 @@
 package com.lumie.attendance.application.service;
 
 import com.lumie.attendance.application.dto.AttendanceRecordResponse;
+import com.lumie.attendance.application.dto.StudentAttendanceRecordResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.StudentReadModel;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
@@ -52,5 +53,14 @@ public class AttendanceRecordQueryService {
 
         return recordRepository.findByStudentId(studentId, pageable)
             .map(record -> AttendanceRecordResponse.from(record, studentName));
+    }
+
+    public List<StudentAttendanceRecordResponse> getStudentRecordsWithSession(Long studentId) {
+        StudentReadModel student = studentReadRepository.findById(studentId).orElse(null);
+        String studentName = student != null ? student.getName() : "Unknown";
+
+        return recordRepository.findByStudentIdWithSession(studentId).stream()
+            .map(record -> StudentAttendanceRecordResponse.from(record, studentName))
+            .toList();
     }
 }
