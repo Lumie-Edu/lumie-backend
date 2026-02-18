@@ -23,25 +23,20 @@ public class StudentSpecification {
         };
     }
 
-    public static Specification<Student> searchByField(String search, String searchField) {
+    public static Specification<Student> searchByKeyword(String search) {
         return (root, query, cb) -> {
             if (search == null || search.isBlank()) {
                 return cb.conjunction();
             }
 
-            String field = searchField != null ? searchField : "name";
-            String searchPattern = "%" + search.toLowerCase() + "%";
+            String pattern = "%" + search.toLowerCase() + "%";
 
-            return switch (field) {
-                case "name" -> cb.like(cb.lower(root.get("name")), searchPattern);
-                case "studentHighschool" -> cb.like(cb.lower(root.get("studentHighschool")), searchPattern);
-                case "studentBirthYear" -> cb.like(
-                        cb.toString(root.get("studentBirthYear")),
-                        "%" + search + "%"
-                );
-                case "phone" -> cb.like(root.get("phone"), "%" + search + "%");
-                default -> cb.like(cb.lower(root.get("name")), searchPattern);
-            };
+            return cb.or(
+                    cb.like(cb.lower(root.get("name")), pattern),
+                    cb.like(cb.lower(root.get("studentHighschool")), pattern),
+                    cb.like(root.get("phone"), "%" + search + "%"),
+                    cb.like(cb.toString(root.get("studentBirthYear")), "%" + search + "%")
+            );
         };
     }
 }

@@ -62,11 +62,11 @@ public class StudentQueryService {
     }
 
     public Page<StudentResponse> getStudents(Long academyId, Boolean isActive, Pageable pageable) {
-        return searchStudents(academyId, isActive, null, null, pageable);
+        return searchStudents(academyId, isActive, null, pageable);
     }
 
-    public Page<StudentResponse> searchStudents(Long academyId, Boolean isActive, String search, String searchField, Pageable pageable) {
-        return studentRepository.search(academyId, isActive, search, searchField, pageable)
+    public Page<StudentResponse> searchStudents(Long academyId, Boolean isActive, String search, Pageable pageable) {
+        return studentRepository.search(academyId, isActive, search, pageable)
                 .map(StudentResponse::from);
     }
 

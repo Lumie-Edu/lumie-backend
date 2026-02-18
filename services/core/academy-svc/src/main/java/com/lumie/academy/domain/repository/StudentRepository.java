@@ -31,13 +31,17 @@ public interface StudentRepository {
 
     Page<Student> findAll(Pageable pageable);
 
-    Page<Student> search(Long academyId, Boolean isActive, String search, String searchField, Pageable pageable);
+    Page<Student> search(Long academyId, Boolean isActive, String search, Pageable pageable);
 
     long countByAcademyId(Long academyId);
 
     long countByIsActive(Boolean isActive);
 
     boolean existsByUserLoginId(String userLoginId);
+
+    boolean existsByPhoneInAnyField(String phone);
+
+    boolean existsByPhoneInAnyFieldExcluding(String phone, Long excludeId);
 
     void detach(Student student);
 }

@@ -77,11 +77,11 @@ public class StudentRepositoryAdapter implements StudentRepository {
     }
 
     @Override
-    public Page<Student> search(Long academyId, Boolean isActive, String search, String searchField, Pageable pageable) {
+    public Page<Student> search(Long academyId, Boolean isActive, String search, Pageable pageable) {
         Specification<Student> spec = Specification
                 .where(hasAcademyId(academyId))
                 .and(hasIsActive(isActive))
-                .and(searchByField(search, searchField));
+                .and(searchByKeyword(search));
         return jpaStudentRepository.findAll(spec, pageable);
     }
 
@@ -98,6 +98,16 @@ public class StudentRepositoryAdapter implements StudentRepository {
     @Override
     public boolean existsByUserLoginId(String userLoginId) {
         return jpaStudentRepository.existsByUserLoginId(userLoginId);
+    }
+
+    @Override
+    public boolean existsByPhoneInAnyField(String phone) {
+        return jpaStudentRepository.existsByPhoneInAnyField(phone);
+    }
+
+    @Override
+    public boolean existsByPhoneInAnyFieldExcluding(String phone, Long excludeId) {
+        return jpaStudentRepository.existsByPhoneInAnyFieldExcluding(phone, excludeId);
     }
 
     @Override

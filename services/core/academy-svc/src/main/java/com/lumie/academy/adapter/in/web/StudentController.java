@@ -40,9 +40,8 @@ public class StudentController {
             @RequestParam(required = false) Long academyId,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String searchField,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<StudentResponse> response = studentQueryService.searchStudents(academyId, isActive, search, searchField, pageable);
+        Page<StudentResponse> response = studentQueryService.searchStudents(academyId, isActive, search, pageable);
         return ResponseEntity.ok(response);
     }
 
