@@ -1,11 +1,13 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.exam.application.dto.response.ExamResultResponse;
+import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import java.util.List;
 public class ResultQueryService {
 
     private final ExamResultRepository resultRepository;
+    private final OmrGradingJobRepository jobRepository;
 
     public List<ExamResultResponse> getExamResults(Long examId) {
         log.debug("Getting results for exam: {}", examId);
@@ -46,6 +49,22 @@ public class ResultQueryService {
         var exam = result.getExam();
         return result.getQuestionResults().stream()
                 .map(qr -> QuestionResultResponse.from(qr, exam))
+                .toList();
+    }
+
+    public OmrJobStatusResponse getOmrJobStatus(Long examId, Long jobId) {
+        log.debug("Getting OMR job status: examId={}, jobId={}", examId, jobId);
+
+        return jobRepository.findById(jobId)
+                .map(OmrJobStatusResponse::from)
+                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+    }
+
+    public List<OmrJobStatusResponse> getOmrJobs(Long examId) {
+        log.debug("Getting OMR jobs for exam: {}", examId);
+
+        return jobRepository.findByExamIdOrderByCreatedAtDesc(examId).stream()
+                .map(OmrJobStatusResponse::from)
                 .toList();
     }
 }

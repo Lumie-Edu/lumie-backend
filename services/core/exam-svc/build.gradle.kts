@@ -19,6 +19,9 @@ dependencies {
     // Database
     runtimeOnly("org.postgresql:postgresql")
 
+    // MinIO SDK
+    implementation("io.minio:minio:8.5.14")
+
     // gRPC - server with excluded io.grpc for version control
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE") {
         exclude(group = "io.grpc")

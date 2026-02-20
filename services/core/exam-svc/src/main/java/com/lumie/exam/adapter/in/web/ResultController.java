@@ -2,6 +2,8 @@ package com.lumie.exam.adapter.in.web;
 
 import com.lumie.exam.application.dto.response.BatchOmrGradingResponse;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
+import com.lumie.exam.application.dto.response.OmrJobResponse;
+import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
@@ -34,11 +36,23 @@ public class ResultController {
     }
 
     @PostMapping(value = "/exams/{examId}/results/omr/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<BatchOmrGradingResponse> processBatchOmrGrading(
+    public ResponseEntity<OmrJobResponse> submitBatchOmrGrading(
             @PathVariable Long examId,
             @RequestParam("images") List<MultipartFile> images) {
-        BatchOmrGradingResponse response = resultCommandService.processBatchOmrGrading(examId, images);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        OmrJobResponse response = resultCommandService.submitBatchOmrGrading(examId, images);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @GetMapping("/exams/{examId}/omr-jobs/{jobId}")
+    public ResponseEntity<OmrJobStatusResponse> getOmrJobStatus(
+            @PathVariable Long examId,
+            @PathVariable Long jobId) {
+        return ResponseEntity.ok(resultQueryService.getOmrJobStatus(examId, jobId));
+    }
+
+    @GetMapping("/exams/{examId}/omr-jobs")
+    public ResponseEntity<List<OmrJobStatusResponse>> getOmrJobs(@PathVariable Long examId) {
+        return ResponseEntity.ok(resultQueryService.getOmrJobs(examId));
     }
 
     @GetMapping("/exams/{examId}/results")

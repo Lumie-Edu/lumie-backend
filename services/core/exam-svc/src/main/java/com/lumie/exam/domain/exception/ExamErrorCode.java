@@ -19,6 +19,7 @@ public enum ExamErrorCode implements ErrorCode {
     RESULT_NOT_FOUND("E102", "Exam result not found", 404),
     STUDENT_NOT_FOUND("E103", "Student not found", 404),
     TEMPLATE_NOT_FOUND("E104", "Exam template not found", 404),
+    OMR_JOB_NOT_FOUND("E105", "OMR grading job not found", 404),
 
     // 409 Conflict
     DUPLICATE_RESULT("E201", "Exam result already exists for this student", 409),

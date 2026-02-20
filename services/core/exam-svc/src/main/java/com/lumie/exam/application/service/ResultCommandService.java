@@ -1,22 +1,29 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.exam.application.dto.message.OmrGradingJobMessage;
 import com.lumie.exam.application.dto.response.BatchOmrGradingResponse;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
+import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.port.out.BillingServicePort;
 import com.lumie.exam.application.port.out.ExamEventPublisherPort;
 import com.lumie.exam.application.port.out.OmrServicePort;
+import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.application.port.out.StudentServicePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
+import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.service.GradeCalculator;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.messaging.config.RabbitMqConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,6 +31,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -32,11 +41,14 @@ public class ResultCommandService {
 
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
+    private final OmrGradingJobRepository jobRepository;
     private final GradeCalculator gradeCalculator;
     private final StudentServicePort studentService;
     private final BillingServicePort billingService;
     private final OmrServicePort omrService;
+    private final OmrStoragePort storagePort;
     private final ExamEventPublisherPort eventPublisher;
+    private final RabbitTemplate rabbitTemplate;
 
     @Transactional
     public ExamResultResponse processOmrGrading(Long examId, Long studentId, byte[] imageData) {
@@ -161,5 +173,67 @@ public class ResultCommandService {
                 examId, images.size(), successCount, savedCount);
 
         return new BatchOmrGradingResponse(images.size(), successCount, failCount, savedCount, results);
+    }
+
+    @Transactional
+    public OmrJobResponse submitBatchOmrGrading(Long examId, List<MultipartFile> images) {
+        log.info("Submitting async batch OMR grading for exam: {}, images: {}", examId, images.size());
+
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        String tenantId = extractTenantId(tenantSlug);
+        String batchKey = java.util.UUID.randomUUID().toString().substring(0, 8);
+
+        // Upload images to MinIO in parallel
+        List<String> imageKeys = new CopyOnWriteArrayList<>();
+        List<CompletableFuture<Void>> futures = images.stream()
+                .map(image -> CompletableFuture.runAsync(() -> {
+                    try {
+                        String objectKey = tenantId + "/omr/" + batchKey + "/" + image.getOriginalFilename();
+                        storagePort.putObject(objectKey, image.getBytes(), image.getContentType());
+                        imageKeys.add(objectKey);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to upload: " + image.getOriginalFilename(), e);
+                    }
+                }))
+                .toList();
+
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        } catch (Exception e) {
+            log.error("Failed to upload images to MinIO", e);
+            storagePort.deleteObjects(imageKeys);
+            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
+        }
+
+        // Create job with image keys
+        OmrGradingJob job = OmrGradingJob.create(exam, tenantSlug, images.size(), imageKeys);
+        OmrGradingJob savedJob = jobRepository.save(job);
+
+        // Publish message to RabbitMQ after transaction commits
+        OmrGradingJobMessage message = new OmrGradingJobMessage(
+                savedJob.getId(), examId, tenantSlug, imageKeys);
+        org.springframework.transaction.support.TransactionSynchronizationManager
+                .registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        rabbitTemplate.convertAndSend(
+                                RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE,
+                                RabbitMqConstants.GRADING_OMR_REQUEST_ROUTING_KEY,
+                                message);
+                        log.info("Async OMR grading job submitted: jobId={}", savedJob.getId());
+                    }
+                });
+
+        return new OmrJobResponse(savedJob.getId());
+    }
+
+    private String extractTenantId(String tenantSlug) {
+        if (tenantSlug.startsWith("inst-")) {
+            return tenantSlug.substring(5);
+        }
+        return tenantSlug;
     }
 }

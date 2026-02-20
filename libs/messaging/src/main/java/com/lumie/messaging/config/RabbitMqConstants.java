@@ -36,4 +36,16 @@ public final class RabbitMqConstants {
     public static final String MEMBER_CREATED_ROUTING_KEY = "member.created.*";
     public static final String MEMBER_UPDATED_ROUTING_KEY = "member.updated.*";
     public static final String MEMBER_DELETED_ROUTING_KEY = "member.deleted.*";
+
+    // Exchanges - Commands
+    public static final String LUMIE_COMMANDS_EXCHANGE = "lumie.commands";
+
+    // Queues - Grading
+    public static final String GRADING_OMR_REQUEST_QUEUE = "grading.omr-request";
+    public static final String GRADING_OMR_REQUEST_DLQ = "grading.omr-request.dlq";
+    public static final String GRADING_OMR_COMPLETED_QUEUE = "grading.omr-completed";
+
+    // Routing Keys - Grading
+    public static final String GRADING_OMR_REQUEST_ROUTING_KEY = "grading.omr.request";
+    public static final String GRADING_COMPLETED_ROUTING_KEY = "grading.completed";
 }
