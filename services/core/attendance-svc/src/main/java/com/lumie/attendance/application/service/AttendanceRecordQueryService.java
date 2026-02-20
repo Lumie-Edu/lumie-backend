@@ -2,10 +2,12 @@ package com.lumie.attendance.application.service;
 
 import com.lumie.attendance.application.dto.AttendanceRecordResponse;
 import com.lumie.attendance.application.dto.StudentAttendanceRecordResponse;
+import com.lumie.attendance.application.dto.StudentAttendanceStatisticsResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.StudentReadModel;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
+import com.lumie.attendance.domain.vo.AttendanceStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -62,5 +64,27 @@ public class AttendanceRecordQueryService {
         return recordRepository.findByStudentIdWithSession(studentId).stream()
             .map(record -> StudentAttendanceRecordResponse.from(record, studentName))
             .toList();
+    }
+
+    public StudentAttendanceStatisticsResponse getStudentStatistics(Long studentId) {
+        List<AttendanceRecord> records = recordRepository.findByStudentIdWithSession(studentId);
+
+        int total = records.size();
+        int presentCount = (int) records.stream()
+            .filter(r -> r.getStatus() == AttendanceStatus.PRESENT).count();
+        int absentCount = (int) records.stream()
+            .filter(r -> r.getStatus() == AttendanceStatus.ABSENT).count();
+        int lateCount = (int) records.stream()
+            .filter(r -> r.getStatus() == AttendanceStatus.LATE).count();
+        int excusedCount = (int) records.stream()
+            .filter(r -> r.getStatus() == AttendanceStatus.EXCUSED).count();
+
+        double attendanceRate = total > 0
+            ? Math.round((double) (presentCount + excusedCount) / total * 1000) / 10.0
+            : 0.0;
+
+        return new StudentAttendanceStatisticsResponse(
+            studentId, total, presentCount, absentCount, lateCount, excusedCount, attendanceRate
+        );
     }
 }

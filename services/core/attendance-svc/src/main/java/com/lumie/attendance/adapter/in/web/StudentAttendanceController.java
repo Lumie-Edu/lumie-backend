@@ -1,6 +1,7 @@
 package com.lumie.attendance.adapter.in.web;
 
 import com.lumie.attendance.application.dto.StudentAttendanceRecordResponse;
+import com.lumie.attendance.application.dto.StudentAttendanceStatisticsResponse;
 import com.lumie.attendance.application.service.AttendanceRecordQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,13 @@ public class StudentAttendanceController {
     public ResponseEntity<List<StudentAttendanceRecordResponse>> getStudentRecords(
             @PathVariable Long studentId) {
         List<StudentAttendanceRecordResponse> response = queryService.getStudentRecordsWithSession(studentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{studentId}/statistics")
+    public ResponseEntity<StudentAttendanceStatisticsResponse> getStudentStatistics(
+            @PathVariable Long studentId) {
+        StudentAttendanceStatisticsResponse response = queryService.getStudentStatistics(studentId);
         return ResponseEntity.ok(response);
     }
 }
