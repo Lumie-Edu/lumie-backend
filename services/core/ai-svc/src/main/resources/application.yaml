@@ -1,0 +1,92 @@
+# AI Service Configuration
+spring:
+  application:
+    name: ai-svc
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:lumie}?prepareThreshold=0
+    username: ${DB_USERNAME:lumie}
+    password: ${DB_PASSWORD:lumie}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+    readonly:
+      jdbc-url: jdbc:postgresql://${RO_DB_HOST:${DB_HOST:localhost}}:${RO_DB_PORT:${DB_PORT:5432}}/${RO_DB_NAME:${DB_NAME:lumie}}?prepareThreshold=0
+      username: ${RO_DB_USERNAME:openclaw}
+      password: ${RO_DB_PASSWORD:openclaw}
+      driver-class-name: org.postgresql.Driver
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 10000
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        multiTenancy: SCHEMA
+    open-in-view: false
+
+  flyway:
+    enabled: false
+
+# DeepSeek API Configuration
+deepseek:
+  api-key: ${DEEPSEEK_API_KEY:}
+  base-url: https://api.deepseek.com
+  model: deepseek-chat
+  max-tokens: 4096
+  temperature: 0.7
+
+# Internal Service URLs
+internal:
+  content-svc:
+    url: ${CONTENT_SVC_URL:http://content-svc.lumie-content.svc:8080}
+
+# Telegram Bot
+telegram:
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+
+server:
+  port: 8080
+  shutdown: graceful
+
+spring.lifecycle:
+  timeout-per-shutdown-phase: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.lumie: DEBUG
+    org.hibernate.SQL: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    com.lumie: INFO
+    org.hibernate.SQL: WARN

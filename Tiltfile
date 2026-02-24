@@ -76,6 +76,12 @@ SERVICES = {
         'grpc_port': 9090,
         'deps': ['auth-svc', 'tenant-svc', 'academy-svc'],
     },
+    'ai-svc': {
+        'path': 'services/core/ai-svc',
+        'port': 8080,
+        'grpc_port': None,
+        'deps': ['tenant-svc', 'content-svc'],
+    },
 }
 
 # Environment variables for all services
@@ -192,6 +198,33 @@ def generate_deployment(name, config):
         - name: MINIO_BUCKET
           value: "lumie-dev"'''
 
+    # Add DeepSeek and ReadOnly DB for ai-svc
+    if name == 'ai-svc':
+        env_yaml += '''
+        - name: DEEPSEEK_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-ai-secrets
+              key: deepseek-api-key
+        - name: RO_DB_HOST
+          value: "pgbouncer.lumie-dev.svc.cluster.local"
+        - name: RO_DB_PORT
+          value: "5432"
+        - name: RO_DB_NAME
+          value: "lumie"
+        - name: RO_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-ai-secrets
+              key: ro-db-username
+        - name: RO_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-ai-secrets
+              key: ro-db-password
+        - name: CONTENT_SVC_URL
+          value: "http://content-svc.lumie-dev.svc.cluster.local:8080"'''
+
     return '''
 apiVersion: apps/v1
 kind: Deployment
@@ -277,6 +310,7 @@ API_PATHS = {
     'file-svc': '/api/file',
     'admin-svc': '/api/admin',
     'attendance-svc': '/api/attendance',
+    'ai-svc': '/api/ai',
 }
 
 # Function to generate service YAML
