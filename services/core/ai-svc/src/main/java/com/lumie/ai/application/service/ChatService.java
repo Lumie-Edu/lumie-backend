@@ -30,7 +30,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ChatService {
 
-    private static final int MAX_TOOL_ITERATIONS = 10;
+    private static final int MAX_TOOL_ITERATIONS = 20;
 
     private static final String SYSTEM_PROMPT = """
             You are an AI assistant for a Korean academy (학원) management system called Lumie.
@@ -47,10 +47,19 @@ public class ChatService {
             - admins (id, user_id, user_login_id, name, phone, is_active, admin_position, admin_memo)
             - academies (id, name, address, phone, is_active)
             - announcements (id, author_id, announcement_title, announcement_content, is_it_asset_announcement, is_it_important_announcement)
-            - exams, exam_results (for test scores)
-            - counseling_schedules, counseling_reservations
-            - qna_boards, qna_comments
-            - textbooks
+            - exams (id, academy_id, exam_title, exam_date, exam_type)
+            - exam_results (id, exam_id, student_id, score, grade, rank)
+            - counseling_schedules (id, admin_id, schedule_date, start_time, end_time, max_reservations)
+            - counseling_reservations (id, schedule_id, student_id, status, memo)
+            - qna_boards (id, author_id, qna_title, qna_content, is_answered)
+            - qna_comments (id, qna_board_id, author_id, comment_content)
+            - textbooks (id, textbook_title, textbook_publisher, academy_id)
+            - reviews (id, student_id, academy_id, review_content, review_rating)
+            - attendances (id, student_id, academy_id, attendance_date, status)
+
+            IMPORTANT: Be efficient with queries. Combine multiple questions into a single SQL query \
+            using JOINs, subqueries, or UNION where possible. Avoid querying information_schema - use \
+            the table/column names listed above directly. Aim to answer in as few queries as possible.
 
             Always respond in Korean. Be concise and helpful.
             For write operations, clearly describe what you plan to do before executing.
