@@ -9,12 +9,18 @@ import com.lumie.ai.domain.entity.ScheduledTask;
 import com.lumie.ai.domain.repository.ScheduledTaskRepository;
 import com.lumie.ai.domain.vo.TaskFrequency;
 import com.lumie.ai.domain.vo.TaskStatus;
+import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +32,25 @@ public class ScheduledTaskExecutor {
     private final ScheduledTaskRepository scheduledTaskRepository;
     private final ToolRegistry toolRegistry;
     private final ObjectMapper objectMapper;
+    private final DataSource dataSource;
 
     @Scheduled(fixedDelay = 60_000)
     public void executeDueTasks() {
+        List<String> tenantSlugs = getAllTenantSlugs();
+
+        for (String slug : tenantSlugs) {
+            try {
+                TenantContextHolder.setTenant(slug);
+                executeTasksForTenant(slug);
+            } catch (Exception e) {
+                log.error("Failed to process scheduled tasks for tenant {}: {}", slug, e.getMessage());
+            } finally {
+                TenantContextHolder.clear();
+            }
+        }
+    }
+
+    private void executeTasksForTenant(String tenantSlug) {
         List<ScheduledTask> dueTasks = scheduledTaskRepository
                 .findByStatusAndNextExecutionAtBefore(TaskStatus.ACTIVE, LocalDateTime.now());
 
@@ -41,6 +63,24 @@ public class ScheduledTaskExecutor {
                 scheduledTaskRepository.save(task);
             }
         }
+    }
+
+    private List<String> getAllTenantSlugs() {
+        List<String> slugs = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT schema_name FROM information_schema.schemata " +
+                     "WHERE schema_name LIKE 'tenant_%'")) {
+            while (rs.next()) {
+                String schema = rs.getString("schema_name");
+                // tenant_my_slug -> my-slug
+                slugs.add(schema.substring("tenant_".length()).replace("_", "-"));
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch tenant list: {}", e.getMessage());
+        }
+        return slugs;
     }
 
     private void executeTask(ScheduledTask task) {
