@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.lumie.common.tenant.UserContextHolder;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,6 +24,7 @@ public class ContentServiceClient implements ContentServicePort {
     @Override
     public String createAnnouncement(Map<String, Object> arguments) {
         Map<String, Object> body = new HashMap<>();
+        body.put("authorId", UserContextHolder.getRequiredUserId());
         body.put("announcementTitle", arguments.get("title"));
         body.put("announcementContent", arguments.get("content"));
         body.put("isItImportantAnnouncement", arguments.getOrDefault("isImportant", false));
