@@ -1,30 +1,34 @@
 package com.lumie.ai.infrastructure.config;
 
-import com.lumie.common.tenant.TenantContextHolder;
 import com.zaxxer.hikari.HikariDataSource;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
-
-import javax.sql.DataSource;
 
 @Configuration
 public class ReadOnlyDataSourceConfig {
 
     @Bean
-    @ConfigurationProperties(prefix = "spring.datasource.readonly")
-    public DataSource readOnlyDataSource() {
-        return DataSourceBuilder.create()
-                .type(HikariDataSource.class)
-                .build();
-    }
-
-    @Bean
-    public JdbcTemplate readOnlyJdbcTemplate(@Qualifier("readOnlyDataSource") DataSource dataSource) {
-        return new JdbcTemplate(dataSource);
+    public JdbcTemplate readOnlyJdbcTemplate(
+            @Value("${readonly-datasource.jdbc-url}") String jdbcUrl,
+            @Value("${readonly-datasource.username}") String username,
+            @Value("${readonly-datasource.password}") String password,
+            @Value("${readonly-datasource.driver-class-name}") String driverClassName,
+            @Value("${readonly-datasource.maximum-pool-size:5}") int maxPoolSize,
+            @Value("${readonly-datasource.minimum-idle:2}") int minIdle,
+            @Value("${readonly-datasource.connection-timeout:10000}") long connectionTimeout) {
+        HikariDataSource ds = new HikariDataSource();
+        ds.setJdbcUrl(jdbcUrl);
+        ds.setUsername(username);
+        ds.setPassword(password);
+        ds.setDriverClassName(driverClassName);
+        ds.setMaximumPoolSize(maxPoolSize);
+        ds.setMinimumIdle(minIdle);
+        ds.setConnectionTimeout(connectionTimeout);
+        ds.setReadOnly(true);
+        ds.setPoolName("ReadOnlyHikariPool");
+        return new JdbcTemplate(ds);
     }
 
     public static void setTenantSchema(JdbcTemplate jdbcTemplate, String tenantSlug) {

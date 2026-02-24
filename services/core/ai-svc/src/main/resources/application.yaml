@@ -13,14 +13,16 @@ spring:
       minimum-idle: 5
       connection-timeout: 30000
       idle-timeout: 600000
-    readonly:
-      jdbc-url: jdbc:postgresql://${RO_DB_HOST:${DB_HOST:localhost}}:${RO_DB_PORT:${DB_PORT:5432}}/${RO_DB_NAME:${DB_NAME:lumie}}?prepareThreshold=0
-      username: ${RO_DB_USERNAME:openclaw}
-      password: ${RO_DB_PASSWORD:openclaw}
-      driver-class-name: org.postgresql.Driver
-      maximum-pool-size: 5
-      minimum-idle: 2
-      connection-timeout: 10000
+
+# Read-only datasource for tenant data queries (openclaw user)
+readonly-datasource:
+  jdbc-url: jdbc:postgresql://${RO_DB_HOST:${DB_HOST:localhost}}:${RO_DB_PORT:${DB_PORT:5432}}/${RO_DB_NAME:${DB_NAME:lumie}}?prepareThreshold=0
+  username: ${RO_DB_USERNAME:openclaw}
+  password: ${RO_DB_PASSWORD:openclaw}
+  driver-class-name: org.postgresql.Driver
+  maximum-pool-size: 5
+  minimum-idle: 2
+  connection-timeout: 10000
 
   jpa:
     hibernate:

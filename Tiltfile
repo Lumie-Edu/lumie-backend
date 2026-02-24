@@ -207,7 +207,7 @@ def generate_deployment(name, config):
               name: lumie-dev-ai-secrets
               key: deepseek-api-key
         - name: RO_DB_HOST
-          value: "pgbouncer.lumie-dev.svc.cluster.local"
+          value: "lumie-dev-db-rw.lumie-dev.svc.cluster.local"
         - name: RO_DB_PORT
           value: "5432"
         - name: RO_DB_NAME
