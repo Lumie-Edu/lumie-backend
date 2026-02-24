@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -57,6 +58,39 @@ public class MinioStorageAdapter implements StoragePort {
         } catch (Exception e) {
             log.error("Failed to generate presigned download URL for: {}", objectKey, e);
             throw new FileException(FileErrorCode.PRESIGNED_URL_GENERATION_FAILED);
+        }
+    }
+
+    @Override
+    public void uploadObject(String objectKey, InputStream stream, long size, String contentType) {
+        try {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .stream(stream, size, -1)
+                            .contentType(contentType)
+                            .build()
+            );
+            log.debug("Uploaded object: {}", objectKey);
+        } catch (Exception e) {
+            log.error("Failed to upload object: {}", objectKey, e);
+            throw new FileException(FileErrorCode.STORAGE_ERROR);
+        }
+    }
+
+    @Override
+    public InputStream getObject(String objectKey) {
+        try {
+            return minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("Failed to get object: {}", objectKey, e);
+            throw new FileException(FileErrorCode.STORAGE_ERROR);
         }
     }
 

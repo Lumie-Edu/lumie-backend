@@ -1,6 +1,7 @@
 package com.lumie.file.application.service;
 
 import com.lumie.file.application.dto.request.PresignedDownloadRequest;
+import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.application.dto.response.PresignedDownloadResponse;
 import com.lumie.file.application.port.out.StoragePort;
@@ -14,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +28,26 @@ public class FileQueryService {
 
     private final FileMetadataRepository fileMetadataRepository;
     private final StoragePort storagePort;
+
+    @Transactional(readOnly = true)
+    public FileDownloadResult downloadFile(UUID fileId) {
+        FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
+                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
+
+        if (!fileMetadata.isUploadCompleted()) {
+            throw new FileException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
+        }
+
+        InputStream stream = storagePort.getObject(fileMetadata.getObjectKey());
+        log.debug("Streaming download for file: {}", fileId);
+
+        return new FileDownloadResult(
+                stream,
+                fileMetadata.getOriginalFilename(),
+                fileMetadata.getContentType(),
+                fileMetadata.getFileSize()
+        );
+    }
 
     @Transactional(readOnly = true)
     public PresignedDownloadResponse generatePresignedDownloadUrl(PresignedDownloadRequest request) {

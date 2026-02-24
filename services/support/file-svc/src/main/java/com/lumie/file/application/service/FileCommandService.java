@@ -9,12 +9,15 @@ import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.exception.FileException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FilePath;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @Slf4j
@@ -58,6 +61,33 @@ public class FileCommandService {
         );
 
         return PresignedUploadResponse.of(saved.getId(), uploadUrl, UPLOAD_URL_EXPIRY_SECONDS);
+    }
+
+    @Transactional
+    public FileMetadataResponse uploadFile(EntityType entityType, Long entityId, MultipartFile file) {
+        UUID fileId = UUID.randomUUID();
+
+        FilePath filePath = FilePath.of(entityType, fileId, file.getOriginalFilename());
+        String objectKey = filePath.toObjectKey();
+
+        FileMetadata fileMetadata = FileMetadata.create(
+                entityType, entityId, file.getOriginalFilename(),
+                file.getContentType(), file.getSize(), objectKey
+        );
+
+        FileMetadata saved = fileMetadataRepository.save(fileMetadata);
+
+        try {
+            storagePort.uploadObject(objectKey, file.getInputStream(), file.getSize(), file.getContentType());
+        } catch (IOException e) {
+            log.error("Failed to read upload stream for file: {}", saved.getId(), e);
+            throw new FileException(FileErrorCode.STORAGE_ERROR);
+        }
+
+        saved.markUploadCompleted();
+        log.info("Uploaded file: {}", saved.getId());
+
+        return FileMetadataResponse.from(saved);
     }
 
     @Transactional

@@ -3,6 +3,7 @@ package com.lumie.file.adapter.in.web;
 import com.lumie.file.application.dto.request.PresignedDownloadRequest;
 import com.lumie.file.application.dto.request.PresignedUploadRequest;
 import com.lumie.file.application.dto.request.RegisterUploadRequest;
+import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.application.dto.response.PresignedDownloadResponse;
 import com.lumie.file.application.dto.response.PresignedUploadResponse;
@@ -11,9 +12,10 @@ import com.lumie.file.application.service.FileQueryService;
 import com.lumie.file.domain.vo.EntityType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +27,30 @@ public class FileController {
 
     private final FileCommandService fileCommandService;
     private final FileQueryService fileQueryService;
+
+    @PostMapping("/upload")
+    public ResponseEntity<FileMetadataResponse> uploadFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("entityType") EntityType entityType,
+            @RequestParam(value = "entityId", required = false) Long entityId) {
+        FileMetadataResponse response = fileCommandService.uploadFile(entityType, entityId, file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{fileId}/download")
+    public ResponseEntity<InputStreamResource> downloadFile(@PathVariable UUID fileId) {
+        FileDownloadResult result = fileQueryService.downloadFile(fileId);
+
+        ContentDisposition contentDisposition = ContentDisposition.attachment()
+                .filename(result.filename())
+                .build();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(result.contentType()))
+                .contentLength(result.fileSize())
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .body(new InputStreamResource(result.inputStream()));
+    }
 
     @PostMapping("/presigned-upload")
     public ResponseEntity<PresignedUploadResponse> generatePresignedUploadUrl(
