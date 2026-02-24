@@ -16,7 +16,6 @@ GRPC_CLUSTER_IPS = {
     'academy-svc': '10.43.200.4',
     'exam-svc': '10.43.200.5',
     'content-svc': '10.43.200.6',
-    'spreadsheet-svc': '10.43.200.7',
     'admin-svc': '10.43.200.8',
     'attendance-svc': '10.43.200.9',
 }
@@ -69,12 +68,6 @@ SERVICES = {
         'path': 'services/support/file-svc',
         'port': 8080,
         'grpc_port': None,
-        'deps': ['tenant-svc'],
-    },
-    'spreadsheet-svc': {
-        'path': 'services/core/spreadsheet-svc',
-        'port': 8080,
-        'grpc_port': 9090,
         'deps': ['tenant-svc'],
     },
     'attendance-svc': {
@@ -199,14 +192,6 @@ def generate_deployment(name, config):
         - name: MINIO_BUCKET
           value: "lumie-dev"'''
 
-    # Add Redis config for spreadsheet-svc
-    if name == 'spreadsheet-svc':
-        env_yaml += '''
-        - name: REDIS_HOST
-          value: "redis.lumie-cache.svc.cluster.local"
-        - name: REDIS_PORT
-          value: "6379"'''
-
     return '''
 apiVersion: apps/v1
 kind: Deployment
@@ -282,7 +267,6 @@ spec:
 DEV_DOMAIN = 'dev.lumie0213.kro.kr'
 
 # API path mapping for each service
-# Note: spreadsheet-svc ingress is managed by ArgoCD (lumie-dev-api-protected) with JWT plugins
 API_PATHS = {
     'tenant-svc': '/api/tenant',
     'auth-svc': '/api/auth',
