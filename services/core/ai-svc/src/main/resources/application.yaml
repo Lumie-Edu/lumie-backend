@@ -1,4 +1,4 @@
-# AI Service Configuration
+# AI Service Configuration (ai-svc v1)
 spring:
   application:
     name: ai-svc
