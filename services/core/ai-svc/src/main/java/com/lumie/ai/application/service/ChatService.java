@@ -32,7 +32,7 @@ public class ChatService {
 
     private static final int MAX_TOOL_ITERATIONS = 20;
 
-    private static final String SYSTEM_PROMPT = """
+    private static final String SYSTEM_PROMPT_TEMPLATE = """
             You are an AI assistant for a Korean academy (학원) management system called Lumie.
             You help academy owners and administrators manage their business through natural language.
 
@@ -43,21 +43,7 @@ public class ChatService {
             - Schedule recurring tasks
 
             When querying data, use the general_query tool with SQL. The database has these tables:
-            - students (id, user_id, user_login_id, name, phone, academy_id, student_highschool, student_birth_year, student_memo, is_active)
-            - admins (id, user_id, user_login_id, name, phone, is_active, admin_position, admin_memo)
-            - academies (id, name, address, phone, is_active)
-            - announcements (id, author_id, announcement_title, announcement_content, is_it_asset_announcement, is_it_important_announcement)
-            - exams (id, name, category[PASS_FAIL/GRADED], total_questions, correct_answers JSONB {"1":"A","2":"B"}, question_scores JSONB {"1":2,"2":3}, question_types JSONB {"1":"어휘","2":"문법"}, pass_score, grading_type[ABSOLUTE/RELATIVE], grade_scale[NINE_GRADE/FIVE_GRADE])
-            - exam_results (id, exam_id FK→exams, student_id FK→students, total_score, grade, UNIQUE(exam_id,student_id))
-            - question_results (id, exam_result_id FK→exam_results, question_number, selected_choice, is_correct BOOLEAN, score, UNIQUE(exam_result_id,question_number))
-            - exam_templates (id, name, category, total_questions, question_scores JSONB, question_types JSONB, pass_score)
-            - counseling_schedules (id, admin_id, schedule_date, start_time, end_time, max_reservations)
-            - counseling_reservations (id, schedule_id, student_id, status, memo)
-            - qna_boards (id, author_id, qna_title, qna_content, is_answered)
-            - qna_comments (id, qna_board_id, author_id, comment_content)
-            - textbooks (id, textbook_title, textbook_publisher, academy_id)
-            - reviews (id, student_id, academy_id, review_content, review_rating)
-            - attendances (id, student_id, academy_id, attendance_date, status)
+            %s
 
             IMPORTANT: Be efficient with queries. Combine multiple questions into a single SQL query \
             using JOINs, subqueries, or UNION where possible. Avoid querying information_schema - use \
@@ -80,6 +66,7 @@ public class ChatService {
     private final ConversationRepository conversationRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ObjectMapper objectMapper;
+    private final SchemaDiscoveryService schemaDiscoveryService;
 
     @Transactional
     public Map<String, Object> chat(Long conversationId, String userMessage) {
@@ -105,7 +92,7 @@ public class ChatService {
                 .content(userMessage)
                 .build());
 
-        List<Map<String, Object>> messages = buildMessageHistory(conversation.getId());
+        List<Map<String, Object>> messages = buildMessageHistory(conversation.getId(), tenantSlug);
         List<Map<String, Object>> tools = toolRegistry.getAllToolSchemas();
 
         Map<String, Object> aiResponse = aiServicePort.chat(messages, tools);
@@ -163,7 +150,7 @@ public class ChatService {
                 .toolCallId(action.actionId())
                 .build());
 
-        List<Map<String, Object>> messages = buildMessageHistory(conversation.getId());
+        List<Map<String, Object>> messages = buildMessageHistory(conversation.getId(), tenantSlug);
         List<Map<String, Object>> tools = toolRegistry.getAllToolSchemas();
 
         Map<String, Object> aiResponse = aiServicePort.chat(messages, tools);
@@ -284,20 +271,23 @@ public class ChatService {
                     .build());
         }
 
-        List<Map<String, Object>> messages = buildMessageHistory(conversation.getId());
+        List<Map<String, Object>> messages = buildMessageHistory(conversation.getId(), tenantSlug);
         List<Map<String, Object>> tools = toolRegistry.getAllToolSchemas();
 
         Map<String, Object> nextResponse = aiServicePort.chat(messages, tools);
         return processAiResponse(conversation, nextResponse, tenantSlug, iteration + 1);
     }
 
-    private List<Map<String, Object>> buildMessageHistory(Long conversationId) {
+    private List<Map<String, Object>> buildMessageHistory(Long conversationId, String tenantSlug) {
         List<ChatMessage> history = chatMessageRepository
                 .findByConversationIdOrderByCreatedAtAsc(conversationId);
 
+        String schemaInfo = schemaDiscoveryService.getSchemaDescription(tenantSlug);
+        String systemPrompt = String.format(SYSTEM_PROMPT_TEMPLATE, schemaInfo);
+
         List<Map<String, Object>> messages = new ArrayList<>();
 
-        messages.add(Map.of("role", "system", "content", SYSTEM_PROMPT));
+        messages.add(Map.of("role", "system", "content", systemPrompt));
 
         for (ChatMessage msg : history) {
             // Skip pendingAction confirmation messages - they are UI-only and break
