@@ -104,18 +104,3 @@ logging:
     io.jsonwebtoken: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-
-  jpa:
-    show-sql: false
-
-logging:
-  level:
-    root: WARN
-    com.lumie: INFO
-    io.jsonwebtoken: WARN

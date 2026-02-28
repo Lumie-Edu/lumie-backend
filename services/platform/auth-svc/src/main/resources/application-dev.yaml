@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://pgbouncer.lumie-dev.svc:5432/lumie?prepareThreshold=0
+  rabbitmq:
+    host: rabbitmq-dev.lumie-dev.svc
+    port: 5672
+  data:
+    redis:
+      sentinel:
+        nodes: redis.lumie-cache.svc:26379
+
+grpc:
+  client:
+    tenant-svc:
+      address: static://tenant-svc-grpc.lumie-dev.svc:9090

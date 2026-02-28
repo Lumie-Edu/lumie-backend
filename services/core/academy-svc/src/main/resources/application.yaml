@@ -80,18 +80,3 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-
-  jpa:
-    show-sql: false
-
-logging:
-  level:
-    root: WARN
-    com.lumie: INFO
-    org.hibernate.SQL: WARN
-

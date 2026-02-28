@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://pgbouncer.lumie-dev.svc:5432/lumie?prepareThreshold=0
+  rabbitmq:
+    host: rabbitmq-dev.lumie-dev.svc
+    port: 5672
+
+grpc:
+  client:
+    auth-svc:
+      address: static://auth-svc-grpc.lumie-dev.svc:9090
+    tenant-svc:
+      address: static://tenant-svc-grpc.lumie-dev.svc:9090
+    billing-svc:
+      address: static://billing-svc-grpc.lumie-dev.svc:9090
+    academy-svc:
+      address: static://academy-svc-grpc.lumie-dev.svc:9090

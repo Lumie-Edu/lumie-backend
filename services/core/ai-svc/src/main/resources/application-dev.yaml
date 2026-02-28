@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://pgbouncer.lumie-dev.svc:5432/lumie?prepareThreshold=0
+
+readonly-datasource:
+  jdbc-url: jdbc:postgresql://lumie-dev-db-rw.lumie-dev.svc:5432/lumie?prepareThreshold=0
+
+internal:
+  content-svc:
+    url: http://content-svc.lumie-dev.svc:8080

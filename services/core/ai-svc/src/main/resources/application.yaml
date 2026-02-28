@@ -48,7 +48,7 @@ deepseek:
 # Internal Service URLs
 internal:
   content-svc:
-    url: ${CONTENT_SVC_URL:http://content-svc.lumie-content.svc:8080}
+    url: ${CONTENT_SVC_URL:http://localhost:8080}
 
 # Telegram Bot
 telegram:
@@ -77,18 +77,3 @@ logging:
     root: INFO
     com.lumie: DEBUG
     org.hibernate.SQL: DEBUG
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-
-  jpa:
-    show-sql: false
-
-logging:
-  level:
-    root: WARN
-    com.lumie: INFO
-    org.hibernate.SQL: WARN

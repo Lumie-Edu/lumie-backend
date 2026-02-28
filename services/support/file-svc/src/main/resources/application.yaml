@@ -68,18 +68,3 @@ logging:
     root: INFO
     com.lumie: DEBUG
     io.minio: DEBUG
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-
-  jpa:
-    show-sql: false
-
-logging:
-  level:
-    root: WARN
-    com.lumie: INFO
-    io.minio: WARN

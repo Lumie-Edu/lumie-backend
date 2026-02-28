@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://pgbouncer.lumie-dev.svc:5432/lumie?prepareThreshold=0
+
+grpc:
+  client:
+    tenant-svc:
+      address: static://tenant-svc-grpc.lumie-dev.svc:9090

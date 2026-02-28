@@ -82,9 +82,9 @@ management:
 lumie:
   services:
     grading:
-      url: ${GRADING_SVC_URL:http://grading-svc.lumie-support.svc:8000}
+      url: ${GRADING_SVC_URL:http://localhost:8001}
     report:
-      url: ${REPORT_SVC_URL:http://report-svc.lumie-dev.svc:8000}
+      url: ${REPORT_SVC_URL:http://localhost:8002}
 
 logging:
   level:
@@ -92,18 +92,3 @@ logging:
     com.lumie: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-
-  jpa:
-    show-sql: false
-
-logging:
-  level:
-    root: WARN
-    com.lumie: INFO
-    org.hibernate.SQL: WARN
