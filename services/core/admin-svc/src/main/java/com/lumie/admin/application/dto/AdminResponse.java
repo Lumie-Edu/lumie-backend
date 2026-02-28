@@ -1,10 +1,8 @@
 package com.lumie.admin.application.dto;
 
 import com.lumie.admin.domain.entity.Admin;
-import com.lumie.admin.domain.vo.ContractType;
 import com.lumie.admin.domain.vo.EmploymentStatus;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,10 +18,6 @@ public record AdminResponse(
     String adminMemo,
     Boolean isActive,
     EmploymentStatus employmentStatus,
-    LocalDate hireDate,
-    LocalDate contractStartDate,
-    LocalDate contractEndDate,
-    ContractType contractType,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
@@ -46,10 +40,6 @@ public record AdminResponse(
             admin.getAdminMemo(),
             admin.isActive(),
             admin.getEmploymentStatus(),
-            admin.getHireDate(),
-            admin.getContractStartDate(),
-            admin.getContractEndDate(),
-            admin.getContractType(),
             admin.getCreatedAt(),
             admin.getUpdatedAt()
         );

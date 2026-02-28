@@ -4,8 +4,8 @@ import com.lumie.admin.application.dto.AdminResponse;
 import com.lumie.admin.application.service.AdminQueryService;
 import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
+import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
-import com.lumie.admin.domain.repository.PositionPermissionRepository;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.grpc.admin.*;
 import io.grpc.Status;
@@ -21,7 +21,7 @@ public class AdminGrpcService extends AdminServiceGrpc.AdminServiceImplBase {
 
     private final AdminQueryService adminQueryService;
     private final AdminRepository adminRepository;
-    private final PositionPermissionRepository positionPermissionRepository;
+    private final AdminPermissionRepository adminPermissionRepository;
 
     @Override
     public void getAdmin(GetAdminRequest request, StreamObserver<com.lumie.grpc.admin.AdminResponse> responseObserver) {
@@ -98,14 +98,12 @@ public class AdminGrpcService extends AdminServiceGrpc.AdminServiceImplBase {
             AdminPermissionsResponse.Builder builder = AdminPermissionsResponse.newBuilder()
                     .setAdminId(admin.getId());
 
-            if (admin.getPosition() != null) {
-                positionPermissionRepository.findByPositionId(admin.getPosition().getId())
-                        .forEach(pp -> builder.addPermissions(
-                                PermissionEntry.newBuilder()
-                                        .setPermissionCode(pp.getPermissionCode())
-                                        .setAccessLevel(pp.getAccessLevel().name())
-                                        .build()));
-            }
+            adminPermissionRepository.findByAdminId(admin.getId())
+                    .forEach(ap -> builder.addPermissions(
+                            PermissionEntry.newBuilder()
+                                    .setPermissionCode(ap.getPermissionCode())
+                                    .setAccessLevel(ap.getAccessLevel().name())
+                                    .build()));
 
             responseObserver.onNext(builder.build());
             responseObserver.onCompleted();

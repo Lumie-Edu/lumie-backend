@@ -1,11 +1,9 @@
 package com.lumie.admin.application.dto;
 
-import com.lumie.admin.domain.vo.ContractType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDate;
 import java.util.List;
 
 public record AdminRequest(
@@ -22,11 +20,6 @@ public record AdminRequest(
 
     List<Long> academyIds,
     Long positionId,
-    String adminMemo,
-
-    LocalDate hireDate,
-    LocalDate contractStartDate,
-    LocalDate contractEndDate,
-    ContractType contractType
+    String adminMemo
 ) {
 }

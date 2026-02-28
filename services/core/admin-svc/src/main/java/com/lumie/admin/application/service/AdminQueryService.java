@@ -2,9 +2,11 @@ package com.lumie.admin.application.service;
 
 import com.lumie.admin.adapter.out.persistence.AdminSpecification;
 import com.lumie.admin.application.dto.AdminFilterRequest;
+import com.lumie.admin.application.dto.AdminPermissionResponse;
 import com.lumie.admin.application.dto.AdminResponse;
 import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
+import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -20,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminQueryService {
 
     private final AdminRepository adminRepository;
+    private final AdminPermissionRepository adminPermissionRepository;
 
     public AdminResponse getAdmin(Long id) {
         Admin admin = adminRepository.findById(id)
@@ -40,6 +45,14 @@ public class AdminQueryService {
         }
         return adminRepository.findAll(pageable)
                 .map(AdminResponse::from);
+    }
+
+    public List<AdminPermissionResponse> getAdminPermissions(Long adminId) {
+        adminRepository.findById(adminId)
+                .orElseThrow(() -> new AdminNotFoundException(adminId));
+        return adminPermissionRepository.findByAdminId(adminId).stream()
+                .map(AdminPermissionResponse::from)
+                .toList();
     }
 
     public boolean existsByUserLoginId(String userLoginId) {

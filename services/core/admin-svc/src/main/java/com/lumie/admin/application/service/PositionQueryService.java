@@ -1,9 +1,7 @@
 package com.lumie.admin.application.service;
 
-import com.lumie.admin.application.dto.PositionPermissionResponse;
 import com.lumie.admin.application.dto.PositionResponse;
 import com.lumie.admin.domain.exception.PositionNotFoundException;
-import com.lumie.admin.domain.repository.PositionPermissionRepository;
 import com.lumie.admin.domain.repository.PositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +19,6 @@ import java.util.List;
 public class PositionQueryService {
 
     private final PositionRepository positionRepository;
-    private final PositionPermissionRepository positionPermissionRepository;
 
     public PositionResponse getPosition(Long id) {
         return positionRepository.findById(id)
@@ -37,14 +34,6 @@ public class PositionQueryService {
     public List<PositionResponse> getActivePositions() {
         return positionRepository.findByIsActiveTrue().stream()
                 .map(PositionResponse::from)
-                .toList();
-    }
-
-    public List<PositionPermissionResponse> getPositionPermissions(Long positionId) {
-        positionRepository.findById(positionId)
-                .orElseThrow(() -> new PositionNotFoundException(positionId));
-        return positionPermissionRepository.findByPositionId(positionId).stream()
-                .map(PositionPermissionResponse::from)
                 .toList();
     }
 }

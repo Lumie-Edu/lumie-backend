@@ -3,22 +3,16 @@ package com.lumie.admin.application.service;
 import com.lumie.admin.application.dto.PositionRequest;
 import com.lumie.admin.application.dto.PositionResponse;
 import com.lumie.admin.domain.entity.Position;
-import com.lumie.admin.domain.entity.PositionPermission;
 import com.lumie.admin.domain.exception.AdminErrorCode;
 import com.lumie.admin.domain.exception.DuplicatePositionNameException;
 import com.lumie.admin.domain.exception.PositionNotFoundException;
 import com.lumie.admin.domain.repository.AdminRepository;
-import com.lumie.admin.domain.repository.PositionPermissionRepository;
 import com.lumie.admin.domain.repository.PositionRepository;
-import com.lumie.admin.domain.vo.AccessLevel;
 import com.lumie.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -28,7 +22,6 @@ public class PositionCommandService {
 
     private final PositionRepository positionRepository;
     private final AdminRepository adminRepository;
-    private final PositionPermissionRepository positionPermissionRepository;
 
     public PositionResponse createPosition(PositionRequest request) {
         if (positionRepository.existsByName(request.name())) {
@@ -78,19 +71,5 @@ public class PositionCommandService {
         }
         positionRepository.delete(position);
         log.info("Position deleted: {}", id);
-    }
-
-    public void setPositionPermissions(Long positionId, Map<String, String> permissions) {
-        positionRepository.findById(positionId)
-                .orElseThrow(() -> new PositionNotFoundException(positionId));
-
-        positionPermissionRepository.deleteByPositionId(positionId);
-
-        List<PositionPermission> entries = permissions.entrySet().stream()
-                .map(e -> PositionPermission.of(positionId, e.getKey(), AccessLevel.valueOf(e.getValue())))
-                .toList();
-        positionPermissionRepository.saveAll(entries);
-
-        log.info("Position {} permissions updated: {} entries", positionId, entries.size());
     }
 }

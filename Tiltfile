@@ -93,8 +93,8 @@ COMMON_ENV = {
     'DB_HOST': 'pgbouncer.lumie-dev.svc.cluster.local',
     'DB_PORT': '5432',
     'DB_NAME': 'lumie',
-    # RabbitMQ (prod, shared)
-    'RABBITMQ_HOST': 'rabbitmq.lumie-event.svc.cluster.local',
+    # RabbitMQ (dev-only instance to avoid queue conflicts with prod)
+    'RABBITMQ_HOST': 'rabbitmq-dev.lumie-dev.svc.cluster.local',
     'RABBITMQ_PORT': '5672',
     # Redis Sentinel (prod, shared)
     'REDIS_SENTINEL_MASTER': 'mymaster',
@@ -177,8 +177,8 @@ def generate_deployment(name, config):
         - name: REPORT_SVC_URL
           value: "http://report-svc.lumie-dev.svc:8000"'''
 
-    # Add MinIO secrets for file-svc
-    if name == 'file-svc':
+    # Add MinIO secrets for services that need object storage
+    if name in ('file-svc', 'exam-svc'):
         env_yaml += '''
         - name: MINIO_ACCESS_KEY
           valueFrom:
@@ -194,8 +194,16 @@ def generate_deployment(name, config):
           valueFrom:
             secretKeyRef:
               name: lumie-dev-minio-secrets
-              key: endpoint
+              key: endpoint'''
+
+    if name == 'file-svc':
+        env_yaml += '''
         - name: MINIO_BUCKET
+          value: "lumie-dev"'''
+
+    if name == 'exam-svc':
+        env_yaml += '''
+        - name: MINIO_BUCKET_NAME
           value: "lumie-dev"'''
 
     # Add DeepSeek and ReadOnly DB for ai-svc
@@ -296,23 +304,6 @@ spec:
               - ALL
 ''' % (name, NAMESPACE, name, name, name, name, REGISTRY, name, config['port'], grpc_port_yaml, env_yaml)
 
-# Development domain
-DEV_DOMAIN = 'dev.lumie0213.kro.kr'
-
-# API path mapping for each service
-API_PATHS = {
-    'tenant-svc': '/api/tenant',
-    'auth-svc': '/api/auth',
-    'billing-svc': '/api/billing',
-    'academy-svc': '/api/academy',
-    'exam-svc': '/api/exam',
-    'content-svc': '/api/content',
-    'file-svc': '/api/file',
-    'admin-svc': '/api/admin',
-    'attendance-svc': '/api/attendance',
-    'ai-svc': '/api/ai',
-}
-
 # Function to generate service YAML
 def generate_service(name, config):
     grpc_service = ''
@@ -354,49 +345,17 @@ spec:
     protocol: TCP
 %s''' % (name, NAMESPACE, name, grpc_service)
 
-# Function to generate Ingress YAML for Kong
-def generate_ingress(name, config):
-    if name not in API_PATHS:
-        return ''
-
-    api_path = API_PATHS[name]
-    ingress_yaml = '''
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: %s-ingress
-  namespace: %s
-  annotations:
-    konghq.com/strip-path: "true"
-    konghq.com/plugins: lumie-dev-cors
-spec:
-  ingressClassName: kong
-  rules:
-  - host: %s
-    http:
-      paths:
-      - path: %s
-        pathType: Prefix
-        backend:
-          service:
-            name: %s
-            port:
-              number: 8080
-''' % (name, NAMESPACE, DEV_DOMAIN, api_path, name)
-
-    return ingress_yaml
+# Ingress is managed by ArgoCD (lumie-infra/applications/lumie-dev/manifests/ingress.yaml)
+# with proper Kong JWT plugins. Tilt only manages Deployments and Services.
 
 # Build and deploy each service
 for name, config in SERVICES.items():
     # Generate K8s resources
     deployment_yaml = generate_deployment(name, config)
     service_yaml = generate_service(name, config)
-    ingress_yaml = generate_ingress(name, config)
 
     # Combine all YAML for this service
     combined_yaml = deployment_yaml + '\n---\n' + service_yaml
-    if ingress_yaml:
-        combined_yaml += '\n---\n' + ingress_yaml
 
     # Apply YAML using k8s_yaml (handles automatic image tag injection)
     k8s_yaml(blob(combined_yaml))

@@ -1,7 +1,5 @@
 package com.lumie.admin.adapter.in.web;
 
-import com.lumie.admin.application.dto.PositionPermissionRequest;
-import com.lumie.admin.application.dto.PositionPermissionResponse;
 import com.lumie.admin.application.dto.PositionRequest;
 import com.lumie.admin.application.dto.PositionResponse;
 import com.lumie.admin.application.service.PositionCommandService;
@@ -75,19 +73,5 @@ public class PositionController {
     public ResponseEntity<Void> deletePosition(@PathVariable Long id) {
         positionCommandService.deletePosition(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/{positionId}/permissions")
-    public ResponseEntity<List<PositionPermissionResponse>> getPositionPermissions(@PathVariable Long positionId) {
-        List<PositionPermissionResponse> response = positionQueryService.getPositionPermissions(positionId);
-        return ResponseEntity.ok(response);
-    }
-
-    @PutMapping("/{positionId}/permissions")
-    public ResponseEntity<Void> setPositionPermissions(
-            @PathVariable Long positionId,
-            @Valid @RequestBody PositionPermissionRequest request) {
-        positionCommandService.setPositionPermissions(positionId, request.permissions());
-        return ResponseEntity.ok().build();
     }
 }

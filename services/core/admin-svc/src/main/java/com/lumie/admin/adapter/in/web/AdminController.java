@@ -1,6 +1,7 @@
 package com.lumie.admin.adapter.in.web;
 
 import com.lumie.admin.application.dto.AdminFilterRequest;
+import com.lumie.admin.application.dto.AdminPermissionResponse;
 import com.lumie.admin.application.dto.AdminRequest;
 import com.lumie.admin.application.dto.AdminResponse;
 import com.lumie.admin.application.service.AdminCommandService;
@@ -15,6 +16,9 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admins")
@@ -55,6 +59,20 @@ public class AdminController {
             @Valid @RequestBody AdminRequest request) {
         AdminResponse response = adminCommandService.updateAdmin(id, request);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{adminId}/permissions")
+    public ResponseEntity<List<AdminPermissionResponse>> getAdminPermissions(@PathVariable Long adminId) {
+        List<AdminPermissionResponse> response = adminQueryService.getAdminPermissions(adminId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{adminId}/permissions")
+    public ResponseEntity<Void> setAdminPermissions(
+            @PathVariable Long adminId,
+            @RequestBody Map<String, String> permissions) {
+        adminCommandService.setAdminPermissions(adminId, permissions);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/deactivate")

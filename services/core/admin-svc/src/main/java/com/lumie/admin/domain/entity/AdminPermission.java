@@ -6,15 +6,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "position_permissions")
-@IdClass(PositionPermissionId.class)
+@Table(name = "admin_permissions")
+@IdClass(AdminPermissionId.class)
 @Getter
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
-public class PositionPermission {
+public class AdminPermission {
 
     @Id
-    @Column(name = "position_id")
-    private Long positionId;
+    @Column(name = "admin_id")
+    private Long adminId;
 
     @Id
     @Column(name = "permission_code", length = 100)
@@ -24,13 +24,13 @@ public class PositionPermission {
     @Column(name = "access_level", nullable = false, length = 10)
     private AccessLevel accessLevel = AccessLevel.NONE;
 
-    public PositionPermission(Long positionId, String permissionCode, AccessLevel accessLevel) {
-        this.positionId = positionId;
+    public AdminPermission(Long adminId, String permissionCode, AccessLevel accessLevel) {
+        this.adminId = adminId;
         this.permissionCode = permissionCode;
         this.accessLevel = accessLevel;
     }
 
-    public static PositionPermission of(Long positionId, String permissionCode, AccessLevel accessLevel) {
-        return new PositionPermission(positionId, permissionCode, accessLevel);
+    public static AdminPermission of(Long adminId, String permissionCode, AccessLevel accessLevel) {
+        return new AdminPermission(adminId, permissionCode, accessLevel);
     }
 }

@@ -6,14 +6,17 @@ import com.lumie.admin.application.port.out.AuthServicePort;
 import com.lumie.admin.application.port.out.BillingServicePort;
 import com.lumie.admin.application.port.out.MemberEventPublisherPort;
 import com.lumie.admin.domain.entity.Admin;
+import com.lumie.admin.domain.entity.AdminPermission;
 import com.lumie.admin.domain.entity.Position;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
 import com.lumie.admin.domain.exception.DuplicatePhoneException;
 import com.lumie.admin.domain.exception.DuplicateUserLoginIdException;
 import com.lumie.admin.domain.exception.PositionNotFoundException;
 import com.lumie.admin.domain.exception.QuotaExceededException;
+import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
 import com.lumie.admin.domain.repository.PositionRepository;
+import com.lumie.admin.domain.vo.AccessLevel;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.messaging.event.MemberCreatedEvent;
 import com.lumie.messaging.event.MemberUpdatedEvent;
@@ -23,6 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -33,6 +38,7 @@ public class AdminCommandService {
 
     private final AdminRepository adminRepository;
     private final PositionRepository positionRepository;
+    private final AdminPermissionRepository adminPermissionRepository;
     private final AuthServicePort authServicePort;
     private final BillingServicePort billingServicePort;
     private final MemberEventPublisherPort eventPublisher;
@@ -69,11 +75,7 @@ public class AdminCommandService {
             request.email(),
             academyIds,
             position,
-            request.adminMemo(),
-            request.hireDate(),
-            request.contractStartDate(),
-            request.contractEndDate(),
-            request.contractType()
+            request.adminMemo()
         );
 
         Admin saved = adminRepository.save(admin);
@@ -109,8 +111,7 @@ public class AdminCommandService {
         }
 
         admin.updateInfo(request.name(), request.phone(), request.email(), position,
-                request.adminMemo(), request.hireDate(), request.contractStartDate(),
-                request.contractEndDate(), request.contractType());
+                request.adminMemo());
 
         if (request.academyIds() != null) {
             admin.setAcademyIds(new HashSet<>(request.academyIds()));
@@ -127,6 +128,20 @@ public class AdminCommandService {
 
         log.info("Admin updated: {} in tenant: {}", id, tenantSlug);
         return AdminResponse.from(updated);
+    }
+
+    public void setAdminPermissions(Long adminId, Map<String, String> permissions) {
+        adminRepository.findById(adminId)
+                .orElseThrow(() -> new AdminNotFoundException(adminId));
+
+        adminPermissionRepository.deleteByAdminId(adminId);
+
+        List<AdminPermission> entries = permissions.entrySet().stream()
+                .map(e -> AdminPermission.of(adminId, e.getKey(), AccessLevel.valueOf(e.getValue())))
+                .toList();
+        adminPermissionRepository.saveAll(entries);
+
+        log.info("Admin {} permissions updated: {} entries", adminId, entries.size());
     }
 
     public void deactivateAdmin(Long id) {
