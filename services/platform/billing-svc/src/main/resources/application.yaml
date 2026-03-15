@@ -17,6 +17,7 @@ spring:
     enabled: true
     baseline-on-migrate: true
     baseline-version: "0"
+    table: flyway_schema_history_billing
 
   jpa:
     hibernate:
