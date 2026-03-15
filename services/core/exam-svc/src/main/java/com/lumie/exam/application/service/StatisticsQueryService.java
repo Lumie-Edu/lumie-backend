@@ -176,6 +176,33 @@ public class StatisticsQueryService {
         return new PageImpl<>(pageContent, pageable, grades.size());
     }
 
+    /**
+     * 리포트용 학생 결과 요약 목록 (이름순 정렬, rank/percentile 계산 없음)
+     */
+    public List<StudentResultSummaryResponse> getStudentResultSummaries(Long examId) {
+        log.debug("Getting student result summaries for exam: {}", examId);
+
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+
+        List<ExamResult> results = resultRepository.findByExamId(examId);
+
+        return results.parallelStream()
+                .map(result -> {
+                    StudentServicePort.StudentInfo student = getStudentInfoSafely(result.getStudentId());
+                    return new StudentResultSummaryResponse(
+                            result.getStudentId(),
+                            student.name(),
+                            result.getTotalScore(),
+                            result.getGrade(),
+                            exam.getCategory(),
+                            result.isPassed()
+                    );
+                })
+                .sorted(Comparator.comparing(StudentResultSummaryResponse::studentName))
+                .toList();
+    }
+
     private StudentServicePort.StudentInfo getStudentInfoSafely(Long studentId) {
         try {
             StudentServicePort.StudentInfo info = studentServicePort.getStudentInfo(studentId);

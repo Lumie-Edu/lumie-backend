@@ -39,6 +39,15 @@ public class StatisticsController {
     }
 
     /**
+     * 리포트용 학생 결과 요약 (이름, 점수, 등급만 반환)
+     */
+    @GetMapping("/exams/{examId}/results-summary")
+    public ResponseEntity<List<StudentResultSummaryResponse>> getStudentResultSummaries(
+            @PathVariable Long examId) {
+        return ResponseEntity.ok(statisticsQueryService.getStudentResultSummaries(examId));
+    }
+
+    /**
      * 선지별 선택률 분석
      */
     @GetMapping("/exams/{examId}/choices")
