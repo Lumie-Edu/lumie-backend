@@ -21,10 +21,11 @@ spring:
         format_sql: true
         default_schema: public
 
-  # Flyway is managed programmatically for multi-tenant support
-  # See FlywayTenantMigrationService for details
   flyway:
-    enabled: false
+    enabled: true
+    locations: classpath:db/migration/public
+    baseline-on-migrate: true
+    baseline-version: "0"
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
