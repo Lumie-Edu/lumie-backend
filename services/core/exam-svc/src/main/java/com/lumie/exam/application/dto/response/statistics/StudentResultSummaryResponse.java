@@ -6,6 +6,8 @@ public record StudentResultSummaryResponse(
         Long resultId,
         Long studentId,
         String studentName,
+        String academyName,
+        boolean isActive,
         int score,
         Integer grade,
         ExamCategory examCategory,

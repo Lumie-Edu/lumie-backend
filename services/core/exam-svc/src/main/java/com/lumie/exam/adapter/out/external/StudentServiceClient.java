@@ -7,6 +7,7 @@ import com.lumie.grpc.academy.GetStudentByPhoneRequest;
 import com.lumie.grpc.academy.GetStudentRequest;
 import com.lumie.grpc.academy.GetStudentsByIdsRequest;
 import com.lumie.grpc.academy.StudentListResponse;
+import com.lumie.grpc.academy.StudentResponse;
 import com.lumie.grpc.academy.ValidateStudentRequest;
 import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;
@@ -48,12 +49,7 @@ public class StudentServiceClient implements StudentServicePort {
                     .build();
 
             var response = academyServiceStub.getStudent(request);
-            return new StudentInfo(
-                    response.getId(),
-                    response.getStudentName(),
-                    "",  // email not in proto
-                    response.getStudentPhone()
-            );
+            return toStudentInfo(response);
         } catch (StatusRuntimeException e) {
             log.error("gRPC error getting student: {}", studentId, e);
             return null;
@@ -70,10 +66,7 @@ public class StudentServiceClient implements StudentServicePort {
 
             StudentListResponse response = academyServiceStub.getStudentsByIds(request);
             return response.getStudentsList().stream()
-                    .collect(Collectors.toMap(
-                            s -> s.getId(),
-                            s -> new StudentInfo(s.getId(), s.getStudentName(), "", s.getStudentPhone())
-                    ));
+                    .collect(Collectors.toMap(StudentResponse::getId, this::toStudentInfo));
         } catch (StatusRuntimeException e) {
             log.error("gRPC error batch getting students", e);
             return Map.of();
@@ -89,15 +82,21 @@ public class StudentServiceClient implements StudentServicePort {
                     .build();
 
             var response = academyServiceStub.getStudentByPhone(request);
-            return Optional.of(new StudentInfo(
-                    response.getId(),
-                    response.getStudentName(),
-                    "",
-                    response.getStudentPhone()
-            ));
+            return Optional.of(toStudentInfo(response));
         } catch (StatusRuntimeException e) {
             log.debug("Student not found by phone: {}", phone);
             return Optional.empty();
         }
+    }
+
+    private StudentInfo toStudentInfo(StudentResponse response) {
+        return new StudentInfo(
+                response.getId(),
+                response.getStudentName(),
+                "",
+                response.getStudentPhone(),
+                response.getAcademyName(),
+                response.getIsActive()
+        );
     }
 }

@@ -195,6 +195,8 @@ public class StatisticsQueryService {
                             result.getId(),
                             result.getStudentId(),
                             student.name(),
+                            student.academyName(),
+                            student.isActive(),
                             result.getTotalScore(),
                             result.getGrade(),
                             exam.getCategory(),
@@ -222,7 +224,7 @@ public class StatisticsQueryService {
     private static StudentServicePort.StudentInfo resolveStudent(
             Map<Long, StudentServicePort.StudentInfo> studentMap, Long studentId) {
         return studentMap.getOrDefault(studentId,
-                new StudentServicePort.StudentInfo(studentId, "학생 " + studentId, null, null));
+                new StudentServicePort.StudentInfo(studentId, "학생 " + studentId, null, null, "", true));
     }
 
     /**
