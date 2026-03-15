@@ -1,8 +1,29 @@
--- 1. Drop existing position_permissions join table
-DROP TABLE IF EXISTS position_permissions;
+-- V5: Permissions (permissions table, admin_permissions, seed data)
 
--- 2. Replace permissions data with 19 new sidebar-aligned permissions
-TRUNCATE TABLE permissions CASCADE;
+-- Permissions table
+CREATE TABLE IF NOT EXISTS permissions (
+    id BIGSERIAL PRIMARY KEY,
+    code VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    description VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Admin permissions table (per-admin permission grants)
+CREATE TABLE IF NOT EXISTS admin_permissions (
+    admin_id BIGINT NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+    permission_code VARCHAR(100) NOT NULL,
+    access_level VARCHAR(10) NOT NULL DEFAULT 'NONE',
+    PRIMARY KEY (admin_id, permission_code)
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_permissions_category ON permissions(category);
+CREATE INDEX IF NOT EXISTS idx_admin_permissions_admin_id ON admin_permissions(admin_id);
+
+-- Seed permissions
 INSERT INTO permissions (code, name, category, description) VALUES
 -- USER
 ('STUDENT_MANAGEMENT', '수강생 관리', 'USER', '수강생 목록 조회, 등록, 수정, 삭제'),
@@ -27,13 +48,3 @@ INSERT INTO permissions (code, name, category, description) VALUES
 ('SPREADSHEET', '스프레드시트', 'OPERATION', '스프레드시트 조회 및 편집'),
 ('ACADEMY_MANAGEMENT', '단과 관리', 'OPERATION', '단과 설정 및 관리'),
 ('REVIEW_MANAGEMENT', '리뷰 관리', 'OPERATION', '리뷰 조회 및 관리');
-
--- 3. Recreate position_permissions with access_level
-CREATE TABLE position_permissions (
-    position_id BIGINT NOT NULL REFERENCES positions(id) ON DELETE CASCADE,
-    permission_code VARCHAR(100) NOT NULL,
-    access_level VARCHAR(10) NOT NULL DEFAULT 'NONE',
-    PRIMARY KEY (position_id, permission_code)
-);
-
-CREATE INDEX idx_position_permissions_code ON position_permissions(permission_code);

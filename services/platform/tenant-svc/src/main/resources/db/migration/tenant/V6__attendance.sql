@@ -1,3 +1,6 @@
+-- V6: Attendance (sessions and records)
+
+-- Attendance sessions table
 CREATE TABLE IF NOT EXISTS attendance_sessions (
     id BIGSERIAL PRIMARY KEY,
     academy_id BIGINT NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
@@ -13,6 +16,7 @@ CREATE TABLE IF NOT EXISTS attendance_sessions (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Attendance records table
 CREATE TABLE IF NOT EXISTS attendance_records (
     id BIGSERIAL PRIMARY KEY,
     session_id BIGINT NOT NULL REFERENCES attendance_sessions(id) ON DELETE CASCADE,
@@ -27,6 +31,7 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     CONSTRAINT uq_session_student UNIQUE (session_id, student_id)
 );
 
+-- Indexes
 CREATE INDEX IF NOT EXISTS idx_att_sessions_academy_id ON attendance_sessions(academy_id);
 CREATE INDEX IF NOT EXISTS idx_att_sessions_date ON attendance_sessions(session_date);
 CREATE INDEX IF NOT EXISTS idx_att_sessions_code ON attendance_sessions(attendance_code);

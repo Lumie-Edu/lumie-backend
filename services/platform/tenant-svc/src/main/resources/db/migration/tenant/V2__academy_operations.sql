@@ -1,53 +1,4 @@
--- V1: Initial tenant schema structure
--- This migration is applied to each tenant schema (tenant_xxx)
-
--- Academies table
-CREATE TABLE IF NOT EXISTS academies (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    address VARCHAR(500),
-    phone VARCHAR(20) UNIQUE,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Students table (references public.users, with denormalized user fields)
-CREATE TABLE IF NOT EXISTS students (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL UNIQUE REFERENCES public.users(id) ON DELETE CASCADE,
-    user_login_id VARCHAR(50) NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    phone VARCHAR(20),
-    academy_id BIGINT NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
-    student_highschool VARCHAR(100),
-    student_birth_year INTEGER,
-    student_memo TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Admins table (references public.users, with denormalized user fields)
-CREATE TABLE IF NOT EXISTS admins (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL UNIQUE REFERENCES public.users(id) ON DELETE CASCADE,
-    user_login_id VARCHAR(50) NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    phone VARCHAR(20),
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    admin_position VARCHAR(50) DEFAULT '조교',
-    admin_memo TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Admin-Academy join table
-CREATE TABLE IF NOT EXISTS admin_academies (
-    admin_id BIGINT NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
-    academy_id BIGINT NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
-    PRIMARY KEY (admin_id, academy_id)
-);
+-- V2: Academy operations (announcements, QnA, counseling, textbooks, reviews, toggles)
 
 -- QnA Boards table
 CREATE TABLE IF NOT EXISTS qna_boards (
@@ -151,9 +102,6 @@ CREATE TABLE IF NOT EXISTS toggles (
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_students_academy_id ON students(academy_id);
-CREATE INDEX IF NOT EXISTS idx_students_user_id ON students(user_id);
-CREATE INDEX IF NOT EXISTS idx_admins_user_id ON admins(user_id);
 CREATE INDEX IF NOT EXISTS idx_qna_boards_qna_user_id ON qna_boards(qna_user_id);
 CREATE INDEX IF NOT EXISTS idx_qna_comments_qna_id ON qna_comments(qna_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_admin_id ON counseling_schedules(admin_id);
