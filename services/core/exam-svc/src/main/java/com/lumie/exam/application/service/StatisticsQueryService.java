@@ -24,10 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.lumie.common.tenant.TenantContextHolder;
-
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -132,6 +129,8 @@ public class StatisticsQueryService {
                 .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
+        Map<Long, StudentServicePort.StudentInfo> studentMap = fetchStudentMap(results);
+
         List<Integer> allScores = results.stream()
                 .map(ExamResult::getTotalScore)
                 .toList();
@@ -140,7 +139,7 @@ public class StatisticsQueryService {
 
         List<StudentGradeResponse> grades = results.stream()
                 .map(result -> {
-                    StudentServicePort.StudentInfo student = getStudentInfoSafely(result.getStudentId());
+                    StudentServicePort.StudentInfo student = resolveStudent(studentMap, result.getStudentId());
                     int rank = statisticsCalculator.calculateRank(result.getTotalScore(), allScores);
                     double percentile = statisticsCalculator.calculatePercentile(result.getTotalScore(), allScores);
 
@@ -165,10 +164,8 @@ public class StatisticsQueryService {
                     );
                 })
                 .sorted(exam.getCategory() == ExamCategory.PASS_FAIL
-                        // P/NP 시험: 불합격자 먼저 (isPassed=false first), 그 다음 점수 오름차순
                         ? Comparator.comparing(StudentGradeResponse::isPassed)
                                 .thenComparingInt(StudentGradeResponse::score)
-                        // 등급제 시험: 순위 기준 정렬
                         : Comparator.comparingInt(StudentGradeResponse::rank))
                 .toList();
 
@@ -189,21 +186,11 @@ public class StatisticsQueryService {
                 .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
-
-        // Batch fetch all student names in a single gRPC call
-        List<Long> studentIds = results.stream()
-                .map(ExamResult::getStudentId)
-                .distinct()
-                .toList();
-
-        Map<Long, StudentServicePort.StudentInfo> studentMap = studentServicePort.getStudentInfoBatch(studentIds);
+        Map<Long, StudentServicePort.StudentInfo> studentMap = fetchStudentMap(results);
 
         return results.stream()
                 .map(result -> {
-                    StudentServicePort.StudentInfo student = studentMap.getOrDefault(
-                            result.getStudentId(),
-                            new StudentServicePort.StudentInfo(result.getStudentId(), "학생 " + result.getStudentId(), null, null)
-                    );
+                    StudentServicePort.StudentInfo student = resolveStudent(studentMap, result.getStudentId());
                     return new StudentResultSummaryResponse(
                             result.getId(),
                             result.getStudentId(),
@@ -218,16 +205,24 @@ public class StatisticsQueryService {
                 .toList();
     }
 
-    private StudentServicePort.StudentInfo getStudentInfoSafely(Long studentId) {
-        try {
-            StudentServicePort.StudentInfo info = studentServicePort.getStudentInfo(studentId);
-            if (info != null) {
-                return info;
-            }
-        } catch (Exception e) {
-            log.warn("Failed to get student info for studentId: {}", studentId, e);
-        }
-        return new StudentServicePort.StudentInfo(studentId, "학생 " + studentId, null, null);
+    /**
+     * 시험 결과 목록에서 학생 ID를 추출하여 배치 조회한다.
+     */
+    private Map<Long, StudentServicePort.StudentInfo> fetchStudentMap(List<ExamResult> results) {
+        List<Long> studentIds = results.stream()
+                .map(ExamResult::getStudentId)
+                .distinct()
+                .toList();
+        return studentServicePort.getStudentInfoBatch(studentIds);
+    }
+
+    /**
+     * 배치 조회 결과에서 학생 정보를 반환하고, 없으면 fallback을 반환한다.
+     */
+    private static StudentServicePort.StudentInfo resolveStudent(
+            Map<Long, StudentServicePort.StudentInfo> studentMap, Long studentId) {
+        return studentMap.getOrDefault(studentId,
+                new StudentServicePort.StudentInfo(studentId, "학생 " + studentId, null, null));
     }
 
     /**
