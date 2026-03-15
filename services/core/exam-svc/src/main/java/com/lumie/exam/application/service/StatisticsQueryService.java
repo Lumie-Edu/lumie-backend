@@ -24,7 +24,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.lumie.common.tenant.TenantContextHolder;
+
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -187,18 +190,34 @@ public class StatisticsQueryService {
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
 
-        return results.stream()
-                .map(result -> {
-                    StudentServicePort.StudentInfo student = getStudentInfoSafely(result.getStudentId());
-                    return new StudentResultSummaryResponse(
-                            result.getStudentId(),
-                            student.name(),
-                            result.getTotalScore(),
-                            result.getGrade(),
-                            exam.getCategory(),
-                            result.isPassed()
-                    );
-                })
+        // Capture tenant context for parallel execution
+        String tenantSlug = TenantContextHolder.getTenant();
+        Long tenantId = TenantContextHolder.getTenantId();
+
+        List<CompletableFuture<StudentResultSummaryResponse>> futures = results.stream()
+                .map(result -> CompletableFuture.supplyAsync(() -> {
+                    // Propagate tenant context to worker thread
+                    TenantContextHolder.setTenant(tenantSlug);
+                    TenantContextHolder.setTenantId(tenantId);
+                    try {
+                        StudentServicePort.StudentInfo student = getStudentInfoSafely(result.getStudentId());
+                        return new StudentResultSummaryResponse(
+                                result.getId(),
+                                result.getStudentId(),
+                                student.name(),
+                                result.getTotalScore(),
+                                result.getGrade(),
+                                exam.getCategory(),
+                                result.isPassed()
+                        );
+                    } finally {
+                        TenantContextHolder.clear();
+                    }
+                }))
+                .toList();
+
+        return futures.stream()
+                .map(CompletableFuture::join)
                 .sorted(Comparator.comparing(StudentResultSummaryResponse::studentName))
                 .toList();
     }
