@@ -11,6 +11,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,12 @@ public class StudentQueryService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new StudentNotFoundException(id));
         return StudentResponse.from(student);
+    }
+
+    public List<StudentResponse> getStudentsByIds(List<Long> ids) {
+        return studentRepository.findAllByIds(ids).stream()
+                .map(StudentResponse::from)
+                .toList();
     }
 
     public StudentResponse getStudentByUserLoginId(String userLoginId) {

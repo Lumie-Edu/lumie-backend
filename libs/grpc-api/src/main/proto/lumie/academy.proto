@@ -8,6 +8,7 @@ option java_outer_classname = "AcademyProto";
 
 service AcademyService {
   rpc GetStudent(GetStudentRequest) returns (StudentResponse);
+  rpc GetStudentsByIds(GetStudentsByIdsRequest) returns (StudentListResponse);
   rpc GetStudentByPhone(GetStudentByPhoneRequest) returns (StudentResponse);
   rpc GetStudentsByAcademy(GetStudentsByAcademyRequest) returns (StudentListResponse);
   rpc ValidateStudent(ValidateStudentRequest) returns (ValidateStudentResponse);
@@ -17,6 +18,11 @@ service AcademyService {
 message GetStudentRequest {
   string tenant_slug = 1;
   int64 student_id = 2;
+}
+
+message GetStudentsByIdsRequest {
+  string tenant_slug = 1;
+  repeated int64 student_ids = 2;
 }
 
 message GetStudentByPhoneRequest {

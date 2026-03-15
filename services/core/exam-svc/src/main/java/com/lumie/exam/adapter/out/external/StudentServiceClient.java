@@ -5,13 +5,16 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.grpc.academy.AcademyServiceGrpc;
 import com.lumie.grpc.academy.GetStudentByPhoneRequest;
 import com.lumie.grpc.academy.GetStudentRequest;
+import com.lumie.grpc.academy.GetStudentsByIdsRequest;
+import com.lumie.grpc.academy.StudentListResponse;
 import com.lumie.grpc.academy.ValidateStudentRequest;
 import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -54,6 +57,26 @@ public class StudentServiceClient implements StudentServicePort {
         } catch (StatusRuntimeException e) {
             log.error("gRPC error getting student: {}", studentId, e);
             return null;
+        }
+    }
+
+    @Override
+    public Map<Long, StudentInfo> getStudentInfoBatch(List<Long> studentIds) {
+        try {
+            var request = GetStudentsByIdsRequest.newBuilder()
+                    .setTenantSlug(TenantContextHolder.getRequiredTenant())
+                    .addAllStudentIds(studentIds)
+                    .build();
+
+            StudentListResponse response = academyServiceStub.getStudentsByIds(request);
+            return response.getStudentsList().stream()
+                    .collect(Collectors.toMap(
+                            s -> s.getId(),
+                            s -> new StudentInfo(s.getId(), s.getStudentName(), "", s.getStudentPhone())
+                    ));
+        } catch (StatusRuntimeException e) {
+            log.error("gRPC error batch getting students", e);
+            return Map.of();
         }
     }
 

@@ -190,34 +190,30 @@ public class StatisticsQueryService {
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
 
-        // Capture tenant context for parallel execution
-        String tenantSlug = TenantContextHolder.getTenant();
-        Long tenantId = TenantContextHolder.getTenantId();
-
-        List<CompletableFuture<StudentResultSummaryResponse>> futures = results.stream()
-                .map(result -> CompletableFuture.supplyAsync(() -> {
-                    // Propagate tenant context to worker thread
-                    TenantContextHolder.setTenant(tenantSlug);
-                    TenantContextHolder.setTenantId(tenantId);
-                    try {
-                        StudentServicePort.StudentInfo student = getStudentInfoSafely(result.getStudentId());
-                        return new StudentResultSummaryResponse(
-                                result.getId(),
-                                result.getStudentId(),
-                                student.name(),
-                                result.getTotalScore(),
-                                result.getGrade(),
-                                exam.getCategory(),
-                                result.isPassed()
-                        );
-                    } finally {
-                        TenantContextHolder.clear();
-                    }
-                }))
+        // Batch fetch all student names in a single gRPC call
+        List<Long> studentIds = results.stream()
+                .map(ExamResult::getStudentId)
+                .distinct()
                 .toList();
 
-        return futures.stream()
-                .map(CompletableFuture::join)
+        Map<Long, StudentServicePort.StudentInfo> studentMap = studentServicePort.getStudentInfoBatch(studentIds);
+
+        return results.stream()
+                .map(result -> {
+                    StudentServicePort.StudentInfo student = studentMap.getOrDefault(
+                            result.getStudentId(),
+                            new StudentServicePort.StudentInfo(result.getStudentId(), "학생 " + result.getStudentId(), null, null)
+                    );
+                    return new StudentResultSummaryResponse(
+                            result.getId(),
+                            result.getStudentId(),
+                            student.name(),
+                            result.getTotalScore(),
+                            result.getGrade(),
+                            exam.getCategory(),
+                            result.isPassed()
+                    );
+                })
                 .sorted(Comparator.comparing(StudentResultSummaryResponse::studentName))
                 .toList();
     }

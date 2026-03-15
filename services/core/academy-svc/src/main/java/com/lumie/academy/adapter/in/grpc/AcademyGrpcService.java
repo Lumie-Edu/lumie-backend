@@ -9,6 +9,7 @@ import com.lumie.grpc.academy.AcademyResponse;
 import com.lumie.grpc.academy.AcademyServiceGrpc;
 import com.lumie.grpc.academy.GetAcademyRequest;
 import com.lumie.grpc.academy.GetStudentByPhoneRequest;
+import com.lumie.grpc.academy.GetStudentsByIdsRequest;
 import com.lumie.grpc.academy.GetStudentRequest;
 import com.lumie.grpc.academy.GetStudentsByAcademyRequest;
 import com.lumie.grpc.academy.StudentListResponse;
@@ -49,6 +50,34 @@ public class AcademyGrpcService extends AcademyServiceGrpc.AcademyServiceImplBas
                 .asRuntimeException());
         } catch (Exception e) {
             log.error("Error getting student: {}", request.getStudentId(), e);
+            responseObserver.onError(Status.INTERNAL
+                .withDescription(e.getMessage())
+                .asRuntimeException());
+        } finally {
+            TenantContextHolder.clear();
+        }
+    }
+
+    @Override
+    public void getStudentsByIds(GetStudentsByIdsRequest request,
+                                  StreamObserver<StudentListResponse> responseObserver) {
+        try {
+            TenantContextHolder.setTenant(request.getTenantSlug());
+
+            java.util.List<com.lumie.academy.application.dto.StudentResponse> students =
+                studentQueryService.getStudentsByIds(request.getStudentIdsList());
+
+            StudentListResponse.Builder responseBuilder = StudentListResponse.newBuilder()
+                .setTotalCount(students.size());
+
+            for (com.lumie.academy.application.dto.StudentResponse student : students) {
+                responseBuilder.addStudents(toGrpcStudentResponse(student));
+            }
+
+            responseObserver.onNext(responseBuilder.build());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Error getting students by ids", e);
             responseObserver.onError(Status.INTERNAL
                 .withDescription(e.getMessage())
                 .asRuntimeException());
