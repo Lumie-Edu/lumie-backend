@@ -187,7 +187,7 @@ public class StatisticsQueryService {
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
 
-        return results.parallelStream()
+        return results.stream()
                 .map(result -> {
                     StudentServicePort.StudentInfo student = getStudentInfoSafely(result.getStudentId());
                     return new StudentResultSummaryResponse(
