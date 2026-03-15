@@ -34,6 +34,9 @@ public class ExamResult extends BaseEntity {
     @Column(name = "grade")
     private Integer grade;
 
+    @Column(name = "omr_image_key", length = 500)
+    private String omrImageKey;
+
     @OneToMany(mappedBy = "examResult", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuestionResult> questionResults = new ArrayList<>();
 
@@ -43,6 +46,10 @@ public class ExamResult extends BaseEntity {
         this.studentId = studentId;
         this.totalScore = totalScore;
         this.grade = grade;
+    }
+
+    public void setOmrImageKey(String omrImageKey) {
+        this.omrImageKey = omrImageKey;
     }
 
     public static ExamResult create(Exam exam, Long studentId, Integer totalScore) {

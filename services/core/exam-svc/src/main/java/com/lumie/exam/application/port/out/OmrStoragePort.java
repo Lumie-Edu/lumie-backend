@@ -9,4 +9,6 @@ public interface OmrStoragePort {
     byte[] getObject(String objectKey);
 
     void deleteObjects(List<String> objectKeys);
+
+    String getPresignedUrl(String objectKey);
 }

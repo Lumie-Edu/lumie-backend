@@ -69,4 +69,15 @@ public class ResultController {
     public ResponseEntity<List<QuestionResultResponse>> getQuestionResults(@PathVariable Long resultId) {
         return ResponseEntity.ok(resultQueryService.getQuestionResults(resultId));
     }
+
+    @GetMapping("/exams/{examId}/results/{resultId}/omr-image")
+    public ResponseEntity<byte[]> getOmrImage(
+            @PathVariable Long examId,
+            @PathVariable Long resultId) {
+        byte[] imageData = resultQueryService.getOmrImageData(resultId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .contentLength(imageData.length)
+                .body(imageData);
+    }
 }

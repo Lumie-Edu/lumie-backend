@@ -157,7 +157,7 @@ public class ResultCommandService {
 
                 results.add(BatchOmrGradingResponse.BatchOmrResult.success(
                         fileName, omrResult.phoneNumber(), student.id(), student.name(),
-                        omrResult.totalScore(), omrResult.grade(), true));
+                        omrResult.totalScore(), omrResult.grade(), true, savedResult.getId()));
                 savedCount++;
 
             } catch (Exception e) {
@@ -191,7 +191,7 @@ public class ResultCommandService {
         List<CompletableFuture<Void>> futures = images.stream()
                 .map(image -> CompletableFuture.runAsync(() -> {
                     try {
-                        String objectKey = tenantId + "/omr/" + batchKey + "/" + image.getOriginalFilename();
+                        String objectKey = "omr/tmp/" + tenantId + "/" + batchKey + "/" + image.getOriginalFilename();
                         storagePort.putObject(objectKey, image.getBytes(), image.getContentType());
                         imageKeys.add(objectKey);
                     } catch (Exception e) {

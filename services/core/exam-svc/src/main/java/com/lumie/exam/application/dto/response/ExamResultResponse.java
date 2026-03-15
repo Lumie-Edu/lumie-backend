@@ -13,6 +13,7 @@ public record ExamResultResponse(
         Integer grade,
         Integer correctCount,
         Integer incorrectCount,
+        boolean hasOmrImage,
         LocalDateTime createdAt
 ) {
     public static ExamResultResponse from(ExamResult result) {
@@ -25,6 +26,7 @@ public record ExamResultResponse(
                 result.getGrade(),
                 result.getCorrectCount(),
                 result.getIncorrectCount(),
+                result.getOmrImageKey() != null,
                 result.getCreatedAt()
         );
     }

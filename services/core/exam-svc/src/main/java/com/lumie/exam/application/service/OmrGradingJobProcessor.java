@@ -98,6 +98,17 @@ public class OmrGradingJobProcessor {
             }
 
             gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, examResult);
+
+            // Copy OMR image to permanent path
+            String tenantId = extractTenantId(tenantSlug);
+            String permanentKey = "omr/results/" + tenantId + "/" + examId + "/" + student.id();
+            try {
+                storagePort.putObject(permanentKey, imageData, "image/png");
+                examResult.setOmrImageKey(permanentKey);
+            } catch (Exception e) {
+                log.warn("Failed to copy OMR image to permanent path: {}", permanentKey, e);
+            }
+
             ExamResult savedResult = resultRepository.save(examResult);
             eventPublisher.publishResultSubmitted(savedResult, tenantSlug);
             billingService.consumeOmrQuota();
@@ -110,6 +121,7 @@ public class OmrGradingJobProcessor {
             resultMap.put("studentName", student.name());
             resultMap.put("totalScore", omrResult.totalScore());
             resultMap.put("grade", omrResult.grade());
+            resultMap.put("resultId", savedResult.getId());
             job.incrementProcessed(true, true);
 
         } catch (Exception e) {
@@ -123,6 +135,13 @@ public class OmrGradingJobProcessor {
 
         jobRepository.save(job);
         return resultMap;
+    }
+
+    private String extractTenantId(String tenantSlug) {
+        if (tenantSlug.startsWith("inst-")) {
+            return tenantSlug.substring(5);
+        }
+        return tenantSlug;
     }
 
     @Transactional

@@ -4,6 +4,7 @@ import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
 import io.minio.*;
+import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -71,6 +73,23 @@ public class OmrMinioStorageAdapter implements OmrStoragePort {
             } catch (Exception e) {
                 log.warn("Failed to delete object: {}", objectKey, e);
             }
+        }
+    }
+
+    @Override
+    public String getPresignedUrl(String objectKey) {
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .expiry(1, TimeUnit.HOURS)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("Failed to generate presigned URL for: {}", objectKey, e);
+            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
         }
     }
 }

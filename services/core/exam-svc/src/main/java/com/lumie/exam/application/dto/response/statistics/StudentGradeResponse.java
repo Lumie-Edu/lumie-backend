@@ -14,5 +14,6 @@ public record StudentGradeResponse(
         Integer grade,
         ExamCategory examCategory,
         boolean isPassed,
-        LocalDateTime submittedAt
+        LocalDateTime submittedAt,
+        Long resultId
 ) {}

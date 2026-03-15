@@ -3,6 +3,7 @@ package com.lumie.exam.application.service;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
+import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
@@ -23,6 +24,7 @@ public class ResultQueryService {
 
     private final ExamResultRepository resultRepository;
     private final OmrGradingJobRepository jobRepository;
+    private final OmrStoragePort storagePort;
 
     public List<ExamResultResponse> getExamResults(Long examId) {
         log.debug("Getting results for exam: {}", examId);
@@ -66,5 +68,16 @@ public class ResultQueryService {
         return jobRepository.findByExamIdOrderByCreatedAtDesc(examId).stream()
                 .map(OmrJobStatusResponse::from)
                 .toList();
+    }
+
+    public byte[] getOmrImageData(Long resultId) {
+        ExamResult result = resultRepository.findById(resultId)
+                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+
+        if (result.getOmrImageKey() == null) {
+            throw new ExamException(ExamErrorCode.OMR_IMAGE_NOT_FOUND);
+        }
+
+        return storagePort.getObject(result.getOmrImageKey());
     }
 }

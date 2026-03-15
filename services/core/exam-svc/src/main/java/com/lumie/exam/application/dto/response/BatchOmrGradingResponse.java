@@ -18,19 +18,20 @@ public record BatchOmrGradingResponse(
             String studentName,
             Integer totalScore,
             Integer grade,
+            Long resultId,
             String error
     ) {
         public static BatchOmrResult success(String fileName, String phoneNumber, Long studentId,
-                                              String studentName, int totalScore, int grade, boolean saved) {
-            return new BatchOmrResult(fileName, true, saved, phoneNumber, studentId, studentName, totalScore, grade, null);
+                                              String studentName, int totalScore, int grade, boolean saved, Long resultId) {
+            return new BatchOmrResult(fileName, true, saved, phoneNumber, studentId, studentName, totalScore, grade, resultId, null);
         }
 
         public static BatchOmrResult failure(String fileName, String error) {
-            return new BatchOmrResult(fileName, false, false, null, null, null, null, null, error);
+            return new BatchOmrResult(fileName, false, false, null, null, null, null, null, null, error);
         }
 
         public static BatchOmrResult gradedButNotSaved(String fileName, String phoneNumber, int totalScore, int grade, String reason) {
-            return new BatchOmrResult(fileName, true, false, phoneNumber, null, null, totalScore, grade, reason);
+            return new BatchOmrResult(fileName, true, false, phoneNumber, null, null, totalScore, grade, null, reason);
         }
     }
 }

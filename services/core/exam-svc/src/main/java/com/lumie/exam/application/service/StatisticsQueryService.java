@@ -160,7 +160,8 @@ public class StatisticsQueryService {
                             grade,
                             exam.getCategory(),
                             result.isPassed(),
-                            result.getCreatedAt()
+                            result.getCreatedAt(),
+                            result.getId()
                     );
                 })
                 .sorted(exam.getCategory() == ExamCategory.PASS_FAIL
