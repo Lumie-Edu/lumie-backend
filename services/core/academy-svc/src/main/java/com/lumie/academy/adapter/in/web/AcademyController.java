@@ -17,7 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/academies")
+@RequestMapping("/v1/academies")
 @RequiredArgsConstructor
 public class AcademyController {
 

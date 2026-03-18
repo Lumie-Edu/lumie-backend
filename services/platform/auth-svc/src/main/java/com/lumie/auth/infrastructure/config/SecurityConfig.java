@@ -28,11 +28,11 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
-                        .requestMatchers("/api/v1/auth/register").permitAll()
-                        .requestMatchers("/api/v1/auth/register/owner").permitAll()
-                        .requestMatchers("/api/v1/auth/login").permitAll()
-                        .requestMatchers("/api/v1/auth/refresh").permitAll()
-                        .requestMatchers("/api/v1/auth/oauth2/**").permitAll()
+                        .requestMatchers("/v1/register").permitAll()
+                        .requestMatchers("/v1/register/owner").permitAll()
+                        .requestMatchers("/v1/login").permitAll()
+                        .requestMatchers("/v1/refresh").permitAll()
+                        .requestMatchers("/v1/oauth2/**").permitAll()
                         // Actuator endpoints
                         .requestMatchers("/actuator/**").permitAll()
                         // All other requests need authentication

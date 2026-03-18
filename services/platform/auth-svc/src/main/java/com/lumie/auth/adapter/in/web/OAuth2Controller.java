@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/v1/auth/oauth2")
+@RequestMapping("/v1/oauth2")
 @RequiredArgsConstructor
 public class OAuth2Controller {
 

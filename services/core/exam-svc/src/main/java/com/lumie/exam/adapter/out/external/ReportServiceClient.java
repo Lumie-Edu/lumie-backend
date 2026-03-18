@@ -30,7 +30,7 @@ public class ReportServiceClient implements ReportServicePort {
             HttpEntity<Void> request = new HttpEntity<>(headers);
 
             String url = String.format(
-                    "%s/api/v1/reports/students/%d/exams/%d",
+                    "%s/v1/reports/students/%d/exams/%d",
                     reportServiceUrl, studentId, examId
             );
 

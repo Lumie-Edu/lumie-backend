@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/scheduled-tasks")
+@RequestMapping("/v1/scheduled-tasks")
 @RequiredArgsConstructor
 public class ScheduledTaskController {
 

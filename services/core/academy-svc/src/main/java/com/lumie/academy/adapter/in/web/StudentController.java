@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/v1/students")
+@RequestMapping("/v1/students")
 @RequiredArgsConstructor
 public class StudentController {
 

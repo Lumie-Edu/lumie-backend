@@ -56,7 +56,7 @@ class TenantControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/tenants - 테넌트 생성 성공")
+    @DisplayName("POST /v1/tenants - 테넌트 생성 성공")
     void createTenantSuccess() throws Exception {
         CreateTenantRequest request = CreateTenantRequest.builder()
                 .slug("test-academy")
@@ -79,7 +79,7 @@ class TenantControllerTest {
 
         when(createTenantUseCase.createTenant(any())).thenReturn(response);
 
-        mockMvc.perform(post("/api/v1/tenants")
+        mockMvc.perform(post("/v1/tenants")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -89,21 +89,21 @@ class TenantControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/tenants - 잘못된 slug 형식")
+    @DisplayName("POST /v1/tenants - 잘못된 slug 형식")
     void createTenantInvalidSlug() throws Exception {
         CreateTenantRequest request = CreateTenantRequest.builder()
                 .slug("AB")
                 .name("Test Academy")
                 .build();
 
-        mockMvc.perform(post("/api/v1/tenants")
+        mockMvc.perform(post("/v1/tenants")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("GET /api/v1/tenants/{slug} - 테넌트 조회 성공")
+    @DisplayName("GET /v1/tenants/{slug} - 테넌트 조회 성공")
     void getTenantSuccess() throws Exception {
         TenantResponse response = TenantResponse.builder()
                 .id(1L)
@@ -117,26 +117,26 @@ class TenantControllerTest {
 
         when(getTenantUseCase.getTenantBySlug("test-academy")).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/tenants/test-academy"))
+        mockMvc.perform(get("/v1/tenants/test-academy"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.slug").value("test-academy"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
     @Test
-    @DisplayName("GET /api/v1/tenants/{slug} - 존재하지 않는 테넌트")
+    @DisplayName("GET /v1/tenants/{slug} - 존재하지 않는 테넌트")
     void getTenantNotFound() throws Exception {
         when(getTenantUseCase.getTenantBySlug("non-existent"))
                 .thenThrow(new ResourceNotFoundException("Tenant", "non-existent"));
 
-        mockMvc.perform(get("/api/v1/tenants/non-existent"))
+        mockMvc.perform(get("/v1/tenants/non-existent"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("DELETE /api/v1/tenants/{slug} - 테넌트 삭제 성공")
+    @DisplayName("DELETE /v1/tenants/{slug} - 테넌트 삭제 성공")
     void deleteTenantSuccess() throws Exception {
-        mockMvc.perform(delete("/api/v1/tenants/test-academy"))
+        mockMvc.perform(delete("/v1/tenants/test-academy"))
                 .andExpect(status().isNoContent());
     }
 }

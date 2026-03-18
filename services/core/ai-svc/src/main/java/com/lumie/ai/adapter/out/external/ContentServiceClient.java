@@ -31,7 +31,7 @@ public class ContentServiceClient implements ContentServicePort {
         body.put("isItAssetAnnouncement", arguments.getOrDefault("isAsset", false));
 
         Map<String, Object> result = internalServiceClient.post(
-                contentSvcUrl, "/api/v1/announcements", body);
+                contentSvcUrl, "/v1/announcements", body);
 
         return "Announcement created successfully: " + result.get("announcementTitle");
     }

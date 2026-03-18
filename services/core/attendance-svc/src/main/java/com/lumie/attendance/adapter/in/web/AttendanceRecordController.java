@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/attendance/sessions/{sessionId}/records")
+@RequestMapping("/v1/attendance/sessions/{sessionId}/records")
 @RequiredArgsConstructor
 public class AttendanceRecordController {
 

@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/permissions")
+@RequestMapping("/v1/permissions")
 @RequiredArgsConstructor
 public class PermissionController {
 
