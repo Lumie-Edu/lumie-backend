@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -62,10 +63,12 @@ public class RequestContextFilter extends OncePerRequestFilter {
             }
 
             TenantContextHolder.setTenant(tenantSlug);
+            MDC.put("tenantSlug", tenantSlug);
 
             if (tenantId != null && !tenantId.isBlank()) {
                 try {
                     TenantContextHolder.setTenantId(Long.parseLong(tenantId));
+                    MDC.put("tenantId", tenantId);
                 } catch (NumberFormatException e) {
                     log.warn("Invalid {} header value: {}", TENANT_ID_HEADER, tenantId);
                 }
@@ -74,6 +77,7 @@ public class RequestContextFilter extends OncePerRequestFilter {
             if (userId != null && !userId.isBlank()) {
                 try {
                     UserContextHolder.setUserId(Long.parseLong(userId));
+                    MDC.put("userId", userId);
                 } catch (NumberFormatException e) {
                     log.warn("Invalid {} header value: {}", USER_ID_HEADER, userId);
                 }
@@ -81,6 +85,7 @@ public class RequestContextFilter extends OncePerRequestFilter {
 
             if (userRole != null && !userRole.isBlank()) {
                 UserContextHolder.setUserRole(userRole);
+                MDC.put("userRole", userRole);
             }
 
             log.debug("Context set: tenant={}, tenantId={}, userId={}, role={}",
@@ -88,6 +93,7 @@ public class RequestContextFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
         } finally {
+            MDC.clear();
             TenantContextHolder.clear();
             UserContextHolder.clear();
         }

@@ -46,6 +46,17 @@ public class TenantAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "lumie.logging", name = "access-log-enabled", matchIfMissing = true)
+    public FilterRegistrationBean<AccessLogFilter> accessLogFilterRegistration(TenantProperties properties) {
+        FilterRegistrationBean<AccessLogFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new AccessLogFilter(properties.getExcludePaths()));
+        registration.addUrlPatterns("/*");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 11);
+        registration.setName("accessLogFilter");
+        return registration;
+    }
+
+    @Bean
     @ConditionalOnClass(name = "org.hibernate.context.spi.CurrentTenantIdentifierResolver")
     @ConditionalOnProperty(prefix = "lumie.tenant", name = "hibernate-enabled", matchIfMissing = true)
     public TenantIdentifierResolver tenantIdentifierResolver() {

@@ -26,6 +26,9 @@ dependencies {
     api("com.fasterxml.jackson.core:jackson-databind")
     api("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
+    // Logging
+    api("net.logstash.logback:logstash-logback-encoder:8.0")
+
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testCompileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
