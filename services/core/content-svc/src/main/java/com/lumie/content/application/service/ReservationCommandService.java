@@ -3,7 +3,6 @@ package com.lumie.content.application.service;
 import com.lumie.content.application.dto.request.CreateReservationRequest;
 import com.lumie.content.application.dto.request.UpdateReservationStatusRequest;
 import com.lumie.content.application.dto.response.ReservationResponse;
-import com.lumie.content.application.port.out.ContentEventPublisherPort;
 import com.lumie.content.domain.entity.Reservation;
 import com.lumie.content.domain.entity.Schedule;
 import com.lumie.content.domain.exception.ContentErrorCode;
@@ -11,7 +10,6 @@ import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.ReservationRepository;
 import com.lumie.content.domain.repository.ScheduleRepository;
 import com.lumie.content.domain.vo.ReservationStatus;
-import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,7 +22,6 @@ public class ReservationCommandService {
 
     private final ReservationRepository reservationRepository;
     private final ScheduleRepository scheduleRepository;
-    private final ContentEventPublisherPort eventPublisher;
 
     @Transactional
     public ReservationResponse createReservation(CreateReservationRequest request) {
@@ -78,11 +75,7 @@ public class ReservationCommandService {
         validateStatusTransition(currentStatus, newStatus);
 
         switch (newStatus) {
-            case CONFIRMED -> {
-                reservation.confirm();
-                String tenantSlug = TenantContextHolder.getTenantSlug();
-                eventPublisher.publishReservationConfirmed(reservation, tenantSlug);
-            }
+            case CONFIRMED -> reservation.confirm();
             case CANCELLED -> reservation.cancel();
             case COMPLETED -> reservation.complete();
             default -> throw new ContentException(ContentErrorCode.INVALID_RESERVATION_STATUS);

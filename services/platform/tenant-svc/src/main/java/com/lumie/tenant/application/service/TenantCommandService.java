@@ -2,8 +2,7 @@ package com.lumie.tenant.application.service;
 
 import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
-import com.lumie.messaging.event.TenantCreatedEvent;
-import com.lumie.messaging.event.TenantSuspendedEvent;
+import com.lumie.tenant.adapter.out.external.BillingServiceClient;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
@@ -11,7 +10,7 @@ import com.lumie.tenant.application.port.in.CreateTenantUseCase;
 import com.lumie.tenant.application.port.in.DeleteTenantUseCase;
 import com.lumie.tenant.application.port.in.SuspendTenantUseCase;
 import com.lumie.tenant.application.port.in.UpdateTenantUseCase;
-import com.lumie.tenant.application.port.out.EventPublisherPort;
+import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +29,8 @@ public class TenantCommandService implements
         SuspendTenantUseCase {
 
     private final TenantPersistencePort tenantPersistencePort;
-    private final EventPublisherPort eventPublisherPort;
+    private final SchemaProvisioningPort schemaProvisioningPort;
+    private final BillingServiceClient billingServiceClient;
 
     @Override
     public TenantResponse createTenant(CreateTenantRequest request) {
@@ -50,7 +50,21 @@ public class TenantCommandService implements
         Tenant savedTenant = tenantPersistencePort.save(tenant);
         log.info("Tenant created with ID: {}, slug: {}", savedTenant.getId(), savedTenant.getSlugValue());
 
-        publishTenantCreatedEvent(savedTenant);
+        savedTenant.startProvisioning();
+        tenantPersistencePort.save(savedTenant);
+
+        String schemaName = savedTenant.getSchemaName();
+        if (!schemaProvisioningPort.schemaExists(schemaName)) {
+            schemaProvisioningPort.createSchema(schemaName);
+            log.info("Schema created: {}", schemaName);
+        }
+        schemaProvisioningPort.migrateSchema(schemaName);
+        log.info("Schema migration completed: {}", schemaName);
+
+        savedTenant.activate();
+        tenantPersistencePort.save(savedTenant);
+
+        billingServiceClient.createFreeSubscription(savedTenant.getId(), savedTenant.getSlugValue());
 
         return TenantResponse.from(savedTenant);
     }
@@ -86,8 +100,6 @@ public class TenantCommandService implements
         tenant.suspend();
         Tenant savedTenant = tenantPersistencePort.save(tenant);
 
-        publishTenantSuspendedEvent(savedTenant, reason);
-
         return TenantResponse.from(savedTenant);
     }
 
@@ -106,25 +118,5 @@ public class TenantCommandService implements
     private Tenant findTenantOrThrow(String slug) {
         return tenantPersistencePort.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", slug));
-    }
-
-    private void publishTenantCreatedEvent(Tenant tenant) {
-        TenantCreatedEvent event = new TenantCreatedEvent(
-                tenant.getId(),
-                tenant.getSlugValue(),
-                tenant.getName()
-        );
-        eventPublisherPort.publish(event);
-        log.info("Published TenantCreatedEvent for tenant: {}", tenant.getSlugValue());
-    }
-
-    private void publishTenantSuspendedEvent(Tenant tenant, String reason) {
-        TenantSuspendedEvent event = new TenantSuspendedEvent(
-                tenant.getId(),
-                tenant.getSlugValue(),
-                reason
-        );
-        eventPublisherPort.publish(event);
-        log.info("Published TenantSuspendedEvent for tenant: {}", tenant.getSlugValue());
     }
 }

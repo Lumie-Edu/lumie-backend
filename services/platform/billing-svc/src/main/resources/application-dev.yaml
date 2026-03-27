@@ -1,10 +1,6 @@
 spring:
   datasource:
     url: jdbc:postgresql://pgbouncer.lumie-dev.svc:5432/lumie?prepareThreshold=0
-  rabbitmq:
-    host: rabbitmq-dev.lumie-dev.svc
-    port: 5672
-
 grpc:
   client:
     tenant-svc:

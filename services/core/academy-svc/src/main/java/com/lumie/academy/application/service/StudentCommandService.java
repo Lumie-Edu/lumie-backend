@@ -7,7 +7,6 @@ import com.lumie.academy.application.dto.StudentResponse;
 import com.lumie.academy.application.dto.StudentUpdateRequest;
 import com.lumie.academy.application.port.out.AuthServicePort;
 import com.lumie.academy.application.port.out.BillingServicePort;
-import com.lumie.academy.application.port.out.MemberEventPublisherPort;
 import com.lumie.academy.domain.entity.Academy;
 import com.lumie.academy.domain.entity.Student;
 import com.lumie.academy.domain.exception.AcademyNotFoundException;
@@ -18,9 +17,6 @@ import com.lumie.academy.domain.exception.StudentNotFoundException;
 import com.lumie.academy.domain.repository.AcademyRepository;
 import com.lumie.academy.domain.repository.StudentRepository;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.messaging.event.MemberCreatedEvent;
-import com.lumie.messaging.event.MemberDeletedEvent;
-import com.lumie.messaging.event.MemberUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -44,7 +40,6 @@ public class StudentCommandService {
     private final AcademyRepository academyRepository;
     private final AuthServicePort authServicePort;
     private final BillingServicePort billingServicePort;
-    private final MemberEventPublisherPort eventPublisher;
 
     public StudentResponse registerStudent(StudentRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -91,15 +86,6 @@ public class StudentCommandService {
 
         Student saved = studentRepository.save(student);
 
-        eventPublisher.publish(new MemberCreatedEvent(
-            saved.getId(),
-            tenantSlug,
-            "STUDENT",
-            saved.getStudentName(),
-            saved.getStudentEmail(),
-            academy.getId()
-        ));
-
         log.info("Student registered: {} in tenant: {}", saved.getUserLoginId(), tenantSlug);
         return StudentResponse.from(saved);
     }
@@ -130,13 +116,6 @@ public class StudentCommandService {
 
         Student updated = studentRepository.save(student);
 
-        eventPublisher.publish(new MemberUpdatedEvent(
-            updated.getId(),
-            tenantSlug,
-            "STUDENT",
-            updated.getStudentName()
-        ));
-
         log.info("Student updated: {} in tenant: {}", id, tenantSlug);
         return StudentResponse.from(updated);
     }
@@ -149,12 +128,6 @@ public class StudentCommandService {
 
         student.deactivate();
         studentRepository.save(student);
-
-        eventPublisher.publish(new MemberDeletedEvent(
-            student.getId(),
-            tenantSlug,
-            "STUDENT"
-        ));
 
         log.info("Student deactivated: {} in tenant: {}", id, tenantSlug);
     }

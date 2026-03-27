@@ -5,14 +5,12 @@ import com.lumie.content.application.dto.request.CreateQnaRequest;
 import com.lumie.content.application.dto.request.UpdateQnaRequest;
 import com.lumie.content.application.dto.response.QnaBoardResponse;
 import com.lumie.content.application.dto.response.QnaCommentResponse;
-import com.lumie.content.application.port.out.ContentEventPublisherPort;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.QnaBoardRepository;
 import com.lumie.content.domain.repository.QnaCommentRepository;
-import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,7 +23,6 @@ public class QnaCommandService {
 
     private final QnaBoardRepository qnaBoardRepository;
     private final QnaCommentRepository qnaCommentRepository;
-    private final ContentEventPublisherPort eventPublisher;
 
     @Transactional
     public QnaBoardResponse createQna(CreateQnaRequest request) {
@@ -77,8 +74,6 @@ public class QnaCommandService {
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(qnaId)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
 
-        boolean hadAdminComment = qnaBoard.hasAdminComment();
-
         QnaComment comment;
         if (request.adminId() != null) {
             comment = QnaComment.createByAdmin(qnaBoard, request.adminId(), request.commentContent());
@@ -89,12 +84,6 @@ public class QnaCommandService {
         qnaBoard.addComment(comment);
         QnaComment saved = qnaCommentRepository.save(comment);
         qnaBoardRepository.save(qnaBoard);
-
-        // Publish event if this is the first admin comment (answer)
-        if (!hadAdminComment && comment.isAdminComment()) {
-            String tenantSlug = TenantContextHolder.getTenantSlug();
-            eventPublisher.publishQnaReplied(qnaBoard, tenantSlug);
-        }
 
         log.info("Comment added with id: {}", saved.getId());
         return QnaCommentResponse.from(saved);

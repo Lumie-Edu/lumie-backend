@@ -2,7 +2,6 @@ package com.lumie.auth.application.service;
 
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.port.in.OAuth2LoginUseCase;
-import com.lumie.auth.application.port.out.AuthEventPublisherPort;
 import com.lumie.auth.application.port.out.TenantServicePort;
 import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
@@ -35,7 +34,6 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     private final TenantServicePort tenantServicePort;
     private final UserLookupPort userLookupPort;
     private final TokenPersistencePort tokenPersistencePort;
-    private final AuthEventPublisherPort eventPublisherPort;
     private final JwtTokenProvider jwtTokenProvider;
     private final RestTemplate restTemplate;
 
@@ -109,9 +107,6 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
 
         // 8. Save refresh token
         saveRefreshToken(user.id(), tenantSlug, tenant.id(), user.role(), tokenPair);
-
-        // 9. Publish login event
-        eventPublisherPort.publishLoginEvent(user.id(), tenantSlug, user.userLoginId(), provider);
 
         log.info("OAuth2 login successful for user: {} via {}", user.userLoginId(), provider);
 

@@ -6,39 +6,8 @@ public final class RabbitMqConstants {
     }
 
     // Exchanges
-    public static final String LUMIE_EVENTS_EXCHANGE = "lumie.events";
-    public static final String LUMIE_DLX_EXCHANGE = "lumie.dlx";
-
-    // Queues - Tenant
-    public static final String TENANT_SCHEMA_PROVISIONING_QUEUE = "tenant.schema-provisioning";
-    public static final String TENANT_SCHEMA_PROVISIONING_DLQ = "tenant.schema-provisioning.dlq";
-
-    // Queues - Billing
-    public static final String BILLING_SUBSCRIPTION_QUEUE = "billing.subscription";
-    public static final String BILLING_SUBSCRIPTION_DLQ = "billing.subscription.dlq";
-    public static final String BILLING_QUOTA_QUEUE = "billing.quota";
-    public static final String BILLING_QUOTA_DLQ = "billing.quota.dlq";
-
-    // Routing Keys - Tenant
-    public static final String TENANT_CREATED_ROUTING_KEY = "tenant.created.*";
-    public static final String TENANT_READY_ROUTING_KEY = "tenant.ready.*";
-
-    // Routing Keys - Billing
-    public static final String BILLING_SUBSCRIPTION_CREATED_ROUTING_KEY = "billing.subscription.created.*";
-    public static final String BILLING_SUBSCRIPTION_UPGRADED_ROUTING_KEY = "billing.subscription.upgraded.*";
-    public static final String BILLING_QUOTA_EXCEEDED_ROUTING_KEY = "billing.quota.exceeded.*";
-
-    // Queues - Member (Academy)
-    public static final String MEMBER_EVENTS_QUEUE = "member.events";
-    public static final String MEMBER_EVENTS_DLQ = "member.events.dlq";
-
-    // Routing Keys - Member
-    public static final String MEMBER_CREATED_ROUTING_KEY = "member.created.*";
-    public static final String MEMBER_UPDATED_ROUTING_KEY = "member.updated.*";
-    public static final String MEMBER_DELETED_ROUTING_KEY = "member.deleted.*";
-
-    // Exchanges - Commands
     public static final String LUMIE_COMMANDS_EXCHANGE = "lumie.commands";
+    public static final String LUMIE_DLX_EXCHANGE = "lumie.dlx";
 
     // Queues - Grading
     public static final String GRADING_OMR_REQUEST_QUEUE = "grading.omr-request";

@@ -4,7 +4,6 @@ import com.lumie.admin.application.dto.AdminRequest;
 import com.lumie.admin.application.dto.AdminResponse;
 import com.lumie.admin.application.port.out.AuthServicePort;
 import com.lumie.admin.application.port.out.BillingServicePort;
-import com.lumie.admin.application.port.out.MemberEventPublisherPort;
 import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.entity.AdminPermission;
 import com.lumie.admin.domain.entity.Position;
@@ -18,8 +17,6 @@ import com.lumie.admin.domain.repository.AdminRepository;
 import com.lumie.admin.domain.repository.PositionRepository;
 import com.lumie.admin.domain.vo.AccessLevel;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.messaging.event.MemberCreatedEvent;
-import com.lumie.messaging.event.MemberUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,7 +38,6 @@ public class AdminCommandService {
     private final AdminPermissionRepository adminPermissionRepository;
     private final AuthServicePort authServicePort;
     private final BillingServicePort billingServicePort;
-    private final MemberEventPublisherPort eventPublisher;
 
     public AdminResponse registerAdmin(Long userId, AdminRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -80,16 +76,6 @@ public class AdminCommandService {
 
         Admin saved = adminRepository.save(admin);
 
-        Long firstAcademyId = academyIds.isEmpty() ? null : academyIds.iterator().next();
-        eventPublisher.publish(new MemberCreatedEvent(
-            saved.getId(),
-            tenantSlug,
-            "ADMIN",
-            saved.getAdminName(),
-            saved.getUserLoginId(),
-            firstAcademyId
-        ));
-
         log.info("Admin registered: {} in tenant: {}", saved.getUserLoginId(), tenantSlug);
         return AdminResponse.from(saved);
     }
@@ -118,13 +104,6 @@ public class AdminCommandService {
         }
 
         Admin updated = adminRepository.save(admin);
-
-        eventPublisher.publish(new MemberUpdatedEvent(
-            updated.getId(),
-            tenantSlug,
-            "ADMIN",
-            updated.getAdminName()
-        ));
 
         log.info("Admin updated: {} in tenant: {}", id, tenantSlug);
         return AdminResponse.from(updated);

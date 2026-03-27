@@ -3,12 +3,10 @@ package com.lumie.exam.application.service;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
 import com.lumie.exam.application.dto.request.UpdateExamRequest;
 import com.lumie.exam.application.dto.response.ExamResponse;
-import com.lumie.exam.application.port.out.ExamEventPublisherPort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class ExamCommandService {
 
     private final ExamRepository examRepository;
-    private final ExamEventPublisherPort eventPublisher;
 
     @Transactional
     public ExamResponse createExam(CreateExamRequest request) {
@@ -39,9 +36,6 @@ public class ExamCommandService {
         );
 
         Exam savedExam = examRepository.save(exam);
-
-        String tenantSlug = TenantContextHolder.getTenantSlug();
-        eventPublisher.publishExamCreated(savedExam, tenantSlug);
 
         log.info("Exam created with id: {}", savedExam.getId());
         return ExamResponse.from(savedExam);

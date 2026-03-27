@@ -12,7 +12,6 @@ import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
 import com.lumie.auth.application.port.in.RefreshTokenUseCase;
 import com.lumie.auth.application.port.in.RegisterUseCase;
 import com.lumie.auth.domain.vo.Role;
-import com.lumie.auth.application.port.out.AuthEventPublisherPort;
 import com.lumie.auth.application.port.out.TenantServicePort;
 import com.lumie.auth.application.port.out.TenantServicePort.TenantCreationResult;
 import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
@@ -40,7 +39,6 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
     private final TenantServicePort tenantServicePort;
     private final UserLookupPort userLookupPort;
     private final TokenPersistencePort tokenPersistencePort;
-    private final AuthEventPublisherPort eventPublisherPort;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
 
@@ -114,9 +112,6 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         // 5. Save refresh token to Redis
         saveRefreshToken(user.id(), tenant.slug(), tenant.id(), user.role(), tokenPair);
 
-        // 6. Publish login event
-        eventPublisherPort.publishLoginEvent(user.id(), tenant.slug(), user.userLoginId(), "local");
-
         log.info("Login successful for user: {} on tenant: {}", user.id(), tenant.slug());
 
         return LoginResponse.of(tokenPair, user.toUserResponse(tenant.slug()));
@@ -183,9 +178,6 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         // Delete session
         tokenPersistencePort.deleteSession(claims.tenantSlug(), claims.jti());
 
-        // Publish logout event
-        eventPublisherPort.publishLogoutEvent(claims.getUserId(), claims.tenantSlug(), false);
-
         log.info("Logout successful for user: {} on tenant: {}", claims.sub(), claims.tenantSlug());
     }
 
@@ -204,9 +196,6 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
 
         // Delete all refresh tokens for user
         tokenPersistencePort.deleteAllRefreshTokensForUser(claims.getUserId());
-
-        // Publish logout event
-        eventPublisherPort.publishLogoutEvent(claims.getUserId(), claims.tenantSlug(), true);
 
         log.info("Logout all sessions successful for user: {}", claims.sub());
     }

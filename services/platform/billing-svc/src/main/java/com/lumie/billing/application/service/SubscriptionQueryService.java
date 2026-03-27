@@ -4,14 +4,12 @@ import com.lumie.billing.application.dto.response.QuotaCheckResponse;
 import com.lumie.billing.application.dto.response.SubscriptionResponse;
 import com.lumie.billing.application.port.in.CheckQuotaUseCase;
 import com.lumie.billing.application.port.in.GetSubscriptionUseCase;
-import com.lumie.billing.application.port.out.BillingEventPublisherPort;
 import com.lumie.billing.application.port.out.SubscriptionPersistencePort;
 import com.lumie.billing.application.port.out.UsageLogPersistencePort;
 import com.lumie.billing.domain.entity.Subscription;
 import com.lumie.billing.domain.vo.MetricType;
 import com.lumie.billing.domain.vo.PlanLimits;
 import com.lumie.common.exception.ResourceNotFoundException;
-import com.lumie.messaging.event.QuotaExceededEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,7 +25,6 @@ public class SubscriptionQueryService implements GetSubscriptionUseCase, CheckQu
 
     private final SubscriptionPersistencePort subscriptionPersistencePort;
     private final UsageLogPersistencePort usageLogPersistencePort;
-    private final BillingEventPublisherPort eventPublisherPort;
 
     @Override
     public SubscriptionResponse getSubscription(String tenantSlug) {
@@ -75,15 +72,6 @@ public class SubscriptionQueryService implements GetSubscriptionUseCase, CheckQu
         if (!allowed) {
             log.warn("Quota exceeded for tenant: {}, metricType: {}, usage: {}/{}",
                     subscription.getTenantSlug(), metricType, currentUsage, limit);
-
-            QuotaExceededEvent event = new QuotaExceededEvent(
-                    subscription.getTenantId(),
-                    subscription.getTenantSlug(),
-                    metricType.name(),
-                    currentUsage,
-                    limit
-            );
-            eventPublisherPort.publish(event);
 
             return QuotaCheckResponse.exceeded(metricType, currentUsage, limit);
         }

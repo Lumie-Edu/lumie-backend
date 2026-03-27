@@ -27,16 +27,13 @@ spring:
     baseline-on-migrate: true
     baseline-version: "0"
 
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
-    virtual-host: /
-
 grpc:
   server:
     port: 9090
+  client:
+    billing-svc:
+      address: static://billing-svc-grpc.lumie-platform.svc:9090
+      negotiation-type: plaintext
 
 server:
   port: 8080

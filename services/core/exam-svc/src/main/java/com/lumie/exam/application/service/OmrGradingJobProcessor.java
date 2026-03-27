@@ -1,7 +1,6 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.exam.application.port.out.BillingServicePort;
-import com.lumie.exam.application.port.out.ExamEventPublisherPort;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.application.port.out.StudentServicePort;
@@ -35,7 +34,6 @@ public class OmrGradingJobProcessor {
     private final StudentServicePort studentService;
     private final BillingServicePort billingService;
     private final GradeCalculator gradeCalculator;
-    private final ExamEventPublisherPort eventPublisher;
 
     @Transactional
     public void startProcessing(Long jobId) {
@@ -110,7 +108,6 @@ public class OmrGradingJobProcessor {
             }
 
             ExamResult savedResult = resultRepository.save(examResult);
-            eventPublisher.publishResultSubmitted(savedResult, tenantSlug);
             billingService.consumeOmrQuota();
 
             resultMap.put("fileName", fileName);

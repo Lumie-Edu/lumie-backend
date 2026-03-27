@@ -6,15 +6,12 @@ import com.lumie.billing.application.dto.response.SubscriptionResponse;
 import com.lumie.billing.application.port.in.CancelSubscriptionUseCase;
 import com.lumie.billing.application.port.in.ChangeSubscriptionUseCase;
 import com.lumie.billing.application.port.in.CreateSubscriptionUseCase;
-import com.lumie.billing.application.port.out.BillingEventPublisherPort;
 import com.lumie.billing.application.port.out.PlanPersistencePort;
 import com.lumie.billing.application.port.out.SubscriptionPersistencePort;
 import com.lumie.billing.domain.entity.Plan;
 import com.lumie.billing.domain.entity.Subscription;
 import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
-import com.lumie.messaging.event.SubscriptionCreatedEvent;
-import com.lumie.messaging.event.SubscriptionUpgradedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +32,6 @@ public class SubscriptionCommandService implements
 
     private final SubscriptionPersistencePort subscriptionPersistencePort;
     private final PlanPersistencePort planPersistencePort;
-    private final BillingEventPublisherPort eventPublisherPort;
 
     @Override
     public SubscriptionResponse createSubscription(CreateSubscriptionRequest request) {
@@ -63,8 +59,6 @@ public class SubscriptionCommandService implements
         log.info("Subscription created: id={}, tenantSlug={}, planId={}",
                 saved.getId(), saved.getTenantSlug(), saved.getPlanId());
 
-        publishSubscriptionCreatedEvent(saved);
-
         return SubscriptionResponse.from(saved);
     }
 
@@ -87,8 +81,6 @@ public class SubscriptionCommandService implements
 
         log.info("Free subscription created: id={}, tenantSlug={}", saved.getId(), saved.getTenantSlug());
 
-        publishSubscriptionCreatedEvent(saved);
-
         return SubscriptionResponse.from(saved);
     }
 
@@ -110,8 +102,6 @@ public class SubscriptionCommandService implements
         log.info("Plan changed for tenant: {} from {} to {}",
                 tenantSlug, previousPlanId, request.newPlanId());
 
-        publishSubscriptionUpgradedEvent(saved, previousPlanId);
-
         return SubscriptionResponse.from(saved);
     }
 
@@ -128,26 +118,4 @@ public class SubscriptionCommandService implements
         log.info("Subscription cancelled for tenant: {}", tenantSlug);
     }
 
-    private void publishSubscriptionCreatedEvent(Subscription subscription) {
-        SubscriptionCreatedEvent event = new SubscriptionCreatedEvent(
-                subscription.getTenantId(),
-                subscription.getTenantSlug(),
-                subscription.getId(),
-                subscription.getPlanId(),
-                subscription.getPlanName()
-        );
-        eventPublisherPort.publish(event);
-    }
-
-    private void publishSubscriptionUpgradedEvent(Subscription subscription, String previousPlanId) {
-        SubscriptionUpgradedEvent event = new SubscriptionUpgradedEvent(
-                subscription.getTenantId(),
-                subscription.getTenantSlug(),
-                subscription.getId(),
-                previousPlanId,
-                subscription.getPlanId(),
-                subscription.getPlanName()
-        );
-        eventPublisherPort.publish(event);
-    }
 }

@@ -2,11 +2,11 @@ package com.lumie.tenant.application.service;
 
 import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
-import com.lumie.messaging.event.TenantCreatedEvent;
+import com.lumie.tenant.adapter.out.external.BillingServiceClient;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
-import com.lumie.tenant.application.port.out.EventPublisherPort;
+import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.domain.vo.TenantStatus;
@@ -24,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,7 +34,10 @@ class TenantCommandServiceTest {
     private TenantPersistencePort tenantPersistencePort;
 
     @Mock
-    private EventPublisherPort eventPublisherPort;
+    private SchemaProvisioningPort schemaProvisioningPort;
+
+    @Mock
+    private BillingServiceClient billingServiceClient;
 
     @InjectMocks
     private TenantCommandService tenantCommandService;
@@ -55,16 +59,17 @@ class TenantCommandServiceTest {
     void createTenantSuccess() {
         when(tenantPersistencePort.existsBySlug("test-academy")).thenReturn(false);
         when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(schemaProvisioningPort.schemaExists(anyString())).thenReturn(false);
 
         TenantResponse response = tenantCommandService.createTenant(createRequest);
 
         assertThat(response.slug()).isEqualTo("test-academy");
         assertThat(response.name()).isEqualTo("Test Academy");
-        assertThat(response.status()).isEqualTo(TenantStatus.PENDING);
+        assertThat(response.status()).isEqualTo(TenantStatus.ACTIVE);
 
-        ArgumentCaptor<TenantCreatedEvent> eventCaptor = ArgumentCaptor.forClass(TenantCreatedEvent.class);
-        verify(eventPublisherPort).publish(eventCaptor.capture());
-        assertThat(eventCaptor.getValue().getSlug()).isEqualTo("test-academy");
+        verify(schemaProvisioningPort).createSchema(anyString());
+        verify(schemaProvisioningPort).migrateSchema(anyString());
+        verify(billingServiceClient).createFreeSubscription(any(), eq("test-academy"));
     }
 
     @Test
@@ -76,7 +81,8 @@ class TenantCommandServiceTest {
                 .isInstanceOf(DuplicateResourceException.class);
 
         verify(tenantPersistencePort, never()).save(any());
-        verify(eventPublisherPort, never()).publish(any());
+        verify(schemaProvisioningPort, never()).createSchema(anyString());
+        verify(billingServiceClient, never()).createFreeSubscription(any(), anyString());
     }
 
     @Test

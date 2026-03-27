@@ -15,11 +15,6 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMqConfig {
 
     @Bean
-    public TopicExchange lumieEventsExchange() {
-        return new TopicExchange(RabbitMqConstants.LUMIE_EVENTS_EXCHANGE);
-    }
-
-    @Bean
     public DirectExchange lumieCommandsExchange() {
         return new DirectExchange(RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE);
     }

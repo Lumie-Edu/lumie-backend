@@ -1,6 +1,7 @@
 package com.lumie.billing.adapter.in.grpc;
 
 import com.lumie.billing.application.port.in.CheckQuotaUseCase;
+import com.lumie.billing.application.port.in.CreateSubscriptionUseCase;
 import com.lumie.billing.application.port.in.GetPlansUseCase;
 import com.lumie.billing.application.port.in.GetSubscriptionUseCase;
 import com.lumie.billing.domain.vo.MetricType;
@@ -8,6 +9,7 @@ import com.lumie.billing.domain.vo.PlanLimits;
 import com.lumie.grpc.billing.BillingServiceGrpc;
 import com.lumie.grpc.billing.CheckQuotaRequest;
 import com.lumie.grpc.billing.CheckQuotaResponse;
+import com.lumie.grpc.billing.CreateFreeSubscriptionRequest;
 import com.lumie.grpc.billing.GetPlanFeaturesRequest;
 import com.lumie.grpc.billing.GetSubscriptionRequest;
 import com.lumie.grpc.billing.PlanFeaturesResponse;
@@ -22,6 +24,7 @@ import net.devh.boot.grpc.server.service.GrpcService;
 public class BillingGrpcService extends BillingServiceGrpc.BillingServiceImplBase {
 
     private final GetSubscriptionUseCase getSubscriptionUseCase;
+    private final CreateSubscriptionUseCase createSubscriptionUseCase;
     private final CheckQuotaUseCase checkQuotaUseCase;
     private final GetPlansUseCase getPlansUseCase;
 
@@ -74,6 +77,27 @@ public class BillingGrpcService extends BillingServiceGrpc.BillingServiceImplBas
             responseObserver.onCompleted();
         } catch (Exception e) {
             log.error("Failed to get plan features: {}", request.getPlanId(), e);
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void createFreeSubscription(CreateFreeSubscriptionRequest request,
+                                        StreamObserver<com.lumie.grpc.billing.SubscriptionResponse> responseObserver) {
+        log.debug("gRPC CreateFreeSubscription request: tenantId={}, tenantSlug={}",
+                request.getTenantId(), request.getTenantSlug());
+
+        try {
+            com.lumie.billing.application.dto.response.SubscriptionResponse subscription =
+                    createSubscriptionUseCase.createFreeSubscription(
+                            request.getTenantId(),
+                            request.getTenantSlug()
+                    );
+
+            responseObserver.onNext(toGrpcSubscriptionResponse(subscription));
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Failed to create free subscription for tenant: {}", request.getTenantSlug(), e);
             responseObserver.onError(e);
         }
     }

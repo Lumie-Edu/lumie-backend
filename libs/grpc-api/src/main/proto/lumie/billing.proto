@@ -10,6 +10,12 @@ service BillingService {
   rpc GetSubscription(GetSubscriptionRequest) returns (SubscriptionResponse);
   rpc CheckQuota(CheckQuotaRequest) returns (CheckQuotaResponse);
   rpc GetPlanFeatures(GetPlanFeaturesRequest) returns (PlanFeaturesResponse);
+  rpc CreateFreeSubscription(CreateFreeSubscriptionRequest) returns (SubscriptionResponse);
+}
+
+message CreateFreeSubscriptionRequest {
+  int64 tenant_id = 1;
+  string tenant_slug = 2;
 }
 
 message GetSubscriptionRequest {

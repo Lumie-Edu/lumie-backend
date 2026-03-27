@@ -5,7 +5,6 @@ import com.lumie.exam.application.dto.response.BatchOmrGradingResponse;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.port.out.BillingServicePort;
-import com.lumie.exam.application.port.out.ExamEventPublisherPort;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.application.port.out.StudentServicePort;
@@ -47,7 +46,6 @@ public class ResultCommandService {
     private final BillingServicePort billingService;
     private final OmrServicePort omrService;
     private final OmrStoragePort storagePort;
-    private final ExamEventPublisherPort eventPublisher;
     private final RabbitTemplate rabbitTemplate;
 
     @Transactional
@@ -96,9 +94,6 @@ public class ResultCommandService {
         gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, result);
 
         ExamResult savedResult = resultRepository.save(result);
-
-        String tenantSlug = TenantContextHolder.getTenantSlug();
-        eventPublisher.publishResultSubmitted(savedResult, tenantSlug);
 
         log.info("OMR grading completed for exam: {}, student: {}", examId, studentId);
         return ExamResultResponse.from(savedResult);
@@ -152,7 +147,6 @@ public class ResultCommandService {
 
                 gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, result);
                 ExamResult savedResult = resultRepository.save(result);
-                eventPublisher.publishResultSubmitted(savedResult, tenantSlug);
                 billingService.consumeOmrQuota();
 
                 results.add(BatchOmrGradingResponse.BatchOmrResult.success(
