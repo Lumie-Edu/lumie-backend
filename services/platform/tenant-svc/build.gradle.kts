@@ -22,6 +22,9 @@ dependencies {
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE") {
         exclude(group = "io.grpc")
     }
+    implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE") {
+        exclude(group = "io.grpc")
+    }
     implementation("io.grpc:grpc-netty-shaded:${property("grpcVersion")}")
 
     // Lombok
