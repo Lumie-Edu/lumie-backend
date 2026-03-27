@@ -28,6 +28,7 @@ public class RabbitMqConfig {
     @Bean
     public Queue memberEventsQueue() {
         return QueueBuilder.durable(MEMBER_EVENTS_QUEUE)
+                .withArgument("x-queue-type", "quorum")
                 .withArgument("x-dead-letter-exchange", LUMIE_DLX_EXCHANGE)
                 .withArgument("x-message-ttl", 300000)
                 .build();
@@ -36,6 +37,7 @@ public class RabbitMqConfig {
     @Bean
     public Queue memberEventsDlq() {
         return QueueBuilder.durable(MEMBER_EVENTS_DLQ)
+                .withArgument("x-queue-type", "quorum")
                 .build();
     }
 

@@ -28,6 +28,7 @@ public class RabbitMqConfig {
     @Bean
     public Queue tenantSchemaProvisioningQueue() {
         return QueueBuilder.durable(TENANT_SCHEMA_PROVISIONING_QUEUE)
+                .withArgument("x-queue-type", "quorum")
                 .withArgument("x-dead-letter-exchange", LUMIE_DLX_EXCHANGE)
                 .withArgument("x-message-ttl", 300000)
                 .build();
@@ -36,6 +37,7 @@ public class RabbitMqConfig {
     @Bean
     public Queue tenantSchemaProvisioningDlq() {
         return QueueBuilder.durable(TENANT_SCHEMA_PROVISIONING_DLQ)
+                .withArgument("x-queue-type", "quorum")
                 .build();
     }
 

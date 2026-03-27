@@ -32,6 +32,7 @@ public class RabbitMqConfig {
     @Bean
     public Queue gradingOmrRequestQueue() {
         return QueueBuilder.durable(RabbitMqConstants.GRADING_OMR_REQUEST_QUEUE)
+                .withArgument("x-queue-type", "quorum")
                 .withArgument("x-dead-letter-exchange", RabbitMqConstants.LUMIE_DLX_EXCHANGE)
                 .withArgument("x-message-ttl", 600000)
                 .build();
@@ -39,7 +40,9 @@ public class RabbitMqConfig {
 
     @Bean
     public Queue gradingOmrRequestDlq() {
-        return QueueBuilder.durable(RabbitMqConstants.GRADING_OMR_REQUEST_DLQ).build();
+        return QueueBuilder.durable(RabbitMqConstants.GRADING_OMR_REQUEST_DLQ)
+                .withArgument("x-queue-type", "quorum")
+                .build();
     }
 
     @Bean

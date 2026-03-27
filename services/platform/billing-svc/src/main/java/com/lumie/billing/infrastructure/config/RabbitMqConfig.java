@@ -27,6 +27,7 @@ public class RabbitMqConfig {
     @Bean
     public Queue billingSubscriptionQueue() {
         return QueueBuilder.durable(RabbitMqConstants.BILLING_SUBSCRIPTION_QUEUE)
+                .withArgument("x-queue-type", "quorum")
                 .withArgument("x-dead-letter-exchange", RabbitMqConstants.LUMIE_DLX_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", RabbitMqConstants.BILLING_SUBSCRIPTION_DLQ)
                 .withArgument("x-message-ttl", 300000)
@@ -35,12 +36,15 @@ public class RabbitMqConfig {
 
     @Bean
     public Queue billingSubscriptionDlq() {
-        return QueueBuilder.durable(RabbitMqConstants.BILLING_SUBSCRIPTION_DLQ).build();
+        return QueueBuilder.durable(RabbitMqConstants.BILLING_SUBSCRIPTION_DLQ)
+                .withArgument("x-queue-type", "quorum")
+                .build();
     }
 
     @Bean
     public Queue billingQuotaQueue() {
         return QueueBuilder.durable(RabbitMqConstants.BILLING_QUOTA_QUEUE)
+                .withArgument("x-queue-type", "quorum")
                 .withArgument("x-dead-letter-exchange", RabbitMqConstants.LUMIE_DLX_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", RabbitMqConstants.BILLING_QUOTA_DLQ)
                 .withArgument("x-message-ttl", 300000)
@@ -49,7 +53,9 @@ public class RabbitMqConfig {
 
     @Bean
     public Queue billingQuotaDlq() {
-        return QueueBuilder.durable(RabbitMqConstants.BILLING_QUOTA_DLQ).build();
+        return QueueBuilder.durable(RabbitMqConstants.BILLING_QUOTA_DLQ)
+                .withArgument("x-queue-type", "quorum")
+                .build();
     }
 
     @Bean
