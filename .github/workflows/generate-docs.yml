@@ -9,121 +9,116 @@ on:
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
   workflow_dispatch:
+    inputs:
+      section:
+        description: 'Specific section to generate (empty = detect from changes)'
+        required: false
+        type: string
 
 concurrency:
-  group: docs-gen-backend
+  group: docs-gen-backend-${{ inputs.section || github.sha }}
   cancel-in-progress: true
 
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      repomix-include: ${{ steps.map.outputs.include_dirs }}
+      matrix: ${{ steps.map.outputs.matrix }}
       has-changes: ${{ steps.map.outputs.has_changes }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: Map changed files to Repomix include directories
+      - name: Map changed files to doc sections
         id: map
         run: |
-          CHANGED=$(git diff --name-only HEAD~1..HEAD 2>/dev/null || echo "")
+          COMMON_LIBS="libs/messaging/**,libs/common/**,libs/grpc-api/src/main/proto/**,settings.gradle.kts,build.gradle.kts"
 
+          # Manual override
+          if [ -n "${{ inputs.section }}" ]; then
+            SECTION="${{ inputs.section }}"
+            case "$SECTION" in
+              platform)
+                INCLUDE="services/platform/**,$COMMON_LIBS"
+                ;;
+              core)
+                INCLUDE="services/core/**,$COMMON_LIBS"
+                ;;
+              support)
+                INCLUDE="services/support/**,$COMMON_LIBS"
+                ;;
+              *) echo "Unknown section: $SECTION"; exit 1 ;;
+            esac
+            echo "matrix=[{\"section\":\"backend/$SECTION\",\"include\":\"$INCLUDE\"}]" >> "$GITHUB_OUTPUT"
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only HEAD~1..HEAD 2>/dev/null || echo "")
           if [ -z "$CHANGED" ]; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          INCLUDE_DIRS=""
-
-          # Always include structural files
-          INCLUDE_DIRS="settings.gradle.kts,build.gradle.kts,libs/grpc-api/src/main/proto/**"
-
-          # Map changed paths to service + dependency directories
-          add_dir() {
-            if [[ "$INCLUDE_DIRS" != *"$1"* ]]; then
-              INCLUDE_DIRS="${INCLUDE_DIRS},$1"
+          SECTIONS=""
+          add_section() {
+            local s="$1" i="$2"
+            if [[ "$SECTIONS" != *"$s"* ]]; then
+              if [ -n "$SECTIONS" ]; then SECTIONS="$SECTIONS,"; fi
+              SECTIONS="${SECTIONS}{\"section\":\"backend/$s\",\"include\":\"$i\"}"
             fi
           }
 
+          LIBS_CHANGED=false
           while IFS= read -r file; do
             case "$file" in
-              services/platform/tenant-svc/*)
-                add_dir "services/platform/tenant-svc/**"
-                add_dir "libs/messaging/**"
-                add_dir "libs/common/**"
+              services/platform/*)
+                add_section "platform" "services/platform/**,$COMMON_LIBS"
                 ;;
-              services/platform/auth-svc/*)
-                add_dir "services/platform/auth-svc/**"
-                add_dir "libs/messaging/**"
-                add_dir "libs/common/**"
+              services/core/*)
+                add_section "core" "services/core/**,$COMMON_LIBS"
                 ;;
-              services/platform/billing-svc/*)
-                add_dir "services/platform/billing-svc/**"
-                add_dir "libs/messaging/**"
-                add_dir "libs/common/**"
-                ;;
-              services/core/academy-svc/*)
-                add_dir "services/core/academy-svc/**"
-                add_dir "libs/messaging/**"
-                add_dir "libs/grpc-api/**"
-                add_dir "libs/common/**"
-                ;;
-              services/core/exam-svc/*)
-                add_dir "services/core/exam-svc/**"
-                add_dir "libs/messaging/**"
-                add_dir "libs/grpc-api/**"
-                add_dir "libs/common/**"
-                ;;
-              services/core/content-svc/*)
-                add_dir "services/core/content-svc/**"
-                add_dir "libs/messaging/**"
-                add_dir "libs/grpc-api/**"
-                add_dir "libs/common/**"
-                ;;
-              services/core/admin-svc/*)
-                add_dir "services/core/admin-svc/**"
-                add_dir "libs/messaging/**"
-                add_dir "libs/grpc-api/**"
-                add_dir "libs/common/**"
-                ;;
-              services/core/attendance-svc/*)
-                add_dir "services/core/attendance-svc/**"
-                add_dir "libs/messaging/**"
-                add_dir "libs/grpc-api/**"
-                add_dir "libs/common/**"
-                ;;
-              services/core/ai-svc/*)
-                add_dir "services/core/ai-svc/**"
-                add_dir "libs/common/**"
-                ;;
-              services/support/file-svc/*)
-                add_dir "services/support/file-svc/**"
-                add_dir "libs/grpc-api/**"
-                add_dir "libs/common/**"
+              services/support/*)
+                add_section "support" "services/support/**,$COMMON_LIBS"
                 ;;
               libs/*)
-                add_dir "libs/**"
+                LIBS_CHANGED=true
                 ;;
               build.gradle.kts|settings.gradle.kts)
-                # Already included
+                LIBS_CHANGED=true
                 ;;
             esac
           done <<< "$CHANGED"
 
-          echo "include_dirs=$INCLUDE_DIRS" >> "$GITHUB_OUTPUT"
+          # If only libs changed, regenerate all sections
+          if [ "$LIBS_CHANGED" = true ] && [ -z "$SECTIONS" ]; then
+            add_section "platform" "services/platform/**,$COMMON_LIBS"
+            add_section "core" "services/core/**,$COMMON_LIBS"
+            add_section "support" "services/support/**,$COMMON_LIBS"
+          fi
+
+          if [ -z "$SECTIONS" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "matrix=[$SECTIONS]" >> "$GITHUB_OUTPUT"
           echo "has_changes=true" >> "$GITHUB_OUTPUT"
-          echo "Include dirs: $INCLUDE_DIRS"
+          echo "Sections: [$SECTIONS]"
 
   generate-docs:
     needs: detect-changes
     if: needs.detect-changes.outputs.has-changes == 'true'
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      max-parallel: 2
     uses: Lumie-Edu/lumie-document/.github/workflows/generate-docs-reusable.yml@main
     with:
       source-repo: lumie-backend
-      docs-section: backend
-      repomix-include: ${{ needs.detect-changes.outputs.repomix-include }}
+      docs-section: ${{ matrix.section }}
+      repomix-include: ${{ matrix.include }}
       repomix-ignore: '**/build/**,**/test/**,**/*.class,**/bin/**,**/.gradle/**'
     secrets:
       anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
