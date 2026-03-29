@@ -1,0 +1,130 @@
+name: Generate Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'libs/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+  workflow_dispatch:
+
+concurrency:
+  group: docs-gen-backend
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      repomix-include: ${{ steps.map.outputs.include_dirs }}
+      has-changes: ${{ steps.map.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Map changed files to Repomix include directories
+        id: map
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1..HEAD 2>/dev/null || echo "")
+
+          if [ -z "$CHANGED" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          INCLUDE_DIRS=""
+
+          # Always include structural files
+          INCLUDE_DIRS="settings.gradle.kts,build.gradle.kts,libs/grpc-api/src/main/proto/**"
+
+          # Map changed paths to service + dependency directories
+          add_dir() {
+            if [[ "$INCLUDE_DIRS" != *"$1"* ]]; then
+              INCLUDE_DIRS="${INCLUDE_DIRS},$1"
+            fi
+          }
+
+          while IFS= read -r file; do
+            case "$file" in
+              services/platform/tenant-svc/*)
+                add_dir "services/platform/tenant-svc/**"
+                add_dir "libs/messaging/**"
+                add_dir "libs/common/**"
+                ;;
+              services/platform/auth-svc/*)
+                add_dir "services/platform/auth-svc/**"
+                add_dir "libs/messaging/**"
+                add_dir "libs/common/**"
+                ;;
+              services/platform/billing-svc/*)
+                add_dir "services/platform/billing-svc/**"
+                add_dir "libs/messaging/**"
+                add_dir "libs/common/**"
+                ;;
+              services/core/academy-svc/*)
+                add_dir "services/core/academy-svc/**"
+                add_dir "libs/messaging/**"
+                add_dir "libs/grpc-api/**"
+                add_dir "libs/common/**"
+                ;;
+              services/core/exam-svc/*)
+                add_dir "services/core/exam-svc/**"
+                add_dir "libs/messaging/**"
+                add_dir "libs/grpc-api/**"
+                add_dir "libs/common/**"
+                ;;
+              services/core/content-svc/*)
+                add_dir "services/core/content-svc/**"
+                add_dir "libs/messaging/**"
+                add_dir "libs/grpc-api/**"
+                add_dir "libs/common/**"
+                ;;
+              services/core/admin-svc/*)
+                add_dir "services/core/admin-svc/**"
+                add_dir "libs/messaging/**"
+                add_dir "libs/grpc-api/**"
+                add_dir "libs/common/**"
+                ;;
+              services/core/attendance-svc/*)
+                add_dir "services/core/attendance-svc/**"
+                add_dir "libs/messaging/**"
+                add_dir "libs/grpc-api/**"
+                add_dir "libs/common/**"
+                ;;
+              services/core/ai-svc/*)
+                add_dir "services/core/ai-svc/**"
+                add_dir "libs/common/**"
+                ;;
+              services/support/file-svc/*)
+                add_dir "services/support/file-svc/**"
+                add_dir "libs/grpc-api/**"
+                add_dir "libs/common/**"
+                ;;
+              libs/*)
+                add_dir "libs/**"
+                ;;
+              build.gradle.kts|settings.gradle.kts)
+                # Already included
+                ;;
+            esac
+          done <<< "$CHANGED"
+
+          echo "include_dirs=$INCLUDE_DIRS" >> "$GITHUB_OUTPUT"
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          echo "Include dirs: $INCLUDE_DIRS"
+
+  generate-docs:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    uses: Lumie-Edu/lumie-document/.github/workflows/generate-docs-reusable.yml@main
+    with:
+      source-repo: lumie-backend
+      docs-section: backend
+      repomix-include: ${{ needs.detect-changes.outputs.repomix-include }}
+      repomix-ignore: '**/build/**,**/test/**,**/*.class,**/bin/**,**/.gradle/**'
+    secrets:
+      anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+      docs-github-token: ${{ secrets.DOCS_GITHUB_TOKEN }}
