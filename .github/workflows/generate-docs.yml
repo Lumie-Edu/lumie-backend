@@ -1,13 +1,6 @@
 name: Generate Documentation
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'services/**'
-      - 'libs/**'
-      - 'build.gradle.kts'
-      - 'settings.gradle.kts'
   workflow_dispatch:
     inputs:
       section:
