@@ -1,12 +1,15 @@
 package com.lumie.exam.adapter.in.web;
 
-import com.lumie.exam.application.dto.response.BatchOmrGradingResponse;
+import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
+import com.lumie.exam.application.dto.request.OmrPresignRequest;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
+import com.lumie.exam.application.dto.response.OmrPresignResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -35,11 +38,19 @@ public class ResultController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping(value = "/exams/{examId}/results/omr/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<OmrJobResponse> submitBatchOmrGrading(
+@PostMapping("/exams/{examId}/results/omr/batch/presign")
+    public ResponseEntity<OmrPresignResponse> requestPresignedUrls(
             @PathVariable Long examId,
-            @RequestParam("images") List<MultipartFile> images) {
-        OmrJobResponse response = resultCommandService.submitBatchOmrGrading(examId, images);
+            @Valid @RequestBody OmrPresignRequest request) {
+        OmrPresignResponse response = resultCommandService.generatePresignedUrls(examId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/exams/{examId}/results/omr/batch/confirm")
+    public ResponseEntity<OmrJobResponse> confirmBatchUpload(
+            @PathVariable Long examId,
+            @Valid @RequestBody OmrBatchConfirmRequest request) {
+        OmrJobResponse response = resultCommandService.confirmBatchOmrGrading(examId, request);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 

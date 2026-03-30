@@ -11,4 +11,6 @@ public interface OmrStoragePort {
     void deleteObjects(List<String> objectKeys);
 
     String getPresignedUrl(String objectKey);
+
+    String getPresignedPutUrl(String objectKey, int expirySeconds);
 }

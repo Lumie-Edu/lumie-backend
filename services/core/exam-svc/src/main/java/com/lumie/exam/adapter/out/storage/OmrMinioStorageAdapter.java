@@ -5,8 +5,8 @@ import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
 import io.minio.*;
 import io.minio.http.Method;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,13 +17,20 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class OmrMinioStorageAdapter implements OmrStoragePort {
 
     private final MinioClient minioClient;
+    private final MinioClient presignMinioClient;
+    private final String bucketName;
 
-    @Value("${minio.bucket-name}")
-    private String bucketName;
+    public OmrMinioStorageAdapter(
+            MinioClient minioClient,
+            @Qualifier("presignMinioClient") MinioClient presignMinioClient,
+            @Value("${minio.bucket-name}") String bucketName) {
+        this.minioClient = minioClient;
+        this.presignMinioClient = presignMinioClient;
+        this.bucketName = bucketName;
+    }
 
     @Override
     public String putObject(String objectKey, byte[] data, String contentType) {
@@ -89,6 +96,23 @@ public class OmrMinioStorageAdapter implements OmrStoragePort {
             );
         } catch (Exception e) {
             log.error("Failed to generate presigned URL for: {}", objectKey, e);
+            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
+        }
+    }
+
+    @Override
+    public String getPresignedPutUrl(String objectKey, int expirySeconds) {
+        try {
+            return presignMinioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.PUT)
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .expiry(expirySeconds, TimeUnit.SECONDS)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("Failed to generate presigned PUT URL for: {}", objectKey, e);
             throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
         }
     }
