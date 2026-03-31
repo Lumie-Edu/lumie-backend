@@ -26,7 +26,7 @@ jobs:
       - name: Map changed files to doc sections
         id: map
         run: |
-          COMMON_LIBS="libs/messaging/**,libs/common/**,libs/grpc-api/src/main/proto/**,settings.gradle.kts,build.gradle.kts"
+          COMMON_LIBS="libs/messaging/**,libs/common/**,libs/grpc-api/src/main/proto/**,settings.gradle.kts,build.gradle.kts,.github/**/*.yml"
 
           # Manual override
           if [ -n "${{ inputs.section }}" ]; then
