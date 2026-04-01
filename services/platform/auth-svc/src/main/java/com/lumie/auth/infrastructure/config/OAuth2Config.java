@@ -13,6 +13,8 @@ public class OAuth2Config {
 
     private ProviderConfig google = new ProviderConfig();
     private ProviderConfig kakao = new ProviderConfig();
+    private ProviderConfig keycloak = new ProviderConfig();
+    private String frontendCallbackUrl = "https://lumie-edu.com/auth/callback";
 
     @Getter
     @Setter

@@ -2,26 +2,36 @@ package com.lumie.auth.adapter.in.web;
 
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.port.in.OAuth2LoginUseCase;
+import com.lumie.auth.infrastructure.config.OAuth2Config;
+import com.lumie.auth.infrastructure.util.CookieUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
+@Slf4j
 @RestController
 @RequestMapping("/v1/oauth2")
 @RequiredArgsConstructor
 public class OAuth2Controller {
 
     private final OAuth2LoginUseCase oAuth2LoginUseCase;
+    private final CookieUtils cookieUtils;
+    private final OAuth2Config oAuth2Config;
 
     @GetMapping("/{provider}/authorize")
     public ResponseEntity<Void> authorize(
             @PathVariable String provider,
-            @RequestParam("tenant") String tenantSlug) {
-        String authUrl = oAuth2LoginUseCase.getAuthorizationUrl(provider, tenantSlug);
+            @RequestParam("tenant") String tenantSlug,
+            @RequestParam(name = "idp_hint", required = false) String idpHint) {
+        String authUrl = oAuth2LoginUseCase.getAuthorizationUrl(provider, tenantSlug, idpHint);
         return ResponseEntity
                 .status(HttpStatus.FOUND)
                 .location(URI.create(authUrl))
@@ -29,11 +39,33 @@ public class OAuth2Controller {
     }
 
     @GetMapping("/{provider}/callback")
-    public ResponseEntity<LoginResponse> callback(
+    public ResponseEntity<Void> callback(
             @PathVariable String provider,
             @RequestParam String code,
             @RequestParam String state) {
         LoginResponse response = oAuth2LoginUseCase.handleCallback(provider, code, state);
-        return ResponseEntity.ok(response);
+
+        // Encode user info as base64 JSON for frontend to parse
+        String userJson = String.format(
+                "{\"id\":%d,\"userLoginId\":\"%s\",\"name\":\"%s\",\"role\":\"%s\",\"tenantSlug\":\"%s\",\"tenantId\":%d}",
+                response.user().id(),
+                response.user().userLoginId(),
+                response.user().name(),
+                response.user().role(),
+                response.user().tenantSlug(),
+                response.user().tenantId()
+        );
+        String userParam = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(userJson.getBytes(StandardCharsets.UTF_8));
+
+        String redirectUrl = oAuth2Config.getFrontendCallbackUrl()
+                + "?user=" + URLEncoder.encode(userParam, StandardCharsets.UTF_8);
+
+        return ResponseEntity
+                .status(HttpStatus.FOUND)
+                .header(HttpHeaders.SET_COOKIE, cookieUtils.createAccessTokenCookie(response.accessToken()).toString())
+                .header(HttpHeaders.SET_COOKIE, cookieUtils.createRefreshTokenCookie(response.refreshToken()).toString())
+                .location(URI.create(redirectUrl))
+                .build();
     }
 }

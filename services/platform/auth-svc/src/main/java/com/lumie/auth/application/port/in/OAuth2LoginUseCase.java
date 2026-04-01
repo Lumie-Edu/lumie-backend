@@ -6,11 +6,12 @@ public interface OAuth2LoginUseCase {
     /**
      * Generates OAuth2 authorization URL with state parameter.
      *
-     * @param provider the OAuth2 provider (google, kakao)
+     * @param provider the OAuth2 provider (google, kakao, keycloak)
      * @param tenantSlug the tenant slug to encode in state
+     * @param idpHint optional IdP hint for Keycloak (e.g., "google", "kakao")
      * @return the authorization URL
      */
-    String getAuthorizationUrl(String provider, String tenantSlug);
+    String getAuthorizationUrl(String provider, String tenantSlug, String idpHint);
 
     /**
      * Handles OAuth2 callback and returns tokens.

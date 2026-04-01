@@ -40,7 +40,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Override
-    public String getAuthorizationUrl(String provider, String tenantSlug) {
+    public String getAuthorizationUrl(String provider, String tenantSlug, String idpHint) {
         log.info("Generating OAuth2 authorization URL for provider: {} tenant: {}", provider, tenantSlug);
 
         // Validate tenant exists
@@ -53,17 +53,22 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
 
         OAuth2Config.ProviderConfig config = getProviderConfig(provider);
 
-        String authUrl = String.format(
+        StringBuilder authUrl = new StringBuilder(String.format(
                 "%s?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s",
                 config.getAuthorizationUri(),
                 URLEncoder.encode(config.getClientId(), StandardCharsets.UTF_8),
                 URLEncoder.encode(config.getRedirectUri(), StandardCharsets.UTF_8),
                 URLEncoder.encode(config.getScope(), StandardCharsets.UTF_8),
                 URLEncoder.encode(state, StandardCharsets.UTF_8)
-        );
+        ));
+
+        // Append kc_idp_hint for Keycloak to skip login screen and go directly to social provider
+        if ("keycloak".equalsIgnoreCase(provider) && idpHint != null && !idpHint.isBlank()) {
+            authUrl.append("&kc_idp_hint=").append(URLEncoder.encode(idpHint, StandardCharsets.UTF_8));
+        }
 
         log.debug("Generated authorization URL for provider: {}", provider);
-        return authUrl;
+        return authUrl.toString();
     }
 
     @Override
@@ -91,7 +96,8 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         // 4. Get user info from provider
         OAuth2UserInfo userInfo = getUserInfo(provider, accessToken, config);
 
-        // 5. Generate userLoginId from OAuth provider (provider_providerId format)
+        // 5. Generate userLoginId from OAuth provider
+        // For keycloak, use keycloak_{sub} to track the Keycloak user identity
         String userLoginId = provider.toLowerCase() + "_" + userInfo.providerId();
 
         // 6. Find or create user in public.users
@@ -141,6 +147,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         return switch (provider.toLowerCase()) {
             case "google" -> oAuth2Config.getGoogle();
             case "kakao" -> oAuth2Config.getKakao();
+            case "keycloak" -> oAuth2Config.getKeycloak();
             default -> throw new IllegalArgumentException("Unsupported OAuth2 provider: " + provider);
         };
     }
@@ -176,17 +183,22 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
 
         return switch (provider.toLowerCase()) {
             case "google" -> new OAuth2UserInfo(
-                    (String) response.get("sub"),  // Google's unique user ID
+                    (String) response.get("sub"),
                     (String) response.get("name")
             );
             case "kakao" -> {
                 Map<String, Object> kakaoAccount = (Map<String, Object>) response.get("kakao_account");
                 Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
                 yield new OAuth2UserInfo(
-                        String.valueOf(response.get("id")),  // Kakao's unique user ID
+                        String.valueOf(response.get("id")),
                         (String) profile.get("nickname")
                 );
             }
+            case "keycloak" -> new OAuth2UserInfo(
+                    (String) response.get("sub"),
+                    (String) response.getOrDefault("name",
+                            response.getOrDefault("preferred_username", "Unknown"))
+            );
             default -> throw new IllegalArgumentException("Unsupported provider: " + provider);
         };
     }
