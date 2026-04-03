@@ -212,7 +212,7 @@ def generate_deployment(name, config):
         - name: DEEPSEEK_API_KEY
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-ai-secrets
+              name: lumie-dev-ai-token-secrets
               key: deepseek-api-key
         - name: RO_DB_HOST
           value: "lumie-dev-db-rw.lumie-dev.svc.cluster.local"
@@ -223,12 +223,12 @@ def generate_deployment(name, config):
         - name: RO_DB_USERNAME
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-ai-secrets
+              name: lumie-dev-ai-db-secrets
               key: ro-db-username
         - name: RO_DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-ai-secrets
+              name: lumie-dev-ai-db-secrets
               key: ro-db-password
         - name: CONTENT_SVC_URL
           value: "http://content-svc.lumie-dev.svc.cluster.local:8080"'''
