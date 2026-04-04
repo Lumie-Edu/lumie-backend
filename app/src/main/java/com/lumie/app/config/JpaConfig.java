@@ -7,10 +7,12 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomi
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @Configuration
 @EnableJpaAuditing
+@EntityScan(basePackages = "com.lumie")
 @EnableJpaRepositories(basePackages = "com.lumie")
 public class JpaConfig {
 
