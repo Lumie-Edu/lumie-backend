@@ -15,7 +15,6 @@ import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
 import com.lumie.attendance.domain.vo.AttendanceStatus;
-import com.lumie.attendance.domain.vo.CheckMethod;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.attendance.domain.exception.AttendanceErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -65,7 +64,7 @@ public class AttendanceRecordCommandService {
             ? AttendanceStatus.LATE
             : AttendanceStatus.PRESENT;
 
-        record.checkIn(status, CheckMethod.CODE, userId);
+        record.checkIn(status, userId);
         recordRepository.save(record);
 
         String message = status == AttendanceStatus.PRESENT

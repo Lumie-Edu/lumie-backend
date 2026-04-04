@@ -2,7 +2,6 @@ package com.lumie.attendance.application.dto;
 
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.vo.AttendanceStatus;
-import com.lumie.attendance.domain.vo.CheckMethod;
 
 import java.time.LocalDateTime;
 
@@ -12,7 +11,6 @@ public record AttendanceRecordResponse(
     Long studentId,
     String studentName,
     AttendanceStatus status,
-    CheckMethod checkMethod,
     LocalDateTime checkedAt,
     String memo
 ) {
@@ -23,7 +21,6 @@ public record AttendanceRecordResponse(
             record.getStudentId(),
             studentName,
             record.getStatus(),
-            record.getCheckMethod(),
             record.getCheckedAt(),
             record.getMemo()
         );

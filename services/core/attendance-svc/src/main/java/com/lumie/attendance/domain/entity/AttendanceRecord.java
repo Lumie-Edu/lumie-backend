@@ -1,7 +1,6 @@
 package com.lumie.attendance.domain.entity;
 
 import com.lumie.attendance.domain.vo.AttendanceStatus;
-import com.lumie.attendance.domain.vo.CheckMethod;
 import com.lumie.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -33,10 +32,6 @@ public class AttendanceRecord extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     private AttendanceStatus status;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "check_method", nullable = false, length = 20)
-    private CheckMethod checkMethod;
-
     @Column(name = "checked_at")
     private LocalDateTime checkedAt;
 
@@ -48,11 +43,10 @@ public class AttendanceRecord extends BaseEntity {
 
     @Builder
     private AttendanceRecord(AttendanceSession session, Long studentId, AttendanceStatus status,
-                             CheckMethod checkMethod, LocalDateTime checkedAt, Long checkedBy, String memo) {
+                             LocalDateTime checkedAt, Long checkedBy, String memo) {
         this.session = session;
         this.studentId = studentId;
         this.status = status != null ? status : AttendanceStatus.ABSENT;
-        this.checkMethod = checkMethod != null ? checkMethod : CheckMethod.MANUAL;
         this.checkedAt = checkedAt;
         this.checkedBy = checkedBy;
         this.memo = memo;
@@ -63,7 +57,6 @@ public class AttendanceRecord extends BaseEntity {
                 .session(session)
                 .studentId(studentId)
                 .status(AttendanceStatus.ABSENT)
-                .checkMethod(CheckMethod.MANUAL)
                 .build();
     }
 
@@ -72,9 +65,8 @@ public class AttendanceRecord extends BaseEntity {
         this.memo = memo;
     }
 
-    public void checkIn(AttendanceStatus status, CheckMethod checkMethod, Long checkedBy) {
+    public void checkIn(AttendanceStatus status, Long checkedBy) {
         this.status = status;
-        this.checkMethod = checkMethod;
         this.checkedAt = LocalDateTime.now();
         this.checkedBy = checkedBy;
     }
