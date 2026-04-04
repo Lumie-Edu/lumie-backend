@@ -12,6 +12,8 @@ public interface JpaExamResultRepository extends JpaRepository<ExamResult, Long>
 
     Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
 
+    Optional<ExamResult> findByExamIdAndPhoneNumber(Long examId, String phoneNumber);
+
     List<ExamResult> findByExamId(Long examId);
 
     List<ExamResult> findByStudentId(Long studentId);
@@ -28,7 +30,7 @@ public interface JpaExamResultRepository extends JpaRepository<ExamResult, Long>
         FROM exam_results r
         JOIN students s ON r.student_id = s.id
         JOIN academies a ON s.academy_id = a.id
-        WHERE r.exam_id = :examId
+        WHERE r.exam_id = :examId AND r.student_id IS NOT NULL
         GROUP BY a.id, a.name
         ORDER BY AVG(r.total_score) DESC
         """)
@@ -44,7 +46,7 @@ public interface JpaExamResultRepository extends JpaRepository<ExamResult, Long>
         FROM exam_results r
         JOIN students s ON r.student_id = s.id
         JOIN academies a ON s.academy_id = a.id
-        WHERE r.exam_id = :examId
+        WHERE r.exam_id = :examId AND r.student_id IS NOT NULL
         """)
     List<ResultWithAcademyProjection> findResultsWithAcademyByExamId(@Param("examId") Long examId);
 }

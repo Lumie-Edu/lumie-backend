@@ -35,6 +35,11 @@ public class ExamResultRepositoryAdapter implements ExamResultRepository {
     }
 
     @Override
+    public Optional<ExamResult> findByExamIdAndPhoneNumber(Long examId, String phoneNumber) {
+        return jpaRepository.findByExamIdAndPhoneNumber(examId, phoneNumber);
+    }
+
+    @Override
     public List<ExamResult> findByExamId(Long examId) {
         return jpaRepository.findByExamId(examId);
     }

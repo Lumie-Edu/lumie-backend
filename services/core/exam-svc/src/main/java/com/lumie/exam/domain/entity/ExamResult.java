@@ -11,8 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "exam_results",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"exam_id", "student_id"}))
+@Table(name = "exam_results")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ExamResult extends BaseEntity {
@@ -25,8 +24,11 @@ public class ExamResult extends BaseEntity {
     @JoinColumn(name = "exam_id", nullable = false)
     private Exam exam;
 
-    @Column(name = "student_id", nullable = false)
+    @Column(name = "student_id")
     private Long studentId;
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
 
     @Column(name = "total_score", nullable = false)
     private Integer totalScore;
@@ -41,9 +43,10 @@ public class ExamResult extends BaseEntity {
     private List<QuestionResult> questionResults = new ArrayList<>();
 
     @Builder
-    private ExamResult(Exam exam, Long studentId, Integer totalScore, Integer grade) {
+    private ExamResult(Exam exam, Long studentId, String phoneNumber, Integer totalScore, Integer grade) {
         this.exam = exam;
         this.studentId = studentId;
+        this.phoneNumber = phoneNumber;
         this.totalScore = totalScore;
         this.grade = grade;
     }
@@ -56,6 +59,14 @@ public class ExamResult extends BaseEntity {
         return ExamResult.builder()
                 .exam(exam)
                 .studentId(studentId)
+                .totalScore(totalScore)
+                .build();
+    }
+
+    public static ExamResult createForUnregistered(Exam exam, String phoneNumber, Integer totalScore) {
+        return ExamResult.builder()
+                .exam(exam)
+                .phoneNumber(phoneNumber)
                 .totalScore(totalScore)
                 .build();
     }

@@ -172,6 +172,30 @@ public class ResultCommandService {
         return result;
     }
 
+    public ExamResult resolveResultForUnregistered(Exam exam, String phoneNumber, OmrServicePort.OmrGradingResult omrResult) {
+        List<ExamResult.OmrQuestionUpdate> updates = omrResult.results().stream()
+                .map(qr -> new ExamResult.OmrQuestionUpdate(
+                        qr.questionNumber(), qr.studentAnswer(), qr.correctAnswer(), qr.score()))
+                .toList();
+
+        ExamResult result = resultRepository.findByExamIdAndPhoneNumber(exam.getId(), phoneNumber)
+                .map(existing -> {
+                    existing.regrade(omrResult.totalScore(), updates);
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    ExamResult newResult = ExamResult.createForUnregistered(exam, phoneNumber, omrResult.totalScore());
+                    for (OmrServicePort.OmrQuestionResult qr : omrResult.results()) {
+                        newResult.addQuestionResult(QuestionResult.create(
+                                qr.questionNumber(), qr.studentAnswer(), qr.correctAnswer(), qr.score()));
+                    }
+                    return newResult;
+                });
+
+        gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, result);
+        return result;
+    }
+
     private String sanitizeFileName(String fileName) {
         if (fileName == null || fileName.isBlank()) {
             return java.util.UUID.randomUUID().toString().substring(0, 8);

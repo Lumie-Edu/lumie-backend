@@ -28,8 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -204,5 +206,39 @@ class ResultCommandServiceTest {
         resultCommandService.processOmrGrading(examId, studentId, new byte[]{1});
 
         verify(billingService).consumeOmrQuota();
+    }
+
+    @Test
+    @DisplayName("미등록 학생은 phoneNumber로 새 결과를 생성한다")
+    void resolveResultForUnregistered_newPhone_createsResult() {
+        Exam exam = buildExam();
+        String phoneNumber = "01099999999";
+
+        given(resultRepository.findByExamIdAndPhoneNumber(any(), eq(phoneNumber))).willReturn(Optional.empty());
+
+        ExamResult result = resultCommandService.resolveResultForUnregistered(exam, phoneNumber, buildOmrResult(80));
+
+        assertThat(result.getStudentId()).isNull();
+        assertThat(result.getPhoneNumber()).isEqualTo(phoneNumber);
+        assertThat(result.getTotalScore()).isEqualTo(80);
+        assertThat(result.getQuestionResults()).hasSize(5);
+    }
+
+    @Test
+    @DisplayName("미등록 학생이 재시험 시 기존 결과를 업데이트한다")
+    void resolveResultForUnregistered_existingPhone_regradesResult() {
+        Exam exam = buildExam();
+        String phoneNumber = "01099999999";
+        ExamResult existing = ExamResult.createForUnregistered(exam, phoneNumber, 60);
+        for (int i = 1; i <= 5; i++) {
+            existing.addQuestionResult(QuestionResult.create(i, "0", String.valueOf(i), 20));
+        }
+
+        given(resultRepository.findByExamIdAndPhoneNumber(any(), eq(phoneNumber))).willReturn(Optional.of(existing));
+
+        ExamResult result = resultCommandService.resolveResultForUnregistered(exam, phoneNumber, buildOmrResult(100));
+
+        assertThat(result).isSameAs(existing);
+        assertThat(result.getTotalScore()).isEqualTo(100);
     }
 }

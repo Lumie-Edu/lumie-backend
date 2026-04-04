@@ -126,11 +126,12 @@ class OmrGradingJobProcessorTest {
     }
 
     @Test
-    @DisplayName("학생을 찾을 수 ���을 때 저장하지 않고 결과에 오류를 기록한다")
-    void processImageAndUpdateProgress_studentNotFound_doesNotSave() {
+    @DisplayName("미등록 학생일 때 phoneNumber로 결과를 저장한다")
+    void processImageAndUpdateProgress_studentNotFound_savesAsUnregistered() {
         // given
         Exam exam = buildExam();
         OmrGradingJob job = buildJob(exam);
+        ExamResult unregisteredResult = ExamResult.createForUnregistered(exam, "01099999999", 70);
 
         given(examRepository.findById(10L)).willReturn(Optional.of(exam));
         given(jobRepository.findById(1L)).willReturn(Optional.of(job));
@@ -138,16 +139,21 @@ class OmrGradingJobProcessorTest {
         given(omrService.gradeOmrImage(any(), any(), any(), any()))
                 .willReturn(buildOmrResult("99999999", 70));
         given(studentService.findByPhone("01099999999")).willReturn(Optional.empty());
+        given(resultCommandService.resolveResultForUnregistered(eq(exam), eq("01099999999"), any()))
+                .willReturn(unregisteredResult);
+        given(resultRepository.save(any(ExamResult.class))).willReturn(unregisteredResult);
+        given(storagePort.putObject(any(), any(), any())).willReturn("omr/results/abc123/10/01099999999");
 
         // when
         Map<String, Object> result = processor.processImageAndUpdateProgress(
                 1L, 10L, "omr/tmp/abc123/batch1/sheet1.png", "inst-abc123");
 
         // then
-        verify(resultRepository, never()).save(any());
-        assertThat(result).containsEntry("saved", false);
+        verify(resultCommandService).resolveResultForUnregistered(eq(exam), eq("01099999999"), any());
+        verify(resultRepository).save(any(ExamResult.class));
+        assertThat(result).containsEntry("saved", true);
         assertThat(result).containsEntry("success", true);
-        assertThat(result.get("error").toString()).contains("학생을 찾을 수 없음");
+        assertThat(result).doesNotContainKey("studentId");
     }
 
     @Test

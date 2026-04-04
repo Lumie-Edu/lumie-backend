@@ -70,26 +70,20 @@ public class OmrGradingJobProcessor {
             String fullPhone = "010" + omrResult.phoneNumber();
             Optional<StudentServicePort.StudentInfo> studentOpt = studentService.findByPhone(fullPhone);
 
-            if (studentOpt.isEmpty()) {
-                resultMap.put("fileName", fileName);
-                resultMap.put("success", true);
-                resultMap.put("saved", false);
-                resultMap.put("phoneNumber", omrResult.phoneNumber());
-                resultMap.put("totalScore", omrResult.totalScore());
-                resultMap.put("grade", omrResult.grade());
-                resultMap.put("error", "학생을 찾을 수 없음: " + fullPhone);
-                job.incrementProcessed(true, false);
-                jobRepository.save(job);
-                return resultMap;
+            ExamResult examResult;
+            if (studentOpt.isPresent()) {
+                StudentServicePort.StudentInfo student = studentOpt.get();
+                examResult = resultCommandService.resolveResult(exam, student.id(), omrResult);
+                resultMap.put("studentId", student.id());
+                resultMap.put("studentName", student.name());
+            } else {
+                examResult = resultCommandService.resolveResultForUnregistered(exam, fullPhone, omrResult);
             }
-
-            StudentServicePort.StudentInfo student = studentOpt.get();
-
-            ExamResult examResult = resultCommandService.resolveResult(exam, student.id(), omrResult);
 
             // Copy OMR image to permanent path
             String tenantId = extractTenantId(tenantSlug);
-            String permanentKey = "omr/results/" + tenantId + "/" + examId + "/" + student.id();
+            String imageId = studentOpt.map(s -> String.valueOf(s.id())).orElse(fullPhone);
+            String permanentKey = "omr/results/" + tenantId + "/" + examId + "/" + imageId;
             try {
                 storagePort.putObject(permanentKey, imageData, "image/png");
                 examResult.setOmrImageKey(permanentKey);
@@ -104,8 +98,6 @@ public class OmrGradingJobProcessor {
             resultMap.put("success", true);
             resultMap.put("saved", true);
             resultMap.put("phoneNumber", omrResult.phoneNumber());
-            resultMap.put("studentId", student.id());
-            resultMap.put("studentName", student.name());
             resultMap.put("totalScore", omrResult.totalScore());
             resultMap.put("grade", omrResult.grade());
             resultMap.put("resultId", savedResult.getId());

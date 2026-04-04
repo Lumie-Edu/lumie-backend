@@ -17,6 +17,8 @@ public interface ExamResultRepository {
 
     Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
 
+    Optional<ExamResult> findByExamIdAndPhoneNumber(Long examId, String phoneNumber);
+
     List<ExamResult> findByExamId(Long examId);
 
     List<ExamResult> findByStudentId(Long studentId);
