@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       section:
-        description: 'Specific service to generate (e.g., tenant-svc, exam-svc)'
+        description: 'Specific module to generate (e.g., tenant-svc, exam-svc, app)'
         required: false
         type: string
 
@@ -26,23 +26,24 @@ jobs:
       - name: Map changed files to doc sections
         id: map
         run: |
-          COMMON_LIBS="libs/messaging/**,libs/common/**,libs/grpc-api/src/main/proto/**,settings.gradle.kts,build.gradle.kts,.github/**/*.yml"
+          COMMON_LIBS="libs/messaging/**,libs/common/**,libs/internal-api/**,app/**,settings.gradle.kts,build.gradle.kts,.github/**/*.yml"
 
           # Manual override
           if [ -n "${{ inputs.section }}" ]; then
             SVC="${{ inputs.section }}"
             case "$SVC" in
-              tenant-svc)   INCLUDE="services/platform/tenant-svc/**,$COMMON_LIBS" ;;
-              auth-svc)     INCLUDE="services/platform/auth-svc/**,$COMMON_LIBS" ;;
-              billing-svc)  INCLUDE="services/platform/billing-svc/**,$COMMON_LIBS" ;;
-              academy-svc)  INCLUDE="services/core/academy-svc/**,$COMMON_LIBS" ;;
-              exam-svc)     INCLUDE="services/core/exam-svc/**,$COMMON_LIBS" ;;
-              content-svc)  INCLUDE="services/core/content-svc/**,$COMMON_LIBS" ;;
-              admin-svc)    INCLUDE="services/core/admin-svc/**,$COMMON_LIBS" ;;
+              tenant-svc)     INCLUDE="services/platform/tenant-svc/**,$COMMON_LIBS" ;;
+              auth-svc)       INCLUDE="services/platform/auth-svc/**,$COMMON_LIBS" ;;
+              billing-svc)    INCLUDE="services/platform/billing-svc/**,$COMMON_LIBS" ;;
+              academy-svc)    INCLUDE="services/core/academy-svc/**,$COMMON_LIBS" ;;
+              exam-svc)       INCLUDE="services/core/exam-svc/**,$COMMON_LIBS" ;;
+              content-svc)    INCLUDE="services/core/content-svc/**,$COMMON_LIBS" ;;
+              admin-svc)      INCLUDE="services/core/admin-svc/**,$COMMON_LIBS" ;;
               attendance-svc) INCLUDE="services/core/attendance-svc/**,$COMMON_LIBS" ;;
-              ai-svc)       INCLUDE="services/core/ai-svc/**,$COMMON_LIBS" ;;
-              file-svc)     INCLUDE="services/support/file-svc/**,$COMMON_LIBS" ;;
-              *) echo "Unknown service: $SVC"; exit 1 ;;
+              ai-svc)         INCLUDE="services/core/ai-svc/**,$COMMON_LIBS" ;;
+              file-svc)       INCLUDE="services/support/file-svc/**,$COMMON_LIBS" ;;
+              app)            INCLUDE="app/**,$COMMON_LIBS" ;;
+              *) echo "Unknown module: $SVC"; exit 1 ;;
             esac
             echo "matrix=[{\"section\":\"backend/$SVC\",\"include\":\"$INCLUDE\"}]" >> "$GITHUB_OUTPUT"
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
@@ -77,6 +78,7 @@ jobs:
               services/core/attendance-svc/*)     add_section "attendance-svc" "services/core/attendance-svc/**" ;;
               services/core/ai-svc/*)             add_section "ai-svc" "services/core/ai-svc/**" ;;
               services/support/file-svc/*)        add_section "file-svc" "services/support/file-svc/**" ;;
+              app/*)                              add_section "app" "app/**" ;;
               libs/*)
                 LIBS_CHANGED=true
                 ;;
@@ -86,7 +88,7 @@ jobs:
             esac
           done <<< "$CHANGED"
 
-          # If only libs changed, regenerate all services
+          # If only libs changed, regenerate all modules
           if [ "$LIBS_CHANGED" = true ] && [ -z "$SECTIONS" ]; then
             add_section "tenant-svc" "services/platform/tenant-svc/**"
             add_section "auth-svc" "services/platform/auth-svc/**"
@@ -98,6 +100,7 @@ jobs:
             add_section "attendance-svc" "services/core/attendance-svc/**"
             add_section "ai-svc" "services/core/ai-svc/**"
             add_section "file-svc" "services/support/file-svc/**"
+            add_section "app" "app/**"
           fi
 
           if [ -z "$SECTIONS" ]; then
