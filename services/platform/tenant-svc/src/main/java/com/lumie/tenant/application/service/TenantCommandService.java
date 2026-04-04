@@ -2,7 +2,7 @@ package com.lumie.tenant.application.service;
 
 import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
-import com.lumie.tenant.adapter.out.external.BillingServiceClient;
+import com.lumie.tenant.adapter.out.internal.BillingInternalAdapter;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
@@ -30,7 +30,7 @@ public class TenantCommandService implements
 
     private final TenantPersistencePort tenantPersistencePort;
     private final SchemaProvisioningPort schemaProvisioningPort;
-    private final BillingServiceClient billingServiceClient;
+    private final BillingInternalAdapter billingServiceClient;
 
     @Override
     public TenantResponse createTenant(CreateTenantRequest request) {

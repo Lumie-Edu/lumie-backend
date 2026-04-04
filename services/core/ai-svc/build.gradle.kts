@@ -1,10 +1,17 @@
 plugins {
-    id("org.springframework.boot")
+    id("java-library")
     id("io.spring.dependency-management")
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
+    }
 }
 
 dependencies {
     implementation(project(":libs:common"))
+    implementation(project(":libs:internal-api"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -12,9 +19,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-security")
-
-    // Database
-    runtimeOnly("org.postgresql:postgresql")
 
     // HTTP Client
     implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -36,8 +40,4 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
     testCompileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
     testAnnotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
-}
-
-tasks.bootJar {
-    archiveFileName.set("ai-svc.jar")
 }

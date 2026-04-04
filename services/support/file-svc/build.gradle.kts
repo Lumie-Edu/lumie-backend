@@ -1,11 +1,17 @@
 plugins {
-    id("org.springframework.boot")
+    id("java-library")
     id("io.spring.dependency-management")
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
+    }
 }
 
 dependencies {
     implementation(project(":libs:common"))
-    implementation(project(":libs:grpc-api"))
+    implementation(project(":libs:internal-api"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -14,19 +20,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-security")
 
-    // Database
-    runtimeOnly("org.postgresql:postgresql")
-
     // MinIO SDK
     implementation("io.minio:minio:8.5.14")
-
-    // gRPC client (for tenant-svc communication)
-    implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE") {
-        exclude(group = "io.grpc")
-    }
-    // gRPC core dependencies with consistent version
-    implementation("io.grpc:grpc-netty-shaded:${property("grpcVersion")}")
-    implementation("io.grpc:grpc-inprocess:${property("grpcVersion")}")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
@@ -48,8 +43,4 @@ dependencies {
     testImplementation("org.testcontainers:minio")
     testCompileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
     testAnnotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
-}
-
-tasks.bootJar {
-    archiveFileName.set("file-svc.jar")
 }

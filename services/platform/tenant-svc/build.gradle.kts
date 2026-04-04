@@ -1,11 +1,17 @@
 plugins {
-    id("org.springframework.boot")
+    id("java-library")
     id("io.spring.dependency-management")
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
+    }
 }
 
 dependencies {
     implementation(project(":libs:common"))
-    implementation(project(":libs:grpc-api"))
+    implementation(project(":libs:internal-api"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -14,19 +20,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
     // Database
-    runtimeOnly("org.postgresql:postgresql")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
-
-    // gRPC - enforce consistent version
-    implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE") {
-        exclude(group = "io.grpc")
-    }
-    implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE") {
-        exclude(group = "io.grpc")
-    }
-    implementation("io.grpc:grpc-netty-shaded:${property("grpcVersion")}")
-    implementation("io.grpc:grpc-inprocess:${property("grpcVersion")}")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
@@ -47,8 +42,4 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
     testCompileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
     testAnnotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
-}
-
-tasks.bootJar {
-    archiveFileName.set("tenant-svc.jar")
 }

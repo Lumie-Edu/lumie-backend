@@ -1,0 +1,55 @@
+package com.lumie.internal.admin;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface AdminInternalService {
+
+    Optional<AdminData> getAdmin(String tenantSlug, Long adminId);
+
+    Optional<AdminData> getAdminByUserId(String tenantSlug, Long userId);
+
+    ValidateAdminResult validateAdmin(String tenantSlug, Long adminId);
+
+    AdminPermissionsData getAdminPermissions(String tenantSlug, Long adminId);
+
+    AdminListData getAdminsByAcademy(String tenantSlug, Long academyId, int page, int size);
+
+    record AdminData(
+            Long id,
+            Long userId,
+            String userLoginId,
+            String name,
+            String phone,
+            String email,
+            Long positionId,
+            String positionName,
+            boolean isActive,
+            String employmentStatus,
+            String createdAt,
+            String updatedAt
+    ) {}
+
+    record ValidateAdminResult(
+            boolean valid,
+            String message,
+            Long adminId
+    ) {}
+
+    record AdminPermissionsData(
+            Long adminId,
+            List<PermissionEntry> permissions
+    ) {}
+
+    record PermissionEntry(
+            String permissionCode,
+            String accessLevel
+    ) {}
+
+    record AdminListData(
+            List<AdminData> admins,
+            long totalCount,
+            int page,
+            int size
+    ) {}
+}

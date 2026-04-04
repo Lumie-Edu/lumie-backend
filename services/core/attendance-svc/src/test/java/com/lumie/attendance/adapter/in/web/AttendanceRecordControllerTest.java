@@ -7,7 +7,7 @@ import com.lumie.attendance.application.dto.UpdateAttendanceStatusRequest;
 import com.lumie.attendance.application.service.AttendanceRecordCommandService;
 import com.lumie.attendance.application.service.AttendanceRecordQueryService;
 import com.lumie.attendance.domain.vo.AttendanceStatus;
-import com.lumie.attendance.infrastructure.exception.GlobalExceptionHandler;
+import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

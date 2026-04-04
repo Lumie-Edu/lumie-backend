@@ -5,8 +5,9 @@ plugins {
 rootProject.name = "lumie-backend"
 
 include(
+    "app",
     "libs:common",
-    "libs:grpc-api",
+    "libs:internal-api",
     "libs:messaging",
     "services:platform:tenant-svc",
     "services:platform:auth-svc",

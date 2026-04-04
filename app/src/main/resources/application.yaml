@@ -1,0 +1,161 @@
+spring:
+  application:
+    name: lumie-backend
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:lumie}?prepareThreshold=0
+    username: ${DB_USERNAME:lumie}
+    password: ${DB_PASSWORD:lumie}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        multiTenancy: SCHEMA
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/public
+    baseline-on-migrate: true
+    baseline-version: "0"
+
+  data:
+    redis:
+      password: ${REDIS_PASSWORD:}
+      sentinel:
+        master: ${REDIS_SENTINEL_MASTER:mymaster}
+        nodes: ${REDIS_SENTINEL_NODES:localhost:26379}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: /
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      file-size-threshold: 5MB
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+# JWT (auth module)
+jwt:
+  secret-key: ${JWT_SECRET_KEY:your-256-bit-secret-key-here-must-be-at-least-32-chars}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:3600}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800}
+  issuer: lumie-auth-svc
+
+# Cookie (auth module)
+cookie:
+  domain: ${COOKIE_DOMAIN:}
+  secure: ${COOKIE_SECURE:true}
+  http-only: true
+  same-site: Lax
+  path: /
+  access-token-name: lumie_access_token
+  refresh-token-name: lumie_refresh_token
+
+# OAuth2 (auth module)
+oauth2:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:https://lumie-edu.com/api/auth/v1/oauth2/google/callback}
+    authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+    token-uri: https://oauth2.googleapis.com/token
+    user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+    scope: openid email profile
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID:}
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+    redirect-uri: ${KAKAO_REDIRECT_URI:https://lumie-edu.com/api/auth/v1/oauth2/kakao/callback}
+    authorization-uri: https://kauth.kakao.com/oauth/authorize
+    token-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+    scope: profile_nickname account_email
+  keycloak:
+    client-id: ${KEYCLOAK_CLIENT_ID:lumie-app}
+    client-secret: ${KEYCLOAK_CLIENT_SECRET:}
+    redirect-uri: ${KEYCLOAK_REDIRECT_URI:https://lumie-edu.com/api/auth/v1/oauth2/keycloak/callback}
+    authorization-uri: ${KEYCLOAK_AUTH_URI:https://auth.lumie-edu.com/realms/lumie/protocol/openid-connect/auth}
+    token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak-keycloakx-http.keycloak.svc.cluster.local/realms/lumie/protocol/openid-connect/token}
+    user-info-uri: ${KEYCLOAK_USERINFO_URI:http://keycloak-keycloakx-http.keycloak.svc.cluster.local/realms/lumie/protocol/openid-connect/userinfo}
+    scope: openid email profile
+  frontend-callback-url: ${FRONTEND_CALLBACK_URL:https://lumie-edu.com/auth/callback}
+
+# MinIO (exam + file modules)
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  external-endpoint: ${MINIO_EXTERNAL_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket-name: ${MINIO_BUCKET_NAME:lumie-files}
+
+# Read-only datasource (ai module)
+readonly-datasource:
+  jdbc-url: jdbc:postgresql://${RO_DB_HOST:${DB_HOST:localhost}}:${RO_DB_PORT:${DB_PORT:5432}}/${RO_DB_NAME:${DB_NAME:lumie}}?prepareThreshold=0
+  username: ${RO_DB_USERNAME:openclaw}
+  password: ${RO_DB_PASSWORD:openclaw}
+  driver-class-name: org.postgresql.Driver
+  maximum-pool-size: 5
+  minimum-idle: 2
+  connection-timeout: 10000
+
+# DeepSeek API (ai module)
+deepseek:
+  api-key: ${DEEPSEEK_API_KEY:}
+  base-url: https://api.deepseek.com
+  model: deepseek-chat
+  max-tokens: 4096
+  temperature: 0.7
+
+# Telegram Bot (ai module)
+telegram:
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+
+# External Python services (exam module)
+lumie:
+  services:
+    grading:
+      url: ${GRADING_SVC_URL:http://localhost:8001}
+    report:
+      url: ${REPORT_SVC_URL:http://localhost:8002}
+
+server:
+  port: 8080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.lumie: DEBUG

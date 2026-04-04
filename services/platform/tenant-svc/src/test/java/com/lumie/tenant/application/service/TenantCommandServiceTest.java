@@ -2,7 +2,7 @@ package com.lumie.tenant.application.service;
 
 import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
-import com.lumie.tenant.adapter.out.external.BillingServiceClient;
+import com.lumie.tenant.adapter.out.internal.BillingInternalAdapter;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
@@ -37,7 +37,7 @@ class TenantCommandServiceTest {
     private SchemaProvisioningPort schemaProvisioningPort;
 
     @Mock
-    private BillingServiceClient billingServiceClient;
+    private BillingInternalAdapter billingServiceClient;
 
     @InjectMocks
     private TenantCommandService tenantCommandService;

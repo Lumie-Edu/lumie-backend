@@ -1,11 +1,17 @@
 plugins {
-    id("org.springframework.boot")
+    id("java-library")
     id("io.spring.dependency-management")
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
+    }
 }
 
 dependencies {
     implementation(project(":libs:common"))
-    implementation(project(":libs:grpc-api"))
+    implementation(project(":libs:internal-api"))
     implementation(project(":libs:messaging"))
 
     // Spring Boot
@@ -16,23 +22,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     implementation("org.springframework.boot:spring-boot-starter-security")
 
-    // Database
-    runtimeOnly("org.postgresql:postgresql")
-
     // MinIO SDK
     implementation("io.minio:minio:8.5.14")
-
-    // gRPC - server with excluded io.grpc for version control
-    implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE") {
-        exclude(group = "io.grpc")
-    }
-    // gRPC client (for academy-svc, billing-svc communication)
-    implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE") {
-        exclude(group = "io.grpc")
-    }
-    // gRPC core dependencies with consistent version
-    implementation("io.grpc:grpc-netty-shaded:${property("grpcVersion")}")
-    implementation("io.grpc:grpc-inprocess:${property("grpcVersion")}")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
@@ -54,8 +45,4 @@ dependencies {
     testImplementation("org.testcontainers:rabbitmq")
     testCompileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
     testAnnotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
-}
-
-tasks.bootJar {
-    archiveFileName.set("exam-svc.jar")
 }

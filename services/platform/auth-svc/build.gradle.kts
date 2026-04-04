@@ -1,11 +1,17 @@
 plugins {
-    id("org.springframework.boot")
+    id("java-library")
     id("io.spring.dependency-management")
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
+    }
 }
 
 dependencies {
     implementation(project(":libs:common"))
-    implementation(project(":libs:grpc-api"))
+    implementation(project(":libs:internal-api"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -19,25 +25,10 @@ dependencies {
     // Redis
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
-    // Database (for direct schema queries)
-    runtimeOnly("org.postgresql:postgresql")
-
     // JWT (jjwt 0.12.5)
     implementation("io.jsonwebtoken:jjwt-api:0.12.5")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
-
-    // gRPC Server - for exposing auth service
-    implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE") {
-        exclude(group = "io.grpc")
-    }
-    // gRPC Client - for calling tenant-svc
-    implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE") {
-        exclude(group = "io.grpc")
-    }
-    implementation("io.grpc:grpc-netty-shaded:${property("grpcVersion")}")
-    implementation("io.grpc:grpc-core:${property("grpcVersion")}")
-    implementation("io.grpc:grpc-inprocess:${property("grpcVersion")}")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
@@ -54,8 +45,4 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
     testCompileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
     testAnnotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
-}
-
-tasks.bootJar {
-    archiveFileName.set("auth-svc.jar")
 }

@@ -1,0 +1,49 @@
+plugins {
+    id("org.springframework.boot")
+    id("io.spring.dependency-management")
+}
+
+dependencies {
+    implementation(project(":libs:common"))
+    implementation(project(":libs:internal-api"))
+    implementation(project(":libs:messaging"))
+
+    // Platform modules
+    implementation(project(":services:platform:tenant-svc"))
+    implementation(project(":services:platform:auth-svc"))
+    implementation(project(":services:platform:billing-svc"))
+
+    // Core modules
+    implementation(project(":services:core:academy-svc"))
+    implementation(project(":services:core:admin-svc"))
+    implementation(project(":services:core:exam-svc"))
+    implementation(project(":services:core:content-svc"))
+    implementation(project(":services:core:attendance-svc"))
+    implementation(project(":services:core:ai-svc"))
+
+    // Support modules
+    implementation(project(":services:support:file-svc"))
+
+    // Spring Boot (needed for app module's own classes)
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+
+    // Runtime
+    runtimeOnly("org.postgresql:postgresql")
+
+    // Lombok
+    compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
+    annotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
+
+    // Test
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql")
+}
+
+tasks.bootJar {
+    archiveFileName.set("lumie-backend.jar")
+}
