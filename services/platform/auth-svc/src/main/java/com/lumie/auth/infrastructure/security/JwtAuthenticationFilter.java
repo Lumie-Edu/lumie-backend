@@ -2,8 +2,11 @@ package com.lumie.auth.infrastructure.security;
 
 import com.lumie.auth.application.port.in.ValidateTokenUseCase;
 import com.lumie.auth.domain.vo.TokenClaims;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -27,17 +30,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String ACCESS_TOKEN_COOKIE = "lumie_access_token";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        String authHeader = request.getHeader(AUTHORIZATION_HEADER);
+        String token = extractToken(request);
 
-        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
-            String token = authHeader.substring(BEARER_PREFIX.length());
-
+        if (token != null) {
             Optional<TokenClaims> claimsOpt = validateTokenUseCase.validate(token);
 
             if (claimsOpt.isPresent()) {
@@ -59,6 +61,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
+                TenantContextHolder.setTenant(claims.tenantSlug());
+                TenantContextHolder.setTenantId(claims.tenantId());
+                UserContextHolder.setUserId(claims.getUserId());
+                UserContextHolder.setUserRole(claims.role().name());
+
                 log.debug("Authenticated user: {} for tenant: {}", claims.sub(), claims.tenantSlug());
             }
         }
@@ -66,10 +73,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    private String extractToken(HttpServletRequest request) {
+        String authHeader = request.getHeader(AUTHORIZATION_HEADER);
+        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
+            return authHeader.substring(BEARER_PREFIX.length());
+        }
+
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (ACCESS_TOKEN_COOKIE.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        return null;
+    }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
         return path.startsWith("/v1/login") ||
+                path.startsWith("/v1/register") ||
                 path.startsWith("/v1/refresh") ||
                 path.startsWith("/v1/oauth2") ||
                 path.startsWith("/actuator");

@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -14,15 +16,8 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Filter that extracts tenant and user context from request headers
- * and stores them in ThreadLocal holders.
- *
- * <p>Kong JWT plugin validates the token and sets these headers:
- * <ul>
- *   <li>X-User-Id: User ID from JWT sub claim</li>
- *   <li>X-Tenant-Slug: Tenant slug from JWT tenant_slug claim</li>
- *   <li>X-User-Role: User role from JWT role claim</li>
- * </ul>
+ * Filter that populates tenant and user context from SecurityContext (JWT)
+ * or X-headers (legacy/fallback).
  */
 public class RequestContextFilter extends OncePerRequestFilter {
 
@@ -51,45 +46,11 @@ public class RequestContextFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
-            String tenantSlug = request.getHeader(TENANT_SLUG_HEADER);
-            String tenantId = request.getHeader(TENANT_ID_HEADER);
-            String userId = request.getHeader(USER_ID_HEADER);
-            String userRole = request.getHeader(USER_ROLE_HEADER);
-
-            if (tenantSlug == null || tenantSlug.isBlank()) {
-                log.debug("No {} header for request: {}", TENANT_SLUG_HEADER, request.getRequestURI());
-                filterChain.doFilter(request, response);
-                return;
+            if (!populateFromSecurityContext()) {
+                populateFromHeaders(request);
             }
 
-            TenantContextHolder.setTenant(tenantSlug);
-            MDC.put("tenantSlug", tenantSlug);
-
-            if (tenantId != null && !tenantId.isBlank()) {
-                try {
-                    TenantContextHolder.setTenantId(Long.parseLong(tenantId));
-                    MDC.put("tenantId", tenantId);
-                } catch (NumberFormatException e) {
-                    log.warn("Invalid {} header value: {}", TENANT_ID_HEADER, tenantId);
-                }
-            }
-
-            if (userId != null && !userId.isBlank()) {
-                try {
-                    UserContextHolder.setUserId(Long.parseLong(userId));
-                    MDC.put("userId", userId);
-                } catch (NumberFormatException e) {
-                    log.warn("Invalid {} header value: {}", USER_ID_HEADER, userId);
-                }
-            }
-
-            if (userRole != null && !userRole.isBlank()) {
-                UserContextHolder.setUserRole(userRole);
-                MDC.put("userRole", userRole);
-            }
-
-            log.debug("Context set: tenant={}, tenantId={}, userId={}, role={}",
-                    tenantSlug, tenantId, userId, userRole);
+            setMdc();
 
             filterChain.doFilter(request, response);
         } finally {
@@ -97,5 +58,65 @@ public class RequestContextFilter extends OncePerRequestFilter {
             TenantContextHolder.clear();
             UserContextHolder.clear();
         }
+    }
+
+    private boolean populateFromSecurityContext() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return false;
+        }
+
+        // JwtAuthenticationFilter already set TenantContextHolder and UserContextHolder
+        if (TenantContextHolder.getTenant() != null) {
+            log.debug("Context populated from JWT: tenant={}, userId={}",
+                    TenantContextHolder.getTenant(), UserContextHolder.getUserId());
+            return true;
+        }
+
+        return false;
+    }
+
+    private void populateFromHeaders(HttpServletRequest request) {
+        String tenantSlug = request.getHeader(TENANT_SLUG_HEADER);
+        if (tenantSlug == null || tenantSlug.isBlank()) {
+            log.debug("No tenant context for request: {}", request.getRequestURI());
+            return;
+        }
+
+        TenantContextHolder.setTenant(tenantSlug);
+
+        String tenantId = request.getHeader(TENANT_ID_HEADER);
+        if (tenantId != null && !tenantId.isBlank()) {
+            try {
+                TenantContextHolder.setTenantId(Long.parseLong(tenantId));
+            } catch (NumberFormatException e) {
+                log.warn("Invalid {} header value: {}", TENANT_ID_HEADER, tenantId);
+            }
+        }
+
+        String userId = request.getHeader(USER_ID_HEADER);
+        if (userId != null && !userId.isBlank()) {
+            try {
+                UserContextHolder.setUserId(Long.parseLong(userId));
+            } catch (NumberFormatException e) {
+                log.warn("Invalid {} header value: {}", USER_ID_HEADER, userId);
+            }
+        }
+
+        String userRole = request.getHeader(USER_ROLE_HEADER);
+        if (userRole != null && !userRole.isBlank()) {
+            UserContextHolder.setUserRole(userRole);
+        }
+    }
+
+    private void setMdc() {
+        String tenant = TenantContextHolder.getTenant();
+        if (tenant != null) MDC.put("tenantSlug", tenant);
+        Long tenantId = TenantContextHolder.getTenantId();
+        if (tenantId != null) MDC.put("tenantId", tenantId.toString());
+        Long userId = UserContextHolder.getUserId();
+        if (userId != null) MDC.put("userId", userId.toString());
+        String role = UserContextHolder.getUserRole();
+        if (role != null) MDC.put("userRole", role);
     }
 }
