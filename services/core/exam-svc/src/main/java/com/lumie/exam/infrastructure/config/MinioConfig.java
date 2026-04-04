@@ -37,6 +37,7 @@ public class MinioConfig {
         return MinioClient.builder()
                 .endpoint(externalEndpoint)
                 .credentials(accessKey, secretKey)
+                .region("us-east-1")
                 .build();
     }
 }

@@ -57,6 +57,13 @@ public class QuestionResult {
         this.examResult = examResult;
     }
 
+    public void update(String selectedChoice, String correctAnswer, Integer maxScore) {
+        boolean correct = selectedChoice != null && selectedChoice.equals(correctAnswer);
+        this.selectedChoice = selectedChoice;
+        this.isCorrect = correct;
+        this.score = correct ? maxScore : 0;
+    }
+
     public boolean isCorrect() {
         return Boolean.TRUE.equals(isCorrect);
     }

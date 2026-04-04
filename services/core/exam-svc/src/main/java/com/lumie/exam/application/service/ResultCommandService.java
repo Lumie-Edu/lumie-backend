@@ -28,6 +28,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -74,20 +75,7 @@ public class ResultCommandService {
 
         billingService.consumeOmrQuota();
 
-        ExamResult result = ExamResult.create(exam, studentId, omrResult.totalScore());
-
-        for (OmrServicePort.OmrQuestionResult qr : omrResult.results()) {
-            QuestionResult questionResult = QuestionResult.create(
-                    qr.questionNumber(),
-                    qr.studentAnswer(),
-                    qr.correctAnswer(),
-                    qr.score()
-            );
-            result.addQuestionResult(questionResult);
-        }
-
-        // 절대평가일 때만 등급 계산하여 저장 (상대평가는 조회 시 계산)
-        gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, result);
+        ExamResult result = resolveResult(examId, exam, studentId, omrResult);
 
         ExamResult savedResult = resultRepository.save(result);
 
@@ -154,6 +142,34 @@ public class ResultCommandService {
                 });
 
         return new OmrJobResponse(savedJob.getId());
+    }
+
+    public ExamResult resolveResult(Exam exam, Long studentId, OmrServicePort.OmrGradingResult omrResult) {
+        return resolveResult(exam.getId(), exam, studentId, omrResult);
+    }
+
+    public ExamResult resolveResult(Long examId, Exam exam, Long studentId, OmrServicePort.OmrGradingResult omrResult) {
+        List<ExamResult.OmrQuestionUpdate> updates = omrResult.results().stream()
+                .map(qr -> new ExamResult.OmrQuestionUpdate(
+                        qr.questionNumber(), qr.studentAnswer(), qr.correctAnswer(), qr.score()))
+                .toList();
+
+        ExamResult result = resultRepository.findByExamIdAndStudentId(examId, studentId)
+                .map(existing -> {
+                    existing.regrade(omrResult.totalScore(), updates);
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    ExamResult newResult = ExamResult.create(exam, studentId, omrResult.totalScore());
+                    for (OmrServicePort.OmrQuestionResult qr : omrResult.results()) {
+                        newResult.addQuestionResult(QuestionResult.create(
+                                qr.questionNumber(), qr.studentAnswer(), qr.correctAnswer(), qr.score()));
+                    }
+                    return newResult;
+                });
+
+        gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, result);
+        return result;
     }
 
     private String sanitizeFileName(String fileName) {

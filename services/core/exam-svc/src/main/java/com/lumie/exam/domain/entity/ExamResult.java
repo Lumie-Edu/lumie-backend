@@ -73,6 +73,30 @@ public class ExamResult extends BaseEntity {
         this.totalScore = newTotalScore;
     }
 
+    public void regrade(Integer newTotalScore, List<OmrQuestionUpdate> updates) {
+        if (this.questionResults.size() != updates.size()) {
+            throw new IllegalArgumentException(
+                    "Question count mismatch: existing=%d, new=%d"
+                            .formatted(this.questionResults.size(), updates.size()));
+        }
+        java.util.Map<Integer, OmrQuestionUpdate> updateMap = updates.stream()
+                .collect(java.util.stream.Collectors.toMap(OmrQuestionUpdate::questionNumber, u -> u));
+
+        this.totalScore = newTotalScore;
+        this.grade = null;
+        for (QuestionResult existing : this.questionResults) {
+            OmrQuestionUpdate update = updateMap.get(existing.getQuestionNumber());
+            if (update == null) {
+                throw new IllegalArgumentException(
+                        "No update for question number: " + existing.getQuestionNumber());
+            }
+            existing.update(update.selectedChoice(), update.correctAnswer(), update.maxScore());
+        }
+    }
+
+    public record OmrQuestionUpdate(int questionNumber, String selectedChoice,
+                                    String correctAnswer, Integer maxScore) {}
+
     public boolean isPassed() {
         if (!exam.isPassFail() || exam.getPassScore() == null) {
             return false;

@@ -171,11 +171,13 @@ def generate_deployment(name, config):
         - name: KAKAO_CLIENT_SECRET
           value: "dev-kakao-client-secret"'''
 
-    # Add Report service URL for exam-svc
+    # Add Report service URL and MinIO external endpoint for exam-svc
     if name == 'exam-svc':
         env_yaml += '''
         - name: REPORT_SVC_URL
-          value: "http://report-svc.lumie-dev.svc:8000"'''
+          value: "http://report-svc.lumie-dev.svc:8000"
+        - name: MINIO_EXTERNAL_ENDPOINT
+          value: "https://dev.lumie-edu.com"'''
 
     # Add MinIO secrets for services that need object storage
     if name in ('file-svc', 'exam-svc'):

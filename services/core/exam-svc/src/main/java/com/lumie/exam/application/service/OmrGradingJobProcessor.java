@@ -29,6 +29,7 @@ public class OmrGradingJobProcessor {
     private final OmrGradingJobRepository jobRepository;
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
+    private final ResultCommandService resultCommandService;
     private final OmrServicePort omrService;
     private final OmrStoragePort storagePort;
     private final StudentServicePort studentService;
@@ -84,18 +85,7 @@ public class OmrGradingJobProcessor {
 
             StudentServicePort.StudentInfo student = studentOpt.get();
 
-            ExamResult examResult = ExamResult.create(exam, student.id(), omrResult.totalScore());
-            for (OmrServicePort.OmrQuestionResult qr : omrResult.results()) {
-                QuestionResult questionResult = QuestionResult.create(
-                        qr.questionNumber(),
-                        qr.studentAnswer(),
-                        qr.correctAnswer(),
-                        qr.score()
-                );
-                examResult.addQuestionResult(questionResult);
-            }
-
-            gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, examResult);
+            ExamResult examResult = resultCommandService.resolveResult(exam, student.id(), omrResult);
 
             // Copy OMR image to permanent path
             String tenantId = extractTenantId(tenantSlug);
