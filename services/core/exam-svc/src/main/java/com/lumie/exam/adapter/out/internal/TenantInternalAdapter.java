@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 @Slf4j
-@Component
+@Component("examTenantInternalAdapter")
 @RequiredArgsConstructor
 public class TenantInternalAdapter implements TenantServicePort {
 

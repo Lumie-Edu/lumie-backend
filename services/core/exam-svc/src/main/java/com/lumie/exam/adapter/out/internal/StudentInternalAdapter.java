@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Component
+@Component("examStudentInternalAdapter")
 @RequiredArgsConstructor
 public class StudentInternalAdapter implements StudentServicePort {
 
