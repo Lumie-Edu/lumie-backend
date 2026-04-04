@@ -2,7 +2,9 @@ package com.lumie.exam.adapter.in.web;
 
 import com.lumie.exam.application.dto.request.GoalSimulationRequest;
 import com.lumie.exam.application.dto.response.statistics.*;
-import com.lumie.exam.application.service.StatisticsQueryService;
+import com.lumie.exam.application.service.ExamStatisticsQueryService;
+import com.lumie.exam.application.service.StudentAnalyticsQueryService;
+import com.lumie.exam.application.service.StudentGradeQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,101 +20,70 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StatisticsController {
 
-    private final StatisticsQueryService statisticsQueryService;
+    private final ExamStatisticsQueryService examStatisticsQueryService;
+    private final StudentAnalyticsQueryService studentAnalyticsQueryService;
+    private final StudentGradeQueryService studentGradeQueryService;
 
-    /**
-     * 시험 전체 통계 조회
-     */
     @GetMapping("/exams/{examId}")
     public ResponseEntity<ExamStatisticsResponse> getExamStatistics(@PathVariable Long examId) {
-        return ResponseEntity.ok(statisticsQueryService.getExamStatistics(examId));
+        return ResponseEntity.ok(examStatisticsQueryService.getExamStatistics(examId));
     }
 
-    /**
-     * 시험별 학생 성적 목록 (페이지네이션)
-     */
     @GetMapping("/exams/{examId}/grades")
     public ResponseEntity<Page<StudentGradeResponse>> getStudentGrades(
             @PathVariable Long examId,
             @PageableDefault(size = 20, sort = "rank") Pageable pageable) {
-        return ResponseEntity.ok(statisticsQueryService.getStudentGrades(examId, pageable));
+        return ResponseEntity.ok(studentGradeQueryService.getStudentGrades(examId, pageable));
     }
 
-    /**
-     * 리포트용 학생 결과 요약 (이름, 점수, 등급만 반환)
-     */
     @GetMapping("/exams/{examId}/results-summary")
     public ResponseEntity<List<StudentResultSummaryResponse>> getStudentResultSummaries(
             @PathVariable Long examId) {
-        return ResponseEntity.ok(statisticsQueryService.getStudentResultSummaries(examId));
+        return ResponseEntity.ok(studentGradeQueryService.getStudentResultSummaries(examId));
     }
 
-    /**
-     * 선지별 선택률 분석
-     */
     @GetMapping("/exams/{examId}/choices")
     public ResponseEntity<ChoiceDistributionResponse> getChoiceDistribution(@PathVariable Long examId) {
-        return ResponseEntity.ok(statisticsQueryService.getChoiceDistribution(examId));
+        return ResponseEntity.ok(examStatisticsQueryService.getChoiceDistribution(examId));
     }
 
-    /**
-     * 학생 백분위/석차 조회
-     */
     @GetMapping("/students/{studentId}/rank")
     public ResponseEntity<StudentRankResponse> getStudentRank(
             @PathVariable Long studentId,
             @RequestParam Long examId) {
-        return ResponseEntity.ok(statisticsQueryService.getStudentRank(studentId, examId));
+        return ResponseEntity.ok(studentAnalyticsQueryService.getStudentRank(studentId, examId));
     }
 
-    /**
-     * 성적 안정성 지표 조회
-     */
     @GetMapping("/students/{studentId}/stability")
     public ResponseEntity<StabilityIndexResponse> getStabilityIndex(@PathVariable Long studentId) {
-        return ResponseEntity.ok(statisticsQueryService.getStabilityIndex(studentId));
+        return ResponseEntity.ok(studentAnalyticsQueryService.getStabilityIndex(studentId));
     }
 
-    /**
-     * 유형별 성장 추이 조회
-     */
     @GetMapping("/students/{studentId}/type-growth")
     public ResponseEntity<TypeGrowthTrendResponse> getTypeGrowthTrend(@PathVariable Long studentId) {
-        return ResponseEntity.ok(statisticsQueryService.getTypeGrowthTrend(studentId));
+        return ResponseEntity.ok(studentAnalyticsQueryService.getTypeGrowthTrend(studentId));
     }
 
-    /**
-     * Z-score 정규화 점수 조회
-     */
     @GetMapping("/students/{studentId}/normalized")
     public ResponseEntity<NormalizedScoreResponse> getNormalizedScores(@PathVariable Long studentId) {
-        return ResponseEntity.ok(statisticsQueryService.getNormalizedScores(studentId));
+        return ResponseEntity.ok(studentAnalyticsQueryService.getNormalizedScores(studentId));
     }
 
-    /**
-     * 목표 등급 시뮬레이션
-     */
     @PostMapping("/students/{studentId}/goal-simulation")
     public ResponseEntity<GoalSimulationResponse> simulateGoal(
             @PathVariable Long studentId,
             @Valid @RequestBody GoalSimulationRequest request) {
-        return ResponseEntity.ok(statisticsQueryService.simulateGoal(studentId, request));
+        return ResponseEntity.ok(studentAnalyticsQueryService.simulateGoal(studentId, request));
     }
 
-    /**
-     * 대시보드 통계 조회 (유형별 정답률, 오답률 TOP 10)
-     */
     @GetMapping("/dashboard")
     public ResponseEntity<DashboardStatisticsResponse> getDashboardStatistics() {
-        return ResponseEntity.ok(statisticsQueryService.getDashboardStatistics());
+        return ResponseEntity.ok(examStatisticsQueryService.getDashboardStatistics());
     }
 
-    /**
-     * 학원별 성취도 비교
-     */
     @GetMapping("/exams/{examId}/academy-comparison")
     public ResponseEntity<List<AcademyComparisonResponse>> getAcademyComparison(
             @PathVariable Long examId) {
-        return ResponseEntity.ok(statisticsQueryService.getAcademyComparison(examId));
+        return ResponseEntity.ok(examStatisticsQueryService.getAcademyComparison(examId));
     }
 }

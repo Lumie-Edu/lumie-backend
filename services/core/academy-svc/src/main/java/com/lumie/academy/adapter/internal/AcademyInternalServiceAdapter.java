@@ -26,6 +26,7 @@ public class AcademyInternalServiceAdapter implements AcademyInternalService {
 
     @Override
     public Optional<StudentData> getStudent(String tenantSlug, Long studentId) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             StudentResponse student = studentQueryService.getStudent(studentId);
@@ -33,12 +34,13 @@ public class AcademyInternalServiceAdapter implements AcademyInternalService {
         } catch (StudentNotFoundException e) {
             return Optional.empty();
         } finally {
-            TenantContextHolder.clear();
+            restoreTenant(previous);
         }
     }
 
     @Override
     public StudentListData getStudentsByIds(String tenantSlug, List<Long> studentIds) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             List<StudentResponse> students = studentQueryService.getStudentsByIds(studentIds);
@@ -47,12 +49,13 @@ public class AcademyInternalServiceAdapter implements AcademyInternalService {
                     students.size(), 0, students.size()
             );
         } finally {
-            TenantContextHolder.clear();
+            restoreTenant(previous);
         }
     }
 
     @Override
     public Optional<StudentData> getStudentByPhone(String tenantSlug, String phone) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             StudentResponse student = studentQueryService.getStudentByPhone(phone);
@@ -60,12 +63,13 @@ public class AcademyInternalServiceAdapter implements AcademyInternalService {
         } catch (StudentNotFoundException e) {
             return Optional.empty();
         } finally {
-            TenantContextHolder.clear();
+            restoreTenant(previous);
         }
     }
 
     @Override
     public StudentListData getStudentsByAcademy(String tenantSlug, Long academyId, int page, int size) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             Page<StudentResponse> students = studentQueryService.getActiveStudentsByAcademy(
@@ -75,12 +79,13 @@ public class AcademyInternalServiceAdapter implements AcademyInternalService {
                     students.getTotalElements(), page, size
             );
         } finally {
-            TenantContextHolder.clear();
+            restoreTenant(previous);
         }
     }
 
     @Override
     public ValidateStudentResult validateStudent(String tenantSlug, Long studentId) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             studentQueryService.getStudent(studentId);
@@ -88,12 +93,13 @@ public class AcademyInternalServiceAdapter implements AcademyInternalService {
         } catch (StudentNotFoundException e) {
             return new ValidateStudentResult(false, "Student not found", studentId);
         } finally {
-            TenantContextHolder.clear();
+            restoreTenant(previous);
         }
     }
 
     @Override
     public Optional<AcademyData> getAcademy(String tenantSlug, Long academyId) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             var academy = academyQueryService.getAcademy(academyId);
@@ -107,6 +113,14 @@ public class AcademyInternalServiceAdapter implements AcademyInternalService {
         } catch (AcademyNotFoundException e) {
             return Optional.empty();
         } finally {
+            restoreTenant(previous);
+        }
+    }
+
+    private static void restoreTenant(String previous) {
+        if (previous != null) {
+            TenantContextHolder.setTenant(previous);
+        } else {
             TenantContextHolder.clear();
         }
     }

@@ -6,8 +6,9 @@ import java.time.LocalDateTime;
 
 public record StudentGradeResponse(
         Long studentId,
+        String phoneNumber,
+        boolean isRegistered,
         String studentName,
-        String studentPhone,
         int score,
         int rank,
         double percentile,

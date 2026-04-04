@@ -16,6 +16,8 @@ public interface JpaExamResultRepository extends JpaRepository<ExamResult, Long>
 
     List<ExamResult> findByExamId(Long examId);
 
+    List<ExamResult> findByExamIdAndStudentIdIsNotNull(Long examId);
+
     List<ExamResult> findByStudentId(Long studentId);
 
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);

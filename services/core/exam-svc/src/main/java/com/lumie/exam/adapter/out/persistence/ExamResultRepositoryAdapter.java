@@ -45,6 +45,11 @@ public class ExamResultRepositoryAdapter implements ExamResultRepository {
     }
 
     @Override
+    public List<ExamResult> findByExamIdAndStudentIdIsNotNull(Long examId) {
+        return jpaRepository.findByExamIdAndStudentIdIsNotNull(examId);
+    }
+
+    @Override
     public List<ExamResult> findByStudentId(Long studentId) {
         return jpaRepository.findByStudentId(studentId);
     }

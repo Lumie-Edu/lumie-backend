@@ -28,6 +28,7 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
 
     @Override
     public Optional<AdminData> getAdmin(String tenantSlug, Long adminId) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             AdminResponse admin = adminQueryService.getAdmin(adminId);
@@ -35,12 +36,13 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
         } catch (AdminNotFoundException e) {
             return Optional.empty();
         } finally {
-            TenantContextHolder.clear();
+            restoreTenant(previous);
         }
     }
 
     @Override
     public Optional<AdminData> getAdminByUserId(String tenantSlug, Long userId) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             Admin admin = adminRepository.findByUserId(userId)
@@ -48,12 +50,13 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
             if (admin == null) return Optional.empty();
             return Optional.of(toAdminDataFromEntity(admin));
         } finally {
-            TenantContextHolder.clear();
+            restoreTenant(previous);
         }
     }
 
     @Override
     public ValidateAdminResult validateAdmin(String tenantSlug, Long adminId) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             adminQueryService.getAdmin(adminId);
@@ -61,12 +64,13 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
         } catch (AdminNotFoundException e) {
             return new ValidateAdminResult(false, "Admin not found", adminId);
         } finally {
-            TenantContextHolder.clear();
+            restoreTenant(previous);
         }
     }
 
     @Override
     public AdminPermissionsData getAdminPermissions(String tenantSlug, Long adminId) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             Admin admin = adminRepository.findById(adminId)
@@ -79,12 +83,13 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
 
             return new AdminPermissionsData(admin.getId(), permissions);
         } finally {
-            TenantContextHolder.clear();
+            restoreTenant(previous);
         }
     }
 
     @Override
     public AdminListData getAdminsByAcademy(String tenantSlug, Long academyId, int page, int size) {
+        String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
             var filter = new AdminFilterRequest(null, academyId, true, null);
@@ -96,6 +101,14 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
                     admins.getTotalElements(), page, size
             );
         } finally {
+            restoreTenant(previous);
+        }
+    }
+
+    private static void restoreTenant(String previous) {
+        if (previous != null) {
+            TenantContextHolder.setTenant(previous);
+        } else {
             TenantContextHolder.clear();
         }
     }

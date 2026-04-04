@@ -21,6 +21,8 @@ public interface ExamResultRepository {
 
     List<ExamResult> findByExamId(Long examId);
 
+    List<ExamResult> findByExamIdAndStudentIdIsNotNull(Long examId);
+
     List<ExamResult> findByStudentId(Long studentId);
 
     void deleteById(Long id);

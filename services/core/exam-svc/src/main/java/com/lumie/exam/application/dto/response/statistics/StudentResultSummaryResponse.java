@@ -5,6 +5,8 @@ import com.lumie.exam.domain.vo.ExamCategory;
 public record StudentResultSummaryResponse(
         Long resultId,
         Long studentId,
+        String phoneNumber,
+        boolean isRegistered,
         String studentName,
         String academyName,
         boolean isActive,
