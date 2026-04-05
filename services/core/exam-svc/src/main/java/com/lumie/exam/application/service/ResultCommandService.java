@@ -3,6 +3,8 @@ package com.lumie.exam.application.service;
 import com.lumie.exam.application.dto.message.OmrGradingJobMessage;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
+import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
+import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.dto.response.OmrPresignResponse;
@@ -142,6 +144,44 @@ public class ResultCommandService {
                 });
 
         return new OmrJobResponse(savedJob.getId());
+    }
+
+    @Transactional
+    public QuestionResultResponse updateQuestionAnswer(
+            Long examId, Long resultId, Long questionResultId, UpdateQuestionAnswerRequest request) {
+        log.info("Updating question answer: examId={}, resultId={}, questionResultId={}, newChoice={}",
+                examId, resultId, questionResultId, request.selectedChoice());
+
+        ExamResult result = resultRepository.findById(resultId)
+                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+
+        if (!result.getExam().getId().equals(examId)) {
+            throw new ExamException(ExamErrorCode.RESULT_NOT_FOUND);
+        }
+
+        QuestionResult updated = result.updateQuestionAnswer(questionResultId, request.selectedChoice());
+        gradeCalculator.calculateAndAssignGradeIfAbsolute(result.getExam(), result);
+
+        ExamResult saved = resultRepository.save(result);
+        QuestionResult refreshed = saved.getQuestionResults().stream()
+                .filter(qr -> qr.getId().equals(updated.getId()))
+                .findFirst()
+                .orElse(updated);
+        return QuestionResultResponse.from(refreshed, saved.getExam());
+    }
+
+    @Transactional
+    public void deleteResult(Long examId, Long resultId) {
+        log.info("Deleting exam result: examId={}, resultId={}", examId, resultId);
+
+        ExamResult result = resultRepository.findById(resultId)
+                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+
+        if (!result.getExam().getId().equals(examId)) {
+            throw new ExamException(ExamErrorCode.RESULT_NOT_FOUND);
+        }
+
+        resultRepository.deleteById(resultId);
     }
 
     public ExamResult resolveResult(Exam exam, Long studentId, OmrServicePort.OmrGradingResult omrResult) {

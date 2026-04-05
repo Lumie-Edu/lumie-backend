@@ -105,6 +105,27 @@ public class ExamResult extends BaseEntity {
         }
     }
 
+    public QuestionResult updateQuestionAnswer(Long questionResultId, String newSelectedChoice) {
+        QuestionResult target = this.questionResults.stream()
+                .filter(qr -> qr.getId() != null && qr.getId().equals(questionResultId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "QuestionResult not found: " + questionResultId));
+
+        int questionNumber = target.getQuestionNumber();
+        String correctAnswer = this.exam.getCorrectAnswerForQuestion(questionNumber);
+        int maxScore = this.exam.getScoreForQuestion(questionNumber);
+
+        target.update(newSelectedChoice, correctAnswer, maxScore);
+
+        this.totalScore = this.questionResults.stream()
+                .mapToInt(QuestionResult::getEarnedScore)
+                .sum();
+        this.grade = null;
+
+        return target;
+    }
+
     public record OmrQuestionUpdate(int questionNumber, String selectedChoice,
                                     String correctAnswer, Integer maxScore) {}
 

@@ -2,6 +2,7 @@ package com.lumie.exam.adapter.in.web;
 
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
+import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
@@ -74,6 +75,25 @@ public class ResultController {
     @GetMapping("/students/{studentId}/results")
     public ResponseEntity<List<ExamResultResponse>> getStudentResults(@PathVariable Long studentId) {
         return ResponseEntity.ok(resultQueryService.getStudentResults(studentId));
+    }
+
+    @PatchMapping("/exams/{examId}/results/{resultId}/questions/{questionResultId}")
+    public ResponseEntity<QuestionResultResponse> updateQuestionAnswer(
+            @PathVariable Long examId,
+            @PathVariable Long resultId,
+            @PathVariable Long questionResultId,
+            @Valid @RequestBody UpdateQuestionAnswerRequest request) {
+        QuestionResultResponse response = resultCommandService.updateQuestionAnswer(
+                examId, resultId, questionResultId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/exams/{examId}/results/{resultId}")
+    public ResponseEntity<Void> deleteResult(
+            @PathVariable Long examId,
+            @PathVariable Long resultId) {
+        resultCommandService.deleteResult(examId, resultId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/results/{resultId}/questions")
