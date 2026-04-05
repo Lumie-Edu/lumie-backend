@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       section:
-        description: 'Specific module to generate (e.g., tenant-svc, exam-svc, app)'
+        description: 'Specific module to generate (e.g., tenant, exam, academy, app, architecture)'
         required: false
         type: string
 
@@ -30,22 +30,22 @@ jobs:
 
           # Manual override
           if [ -n "${{ inputs.section }}" ]; then
-            SVC="${{ inputs.section }}"
-            case "$SVC" in
-              tenant-svc)     INCLUDE="services/platform/tenant-svc/**,$COMMON_LIBS" ;;
-              auth-svc)       INCLUDE="services/platform/auth-svc/**,$COMMON_LIBS" ;;
-              billing-svc)    INCLUDE="services/platform/billing-svc/**,$COMMON_LIBS" ;;
-              academy-svc)    INCLUDE="services/core/academy-svc/**,$COMMON_LIBS" ;;
-              exam-svc)       INCLUDE="services/core/exam-svc/**,$COMMON_LIBS" ;;
-              content-svc)    INCLUDE="services/core/content-svc/**,$COMMON_LIBS" ;;
-              admin-svc)      INCLUDE="services/core/admin-svc/**,$COMMON_LIBS" ;;
-              attendance-svc) INCLUDE="services/core/attendance-svc/**,$COMMON_LIBS" ;;
-              ai-svc)         INCLUDE="services/core/ai-svc/**,$COMMON_LIBS" ;;
-              file-svc)       INCLUDE="services/support/file-svc/**,$COMMON_LIBS" ;;
-              app)            INCLUDE="app/**,$COMMON_LIBS" ;;
-              *) echo "Unknown module: $SVC"; exit 1 ;;
+            MOD="${{ inputs.section }}"
+            case "$MOD" in
+              tenant)       INCLUDE="services/platform/tenant-svc/**,$COMMON_LIBS" ;;
+              auth)         INCLUDE="services/platform/auth-svc/**,$COMMON_LIBS" ;;
+              billing)      INCLUDE="services/platform/billing-svc/**,$COMMON_LIBS" ;;
+              academy)      INCLUDE="services/core/academy-svc/**,$COMMON_LIBS" ;;
+              exam)         INCLUDE="services/core/exam-svc/**,$COMMON_LIBS" ;;
+              content)      INCLUDE="services/core/content-svc/**,$COMMON_LIBS" ;;
+              admin)        INCLUDE="services/core/admin-svc/**,$COMMON_LIBS" ;;
+              attendance)   INCLUDE="services/core/attendance-svc/**,$COMMON_LIBS" ;;
+              file)         INCLUDE="services/support/file-svc/**,$COMMON_LIBS" ;;
+              app)          INCLUDE="app/**,$COMMON_LIBS" ;;
+              architecture) INCLUDE="app/**,services/**,$COMMON_LIBS" ;;
+              *) echo "Unknown module: $MOD"; exit 1 ;;
             esac
-            echo "matrix=[{\"section\":\"backend/$SVC\",\"include\":\"$INCLUDE\"}]" >> "$GITHUB_OUTPUT"
+            echo "matrix=[{\"section\":\"backend/$MOD\",\"include\":\"$INCLUDE\"}]" >> "$GITHUB_OUTPUT"
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -58,26 +58,26 @@ jobs:
 
           SECTIONS=""
           add_section() {
-            local svc="$1" path="$2"
-            if [[ "$SECTIONS" != *"$svc"* ]]; then
+            local mod="$1" path="$2"
+            if [[ "$SECTIONS" != *"$mod"* ]]; then
               if [ -n "$SECTIONS" ]; then SECTIONS="$SECTIONS,"; fi
-              SECTIONS="${SECTIONS}{\"section\":\"backend/$svc\",\"include\":\"$path,$COMMON_LIBS\"}"
+              SECTIONS="${SECTIONS}{\"section\":\"backend/$mod\",\"include\":\"$path,$COMMON_LIBS\"}"
             fi
           }
 
           LIBS_CHANGED=false
           while IFS= read -r file; do
             case "$file" in
-              services/platform/tenant-svc/*)     add_section "tenant-svc" "services/platform/tenant-svc/**" ;;
-              services/platform/auth-svc/*)       add_section "auth-svc" "services/platform/auth-svc/**" ;;
-              services/platform/billing-svc/*)    add_section "billing-svc" "services/platform/billing-svc/**" ;;
-              services/core/academy-svc/*)        add_section "academy-svc" "services/core/academy-svc/**" ;;
-              services/core/exam-svc/*)           add_section "exam-svc" "services/core/exam-svc/**" ;;
-              services/core/content-svc/*)        add_section "content-svc" "services/core/content-svc/**" ;;
-              services/core/admin-svc/*)          add_section "admin-svc" "services/core/admin-svc/**" ;;
-              services/core/attendance-svc/*)     add_section "attendance-svc" "services/core/attendance-svc/**" ;;
+              services/platform/tenant-svc/*)     add_section "tenant" "services/platform/tenant-svc/**" ;;
+              services/platform/auth-svc/*)       add_section "auth" "services/platform/auth-svc/**" ;;
+              services/platform/billing-svc/*)    add_section "billing" "services/platform/billing-svc/**" ;;
+              services/core/academy-svc/*)        add_section "academy" "services/core/academy-svc/**" ;;
+              services/core/exam-svc/*)           add_section "exam" "services/core/exam-svc/**" ;;
+              services/core/content-svc/*)        add_section "content" "services/core/content-svc/**" ;;
+              services/core/admin-svc/*)          add_section "admin" "services/core/admin-svc/**" ;;
+              services/core/attendance-svc/*)     add_section "attendance" "services/core/attendance-svc/**" ;;
               services/core/ai-svc/*)             add_section "ai-svc" "services/core/ai-svc/**" ;;
-              services/support/file-svc/*)        add_section "file-svc" "services/support/file-svc/**" ;;
+              services/support/file-svc/*)        add_section "file" "services/support/file-svc/**" ;;
               app/*)                              add_section "app" "app/**" ;;
               libs/*)
                 LIBS_CHANGED=true
@@ -90,16 +90,16 @@ jobs:
 
           # If only libs changed, regenerate all modules
           if [ "$LIBS_CHANGED" = true ] && [ -z "$SECTIONS" ]; then
-            add_section "tenant-svc" "services/platform/tenant-svc/**"
-            add_section "auth-svc" "services/platform/auth-svc/**"
-            add_section "billing-svc" "services/platform/billing-svc/**"
-            add_section "academy-svc" "services/core/academy-svc/**"
-            add_section "exam-svc" "services/core/exam-svc/**"
-            add_section "content-svc" "services/core/content-svc/**"
-            add_section "admin-svc" "services/core/admin-svc/**"
-            add_section "attendance-svc" "services/core/attendance-svc/**"
+            add_section "tenant" "services/platform/tenant-svc/**"
+            add_section "auth" "services/platform/auth-svc/**"
+            add_section "billing" "services/platform/billing-svc/**"
+            add_section "academy" "services/core/academy-svc/**"
+            add_section "exam" "services/core/exam-svc/**"
+            add_section "content" "services/core/content-svc/**"
+            add_section "admin" "services/core/admin-svc/**"
+            add_section "attendance" "services/core/attendance-svc/**"
             add_section "ai-svc" "services/core/ai-svc/**"
-            add_section "file-svc" "services/support/file-svc/**"
+            add_section "file" "services/support/file-svc/**"
             add_section "app" "app/**"
           fi
 
