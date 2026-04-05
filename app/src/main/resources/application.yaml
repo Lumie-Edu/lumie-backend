@@ -32,9 +32,11 @@ spring:
   data:
     redis:
       password: ${REDIS_PASSWORD:}
+      host: ${REDIS_HOST:}
+      port: ${REDIS_PORT:6379}
       sentinel:
-        master: ${REDIS_SENTINEL_MASTER:mymaster}
-        nodes: ${REDIS_SENTINEL_NODES:localhost:26379}
+        master: ${REDIS_SENTINEL_MASTER:}
+        nodes: ${REDIS_SENTINEL_NODES:}
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
