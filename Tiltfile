@@ -102,11 +102,6 @@ spec:
             secretKeyRef:
               name: lumie-dev-rabbitmq-secrets
               key: password
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: lumie-dev-redis-secrets
-              key: password
         - name: JWT_SECRET_KEY
           valueFrom:
             secretKeyRef:

@@ -22,7 +22,7 @@ grpc:
 lumie:
   services:
     grading:
-      url: http://grading-svc.lumie-grading.svc:8000
+      url: http://grading-svc.lumie-worker.svc:8000
 
 logging:
   level:

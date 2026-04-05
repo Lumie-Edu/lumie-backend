@@ -7,6 +7,7 @@ import com.lumie.academy.application.dto.StudentResponse;
 import com.lumie.academy.application.dto.StudentUpdateRequest;
 import com.lumie.academy.application.port.out.AuthServicePort;
 import com.lumie.academy.application.port.out.BillingServicePort;
+import com.lumie.academy.application.port.out.ExamServicePort;
 import com.lumie.academy.domain.entity.Academy;
 import com.lumie.academy.domain.entity.Student;
 import com.lumie.academy.domain.exception.AcademyNotFoundException;
@@ -40,6 +41,7 @@ public class StudentCommandService {
     private final AcademyRepository academyRepository;
     private final AuthServicePort authServicePort;
     private final BillingServicePort billingServicePort;
+    private final ExamServicePort examServicePort;
 
     public StudentResponse registerStudent(StudentRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -85,6 +87,22 @@ public class StudentCommandService {
         );
 
         Student saved = studentRepository.save(student);
+
+        // Backfill: link any pre-existing unregistered exam results with the same phone
+        // to the newly created student.
+        if (saved.getPhone() != null && !saved.getPhone().isBlank()) {
+            try {
+                int linked = examServicePort.linkUnregisteredResultsByPhone(saved.getPhone(), saved.getId());
+                if (linked > 0) {
+                    log.info("Backfilled {} exam results for student {} (phone={})",
+                            linked, saved.getId(), saved.getPhone());
+                }
+            } catch (Exception e) {
+                // Non-fatal: student registration should not fail due to backfill issues.
+                log.warn("Failed to backfill exam results for student {} (phone={}): {}",
+                        saved.getId(), saved.getPhone(), e.getMessage());
+            }
+        }
 
         log.info("Student registered: {} in tenant: {}", saved.getUserLoginId(), tenantSlug);
         return StudentResponse.from(saved);

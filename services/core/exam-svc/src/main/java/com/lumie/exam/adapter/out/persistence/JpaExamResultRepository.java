@@ -2,6 +2,7 @@ package com.lumie.exam.adapter.out.persistence;
 
 import com.lumie.exam.domain.entity.ExamResult;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -21,6 +22,16 @@ public interface JpaExamResultRepository extends JpaRepository<ExamResult, Long>
     List<ExamResult> findByStudentId(Long studentId);
 
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        UPDATE ExamResult r
+           SET r.studentId = :studentId
+         WHERE r.phoneNumber = :phoneNumber
+           AND r.studentId IS NULL
+        """)
+    int linkUnregisteredByPhone(@Param("phoneNumber") String phoneNumber,
+                                @Param("studentId") Long studentId);
 
     @Query(nativeQuery = true, value = """
         SELECT

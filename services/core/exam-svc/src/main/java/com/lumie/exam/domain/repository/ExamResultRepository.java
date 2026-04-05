@@ -29,6 +29,8 @@ public interface ExamResultRepository {
 
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);
 
+    int linkUnregisteredByPhone(String phoneNumber, Long studentId);
+
     List<AcademyComparisonProjection> findAcademyComparisonByExamId(Long examId);
 
     List<ResultWithAcademyProjection> findResultsWithAcademyByExamId(Long examId);

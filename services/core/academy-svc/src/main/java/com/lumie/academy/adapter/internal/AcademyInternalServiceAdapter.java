@@ -58,10 +58,8 @@ public class AcademyInternalServiceAdapter implements AcademyInternalService {
         String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
-            StudentResponse student = studentQueryService.getStudentByPhone(phone);
-            return Optional.of(toStudentData(student));
-        } catch (StudentNotFoundException e) {
-            return Optional.empty();
+            return studentQueryService.findStudentByPhone(phone)
+                    .map(this::toStudentData);
         } finally {
             restoreTenant(previous);
         }

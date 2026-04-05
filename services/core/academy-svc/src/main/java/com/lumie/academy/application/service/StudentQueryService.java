@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -43,6 +44,11 @@ public class StudentQueryService {
         Student student = studentRepository.findByPhone(phone)
                 .orElseThrow(() -> new StudentNotFoundException("phone: " + phone));
         return StudentResponse.from(student);
+    }
+
+    public Optional<StudentResponse> findStudentByPhone(String phone) {
+        return studentRepository.findByPhone(phone)
+                .map(StudentResponse::from);
     }
 
     public Page<StudentResponse> getStudentsByAcademy(Long academyId, Pageable pageable) {
