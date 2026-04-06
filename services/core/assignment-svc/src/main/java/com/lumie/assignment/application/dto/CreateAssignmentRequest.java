@@ -22,7 +22,6 @@ public record CreateAssignmentRequest(
     Integer maxScore,
     List<Long> attachments,
 
-    @NotNull(message = "Created by is required")
     Long createdBy
 ) {
 }

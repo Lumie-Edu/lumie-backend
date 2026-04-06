@@ -10,6 +10,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 
@@ -43,6 +45,7 @@ public class ClassEntity extends BaseEntity {
 
     @Convert(converter = SchedulePatternConverter.class)
     @Column(name = "schedule_pattern", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private SchedulePattern schedulePattern;
 
     @Column(name = "start_date", nullable = false)

@@ -13,6 +13,7 @@ import com.lumie.journal.domain.repository.JournalRepository;
 import com.lumie.journal.domain.vo.JournalStatus;
 import com.lumie.journal.domain.vo.JournalVisibility;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.tenant.UserContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,9 +40,7 @@ public class JournalCommandService {
             .orElseThrow(() -> new BusinessException(JournalErrorCode.ACADEMY_NOT_FOUND,
                 "Academy not found or inactive: " + request.academyId()));
 
-        adminServicePort.getAdmin(request.teacherId())
-            .orElseThrow(() -> new BusinessException(JournalErrorCode.TEACHER_NOT_FOUND,
-                "Teacher not found with id: " + request.teacherId()));
+        Long teacherId = request.teacherId() != null ? request.teacherId() : UserContextHolder.getUserId();
 
         if (journalRepository.existsByClassIdAndLessonDate(request.classId(), request.lessonDate())) {
             throw new BusinessException(JournalErrorCode.DUPLICATE_JOURNAL_DATE,
@@ -53,7 +52,7 @@ public class JournalCommandService {
         ClassJournal journal = ClassJournal.create(
             request.classId(),
             request.academyId(),
-            request.teacherId(),
+            teacherId,
             request.lessonDate(),
             request.title(),
             request.content(),

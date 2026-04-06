@@ -13,7 +13,6 @@ public record CreateJournalRequest(
     @NotNull(message = "Academy ID is required")
     Long academyId,
 
-    @NotNull(message = "Teacher ID is required")
     Long teacherId,
 
     @NotNull(message = "Lesson date is required")

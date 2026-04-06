@@ -21,6 +21,7 @@ import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentType;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.tenant.UserContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,9 +49,7 @@ public class AssignmentCommandService {
             .orElseThrow(() -> new BusinessException(AssignmentErrorCode.CLASS_NOT_FOUND,
                 "Class not found with id: " + request.classId()));
 
-        adminServicePort.getAdmin(request.createdBy())
-            .orElseThrow(() -> new BusinessException(AssignmentErrorCode.CREATOR_NOT_FOUND,
-                "Creator not found with id: " + request.createdBy()));
+        Long createdBy = request.createdBy() != null ? request.createdBy() : UserContextHolder.getUserId();
 
         AssignmentType type = parseAssignmentType(request.type());
 
@@ -63,7 +62,7 @@ public class AssignmentCommandService {
             request.dueDate(),
             request.maxScore(),
             request.attachments(),
-            request.createdBy()
+            createdBy
         );
 
         Assignment saved = assignmentRepository.save(entity);

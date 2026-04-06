@@ -12,6 +12,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,6 +39,7 @@ public class SmsMessage extends BaseEntity {
     private RecipientType recipientType;
 
     @Convert(converter = RecipientsConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "recipients", nullable = false, columnDefinition = "jsonb")
     private List<Recipient> recipients;
 

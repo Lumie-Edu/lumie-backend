@@ -9,6 +9,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -51,10 +53,12 @@ public class ClassJournal extends BaseEntity {
     private Long mediaFileId;
 
     @Convert(converter = LongListConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "attachments", columnDefinition = "jsonb")
     private List<Long> attachments;
 
     @Convert(converter = StringListConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "topics_covered", columnDefinition = "jsonb")
     private List<String> topicsCovered;
 

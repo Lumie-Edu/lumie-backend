@@ -11,6 +11,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,6 +50,7 @@ public class Assignment extends BaseEntity {
     private Integer maxScore;
 
     @Convert(converter = LongListConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "attachments", columnDefinition = "jsonb")
     private List<Long> attachments;
 
