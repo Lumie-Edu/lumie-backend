@@ -1,0 +1,23 @@
+package com.lumie.assignment.domain.exception;
+
+import com.lumie.common.exception.ErrorCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
+public enum AssignmentErrorCode implements ErrorCode {
+
+    ASSIGNMENT_NOT_FOUND("ASSIGNMENT_001", "Assignment not found", 404),
+    SUBMISSION_NOT_FOUND("ASSIGNMENT_002", "Submission not found", 404),
+    DUPLICATE_SUBMISSION("ASSIGNMENT_003", "Student has already submitted for this assignment", 409),
+    ACADEMY_NOT_FOUND("ASSIGNMENT_004", "Academy not found or inactive", 404),
+    CLASS_NOT_FOUND("ASSIGNMENT_005", "Class not found", 404),
+    CREATOR_NOT_FOUND("ASSIGNMENT_006", "Creator admin not found", 404),
+    ASSIGNMENT_CLOSED("ASSIGNMENT_007", "Assignment is closed", 400),
+    INVALID_STATUS("ASSIGNMENT_008", "Invalid status value", 400);
+
+    private final String code;
+    private final String message;
+    private final int status;
+}

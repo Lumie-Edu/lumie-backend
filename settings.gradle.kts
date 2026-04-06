@@ -18,6 +18,9 @@ include(
     "services:core:exam-svc",
     "services:core:content-svc",
     "services:core:class-svc",
+    "services:core:assignment-svc",
+    "services:core:journal-svc",
     "services:core:ai-svc",
+    "services:core:notification-svc",
     "services:support:file-svc"
 )

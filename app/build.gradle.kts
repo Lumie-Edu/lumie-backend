@@ -19,8 +19,11 @@ dependencies {
     implementation(project(":services:core:exam-svc"))
     implementation(project(":services:core:content-svc"))
     implementation(project(":services:core:class-svc"))
+    implementation(project(":services:core:assignment-svc"))
+    implementation(project(":services:core:journal-svc"))
     implementation(project(":services:core:attendance-svc"))
     implementation(project(":services:core:ai-svc"))
+    implementation(project(":services:core:notification-svc"))
 
     // Support modules
     implementation(project(":services:support:file-svc"))
