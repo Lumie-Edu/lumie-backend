@@ -11,6 +11,8 @@ public interface ClassRepository {
 
     ClassEntity save(ClassEntity classEntity);
 
+    void delete(ClassEntity classEntity);
+
     Optional<ClassEntity> findById(Long id);
 
     Optional<ClassEntity> findByIdWithLock(Long id);

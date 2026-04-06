@@ -7,7 +7,6 @@ import com.lumie.cls.application.dto.EnrollStudentsRequest;
 import com.lumie.cls.application.dto.UpdateEnrollmentRequest;
 import com.lumie.cls.application.service.ClassCommandService;
 import com.lumie.cls.application.service.ClassQueryService;
-import com.lumie.cls.domain.exception.ClassFullException;
 import com.lumie.cls.domain.exception.EnrollmentNotFoundException;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
@@ -85,20 +84,6 @@ class ClassEnrollmentControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$[0].id").value(10))
                 .andExpect(jsonPath("$[1].id").value(11));
-    }
-
-    @Test
-    @DisplayName("POST /v1/classes/{classId}/enrollments - 정원 초과 시 409를 반환한다")
-    void enrollStudents_classFull_returns409() throws Exception {
-        given(commandService.enrollStudents(eq(1L), any(EnrollStudentsRequest.class)))
-                .willThrow(new ClassFullException(1L));
-
-        EnrollStudentsRequest request = new EnrollStudentsRequest(List.of(42L));
-
-        mockMvc.perform(post("/v1/classes/1/enrollments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isConflict());
     }
 
     @Test

@@ -4,8 +4,6 @@ import com.lumie.cls.domain.vo.SchedulePattern;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.time.LocalDate;
-
 public record CreateClassRequest(
     @NotBlank(message = "Class name is required")
     String name,
@@ -15,11 +13,7 @@ public record CreateClassRequest(
 
     String subject,
     Long teacherId,
-    Integer maxStudents,
-    Long tuitionAmount,
     SchedulePattern schedulePattern,
-    LocalDate startDate,
-    LocalDate endDate,
     String description
 ) {
 }

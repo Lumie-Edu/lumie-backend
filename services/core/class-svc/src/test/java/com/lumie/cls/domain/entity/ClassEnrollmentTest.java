@@ -1,11 +1,8 @@
 package com.lumie.cls.domain.entity;
 
-import com.lumie.cls.domain.vo.ClassStatus;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -50,7 +47,7 @@ class ClassEnrollmentTest {
 
     private ClassEntity buildClassEntity() {
         return ClassEntity.create(
-                1L, "수학 기초반", "수학", 10L, 30, 100_000L,
-                null, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 6, 30), null);
+                1L, "수학 기초반", "수학", 10L,
+                null, null);
     }
 }

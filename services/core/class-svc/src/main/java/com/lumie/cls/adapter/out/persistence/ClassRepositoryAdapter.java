@@ -23,6 +23,11 @@ public class ClassRepositoryAdapter implements ClassRepository {
     }
 
     @Override
+    public void delete(ClassEntity classEntity) {
+        jpaRepository.delete(classEntity);
+    }
+
+    @Override
     public Optional<ClassEntity> findById(Long id) {
         return jpaRepository.findById(id);
     }
@@ -68,10 +73,6 @@ public class ClassRepositoryAdapter implements ClassRepository {
         if (criteria.teacherId() != null) {
             spec = spec.and((root, query, cb) ->
                 cb.equal(root.get("teacherId"), criteria.teacherId()));
-        }
-        if (criteria.status() != null) {
-            spec = spec.and((root, query, cb) ->
-                cb.equal(root.get("status"), criteria.status()));
         }
         if (criteria.search() != null && !criteria.search().isBlank()) {
             spec = spec.and((root, query, cb) ->

@@ -54,11 +54,9 @@ class JournalCommandServiceTest {
                     "TEACHER_ONLY", null);
 
             given(classServicePort.getClass(1L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 1L, "ACTIVE")));
+                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 1L)));
             given(academyServicePort.getAcademy(1L))
                     .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "테스트학원", true)));
-            given(adminServicePort.getAdmin(10L))
-                    .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "김선생")));
             given(journalRepository.existsByClassIdAndLessonDate(1L, LocalDate.of(2026, 4, 1)))
                     .willReturn(false);
             given(journalRepository.save(any(ClassJournal.class)))
@@ -96,7 +94,7 @@ class JournalCommandServiceTest {
                     "수업일지", null, null, null, null, null);
 
             given(classServicePort.getClass(1L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 1L, "ACTIVE")));
+                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 1L)));
             given(academyServicePort.getAcademy(999L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.createJournal(request))
@@ -111,26 +109,9 @@ class JournalCommandServiceTest {
                     "수업일지", null, null, null, null, null);
 
             given(classServicePort.getClass(1L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 1L, "ACTIVE")));
+                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 1L)));
             given(academyServicePort.getAcademy(1L))
                     .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", false)));
-
-            assertThatThrownBy(() -> commandService.createJournal(request))
-                    .isInstanceOf(BusinessException.class);
-        }
-
-        @Test
-        @DisplayName("존재하지 않는 강사로 생성 시 BusinessException이 발생한다")
-        void createJournal_teacherNotFound_throwsException() {
-            CreateJournalRequest request = new CreateJournalRequest(
-                    1L, 1L, 999L, LocalDate.of(2026, 4, 1),
-                    "수업일지", null, null, null, null, null);
-
-            given(classServicePort.getClass(1L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 1L, "ACTIVE")));
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
-            given(adminServicePort.getAdmin(999L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.createJournal(request))
                     .isInstanceOf(BusinessException.class);
@@ -144,11 +125,9 @@ class JournalCommandServiceTest {
                     "수업일지", null, null, null, null, null);
 
             given(classServicePort.getClass(1L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 1L, "ACTIVE")));
+                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 1L)));
             given(academyServicePort.getAcademy(1L))
                     .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
-            given(adminServicePort.getAdmin(10L))
-                    .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "김선생")));
             given(journalRepository.existsByClassIdAndLessonDate(1L, LocalDate.of(2026, 4, 1)))
                     .willReturn(true);
 

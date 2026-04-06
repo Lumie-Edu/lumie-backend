@@ -8,8 +8,6 @@ import com.lumie.cls.application.dto.UpdateClassRequest;
 import com.lumie.cls.application.service.ClassCommandService;
 import com.lumie.cls.application.service.ClassQueryService;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
-import com.lumie.cls.domain.vo.ClassStatus;
-import com.lumie.cls.domain.vo.EnrollmentStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,7 +24,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -64,16 +61,14 @@ class ClassControllerTest {
         given(commandService.createClass(any(CreateClassRequest.class))).willReturn(response);
 
         CreateClassRequest request = new CreateClassRequest(
-                "수학 기초반", 1L, "수학", 10L, 30, 100_000L,
-                null, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 6, 30), "설명");
+                "수학 기초반", 1L, "수학", 10L, null, "설명");
 
         mockMvc.perform(post("/v1/classes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("수학 기초반"))
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.name").value("수학 기초반"));
     }
 
     @Test
@@ -82,7 +77,7 @@ class ClassControllerTest {
         ClassResponse response = buildClassResponse(1L);
         Page<ClassResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1);
 
-        given(queryService.listClasses(any(), any(), any(), any(), any())).willReturn(page);
+        given(queryService.listClasses(any(), any(), any(), any())).willReturn(page);
 
         mockMvc.perform(get("/v1/classes"))
                 .andExpect(status().isOk())
@@ -118,7 +113,7 @@ class ClassControllerTest {
         given(commandService.updateClass(eq(1L), any(UpdateClassRequest.class))).willReturn(response);
 
         UpdateClassRequest request = new UpdateClassRequest(
-                "변경된 이름", null, null, null, null, null, null, null, null, null);
+                "변경된 이름", null, null, null, null);
 
         mockMvc.perform(patch("/v1/classes/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -147,9 +142,8 @@ class ClassControllerTest {
 
     private ClassResponse buildClassResponse(Long id) {
         return new ClassResponse(
-                id, 1L, "수학 기초반", "수학", 10L, 30, 100_000L,
-                null, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 6, 30),
-                ClassStatus.PENDING, "설명", 5L,
+                id, 1L, "수학 기초반", "수학", 10L,
+                null, "설명", 5L,
                 LocalDateTime.now(), LocalDateTime.now());
     }
 }

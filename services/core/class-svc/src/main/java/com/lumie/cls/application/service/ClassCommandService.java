@@ -11,13 +11,11 @@ import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.cls.domain.entity.ClassEnrollment;
 import com.lumie.cls.domain.entity.ClassEntity;
 import com.lumie.cls.domain.exception.ClassErrorCode;
-import com.lumie.cls.domain.exception.ClassFullException;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.cls.domain.exception.DuplicateEnrollmentException;
 import com.lumie.cls.domain.exception.EnrollmentNotFoundException;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
-import com.lumie.cls.domain.vo.ClassStatus;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
 import com.lumie.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -60,11 +58,7 @@ public class ClassCommandService {
             request.name(),
             request.subject(),
             request.teacherId(),
-            request.maxStudents() != null ? request.maxStudents() : 0,
-            request.tuitionAmount() != null ? request.tuitionAmount() : 0L,
             request.schedulePattern(),
-            request.startDate(),
-            request.endDate(),
             request.description()
         );
 
@@ -81,24 +75,10 @@ public class ClassCommandService {
         String name = request.name() != null ? request.name() : entity.getName();
         String subject = request.subject() != null ? request.subject() : entity.getSubject();
         Long teacherId = request.teacherId() != null ? request.teacherId() : entity.getTeacherId();
-        int maxStudents = request.maxStudents() != null ? request.maxStudents() : entity.getMaxStudents();
-        long tuitionAmount = request.tuitionAmount() != null ? request.tuitionAmount() : entity.getTuitionAmount();
         var schedulePattern = request.schedulePattern() != null ? request.schedulePattern() : entity.getSchedulePattern();
-        var startDate = request.startDate() != null ? request.startDate() : entity.getStartDate();
-        var endDate = request.endDate() != null ? request.endDate() : entity.getEndDate();
         String description = request.description() != null ? request.description() : entity.getDescription();
 
-        entity.updateInfo(name, subject, teacherId, maxStudents, tuitionAmount,
-            schedulePattern, startDate, endDate, description);
-
-        if (request.status() != null) {
-            ClassStatus newStatus = parseClassStatus(request.status());
-            switch (newStatus) {
-                case ACTIVE -> entity.activate();
-                case CLOSED -> entity.close();
-                case PENDING -> {} // no-op, keep current state
-            }
-        }
+        entity.updateInfo(name, subject, teacherId, schedulePattern, description);
 
         ClassEntity saved = classRepository.save(entity);
 
@@ -111,28 +91,14 @@ public class ClassCommandService {
         ClassEntity entity = classRepository.findById(id)
             .orElseThrow(() -> new ClassNotFoundException(id));
 
-        entity.close();
-        classRepository.save(entity);
+        classRepository.delete(entity);
 
-        log.info("Class closed (soft-deleted): {}", id);
+        log.info("Class deleted: {}", id);
     }
 
     public List<ClassEnrollmentResponse> enrollStudents(Long classId, EnrollStudentsRequest request) {
         ClassEntity classEntity = classRepository.findByIdWithLock(classId)
             .orElseThrow(() -> new ClassNotFoundException(classId));
-
-        if (!classEntity.isActive()) {
-            throw new BusinessException(ClassErrorCode.CLASS_CLOSED,
-                "Cannot enroll students in a non-active class: " + classId);
-        }
-
-        long currentEnrolled = enrollmentRepository.countByClassEntityIdAndStatus(classId, EnrollmentStatus.ENROLLED);
-        int newCount = request.studentIds().size();
-
-        if (classEntity.getMaxStudents() > 0
-                && currentEnrolled + newCount > classEntity.getMaxStudents()) {
-            throw new ClassFullException(classId);
-        }
 
         for (Long studentId : request.studentIds()) {
             if (enrollmentRepository.existsByClassEntityIdAndStudentId(classId, studentId)) {
@@ -186,14 +152,6 @@ public class ClassCommandService {
 
         log.info("Enrollment {} status updated to {} in class: {}", enrollmentId, request.status(), classId);
         return ClassEnrollmentResponse.from(saved);
-    }
-
-    private ClassStatus parseClassStatus(String status) {
-        try {
-            return ClassStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException(ClassErrorCode.INVALID_STATUS, "Invalid class status: " + status);
-        }
     }
 
     private EnrollmentStatus parseEnrollmentStatus(String status) {

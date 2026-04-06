@@ -19,9 +19,7 @@ public interface ClassInternalService {
             String subject,
             Long academyId,
             Long teacherId,
-            int maxStudents,
             long enrolledCount,
-            String status,
             String createdAt,
             String updatedAt
     ) {}

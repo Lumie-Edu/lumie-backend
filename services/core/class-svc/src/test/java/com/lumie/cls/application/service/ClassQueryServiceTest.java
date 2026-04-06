@@ -8,7 +8,6 @@ import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.ClassSearchCriteria;
-import com.lumie.cls.domain.vo.ClassStatus;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,7 +21,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.lang.reflect.Field;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,7 +71,7 @@ class ClassQueryServiceTest {
         given(classRepository.findAll(any(ClassSearchCriteria.class), eq(pageable))).willReturn(page);
         given(enrollmentRepository.countByClassEntityIdAndStatus(1L, EnrollmentStatus.ENROLLED)).willReturn(3L);
 
-        Page<ClassResponse> response = queryService.listClasses(1L, null, null, null, pageable);
+        Page<ClassResponse> response = queryService.listClasses(1L, null, null, pageable);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).enrolledCount()).isEqualTo(3L);
@@ -87,7 +85,7 @@ class ClassQueryServiceTest {
 
         given(classRepository.findAll(any(ClassSearchCriteria.class), eq(pageable))).willReturn(emptyPage);
 
-        Page<ClassResponse> response = queryService.listClasses(1L, 10L, ClassStatus.ACTIVE, "수학", pageable);
+        Page<ClassResponse> response = queryService.listClasses(1L, 10L, "수학", pageable);
 
         assertThat(response.getContent()).isEmpty();
     }
@@ -148,8 +146,7 @@ class ClassQueryServiceTest {
 
     private ClassEntity buildClassEntity(Long id) throws Exception {
         ClassEntity entity = ClassEntity.create(
-                1L, "수학 기초반", "수학", 10L, 30, 100_000L,
-                null, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 6, 30), "설명");
+                1L, "수학 기초반", "수학", 10L, null, "설명");
         setField(entity, "id", id);
         return entity;
     }

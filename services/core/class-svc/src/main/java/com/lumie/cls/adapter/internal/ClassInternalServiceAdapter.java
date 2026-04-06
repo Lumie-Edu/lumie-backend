@@ -3,7 +3,6 @@ package com.lumie.cls.adapter.internal;
 import com.lumie.cls.application.dto.ClassResponse;
 import com.lumie.cls.application.service.ClassQueryService;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
-import com.lumie.cls.domain.vo.ClassStatus;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.internal.cls.ClassInternalService;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +39,7 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
         String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
-            Page<ClassResponse> classes = classQueryService.listClasses(academyId, null, null, null,
+            Page<ClassResponse> classes = classQueryService.listClasses(academyId, null, null,
                     PageRequest.of(page, size));
             return new ClassListData(
                     classes.getContent().stream().map(this::toClassData).toList(),
@@ -98,9 +97,7 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
                 response.subject(),
                 response.academyId(),
                 response.teacherId(),
-                response.maxStudents(),
                 response.enrolledCount(),
-                response.status() != null ? response.status().name() : ClassStatus.PENDING.name(),
                 response.createdAt() != null ? response.createdAt().toString() : "",
                 response.updatedAt() != null ? response.updatedAt().toString() : ""
         );

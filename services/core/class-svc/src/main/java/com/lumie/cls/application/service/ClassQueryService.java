@@ -7,7 +7,6 @@ import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.ClassSearchCriteria;
-import com.lumie.cls.domain.vo.ClassStatus;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,9 +33,9 @@ public class ClassQueryService {
         return ClassResponse.from(entity, enrolledCount);
     }
 
-    public Page<ClassResponse> listClasses(Long academyId, Long teacherId, ClassStatus status,
+    public Page<ClassResponse> listClasses(Long academyId, Long teacherId,
                                            String search, Pageable pageable) {
-        ClassSearchCriteria criteria = new ClassSearchCriteria(academyId, teacherId, status, search);
+        ClassSearchCriteria criteria = new ClassSearchCriteria(academyId, teacherId, search);
 
         return classRepository.findAll(criteria, pageable)
             .map(entity -> {

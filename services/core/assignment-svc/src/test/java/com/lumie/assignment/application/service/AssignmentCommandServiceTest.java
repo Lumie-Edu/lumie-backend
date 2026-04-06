@@ -64,9 +64,7 @@ class AssignmentCommandServiceTest {
             given(academyServicePort.getAcademy(10L))
                     .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(10L, "테스트학원", true)));
             given(classServicePort.getClass(1L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 10L, "ACTIVE")));
-            given(adminServicePort.getAdmin(5L))
-                    .willReturn(Optional.of(new AdminServicePort.AdminInfo(5L, "김선생")));
+                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 10L)));
             given(assignmentRepository.save(any(Assignment.class)))
                     .willAnswer(inv -> {
                         Assignment entity = inv.getArgument(0);
@@ -107,21 +105,6 @@ class AssignmentCommandServiceTest {
                     .isInstanceOf(BusinessException.class);
         }
 
-        @Test
-        @DisplayName("존재하지 않는 생성자로 생성 시 BusinessException이 발생한다")
-        void createAssignment_creatorNotFound_throwsException() {
-            CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    1L, 10L, "과제", null, null, null, null, null, 999L);
-
-            given(academyServicePort.getAcademy(10L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(10L, "학원", true)));
-            given(classServicePort.getClass(1L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 10L, "ACTIVE")));
-            given(adminServicePort.getAdmin(999L)).willReturn(Optional.empty());
-
-            assertThatThrownBy(() -> commandService.createAssignment(request))
-                    .isInstanceOf(BusinessException.class);
-        }
     }
 
     @Nested
