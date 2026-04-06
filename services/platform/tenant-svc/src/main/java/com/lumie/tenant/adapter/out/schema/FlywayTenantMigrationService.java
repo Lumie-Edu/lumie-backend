@@ -37,6 +37,7 @@ public class FlywayTenantMigrationService {
                 .baselineOnMigrate(true)
                 .baselineVersion("0")
                 .table("flyway_schema_history")
+                .outOfOrder(true)
                 .createSchemas(false)  // Schema is already created by TenantSchemaManager
                 .load();
 
