@@ -17,6 +17,7 @@ include(
     "services:core:admin-svc",
     "services:core:exam-svc",
     "services:core:content-svc",
+    "services:core:class-svc",
     "services:core:ai-svc",
     "services:support:file-svc"
 )

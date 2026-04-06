@@ -1,0 +1,56 @@
+package com.lumie.cls.domain.entity;
+
+import com.lumie.cls.domain.vo.ClassStatus;
+import com.lumie.cls.domain.vo.EnrollmentStatus;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@DisplayName("ClassEnrollment 도메인 엔티티 테스트")
+class ClassEnrollmentTest {
+
+    @Test
+    @DisplayName("create() 호출 시 기본 상태는 ENROLLED이다")
+    void create_defaultStatusIsEnrolled() {
+        ClassEntity classEntity = buildClassEntity();
+
+        ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 42L);
+
+        assertThat(enrollment.getStudentId()).isEqualTo(42L);
+        assertThat(enrollment.getStatus()).isEqualTo(EnrollmentStatus.ENROLLED);
+        assertThat(enrollment.getEnrolledAt()).isNotNull();
+        assertThat(enrollment.getDroppedAt()).isNull();
+        assertThat(enrollment.getClassEntity()).isEqualTo(classEntity);
+    }
+
+    @Test
+    @DisplayName("drop() 호출 시 상태가 DROPPED로 변경되고 droppedAt이 설정된다")
+    void drop_statusChangesToDropped() {
+        ClassEnrollment enrollment = ClassEnrollment.create(buildClassEntity(), 42L);
+
+        enrollment.drop();
+
+        assertThat(enrollment.getStatus()).isEqualTo(EnrollmentStatus.DROPPED);
+        assertThat(enrollment.getDroppedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("complete() 호출 시 상태가 COMPLETED로 변경된다")
+    void complete_statusChangesToCompleted() {
+        ClassEnrollment enrollment = ClassEnrollment.create(buildClassEntity(), 42L);
+
+        enrollment.complete();
+
+        assertThat(enrollment.getStatus()).isEqualTo(EnrollmentStatus.COMPLETED);
+        assertThat(enrollment.getDroppedAt()).isNull();
+    }
+
+    private ClassEntity buildClassEntity() {
+        return ClassEntity.create(
+                1L, "수학 기초반", "수학", 10L, 30, 100_000L,
+                null, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 6, 30), null);
+    }
+}

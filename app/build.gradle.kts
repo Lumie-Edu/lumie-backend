@@ -18,6 +18,7 @@ dependencies {
     implementation(project(":services:core:admin-svc"))
     implementation(project(":services:core:exam-svc"))
     implementation(project(":services:core:content-svc"))
+    implementation(project(":services:core:class-svc"))
     implementation(project(":services:core:attendance-svc"))
     implementation(project(":services:core:ai-svc"))
 
