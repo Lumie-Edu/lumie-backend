@@ -6,14 +6,10 @@ import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.application.port.out.StudentServicePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
-import com.lumie.exam.domain.entity.OmrGradingJob;
-import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
-import com.lumie.exam.domain.service.GradeCalculator;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
@@ -41,8 +37,6 @@ import static org.mockito.Mockito.*;
 class OmrGradingJobProcessorTest {
 
     @Mock
-    private OmrGradingJobRepository jobRepository;
-    @Mock
     private ExamRepository examRepository;
     @Mock
     private ExamResultRepository resultRepository;
@@ -56,8 +50,6 @@ class OmrGradingJobProcessorTest {
     private StudentServicePort studentService;
     @Mock
     private BillingServicePort billingService;
-    @Mock
-    private GradeCalculator gradeCalculator;
 
     @InjectMocks
     private OmrGradingJobProcessor processor;
@@ -76,10 +68,6 @@ class OmrGradingJobProcessorTest {
         );
     }
 
-    private OmrGradingJob buildJob(Exam exam) {
-        return OmrGradingJob.create(exam, "inst-abc123", 1, List.of("omr/tmp/abc123/batch1/sheet1.png"));
-    }
-
     private OmrServicePort.OmrGradingResult buildOmrResult(String phoneNumber, int totalScore) {
         List<OmrServicePort.OmrQuestionResult> questions = List.of(
                 new OmrServicePort.OmrQuestionResult(1, "1", "1", 30, 30, "SHORT"),
@@ -91,7 +79,7 @@ class OmrGradingJobProcessorTest {
 
     @Test
     @DisplayName("채점 성공 시 resolveResult를 통해 결과를 저장한다")
-    void processImageAndUpdateProgress_success_savesResult() {
+    void processSingleImage_success_savesResult() {
         // given
         Long jobId = 1L;
         Long examId = 10L;
@@ -100,13 +88,11 @@ class OmrGradingJobProcessorTest {
         String tenantSlug = "inst-abc123";
 
         Exam exam = buildExam();
-        OmrGradingJob job = buildJob(exam);
         StudentServicePort.StudentInfo student = new StudentServicePort.StudentInfo(
                 studentId, "홍길동", "hong@test.com", "01012345678", "루미아카데미", true);
         ExamResult resolvedResult = ExamResult.create(exam, studentId, 100);
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
-        given(jobRepository.findById(jobId)).willReturn(Optional.of(job));
         given(storagePort.getObject(imageKey)).willReturn(new byte[]{1, 2, 3});
         given(omrService.gradeOmrImage(any(), any(), any(), any()))
                 .willReturn(buildOmrResult("12345678", 100));
@@ -116,7 +102,7 @@ class OmrGradingJobProcessorTest {
         given(storagePort.putObject(any(), any(), any())).willReturn("omr/results/abc123/10/200");
 
         // when
-        Map<String, Object> result = processor.processImageAndUpdateProgress(jobId, examId, imageKey, tenantSlug);
+        Map<String, Object> result = processor.processSingleImage(jobId, examId, imageKey, tenantSlug);
 
         // then
         verify(resultCommandService).resolveResult(eq(exam), eq(studentId), any());
@@ -127,14 +113,12 @@ class OmrGradingJobProcessorTest {
 
     @Test
     @DisplayName("미등록 학생일 때 phoneNumber로 결과를 저장한다")
-    void processImageAndUpdateProgress_studentNotFound_savesAsUnregistered() {
+    void processSingleImage_studentNotFound_savesAsUnregistered() {
         // given
         Exam exam = buildExam();
-        OmrGradingJob job = buildJob(exam);
         ExamResult unregisteredResult = ExamResult.createForUnregistered(exam, "01099999999", 70);
 
         given(examRepository.findById(10L)).willReturn(Optional.of(exam));
-        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
         given(storagePort.getObject(any())).willReturn(new byte[]{1, 2, 3});
         given(omrService.gradeOmrImage(any(), any(), any(), any()))
                 .willReturn(buildOmrResult("99999999", 70));
@@ -145,7 +129,7 @@ class OmrGradingJobProcessorTest {
         given(storagePort.putObject(any(), any(), any())).willReturn("omr/results/abc123/10/01099999999");
 
         // when
-        Map<String, Object> result = processor.processImageAndUpdateProgress(
+        Map<String, Object> result = processor.processSingleImage(
                 1L, 10L, "omr/tmp/abc123/batch1/sheet1.png", "inst-abc123");
 
         // then
@@ -158,10 +142,10 @@ class OmrGradingJobProcessorTest {
 
     @Test
     @DisplayName("시험이 존재하지 않으면 ExamException을 던진다")
-    void processImageAndUpdateProgress_examNotFound_throwsExamException() {
+    void processSingleImage_examNotFound_throwsExamException() {
         given(examRepository.findById(anyLong())).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> processor.processImageAndUpdateProgress(
+        assertThatThrownBy(() -> processor.processSingleImage(
                 1L, 99L, "omr/tmp/abc123/batch1/sheet1.png", "inst-abc123"))
                 .isInstanceOf(ExamException.class)
                 .extracting("errorCode")
@@ -170,17 +154,15 @@ class OmrGradingJobProcessorTest {
 
     @Test
     @DisplayName("이미지 처리 예외 발생 시 실패로 기록하고 결과를 반환한다")
-    void processImageAndUpdateProgress_storageException_recordsFailure() {
+    void processSingleImage_storageException_recordsFailure() {
         // given
         Exam exam = buildExam();
-        OmrGradingJob job = buildJob(exam);
 
         given(examRepository.findById(10L)).willReturn(Optional.of(exam));
-        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
         given(storagePort.getObject(any())).willThrow(new RuntimeException("Storage unavailable"));
 
         // when
-        Map<String, Object> result = processor.processImageAndUpdateProgress(
+        Map<String, Object> result = processor.processSingleImage(
                 1L, 10L, "omr/tmp/abc123/batch1/sheet1.png", "inst-abc123");
 
         // then
@@ -188,41 +170,5 @@ class OmrGradingJobProcessorTest {
         assertThat(result).containsEntry("success", false);
         assertThat(result).containsEntry("saved", false);
         assertThat(result.get("error")).isEqualTo("Storage unavailable");
-    }
-
-    @Test
-    @DisplayName("startProcessing 호출 시 잡 상태를 PROCESSING으로 변경한다")
-    void startProcessing_updatesJobStatus() {
-        OmrGradingJob job = buildJob(buildExam());
-        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
-        given(jobRepository.save(any())).willReturn(job);
-
-        processor.startProcessing(1L);
-
-        verify(jobRepository).save(job);
-    }
-
-    @Test
-    @DisplayName("completeJob 호출 시 잡 상태를 COMPLETED로 변경한다")
-    void completeJob_updatesJobStatusToCompleted() {
-        OmrGradingJob job = buildJob(buildExam());
-        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
-        given(jobRepository.save(any())).willReturn(job);
-
-        processor.completeJob(1L, List.of(Map.of("success", true)));
-
-        verify(jobRepository).save(job);
-    }
-
-    @Test
-    @DisplayName("failJob 호출 시 잡 상태를 FAILED로 변경한다")
-    void failJob_updatesJobStatusToFailed() {
-        OmrGradingJob job = buildJob(buildExam());
-        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
-        given(jobRepository.save(any())).willReturn(job);
-
-        processor.failJob(1L);
-
-        verify(jobRepository).save(job);
     }
 }

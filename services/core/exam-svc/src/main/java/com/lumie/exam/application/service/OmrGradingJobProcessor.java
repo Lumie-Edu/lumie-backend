@@ -6,14 +6,10 @@ import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.application.port.out.StudentServicePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
-import com.lumie.exam.domain.entity.OmrGradingJob;
-import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
-import com.lumie.exam.domain.service.GradeCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +22,6 @@ import java.util.*;
 @RequiredArgsConstructor
 public class OmrGradingJobProcessor {
 
-    private final OmrGradingJobRepository jobRepository;
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
     private final ResultCommandService resultCommandService;
@@ -34,25 +29,13 @@ public class OmrGradingJobProcessor {
     private final OmrStoragePort storagePort;
     private final StudentServicePort studentService;
     private final BillingServicePort billingService;
-    private final GradeCalculator gradeCalculator;
 
     @Transactional
-    public void startProcessing(Long jobId) {
-        OmrGradingJob job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
-        job.startProcessing();
-        jobRepository.save(job);
-    }
-
-    @Transactional
-    public Map<String, Object> processImageAndUpdateProgress(
+    public Map<String, Object> processSingleImage(
             Long jobId, Long examId, String imageKey, String tenantSlug) {
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
-
-        OmrGradingJob job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
 
         String fileName = extractFileName(imageKey);
         Map<String, Object> resultMap = new LinkedHashMap<>();
@@ -80,7 +63,6 @@ public class OmrGradingJobProcessor {
                 examResult = resultCommandService.resolveResultForUnregistered(exam, fullPhone, omrResult);
             }
 
-            // Copy OMR image to permanent path
             String tenantId = extractTenantId(tenantSlug);
             String imageId = studentOpt.map(s -> String.valueOf(s.id())).orElse(fullPhone);
             String permanentKey = "omr/results/" + tenantId + "/" + examId + "/" + imageId;
@@ -101,7 +83,6 @@ public class OmrGradingJobProcessor {
             resultMap.put("totalScore", omrResult.totalScore());
             resultMap.put("grade", omrResult.grade());
             resultMap.put("resultId", savedResult.getId());
-            job.incrementProcessed(true, true);
 
         } catch (Exception e) {
             log.error("Failed to process OMR image: {}", imageKey, e);
@@ -109,10 +90,8 @@ public class OmrGradingJobProcessor {
             resultMap.put("success", false);
             resultMap.put("saved", false);
             resultMap.put("error", e.getMessage());
-            job.incrementProcessed(false, false);
         }
 
-        jobRepository.save(job);
         return resultMap;
     }
 
@@ -121,22 +100,6 @@ public class OmrGradingJobProcessor {
             return tenantSlug.substring(5);
         }
         return tenantSlug;
-    }
-
-    @Transactional
-    public void completeJob(Long jobId, List<Map<String, Object>> results) {
-        OmrGradingJob job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
-        job.complete(results);
-        jobRepository.save(job);
-    }
-
-    @Transactional
-    public void failJob(Long jobId) {
-        jobRepository.findById(jobId).ifPresent(job -> {
-            job.fail(null);
-            jobRepository.save(job);
-        });
     }
 
     private String extractFileName(String objectKey) {

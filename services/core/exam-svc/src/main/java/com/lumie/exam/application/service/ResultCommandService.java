@@ -1,6 +1,6 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.exam.application.dto.message.OmrGradingJobMessage;
+import com.lumie.exam.application.dto.message.OmrGradingImageMessage;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
 import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
@@ -129,17 +129,21 @@ public class ResultCommandService {
         OmrGradingJob job = OmrGradingJob.create(exam, tenantSlug, imageKeys.size(), imageKeys);
         OmrGradingJob savedJob = jobRepository.save(job);
 
-        OmrGradingJobMessage message = new OmrGradingJobMessage(
-                savedJob.getId(), examId, tenantSlug, imageKeys);
         org.springframework.transaction.support.TransactionSynchronizationManager
                 .registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
                     @Override
                     public void afterCommit() {
-                        rabbitTemplate.convertAndSend(
-                                RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE,
-                                RabbitMqConstants.GRADING_OMR_REQUEST_ROUTING_KEY,
-                                message);
-                        log.info("Async OMR grading job submitted: jobId={}", savedJob.getId());
+                        for (int i = 0; i < imageKeys.size(); i++) {
+                            OmrGradingImageMessage message = new OmrGradingImageMessage(
+                                    savedJob.getId(), examId, tenantSlug,
+                                    imageKeys.get(i), i, imageKeys.size());
+                            rabbitTemplate.convertAndSend(
+                                    RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE,
+                                    RabbitMqConstants.GRADING_OMR_REQUEST_ROUTING_KEY,
+                                    message);
+                        }
+                        log.info("Async OMR grading job submitted: jobId={}, images={}",
+                                savedJob.getId(), imageKeys.size());
                     }
                 });
 
