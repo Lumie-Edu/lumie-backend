@@ -1,6 +1,5 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.BillingServicePort;
 import com.lumie.exam.application.port.out.OmrServicePort;
@@ -39,38 +38,32 @@ public class OmrGradingJobProcessor {
         log.info("Processing grading callback: jobId={}, imageIndex={}/{}, success={}",
                 request.jobId(), request.imageIndex() + 1, request.totalImages(), request.success());
 
+        // Tenant context is set by RequestContextFilter from X-Tenant-Slug header
+        jobRepository.startProcessingIfPending(request.jobId());
+
+        Map<String, Object> resultMap = new LinkedHashMap<>();
+        String fileName = extractFileName(request.imageKey());
+        resultMap.put("fileName", fileName);
+
+        if (request.success()) {
+            processSuccessResult(request, resultMap);
+            jobRepository.incrementSuccess(request.jobId());
+        } else {
+            resultMap.put("success", false);
+            resultMap.put("saved", false);
+            resultMap.put("error", request.error());
+            jobRepository.incrementFail(request.jobId());
+        }
+
         try {
-            TenantContextHolder.setTenant(request.tenantSlug());
+            jobRepository.appendResult(request.jobId(), resultMap);
+        } catch (Exception e) {
+            log.warn("Failed to append result for jobId={}: {}", request.jobId(), e.getMessage());
+        }
 
-            jobRepository.startProcessingIfPending(request.jobId());
-
-            Map<String, Object> resultMap = new LinkedHashMap<>();
-            String fileName = extractFileName(request.imageKey());
-            resultMap.put("fileName", fileName);
-
-            if (request.success()) {
-                processSuccessResult(request, resultMap);
-                jobRepository.incrementSuccess(request.jobId());
-            } else {
-                resultMap.put("success", false);
-                resultMap.put("saved", false);
-                resultMap.put("error", request.error());
-                jobRepository.incrementFail(request.jobId());
-            }
-
-            try {
-                jobRepository.appendResult(request.jobId(), resultMap);
-            } catch (Exception e) {
-                log.warn("Failed to append result for jobId={}: {}", request.jobId(), e.getMessage());
-            }
-
-            if (jobRepository.tryComplete(request.jobId(), request.totalImages())) {
-                log.info("OMR grading job completed: jobId={}", request.jobId());
-                cleanupImages(request.jobId());
-            }
-
-        } finally {
-            TenantContextHolder.clear();
+        if (jobRepository.tryComplete(request.jobId(), request.totalImages())) {
+            log.info("OMR grading job completed: jobId={}", request.jobId());
+            cleanupImages(request.jobId());
         }
     }
 
