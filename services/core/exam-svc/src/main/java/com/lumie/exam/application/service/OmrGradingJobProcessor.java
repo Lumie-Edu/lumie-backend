@@ -15,6 +15,7 @@ import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -97,7 +98,18 @@ public class OmrGradingJobProcessor {
             log.warn("Failed to copy OMR image to permanent path: {}", permanentKey, e);
         }
 
-        ExamResult savedResult = resultRepository.save(examResult);
+        ExamResult savedResult;
+        try {
+            savedResult = resultRepository.save(examResult);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Duplicate result detected, retrying with existing record: jobId={}", request.jobId());
+            if (studentOpt.isPresent()) {
+                examResult = resultCommandService.resolveResult(exam, studentOpt.get().id(), omrResult);
+            } else {
+                examResult = resultCommandService.resolveResultForUnregistered(exam, fullPhone, omrResult);
+            }
+            savedResult = resultRepository.save(examResult);
+        }
         billingService.consumeOmrQuota();
 
         resultMap.put("success", true);
