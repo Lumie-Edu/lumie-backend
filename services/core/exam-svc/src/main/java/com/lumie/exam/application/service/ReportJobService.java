@@ -103,7 +103,7 @@ public class ReportJobService {
         if (request.success()) {
             byte[] jpgBytes = Base64.getDecoder().decode(request.reportBytes());
             String tenantId = extractTenantId(request.tenantSlug());
-            String fileKey = tenantId + "/reports/" + request.examId() + "/" + request.studentId() + ".jpg";
+            String fileKey = "tmp/" + tenantId + "/reports/" + request.examId() + "/" + request.studentId() + ".jpg";
             storagePort.putObject(fileKey, jpgBytes, "image/jpeg");
             jobRepository.incrementSuccess(request.jobId());
         } else {
@@ -129,7 +129,7 @@ public class ReportJobService {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try (ZipOutputStream zos = new ZipOutputStream(baos)) {
                 for (Long studentId : job.getStudentIds()) {
-                    String fileKey = tenantId + "/reports/" + examId + "/" + studentId + ".jpg";
+                    String fileKey = "tmp/" + tenantId + "/reports/" + examId + "/" + studentId + ".jpg";
                     try {
                         byte[] jpgBytes = storagePort.getObject(fileKey);
                         zos.putNextEntry(new ZipEntry("report_" + studentId + ".jpg"));
@@ -141,7 +141,7 @@ public class ReportJobService {
                 }
             }
 
-            String zipKey = tenantId + "/reports/" + examId + "/batch_" + jobId + ".zip";
+            String zipKey = "tmp/" + tenantId + "/reports/" + examId + "/batch_" + jobId + ".zip";
             storagePort.putObject(zipKey, baos.toByteArray(), "application/zip");
             jobRepository.setZipFileKey(jobId, zipKey);
 
