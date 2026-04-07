@@ -25,7 +25,7 @@ public interface JpaOmrGradingJobRepository extends JpaRepository<OmrGradingJob,
     void incrementFail(@Param("jobId") Long jobId);
 
     @Modifying
-    @Query(value = "UPDATE omr_grading_jobs SET results = COALESCE(results, '[]'::jsonb) || :resultJson::jsonb " +
+    @Query(value = "UPDATE omr_grading_jobs SET results = COALESCE(results, CAST('[]' AS jsonb)) || CAST(:resultJson AS jsonb) " +
             "WHERE id = :jobId", nativeQuery = true)
     void appendResult(@Param("jobId") Long jobId, @Param("resultJson") String resultJson);
 

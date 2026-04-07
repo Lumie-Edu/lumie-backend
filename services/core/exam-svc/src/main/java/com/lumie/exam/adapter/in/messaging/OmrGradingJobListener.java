@@ -31,6 +31,7 @@ public class OmrGradingJobListener {
         log.info("Processing OMR image: jobId={}, imageIndex={}/{}",
                 message.jobId(), message.imageIndex() + 1, message.totalImages());
 
+        boolean incremented = false;
         try {
             TenantContextHolder.setTenant(message.tenantSlug());
 
@@ -45,7 +46,13 @@ public class OmrGradingJobListener {
             } else {
                 jobRepository.incrementFail(message.jobId());
             }
-            jobRepository.appendResult(message.jobId(), result);
+            incremented = true;
+
+            try {
+                jobRepository.appendResult(message.jobId(), result);
+            } catch (Exception e) {
+                log.warn("Failed to append result for jobId={}: {}", message.jobId(), e.getMessage());
+            }
 
             if (jobRepository.tryComplete(message.jobId(), message.totalImages())) {
                 log.info("OMR grading job completed: jobId={}", message.jobId());
@@ -56,7 +63,9 @@ public class OmrGradingJobListener {
             log.error("Failed to process OMR image: jobId={}, imageKey={}",
                     message.jobId(), message.imageKey(), e);
             try {
-                jobRepository.incrementFail(message.jobId());
+                if (!incremented) {
+                    jobRepository.incrementFail(message.jobId());
+                }
                 if (jobRepository.tryComplete(message.jobId(), message.totalImages())) {
                     cleanupImages(message.jobId());
                 }
