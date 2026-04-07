@@ -55,6 +55,38 @@ public class RabbitMqConfig {
                 .to(lumieDlxExchange());
     }
 
+    // Report queues
+    @Bean
+    public Queue reportRequestQueue() {
+        return QueueBuilder.durable(RabbitMqConstants.REPORT_REQUEST_QUEUE)
+                .withArgument("x-queue-type", "quorum")
+                .withArgument("x-dead-letter-exchange", RabbitMqConstants.LUMIE_DLX_EXCHANGE)
+                .withArgument("x-message-ttl", 1800000)
+                .build();
+    }
+
+    @Bean
+    public Queue reportRequestDlq() {
+        return QueueBuilder.durable(RabbitMqConstants.REPORT_REQUEST_DLQ)
+                .withArgument("x-queue-type", "quorum")
+                .build();
+    }
+
+    @Bean
+    public Binding reportRequestBinding() {
+        return BindingBuilder
+                .bind(reportRequestQueue())
+                .to(lumieCommandsExchange())
+                .with(RabbitMqConstants.REPORT_REQUEST_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding reportRequestDlqBinding() {
+        return BindingBuilder
+                .bind(reportRequestDlq())
+                .to(lumieDlxExchange());
+    }
+
     @Bean
     public MessageConverter jsonMessageConverter() {
         ObjectMapper objectMapper = new ObjectMapper();
