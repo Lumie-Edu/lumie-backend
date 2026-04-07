@@ -98,7 +98,7 @@ public class ResultCommandService {
         List<OmrPresignResponse.PresignedUpload> uploads = request.fileNames().stream()
                 .map(fileName -> {
                     String sanitized = sanitizeFileName(fileName);
-                    String objectKey = "omr/tmp/" + tenantId + "/" + batchKey + "/" + sanitized;
+                    String objectKey = tenantId + "/omr-tmp/" + batchKey + "/" + sanitized;
                     String uploadUrl = storagePort.getPresignedPutUrl(objectKey, 900);
                     return new OmrPresignResponse.PresignedUpload(fileName, objectKey, uploadUrl);
                 })
@@ -120,7 +120,7 @@ public class ResultCommandService {
 
         // Validate object keys
         for (String key : request.objectKeys()) {
-            if (!key.startsWith("omr/tmp/" + tenantId + "/") || key.contains("..")) {
+            if (!key.startsWith(tenantId + "/omr-tmp/") || key.contains("..")) {
                 throw new ExamException(ExamErrorCode.INVALID_EXAM_DATA);
             }
         }

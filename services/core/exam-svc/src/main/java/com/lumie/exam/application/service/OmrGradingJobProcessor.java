@@ -89,7 +89,7 @@ public class OmrGradingJobProcessor {
 
         String tenantId = extractTenantId(request.tenantSlug());
         String imageId = studentOpt.map(s -> String.valueOf(s.id())).orElse(fullPhone);
-        String permanentKey = "omr/results/" + tenantId + "/" + request.examId() + "/" + imageId;
+        String permanentKey = tenantId + "/omr/" + request.examId() + "/" + imageId;
         try {
             byte[] imageData = storagePort.getObject(request.imageKey());
             storagePort.putObject(permanentKey, imageData, "image/png");
