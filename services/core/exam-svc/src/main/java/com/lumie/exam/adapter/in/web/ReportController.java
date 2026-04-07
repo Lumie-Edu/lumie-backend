@@ -58,11 +58,11 @@ public class ReportController {
     }
 
     @GetMapping("/exams/{examId}/reports/jobs/{jobId}/download")
-    public ResponseEntity<String> downloadZip(
+    public ResponseEntity<java.util.Map<String, String>> downloadZip(
             @PathVariable Long examId,
             @PathVariable Long jobId
     ) {
         String downloadUrl = reportJobService.getDownloadUrl(jobId);
-        return ResponseEntity.ok(downloadUrl);
+        return ResponseEntity.ok(java.util.Map.of("downloadUrl", downloadUrl));
     }
 }
