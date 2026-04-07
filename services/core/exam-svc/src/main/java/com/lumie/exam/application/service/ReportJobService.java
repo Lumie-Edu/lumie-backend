@@ -82,7 +82,7 @@ public class ReportJobService {
         );
     }
 
-    public String getDownloadUrl(Long jobId) {
+    public byte[] getZipBytes(Long jobId) {
         ReportGenerationJob job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
 
@@ -90,7 +90,7 @@ public class ReportJobService {
             throw new ExamException(ExamErrorCode.RESULT_NOT_FOUND);
         }
 
-        return storagePort.getPresignedUrl(job.getZipFileKey());
+        return storagePort.getObject(job.getZipFileKey());
     }
 
     @Transactional
