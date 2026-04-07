@@ -185,6 +185,14 @@ public class ResultCommandService {
             throw new ExamException(ExamErrorCode.RESULT_NOT_FOUND);
         }
 
+        if (result.getOmrImageKey() != null) {
+            try {
+                storagePort.deleteObjects(java.util.List.of(result.getOmrImageKey()));
+            } catch (Exception e) {
+                log.warn("Failed to delete OMR image from MinIO: {}", result.getOmrImageKey(), e);
+            }
+        }
+
         resultRepository.deleteById(resultId);
     }
 
