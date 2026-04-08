@@ -15,6 +15,7 @@ include(
     "services:core:academy-svc",
     "services:core:attendance-svc",
     "services:core:admin-svc",
+    "services:core:activity-log-svc",
     "services:core:exam-svc",
     "services:core:content-svc",
     "services:core:class-svc",

@@ -14,6 +14,8 @@ import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
 import com.lumie.admin.domain.vo.AccessLevel;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.internal.activitylog.ActivityLogInternalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ public class AdminCommandService {
     private final AdminPermissionRepository adminPermissionRepository;
     private final AuthServicePort authServicePort;
     private final BillingServicePort billingServicePort;
+    private final ActivityLogInternalService activityLogInternalService;
 
     public AdminResponse registerAdmin(Long userId, AdminRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -66,6 +69,7 @@ public class AdminCommandService {
         Admin saved = adminRepository.save(admin);
 
         log.info("Admin registered: {} in tenant: {}", saved.getUserLoginId(), tenantSlug);
+        logActivity("CREATE", "ADMIN", saved.getId(), saved.getName(), null);
         return AdminResponse.from(saved);
     }
 
@@ -89,6 +93,7 @@ public class AdminCommandService {
         Admin updated = adminRepository.save(admin);
 
         log.info("Admin updated: {} in tenant: {}", id, tenantSlug);
+        logActivity("UPDATE", "ADMIN", updated.getId(), updated.getName(), null);
         return AdminResponse.from(updated);
     }
 
@@ -104,6 +109,7 @@ public class AdminCommandService {
         adminPermissionRepository.saveAll(entries);
 
         log.info("Admin {} permissions updated: {} entries", adminId, entries.size());
+        logActivity("UPDATE", "PERMISSION", adminId, null, entries.size() + " permissions updated");
     }
 
     public void deactivateAdmin(Long id) {
@@ -113,6 +119,7 @@ public class AdminCommandService {
         admin.deactivate();
         adminRepository.save(admin);
         log.info("Admin deactivated: {} in tenant: {}", id, tenantSlug);
+        logActivity("DEACTIVATE", "ADMIN", id, admin.getName(), null);
     }
 
     public void reactivateAdmin(Long id) {
@@ -123,6 +130,7 @@ public class AdminCommandService {
         admin.activate();
         adminRepository.save(admin);
         log.info("Admin reactivated: {} in tenant: {}", id, tenantSlug);
+        logActivity("REACTIVATE", "ADMIN", id, admin.getName(), null);
     }
 
     public void terminateAdmin(Long id) {
@@ -132,6 +140,7 @@ public class AdminCommandService {
         admin.terminate();
         adminRepository.save(admin);
         log.info("Admin terminated: {} in tenant: {}", id, tenantSlug);
+        logActivity("TERMINATE", "ADMIN", id, admin.getName(), null);
     }
 
     public void deleteAdmin(Long id) {
@@ -142,12 +151,28 @@ public class AdminCommandService {
             throw new IllegalStateException("Cannot delete active admin. Deactivate first.");
         }
         Long userId = admin.getUserId();
+        String adminName = admin.getName();
         adminRepository.delete(admin);
         AuthServicePort.DeleteUserResult deleteResult = authServicePort.deleteUser(userId);
         if (!deleteResult.success()) {
             log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
         }
         log.info("Admin permanently deleted: {} in tenant: {}", id, tenantSlug);
+        logActivity("DELETE", "ADMIN", id, adminName, null);
+    }
+
+    private void logActivity(String action, String entityType, Long entityId,
+                             String entityName, String description) {
+        try {
+            Long userId = UserContextHolder.getRequiredUserId();
+            String role = UserContextHolder.getUserRole();
+            adminRepository.findByUserId(userId).ifPresent(actor ->
+                activityLogInternalService.log(actor.getId(), actor.getName(), role,
+                    action, entityType, entityId, entityName, description)
+            );
+        } catch (Exception e) {
+            log.warn("Failed to log activity: {}", e.getMessage());
+        }
     }
 
     private void checkAdminQuota(String tenantSlug) {

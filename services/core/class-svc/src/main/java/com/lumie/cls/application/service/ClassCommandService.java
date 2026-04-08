@@ -18,6 +18,8 @@ import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.internal.activitylog.ActivityLogInternalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ public class ClassCommandService {
     private final ClassEnrollmentRepository enrollmentRepository;
     private final AcademyServicePort academyServicePort;
     private final AdminServicePort adminServicePort;
+    private final ActivityLogInternalService activityLogInternalService;
 
     public ClassResponse createClass(CreateClassRequest request) {
         academyServicePort.getAcademy(request.academyId())
@@ -65,6 +68,7 @@ public class ClassCommandService {
         ClassEntity saved = classRepository.save(entity);
 
         log.info("Class created: {} in academy: {}", saved.getId(), saved.getAcademyId());
+        logActivity("CREATE", "CLASS", saved.getId(), saved.getName(), null);
         return ClassResponse.from(saved, 0L);
     }
 
@@ -84,6 +88,7 @@ public class ClassCommandService {
 
         long enrolledCount = enrollmentRepository.countByClassEntityIdAndStatus(saved.getId(), EnrollmentStatus.ENROLLED);
         log.info("Class updated: {}", saved.getId());
+        logActivity("UPDATE", "CLASS", saved.getId(), saved.getName(), null);
         return ClassResponse.from(saved, enrolledCount);
     }
 
@@ -91,9 +96,11 @@ public class ClassCommandService {
         ClassEntity entity = classRepository.findById(id)
             .orElseThrow(() -> new ClassNotFoundException(id));
 
+        String className = entity.getName();
         classRepository.delete(entity);
 
         log.info("Class deleted: {}", id);
+        logActivity("DELETE", "CLASS", id, className, null);
     }
 
     public List<ClassEnrollmentResponse> enrollStudents(Long classId, EnrollStudentsRequest request) {
@@ -113,6 +120,8 @@ public class ClassCommandService {
         List<ClassEnrollment> saved = enrollmentRepository.saveAll(enrollments);
 
         log.info("Enrolled {} students in class: {}", saved.size(), classId);
+        logActivity("ENROLL", "CLASS", classId, classEntity.getName(),
+                saved.size() + " students enrolled");
         return saved.stream()
             .map(ClassEnrollmentResponse::from)
             .toList();
@@ -130,6 +139,7 @@ public class ClassCommandService {
         enrollmentRepository.save(enrollment);
 
         log.info("Enrollment {} dropped from class: {}", enrollmentId, classId);
+        logActivity("DROP", "CLASS", classId, enrollment.getClassEntity().getName(), null);
     }
 
     public void removeEnrollmentByStudent(Long classId, Long studentId) {
@@ -141,6 +151,7 @@ public class ClassCommandService {
         enrollmentRepository.save(enrollment);
 
         log.info("Student {} dropped from class: {}", studentId, classId);
+        logActivity("DROP", "CLASS", classId, enrollment.getClassEntity().getName(), null);
     }
 
     public ClassEnrollmentResponse updateEnrollmentStatus(Long classId, Long enrollmentId,
@@ -163,6 +174,20 @@ public class ClassCommandService {
 
         log.info("Enrollment {} status updated to {} in class: {}", enrollmentId, request.status(), classId);
         return ClassEnrollmentResponse.from(saved);
+    }
+
+    private void logActivity(String action, String entityType, Long entityId,
+                             String entityName, String description) {
+        try {
+            Long userId = UserContextHolder.getRequiredUserId();
+            String role = UserContextHolder.getUserRole();
+            adminServicePort.getAdminByUserId(userId).ifPresent(actor ->
+                activityLogInternalService.log(actor.id(), actor.name(), role,
+                    action, entityType, entityId, entityName, description)
+            );
+        } catch (Exception e) {
+            log.warn("Failed to log activity: {}", e.getMessage());
+        }
     }
 
     private EnrollmentStatus parseEnrollmentStatus(String status) {

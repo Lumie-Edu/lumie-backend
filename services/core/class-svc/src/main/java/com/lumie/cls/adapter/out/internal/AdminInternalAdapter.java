@@ -23,4 +23,11 @@ public class AdminInternalAdapter implements AdminServicePort {
         return adminInternalService.getAdmin(slug, adminId)
                 .map(a -> new AdminInfo(a.id(), a.name()));
     }
+
+    @Override
+    public Optional<AdminInfo> getAdminByUserId(Long userId) {
+        String slug = TenantContextHolder.getRequiredTenant();
+        return adminInternalService.getAdminByUserId(slug, userId)
+                .map(a -> new AdminInfo(a.id(), a.name()));
+    }
 }

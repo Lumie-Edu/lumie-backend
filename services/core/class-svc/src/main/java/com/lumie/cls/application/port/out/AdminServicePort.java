@@ -6,6 +6,8 @@ public interface AdminServicePort {
 
     Optional<AdminInfo> getAdmin(Long adminId);
 
+    Optional<AdminInfo> getAdminByUserId(Long userId);
+
     record AdminInfo(
         Long id,
         String name

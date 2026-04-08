@@ -16,6 +16,7 @@ dependencies {
     // Core modules
     implementation(project(":services:core:academy-svc"))
     implementation(project(":services:core:admin-svc"))
+    implementation(project(":services:core:activity-log-svc"))
     implementation(project(":services:core:exam-svc"))
     implementation(project(":services:core:content-svc"))
     implementation(project(":services:core:class-svc"))
