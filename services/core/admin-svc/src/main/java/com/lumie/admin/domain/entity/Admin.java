@@ -7,6 +7,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Formula;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -23,6 +24,9 @@ public class Admin extends BaseEntity {
 
     @Column(name = "user_id", nullable = false, unique = true)
     private Long userId;
+
+    @Formula("(SELECT u.role FROM public.users u WHERE u.id = user_id)")
+    private String role;
 
     @Column(name = "user_login_id", nullable = false, length = 50)
     private String userLoginId;
