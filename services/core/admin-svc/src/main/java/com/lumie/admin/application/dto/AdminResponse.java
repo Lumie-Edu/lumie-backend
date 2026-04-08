@@ -14,20 +14,13 @@ public record AdminResponse(
     String phone,
     String email,
     List<Long> academyIds,
-    PositionInfo position,
     String adminMemo,
     Boolean isActive,
     EmploymentStatus employmentStatus,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
-    public record PositionInfo(Long id, String name) {}
-
     public static AdminResponse from(Admin admin) {
-        PositionInfo positionInfo = admin.getPosition() != null
-            ? new PositionInfo(admin.getPosition().getId(), admin.getPosition().getName())
-            : null;
-
         return new AdminResponse(
             admin.getId(),
             admin.getUserId(),
@@ -36,7 +29,6 @@ public record AdminResponse(
             admin.getAdminPhone(),
             admin.getEmail(),
             List.copyOf(admin.getAcademyIds()),
-            positionInfo,
             admin.getAdminMemo(),
             admin.isActive(),
             admin.getEmploymentStatus(),

@@ -15,7 +15,6 @@ public interface AdminRepository {
     Page<Admin> findAll(Pageable pageable);
     Page<Admin> findAll(Specification<Admin> spec, Pageable pageable);
     boolean existsByUserLoginId(String userLoginId);
-    boolean existsByPositionId(Long positionId);
     boolean existsByPhone(String phone);
     boolean existsByPhoneAndIdNot(String phone, Long excludeId);
     void delete(Admin admin);

@@ -6,15 +6,12 @@ import com.lumie.admin.application.port.out.AuthServicePort;
 import com.lumie.admin.application.port.out.BillingServicePort;
 import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.entity.AdminPermission;
-import com.lumie.admin.domain.entity.Position;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
 import com.lumie.admin.domain.exception.DuplicatePhoneException;
 import com.lumie.admin.domain.exception.DuplicateUserLoginIdException;
-import com.lumie.admin.domain.exception.PositionNotFoundException;
 import com.lumie.admin.domain.exception.QuotaExceededException;
 import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
-import com.lumie.admin.domain.repository.PositionRepository;
 import com.lumie.admin.domain.vo.AccessLevel;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +31,6 @@ import java.util.Set;
 public class AdminCommandService {
 
     private final AdminRepository adminRepository;
-    private final PositionRepository positionRepository;
     private final AdminPermissionRepository adminPermissionRepository;
     private final AuthServicePort authServicePort;
     private final BillingServicePort billingServicePort;
@@ -57,12 +53,6 @@ public class AdminCommandService {
             academyIds.addAll(request.academyIds());
         }
 
-        Position position = null;
-        if (request.positionId() != null) {
-            position = positionRepository.findById(request.positionId())
-                    .orElseThrow(() -> new PositionNotFoundException(request.positionId()));
-        }
-
         Admin admin = Admin.create(
             userId,
             request.userLoginId(),
@@ -70,7 +60,6 @@ public class AdminCommandService {
             request.phone(),
             request.email(),
             academyIds,
-            position,
             request.adminMemo()
         );
 
@@ -90,13 +79,7 @@ public class AdminCommandService {
             throw new DuplicatePhoneException(request.phone());
         }
 
-        Position position = null;
-        if (request.positionId() != null) {
-            position = positionRepository.findById(request.positionId())
-                    .orElseThrow(() -> new PositionNotFoundException(request.positionId()));
-        }
-
-        admin.updateInfo(request.name(), request.phone(), request.email(), position,
+        admin.updateInfo(request.name(), request.phone(), request.email(),
                 request.adminMemo());
 
         if (request.academyIds() != null) {

@@ -92,7 +92,7 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
         String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
-            var filter = new AdminFilterRequest(null, academyId, true, null);
+            var filter = new AdminFilterRequest(academyId, true, null);
             var pageable = PageRequest.of(page, size);
             var admins = adminQueryService.getAllAdmins(filter, pageable);
 
@@ -118,8 +118,6 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
                 dto.id(), dto.userId(), dto.userLoginId(), dto.name(),
                 dto.phone() != null ? dto.phone() : "",
                 dto.email() != null ? dto.email() : "",
-                dto.position() != null ? dto.position().id() : null,
-                dto.position() != null ? dto.position().name() : null,
                 dto.isActive(),
                 dto.employmentStatus() != null ? dto.employmentStatus().name() : "",
                 dto.createdAt().toString(), dto.updatedAt().toString()
@@ -131,8 +129,6 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
                 admin.getId(), admin.getUserId(), admin.getUserLoginId(), admin.getAdminName(),
                 admin.getAdminPhone() != null ? admin.getAdminPhone() : "",
                 admin.getEmail() != null ? admin.getEmail() : "",
-                admin.getPosition() != null ? admin.getPosition().getId() : null,
-                admin.getPosition() != null ? admin.getPosition().getName() : null,
                 admin.isActive(),
                 admin.getEmploymentStatus() != null ? admin.getEmploymentStatus().name() : "",
                 admin.getCreatedAt().toString(), admin.getUpdatedAt().toString()

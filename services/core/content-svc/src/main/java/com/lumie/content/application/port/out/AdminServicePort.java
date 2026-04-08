@@ -14,7 +14,6 @@ public interface AdminServicePort {
             String adminName,
             Long academyId,
             String academyName,
-            String position,
             boolean isActive
     ) {
     }

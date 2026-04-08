@@ -22,8 +22,6 @@ public interface AdminInternalService {
             String name,
             String phone,
             String email,
-            Long positionId,
-            String positionName,
             boolean isActive,
             String employmentStatus,
             String createdAt,

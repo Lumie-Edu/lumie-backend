@@ -31,7 +31,6 @@ public class AdminInternalAdapter implements AdminServicePort {
                         a.name(),
                         null,
                         null,
-                        a.positionName(),
                         a.isActive()
                 ));
     }

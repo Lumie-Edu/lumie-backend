@@ -43,12 +43,11 @@ public class AdminController {
 
     @GetMapping
     public ResponseEntity<Page<AdminResponse>> getAllAdmins(
-            @RequestParam(required = false) Long positionId,
             @RequestParam(required = false) Long academyId,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        AdminFilterRequest filter = new AdminFilterRequest(positionId, academyId, isActive, search);
+        AdminFilterRequest filter = new AdminFilterRequest(academyId, isActive, search);
         Page<AdminResponse> response = adminQueryService.getAllAdmins(filter, pageable);
         return ResponseEntity.ok(response);
     }

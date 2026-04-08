@@ -12,7 +12,6 @@ public interface JpaAdminRepository extends JpaRepository<Admin, Long>, JpaSpeci
     Optional<Admin> findByUserId(Long userId);
     Optional<Admin> findByUserLoginId(String userLoginId);
     boolean existsByUserLoginId(String userLoginId);
-    boolean existsByPositionId(Long positionId);
     boolean existsByPhone(String phone);
 
     @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Admin a WHERE a.phone = :phone AND a.id != :excludeId")

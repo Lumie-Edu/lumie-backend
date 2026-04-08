@@ -53,11 +53,6 @@ public class AdminRepositoryAdapter implements AdminRepository {
     }
 
     @Override
-    public boolean existsByPositionId(Long positionId) {
-        return jpaAdminRepository.existsByPositionId(positionId);
-    }
-
-    @Override
     public boolean existsByPhone(String phone) {
         return jpaAdminRepository.existsByPhone(phone);
     }

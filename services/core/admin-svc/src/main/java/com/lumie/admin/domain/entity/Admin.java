@@ -44,10 +44,6 @@ public class Admin extends BaseEntity {
     @Column(name = "academy_id")
     private Set<Long> academyIds = new HashSet<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "position_id")
-    private Position position;
-
     @Column(name = "admin_memo", columnDefinition = "TEXT")
     private String adminMemo;
 
@@ -57,7 +53,7 @@ public class Admin extends BaseEntity {
 
     @Builder
     private Admin(Long userId, String userLoginId, String name, String phone, String email,
-                 Set<Long> academyIds, Position position, String adminMemo,
+                 Set<Long> academyIds, String adminMemo,
                  EmploymentStatus employmentStatus, Boolean isActive) {
         this.userId = userId;
         this.userLoginId = userLoginId;
@@ -65,14 +61,13 @@ public class Admin extends BaseEntity {
         this.phone = phone;
         this.email = email;
         this.academyIds = academyIds != null ? academyIds : new HashSet<>();
-        this.position = position;
         this.adminMemo = adminMemo;
         this.employmentStatus = employmentStatus != null ? employmentStatus : EmploymentStatus.ACTIVE;
         this.isActive = isActive != null ? isActive : true;
     }
 
     public static Admin create(Long userId, String userLoginId, String name, String phone, String email,
-                               Set<Long> academyIds, Position position, String adminMemo) {
+                               Set<Long> academyIds, String adminMemo) {
         return Admin.builder()
                 .userId(userId)
                 .userLoginId(userLoginId)
@@ -80,14 +75,13 @@ public class Admin extends BaseEntity {
                 .phone(phone)
                 .email(email)
                 .academyIds(academyIds)
-                .position(position)
                 .adminMemo(adminMemo)
                 .employmentStatus(EmploymentStatus.ACTIVE)
                 .isActive(true)
                 .build();
     }
 
-    public void updateInfo(String name, String phone, String email, Position position, String adminMemo) {
+    public void updateInfo(String name, String phone, String email, String adminMemo) {
         if (name != null && !name.isBlank()) {
             this.name = name;
         }
@@ -96,9 +90,6 @@ public class Admin extends BaseEntity {
         }
         if (email != null) {
             this.email = email;
-        }
-        if (position != null) {
-            this.position = position;
         }
         if (adminMemo != null) {
             this.adminMemo = adminMemo;

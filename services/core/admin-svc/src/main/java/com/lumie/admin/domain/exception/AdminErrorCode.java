@@ -14,15 +14,12 @@ public enum AdminErrorCode implements ErrorCode {
 
     // 404 Not Found
     ADMIN_NOT_FOUND("A510", "Admin not found", 404),
-    POSITION_NOT_FOUND("A511", "Position not found", 404),
     PERMISSION_NOT_FOUND("A512", "Permission not found", 404),
     ACADEMY_NOT_FOUND("A518", "Academy not found", 404),
 
     // 409 Conflict
     DUPLICATE_USER_LOGIN_ID("A520", "User login ID already exists", 409),
-    DUPLICATE_POSITION_NAME("A521", "Position name already exists", 409),
     DUPLICATE_PERMISSION_CODE("A522", "Permission code already exists", 409),
-    POSITION_IN_USE("A526", "해당 직책을 사용 중인 직원이 있어 삭제할 수 없습니다.", 409),
     ADMIN_ALREADY_ACTIVE("A528", "Admin is already active", 409),
     DUPLICATE_PHONE("A529", "이미 사용 중인 전화번호입니다.", 409),
 
