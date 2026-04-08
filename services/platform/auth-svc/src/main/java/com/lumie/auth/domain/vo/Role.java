@@ -6,9 +6,10 @@ package com.lumie.auth.domain.vo;
  */
 public enum Role {
     OWNER(0),
-    DEVELOPER(1),
-    ADMIN(2),
-    STUDENT(3);
+    MANAGER(1),
+    INSTRUCTOR(2),
+    PARENT(3),
+    STUDENT(4);
 
     private final int level;
 
@@ -37,7 +38,11 @@ public enum Role {
         try {
             return Role.valueOf(value.toUpperCase());
         } catch (IllegalArgumentException e) {
-            return STUDENT;
+            return switch (value.toUpperCase()) {
+                case "ADMIN" -> INSTRUCTOR;
+                case "DEVELOPER" -> MANAGER;
+                default -> STUDENT;
+            };
         }
     }
 }
