@@ -25,4 +25,6 @@ public interface ClassEnrollmentRepository {
     long countByClassEntityIdAndStatus(Long classId, EnrollmentStatus status);
 
     boolean existsByClassEntityIdAndStudentId(Long classId, Long studentId);
+
+    Optional<ClassEnrollment> findByClassEntityIdAndStudentId(Long classId, Long studentId);
 }

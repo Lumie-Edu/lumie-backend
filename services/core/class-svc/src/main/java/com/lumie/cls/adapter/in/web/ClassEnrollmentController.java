@@ -49,6 +49,14 @@ public class ClassEnrollmentController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/student/{studentId}")
+    public ResponseEntity<Void> removeEnrollmentByStudent(
+            @PathVariable Long classId,
+            @PathVariable Long studentId) {
+        commandService.removeEnrollmentByStudent(classId, studentId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{enrollmentId}")
     public ResponseEntity<ClassEnrollmentResponse> updateEnrollmentStatus(
             @PathVariable Long classId,

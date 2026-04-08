@@ -132,6 +132,17 @@ public class ClassCommandService {
         log.info("Enrollment {} dropped from class: {}", enrollmentId, classId);
     }
 
+    public void removeEnrollmentByStudent(Long classId, Long studentId) {
+        // Repository query filters by both classId and studentId, so class ownership is enforced by the query itself
+        ClassEnrollment enrollment = enrollmentRepository.findByClassEntityIdAndStudentId(classId, studentId)
+            .orElseThrow(() -> new EnrollmentNotFoundException(classId, studentId));
+
+        enrollment.drop();
+        enrollmentRepository.save(enrollment);
+
+        log.info("Student {} dropped from class: {}", studentId, classId);
+    }
+
     public ClassEnrollmentResponse updateEnrollmentStatus(Long classId, Long enrollmentId,
                                                           UpdateEnrollmentRequest request) {
         ClassEnrollment enrollment = enrollmentRepository.findById(enrollmentId)

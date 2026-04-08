@@ -56,4 +56,9 @@ public class ClassEnrollmentRepositoryAdapter implements ClassEnrollmentReposito
     public boolean existsByClassEntityIdAndStudentId(Long classId, Long studentId) {
         return jpaRepository.existsByClassEntityIdAndStudentId(classId, studentId);
     }
+
+    @Override
+    public Optional<ClassEnrollment> findByClassEntityIdAndStudentId(Long classId, Long studentId) {
+        return jpaRepository.findByClassEntityIdAndStudentId(classId, studentId);
+    }
 }

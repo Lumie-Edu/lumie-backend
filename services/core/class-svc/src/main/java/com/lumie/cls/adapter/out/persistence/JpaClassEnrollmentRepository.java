@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface JpaClassEnrollmentRepository extends JpaRepository<ClassEnrollment, Long> {
 
@@ -19,4 +20,6 @@ public interface JpaClassEnrollmentRepository extends JpaRepository<ClassEnrollm
     long countByClassEntityIdAndStatus(Long classEntityId, EnrollmentStatus status);
 
     boolean existsByClassEntityIdAndStudentId(Long classEntityId, Long studentId);
+
+    Optional<ClassEnrollment> findByClassEntityIdAndStudentId(Long classEntityId, Long studentId);
 }

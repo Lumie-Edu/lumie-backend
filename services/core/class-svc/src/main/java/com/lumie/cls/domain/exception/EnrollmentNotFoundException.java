@@ -7,4 +7,9 @@ public class EnrollmentNotFoundException extends BusinessException {
     public EnrollmentNotFoundException(Long id) {
         super(ClassErrorCode.ENROLLMENT_NOT_FOUND, "Enrollment not found with id: " + id);
     }
+
+    public EnrollmentNotFoundException(Long classId, Long studentId) {
+        super(ClassErrorCode.ENROLLMENT_NOT_FOUND,
+                "Enrollment not found for class " + classId + " and student " + studentId);
+    }
 }
