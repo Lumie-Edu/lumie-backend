@@ -11,19 +11,21 @@ public record ClassResponse(
     String name,
     String subject,
     Long teacherId,
+    String teacherName,
     SchedulePattern schedulePattern,
     String description,
     long enrolledCount,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
-    public static ClassResponse from(ClassEntity entity, long enrolledCount) {
+    public static ClassResponse from(ClassEntity entity, long enrolledCount, String teacherName) {
         return new ClassResponse(
             entity.getId(),
             entity.getAcademyId(),
             entity.getName(),
             entity.getSubject(),
             entity.getTeacherId(),
+            teacherName,
             entity.getSchedulePattern(),
             entity.getDescription(),
             enrolledCount,

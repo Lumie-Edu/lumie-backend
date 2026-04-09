@@ -2,6 +2,7 @@ package com.lumie.cls.application.service;
 
 import com.lumie.cls.application.dto.ClassEnrollmentResponse;
 import com.lumie.cls.application.dto.ClassResponse;
+import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.cls.domain.entity.ClassEntity;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
@@ -15,6 +16,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 
 @Slf4j
 @Service
@@ -24,34 +30,40 @@ public class ClassQueryService {
 
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
+    private final AdminServicePort adminServicePort;
 
     public ClassResponse getClass(Long id) {
         ClassEntity entity = classRepository.findById(id)
             .orElseThrow(() -> new ClassNotFoundException(id));
 
         long enrolledCount = enrollmentRepository.countByClassEntityIdAndStatus(id, EnrollmentStatus.ENROLLED);
-        return ClassResponse.from(entity, enrolledCount);
+        String teacherName = resolveTeacherName(entity.getTeacherId());
+        return ClassResponse.from(entity, enrolledCount, teacherName);
     }
 
     public Page<ClassResponse> listClasses(Long academyId, Long teacherId,
                                            String search, Pageable pageable) {
         ClassSearchCriteria criteria = new ClassSearchCriteria(academyId, teacherId, search);
 
-        return classRepository.findAll(criteria, pageable)
-            .map(entity -> {
-                long enrolledCount = enrollmentRepository.countByClassEntityIdAndStatus(
-                    entity.getId(), EnrollmentStatus.ENROLLED);
-                return ClassResponse.from(entity, enrolledCount);
-            });
+        Page<ClassEntity> page = classRepository.findAll(criteria, pageable);
+        Map<Long, String> teacherNames = resolveTeacherNames(page.getContent());
+
+        return page.map(entity -> {
+            long enrolledCount = enrollmentRepository.countByClassEntityIdAndStatus(
+                entity.getId(), EnrollmentStatus.ENROLLED);
+            return ClassResponse.from(entity, enrolledCount, teacherNames.get(entity.getTeacherId()));
+        });
     }
 
     public Page<ClassResponse> getClassesByTeacher(Long teacherId, Pageable pageable) {
-        return classRepository.findByTeacherId(teacherId, pageable)
-            .map(entity -> {
-                long enrolledCount = enrollmentRepository.countByClassEntityIdAndStatus(
-                    entity.getId(), EnrollmentStatus.ENROLLED);
-                return ClassResponse.from(entity, enrolledCount);
-            });
+        Page<ClassEntity> page = classRepository.findByTeacherId(teacherId, pageable);
+        String teacherName = resolveTeacherName(teacherId);
+
+        return page.map(entity -> {
+            long enrolledCount = enrollmentRepository.countByClassEntityIdAndStatus(
+                entity.getId(), EnrollmentStatus.ENROLLED);
+            return ClassResponse.from(entity, enrolledCount, teacherName);
+        });
     }
 
     public Page<ClassResponse> getClassesByStudent(Long studentId, Pageable pageable) {
@@ -60,8 +72,26 @@ public class ClassQueryService {
                 ClassEntity entity = enrollment.getClassEntity();
                 long enrolledCount = enrollmentRepository.countByClassEntityIdAndStatus(
                     entity.getId(), EnrollmentStatus.ENROLLED);
-                return ClassResponse.from(entity, enrolledCount);
+                String teacherName = resolveTeacherName(entity.getTeacherId());
+                return ClassResponse.from(entity, enrolledCount, teacherName);
             });
+    }
+
+    private String resolveTeacherName(Long teacherId) {
+        if (teacherId == null) return null;
+        return adminServicePort.getAdmin(teacherId)
+            .map(AdminServicePort.AdminInfo::name)
+            .orElse(null);
+    }
+
+    private Map<Long, String> resolveTeacherNames(List<ClassEntity> classes) {
+        Map<Long, String> names = new HashMap<>();
+        classes.stream()
+            .map(ClassEntity::getTeacherId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .forEach(id -> names.put(id, resolveTeacherName(id)));
+        return names;
     }
 
     public Page<ClassEnrollmentResponse> getEnrollments(Long classId, Pageable pageable) {

@@ -69,7 +69,10 @@ public class ClassCommandService {
 
         log.info("Class created: {} in academy: {}", saved.getId(), saved.getAcademyId());
         logActivity("CREATE", "CLASS", saved.getId(), saved.getName(), null);
-        return ClassResponse.from(saved, 0L);
+        String teacherName = saved.getTeacherId() != null
+            ? adminServicePort.getAdmin(saved.getTeacherId()).map(AdminServicePort.AdminInfo::name).orElse(null)
+            : null;
+        return ClassResponse.from(saved, 0L, teacherName);
     }
 
     public ClassResponse updateClass(Long id, UpdateClassRequest request) {
@@ -89,7 +92,10 @@ public class ClassCommandService {
         long enrolledCount = enrollmentRepository.countByClassEntityIdAndStatus(saved.getId(), EnrollmentStatus.ENROLLED);
         log.info("Class updated: {}", saved.getId());
         logActivity("UPDATE", "CLASS", saved.getId(), saved.getName(), null);
-        return ClassResponse.from(saved, enrolledCount);
+        String updatedTeacherName = saved.getTeacherId() != null
+            ? adminServicePort.getAdmin(saved.getTeacherId()).map(AdminServicePort.AdminInfo::name).orElse(null)
+            : null;
+        return ClassResponse.from(saved, enrolledCount, updatedTeacherName);
     }
 
     public void deleteClass(Long id) {

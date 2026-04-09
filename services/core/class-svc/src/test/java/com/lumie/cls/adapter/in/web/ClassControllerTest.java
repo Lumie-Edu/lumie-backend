@@ -142,7 +142,7 @@ class ClassControllerTest {
 
     private ClassResponse buildClassResponse(Long id) {
         return new ClassResponse(
-                id, 1L, "수학 기초반", "수학", 10L,
+                id, 1L, "수학 기초반", "수학", 10L, "김강사",
                 null, "설명", 5L,
                 LocalDateTime.now(), LocalDateTime.now());
     }
