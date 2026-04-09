@@ -11,6 +11,7 @@ public record CreateLectureRequest(
         Long teacherId,
         @NotBlank String title,
         String description,
+        @NotBlank String youtubeUrl,
         String visibility,
         LocalDate lectureDate
 ) {}

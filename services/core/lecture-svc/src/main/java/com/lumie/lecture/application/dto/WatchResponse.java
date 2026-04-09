@@ -1,14 +1,15 @@
 package com.lumie.lecture.application.dto;
 
+import java.util.List;
+
 public record WatchResponse(
         Long lectureId,
         String title,
         String description,
-        String videoUrl,
-        String subtitleUrl,
+        String youtubeUrl,
         String transcript,
         String aiSummary,
-        java.util.List<String> topicsExtracted,
+        List<String> topicsExtracted,
         Integer videoDuration,
         String visibility
 ) {}

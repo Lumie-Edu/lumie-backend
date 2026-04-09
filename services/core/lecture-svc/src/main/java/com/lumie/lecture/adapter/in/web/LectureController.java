@@ -61,19 +61,6 @@ public class LectureController {
         return ResponseEntity.noContent().build();
     }
 
-    // Upload: get presigned URL
-    @PostMapping("/upload/initiate")
-    public ResponseEntity<InitiateUploadResponse> initiateUpload(
-            @Valid @RequestBody InitiateUploadRequest request) {
-        return ResponseEntity.ok(commandService.initiateUpload(request));
-    }
-
-    // Upload: confirm upload complete, trigger processing
-    @PostMapping("/upload/{lectureId}/complete")
-    public ResponseEntity<LectureResponse> completeUpload(@PathVariable Long lectureId) {
-        return ResponseEntity.ok(commandService.completeUpload(lectureId));
-    }
-
     @PostMapping("/{id}/reprocess")
     public ResponseEntity<LectureResponse> reprocess(@PathVariable Long id) {
         return ResponseEntity.ok(commandService.reprocess(id));

@@ -22,9 +22,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-amqp")
 
-    // MinIO
-    implementation("io.minio:minio:8.5.7")
-
     // Lombok
     compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
     annotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")

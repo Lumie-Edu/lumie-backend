@@ -40,21 +40,11 @@ public class Lecture extends BaseEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    // Video metadata
-    @Column(name = "video_file_key", length = 500)
-    private String videoFileKey;
-
-    @Column(name = "video_file_name", length = 255)
-    private String videoFileName;
-
-    @Column(name = "video_file_size")
-    private Long videoFileSize;
+    @Column(name = "youtube_url", length = 500)
+    private String youtubeUrl;
 
     @Column(name = "video_duration")
     private Integer videoDuration;
-
-    @Column(name = "video_mime_type", length = 50)
-    private String videoMimeType;
 
     // Processing results
     @Column(name = "transcript", columnDefinition = "TEXT")
@@ -86,33 +76,27 @@ public class Lecture extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     private LectureStatus status;
 
-    // Upload tracking
-    @Column(name = "upload_id", length = 500)
-    private String uploadId;
-
-    @Column(name = "upload_completed", nullable = false)
-    private boolean uploadCompleted;
-
     @Column(name = "lecture_date")
     private LocalDate lectureDate;
 
     @Builder
     private Lecture(Long classId, Long academyId, Long teacherId, String title,
-                    String description, LectureVisibility visibility, LocalDate lectureDate) {
+                    String description, String youtubeUrl,
+                    LectureVisibility visibility, LocalDate lectureDate) {
         this.classId = classId;
         this.academyId = academyId;
         this.teacherId = teacherId;
         this.title = title;
         this.description = description;
+        this.youtubeUrl = youtubeUrl;
         this.visibility = visibility != null ? visibility : LectureVisibility.TEACHER_ONLY;
         this.lectureDate = lectureDate;
         this.status = LectureStatus.ACTIVE;
-        this.processingStatus = ProcessingStatus.UPLOADING;
-        this.uploadCompleted = false;
+        this.processingStatus = ProcessingStatus.PENDING_PROCESSING;
     }
 
     public static Lecture create(Long classId, Long academyId, Long teacherId,
-                                  String title, String description,
+                                  String title, String description, String youtubeUrl,
                                   LectureVisibility visibility, LocalDate lectureDate) {
         return Lecture.builder()
                 .classId(classId)
@@ -120,24 +104,10 @@ public class Lecture extends BaseEntity {
                 .teacherId(teacherId)
                 .title(title)
                 .description(description)
+                .youtubeUrl(youtubeUrl)
                 .visibility(visibility)
                 .lectureDate(lectureDate)
                 .build();
-    }
-
-    public void initiateUpload(String uploadId, String videoFileKey, String videoFileName,
-                                Long videoFileSize, String videoMimeType) {
-        this.uploadId = uploadId;
-        this.videoFileKey = videoFileKey;
-        this.videoFileName = videoFileName;
-        this.videoFileSize = videoFileSize;
-        this.videoMimeType = videoMimeType;
-    }
-
-    public void completeUpload() {
-        this.uploadCompleted = true;
-        this.processingStatus = ProcessingStatus.PENDING_PROCESSING;
-        this.uploadId = null;
     }
 
     public void updateProcessingStatus(ProcessingStatus status) {

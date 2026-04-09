@@ -2,7 +2,6 @@ package com.lumie.lecture.application.service;
 
 import com.lumie.lecture.application.dto.LectureResponse;
 import com.lumie.lecture.application.dto.WatchResponse;
-import com.lumie.lecture.application.port.out.LectureStoragePort;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.exception.LectureNotFoundException;
 import com.lumie.lecture.domain.repository.LectureRepository;
@@ -25,10 +24,6 @@ import java.time.LocalDate;
 public class LectureQueryService {
 
     private final LectureRepository lectureRepository;
-    private final LectureStoragePort storagePort;
-
-    private static final int VIDEO_URL_EXPIRY_SECONDS = 3600; // 1 hour
-    private static final int SUBTITLE_URL_EXPIRY_SECONDS = 3600;
 
     public Page<LectureResponse> findAll(Long classId, Long academyId, Long teacherId,
                                           String status, String processingStatus,
@@ -60,25 +55,11 @@ public class LectureQueryService {
         Lecture lecture = lectureRepository.findById(lectureId)
                 .orElseThrow(LectureNotFoundException::new);
 
-        String videoUrl = null;
-        String subtitleUrl = null;
-
-        if (lecture.getVideoFileKey() != null && lecture.isUploadCompleted()) {
-            videoUrl = storagePort.generatePresignedDownloadUrl(
-                    lecture.getVideoFileKey(), VIDEO_URL_EXPIRY_SECONDS);
-        }
-
-        if (lecture.getSubtitleFileKey() != null) {
-            subtitleUrl = storagePort.generatePresignedDownloadUrl(
-                    lecture.getSubtitleFileKey(), SUBTITLE_URL_EXPIRY_SECONDS);
-        }
-
         return new WatchResponse(
                 lecture.getId(),
                 lecture.getTitle(),
                 lecture.getDescription(),
-                videoUrl,
-                subtitleUrl,
+                lecture.getYoutubeUrl(),
                 lecture.getTranscript(),
                 lecture.getAiSummary(),
                 lecture.getTopicsExtracted(),
