@@ -7,7 +7,7 @@ public enum EntityType {
     ATTENDANCE,
     ASSIGNMENT,
     EXAM,
-    JOURNAL,
+    LECTURE,
     ANNOUNCEMENT,
     SMS,
     RESOURCE,

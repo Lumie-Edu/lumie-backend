@@ -41,7 +41,7 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
         PATH_TO_ENTITY.put("/v1/assignments/**", "ASSIGNMENT");
         PATH_TO_ENTITY.put("/v1/exams/**", "EXAM");
         PATH_TO_ENTITY.put("/v1/exam-templates/**", "EXAM_TEMPLATE");
-        PATH_TO_ENTITY.put("/v1/journals/**", "JOURNAL");
+        PATH_TO_ENTITY.put("/v1/lectures/**", "LECTURE");
         PATH_TO_ENTITY.put("/v1/textbooks/**", "TEXTBOOK");
         PATH_TO_ENTITY.put("/v1/schedules/**", "SCHEDULE");
         PATH_TO_ENTITY.put("/v1/announcements/**", "ANNOUNCEMENT");

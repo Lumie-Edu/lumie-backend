@@ -21,7 +21,7 @@ dependencies {
     implementation(project(":services:core:content-svc"))
     implementation(project(":services:core:class-svc"))
     implementation(project(":services:core:assignment-svc"))
-    implementation(project(":services:core:journal-svc"))
+    implementation(project(":services:core:lecture-svc"))
     implementation(project(":services:core:attendance-svc"))
     implementation(project(":services:core:ai-svc"))
     implementation(project(":services:core:notification-svc"))
