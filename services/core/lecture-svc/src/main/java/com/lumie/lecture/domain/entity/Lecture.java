@@ -25,7 +25,7 @@ public class Lecture extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "class_id", nullable = false)
+    @Column(name = "class_id")
     private Long classId;
 
     @Column(name = "academy_id", nullable = false)

@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 public record CreateLectureRequest(
-        @NotNull Long classId,
+        Long classId,
         @NotNull Long academyId,
         Long teacherId,
         @NotBlank String title,
