@@ -20,6 +20,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +33,9 @@ public class ChatService {
 
     private static final int MAX_TOOL_ITERATIONS = 20;
 
-    private static final String SYSTEM_PROMPT_TEMPLATE = """
+    // Static prefix first (cache-friendly), dynamic schema appended at the end.
+    // Implicit prompt caching on Gemini 2.5+ requires a stable prefix to get cache hits.
+    private static final String SYSTEM_PROMPT_PREFIX = """
             You are an AI assistant for a Korean academy (학원) management system called Lumie.
             You help academy owners and administrators manage their business through natural language.
 
@@ -42,16 +45,16 @@ public class ChatService {
             - Send notifications (SMS, Telegram)
             - Schedule recurring tasks
 
-            When querying data, use the general_query tool with SQL. The database has these tables:
-            %s
+            When querying data, use the general_query tool with SQL. Keep these rules in mind:
 
             IMPORTANT: Be efficient with queries. Combine multiple questions into a single SQL query \
             using JOINs, subqueries, or UNION where possible. Avoid querying information_schema - use \
-            the table/column names listed above directly. Aim to answer in as few queries as possible.
+            the table/column names listed in the schema section below directly. Aim to answer in as \
+            few queries as possible.
 
             CRITICAL - Always attempt queries:
             - Never refuse a request because analysis "seems complex". PostgreSQL is capable; write the SQL and try.
-            - JSONB columns (marked "JSONB" above) are fully queryable with ->, ->>, jsonb_array_elements, \
+            - JSONB columns (marked "JSONB" in the schema) are fully queryable with ->, ->>, jsonb_array_elements, \
               jsonb_each, jsonb_path_query, etc. Aggregate, filter, and join on JSONB fields freely.
             - Do NOT tell the user "I can't do this analysis" or "this is beyond my capability" before \
               executing at least one query. Try first; if the query fails or returns insufficient data, \
@@ -70,7 +73,46 @@ public class ChatService {
               say "현재 학생 정보에 생년만 등록되어 있어 생일(월/일)은 확인이 어렵습니다."
             - When querying fails or returns no data, give a clear, human-friendly explanation.
             - For write operations, clearly describe what you plan to do before executing.
+
+            SQL examples (adapt column names to the actual schema below):
+
+            Q: "김민수 학생의 최근 시험 점수 보여줘"
+            SQL: SELECT e.name, er.total_score, er.grade
+                 FROM exam_results er
+                 JOIN exams e ON er.exam_id = e.id
+                 JOIN students s ON er.student_id = s.id
+                 WHERE s.name = '김민수'
+                 ORDER BY er.created_at DESC
+                 LIMIT 5
+
+            Q: "블루밍 모의고사 8회의 성적대별 학생 수"
+            SQL: SELECT CASE
+                          WHEN er.total_score >= 90 THEN '90점 이상'
+                          WHEN er.total_score >= 80 THEN '80점대'
+                          WHEN er.total_score >= 70 THEN '70점대'
+                          WHEN er.total_score >= 60 THEN '60점대'
+                          ELSE '60점 미만'
+                        END AS band,
+                        COUNT(*) AS student_count
+                 FROM exam_results er
+                 JOIN exams e ON er.exam_id = e.id
+                 WHERE e.name = '블루밍 모의고사 8회'
+                 GROUP BY 1
+                 ORDER BY MIN(er.total_score) DESC
+
+            Q: "이번 달 출결이 안 좋은 학생 상위 5명"
+            SQL: SELECT s.name, COUNT(*) FILTER (WHERE a.status <> 'PRESENT') AS absent_count
+                 FROM students s
+                 JOIN attendances a ON a.student_id = s.id
+                 WHERE a.attended_at >= date_trunc('month', CURRENT_DATE)
+                 GROUP BY s.id, s.name
+                 HAVING COUNT(*) FILTER (WHERE a.status <> 'PRESENT') > 0
+                 ORDER BY absent_count DESC
+                 LIMIT 5
+
             """;
+
+    private static final String SYSTEM_PROMPT_SCHEMA_HEADER = "Tenant schema (tables and columns):\n%s";
 
     private final AiServicePort aiServicePort;
     private final ToolRegistry toolRegistry;
@@ -106,7 +148,7 @@ public class ChatService {
         List<Map<String, Object>> messages = buildMessageHistory(conversation.getId(), tenantSlug);
         List<Map<String, Object>> tools = toolRegistry.getAllToolSchemas();
 
-        Map<String, Object> aiResponse = aiServicePort.chat(messages, tools);
+        Map<String, Object> aiResponse = callAi(messages, tools);
 
         return processAiResponse(conversation, aiResponse, tenantSlug, 0);
     }
@@ -164,7 +206,7 @@ public class ChatService {
         List<Map<String, Object>> messages = buildMessageHistory(conversation.getId(), tenantSlug);
         List<Map<String, Object>> tools = toolRegistry.getAllToolSchemas();
 
-        Map<String, Object> aiResponse = aiServicePort.chat(messages, tools);
+        Map<String, Object> aiResponse = callAi(messages, tools);
 
         return processAiResponse(conversation, aiResponse, tenantSlug, 0);
     }
@@ -285,7 +327,7 @@ public class ChatService {
         List<Map<String, Object>> messages = buildMessageHistory(conversation.getId(), tenantSlug);
         List<Map<String, Object>> tools = toolRegistry.getAllToolSchemas();
 
-        Map<String, Object> nextResponse = aiServicePort.chat(messages, tools);
+        Map<String, Object> nextResponse = callAi(messages, tools);
         return processAiResponse(conversation, nextResponse, tenantSlug, iteration + 1);
     }
 
@@ -294,7 +336,7 @@ public class ChatService {
                 .findByConversationIdOrderByCreatedAtAsc(conversationId);
 
         String schemaInfo = schemaDiscoveryService.getSchemaDescription(tenantSlug);
-        String systemPrompt = String.format(SYSTEM_PROMPT_TEMPLATE, schemaInfo);
+        String systemPrompt = SYSTEM_PROMPT_PREFIX + String.format(SYSTEM_PROMPT_SCHEMA_HEADER, schemaInfo);
 
         List<Map<String, Object>> messages = new ArrayList<>();
 
@@ -381,5 +423,35 @@ public class ChatService {
 
         sb.append("\n확인하시려면 승인, 취소하시려면 거부를 선택해주세요.");
         return sb.toString();
+    }
+
+    private Map<String, Object> callAi(List<Map<String, Object>> messages, List<Map<String, Object>> tools) {
+        Map<String, Object> response = aiServicePort.chat(messages, tools);
+        logUsage(response);
+        return response;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void logUsage(Map<String, Object> aiResponse) {
+        Object raw = aiResponse.get(AiServicePort.USAGE_KEY);
+        if (!(raw instanceof Map)) {
+            return;
+        }
+        Map<String, Object> usage = (Map<String, Object>) raw;
+        try {
+            MDC.put("promptTokens", String.valueOf(usage.get("prompt_tokens")));
+            MDC.put("completionTokens", String.valueOf(usage.get("completion_tokens")));
+            MDC.put("totalTokens", String.valueOf(usage.get("total_tokens")));
+            Object model = usage.get("model");
+            if (model != null) {
+                MDC.put("aiModel", String.valueOf(model));
+            }
+            log.info("AI usage recorded");
+        } finally {
+            MDC.remove("promptTokens");
+            MDC.remove("completionTokens");
+            MDC.remove("totalTokens");
+            MDC.remove("aiModel");
+        }
     }
 }

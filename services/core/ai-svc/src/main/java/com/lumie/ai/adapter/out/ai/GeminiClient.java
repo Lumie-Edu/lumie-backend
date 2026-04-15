@@ -43,6 +43,15 @@ public class GeminiClient implements AiServicePort {
             requestBody.put("tool_choice", "auto");
         }
 
+        // Gemini-specific knobs injected via OpenAI-compat extra_body passthrough.
+        requestBody.put("extra_body", Map.of(
+                "google", Map.of(
+                        "thinking_config", Map.of(
+                                "thinking_budget", properties.getThinkingBudget()
+                        )
+                )
+        ));
+
         try {
             Map<String, Object> response = webClient.post()
                     .uri("/chat/completions")
@@ -61,7 +70,14 @@ public class GeminiClient implements AiServicePort {
                 throw new AiException(AiErrorCode.GEMINI_API_ERROR, "No choices in Gemini response");
             }
 
-            return (Map<String, Object>) choices.get(0).get("message");
+            Map<String, Object> message = new HashMap<>((Map<String, Object>) choices.get(0).get("message"));
+            Map<String, Object> usage = (Map<String, Object>) response.get("usage");
+            if (usage != null) {
+                Map<String, Object> usageWithModel = new HashMap<>(usage);
+                usageWithModel.put("model", properties.getModel());
+                message.put(AiServicePort.USAGE_KEY, usageWithModel);
+            }
+            return message;
         } catch (AiException e) {
             throw e;
         } catch (Exception e) {

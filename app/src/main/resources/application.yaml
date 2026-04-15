@@ -121,6 +121,8 @@ gemini:
   model: gemini-2.5-flash
   max-tokens: 4096
   temperature: 0.7
+  # -1 = dynamic (model decides), 0 = disabled, >0 = explicit cap
+  thinking-budget: -1
 
 # Telegram Bot (ai module)
 telegram:
