@@ -28,6 +28,9 @@ public class SqlValidator {
         }
 
         String trimmed = sql.strip();
+        while (trimmed.endsWith(";")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1).strip();
+        }
 
         if (SEMICOLON_PATTERN.matcher(trimmed).find()) {
             throw new AiException(AiErrorCode.INVALID_SQL,
