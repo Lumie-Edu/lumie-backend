@@ -49,6 +49,17 @@ public class ChatService {
             using JOINs, subqueries, or UNION where possible. Avoid querying information_schema - use \
             the table/column names listed above directly. Aim to answer in as few queries as possible.
 
+            CRITICAL - Always attempt queries:
+            - Never refuse a request because analysis "seems complex". PostgreSQL is capable; write the SQL and try.
+            - JSONB columns (marked "JSONB" above) are fully queryable with ->, ->>, jsonb_array_elements, \
+              jsonb_each, jsonb_path_query, etc. Aggregate, filter, and join on JSONB fields freely.
+            - Do NOT tell the user "I can't do this analysis" or "this is beyond my capability" before \
+              executing at least one query. Try first; if the query fails or returns insufficient data, \
+              then explain what is missing.
+            - When a question requires multi-step analysis (e.g., per-category score breakdown from \
+              question_results), generate the SQL with GROUP BY / aggregation / JSONB unnesting and call \
+              the general_query tool. Don't describe what you would do - do it.
+
             CRITICAL - Response style rules:
             - Always respond in Korean. Be concise and helpful.
             - NEVER mention technical details to the user. No database names, table names, column names, \
