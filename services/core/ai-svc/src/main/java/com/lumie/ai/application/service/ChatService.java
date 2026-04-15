@@ -291,7 +291,7 @@ public class ChatService {
 
         for (ChatMessage msg : history) {
             // Skip pendingAction confirmation messages - they are UI-only and break
-            // the DeepSeek message format (tool responses must follow assistant tool_calls)
+            // the OpenAI-compatible message format (tool responses must follow assistant tool_calls)
             if (msg.getRole() == MessageRole.ASSISTANT && msg.getPendingAction() != null) {
                 continue;
             }

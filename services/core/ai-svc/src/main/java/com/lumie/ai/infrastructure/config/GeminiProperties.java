@@ -8,12 +8,12 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @Component
-@ConfigurationProperties(prefix = "deepseek")
-public class DeepSeekProperties {
+@ConfigurationProperties(prefix = "gemini")
+public class GeminiProperties {
 
     private String apiKey;
-    private String baseUrl = "https://api.deepseek.com";
-    private String model = "deepseek-chat";
+    private String baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai";
+    private String model = "gemini-2.5-flash";
     private int maxTokens = 4096;
     private double temperature = 0.7;
 }

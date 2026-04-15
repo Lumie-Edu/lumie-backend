@@ -114,11 +114,11 @@ readonly-datasource:
   minimum-idle: 2
   connection-timeout: 10000
 
-# DeepSeek API (ai module)
-deepseek:
-  api-key: ${DEEPSEEK_API_KEY:}
-  base-url: https://api.deepseek.com
-  model: deepseek-chat
+# Gemini API (ai module)
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  base-url: https://generativelanguage.googleapis.com/v1beta/openai
+  model: gemini-2.5-flash
   max-tokens: 4096
   temperature: 0.7
 
