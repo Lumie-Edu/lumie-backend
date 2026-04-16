@@ -152,10 +152,12 @@ public class ChatService {
                                 return null;
                             })
                             .onErrorResume(PendingActionRequiredException.class, e ->
-                                    Mono.fromCallable(() -> handlePendingAction(ctx.conversation, e))
-                                            .subscribeOn(Schedulers.boundedElastic())
-                                            .flux())
+                                    Mono.fromCallable(() -> {
+                                        TenantContextHolder.setTenant(tenantSlug);
+                                        return handlePendingAction(ctx.conversation, e);
+                                    }).subscribeOn(Schedulers.boundedElastic()).flux())
                             .concatWith(Mono.fromCallable(() -> {
+                                TenantContextHolder.setTenant(tenantSlug);
                                 if (!fullContent.isEmpty()) {
                                     chatMessageRepository.save(ChatMessage.builder()
                                             .conversationId(ctx.conversation.getId())
@@ -294,6 +296,11 @@ public class ChatService {
 
     private StreamContext prepareContext(Long conversationId, String userMessage,
                                          Long userId, String tenantSlug) {
+        // Restore ThreadLocal context — this method runs on boundedElastic threads
+        // where the servlet-thread ThreadLocal values are not available.
+        TenantContextHolder.setTenant(tenantSlug);
+        UserContextHolder.setUserId(userId);
+
         Conversation conversation;
         if (conversationId != null) {
             conversation = conversationRepository.findByIdAndUserId(conversationId, userId)
