@@ -26,8 +26,11 @@ public class ChatController {
     }
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> chatStream(@Valid @RequestBody ChatRequest request) {
-        return chatService.chatStream(request.conversationId(), request.message());
+    public ResponseEntity<Flux<ServerSentEvent<String>>> chatStream(@Valid @RequestBody ChatRequest request) {
+        return ResponseEntity.ok()
+                .header("X-Accel-Buffering", "no")       // disable nginx/proxy buffering
+                .header("Cache-Control", "no-cache, no-transform")
+                .body(chatService.chatStream(request.conversationId(), request.message()));
     }
 
     @PostMapping("/confirm")
