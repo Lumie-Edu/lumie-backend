@@ -144,12 +144,6 @@ server:
   port: 8080
   shutdown: graceful
 
-# Temporary debug logging for Spring AI
-logging:
-  level:
-    org.springframework.ai: DEBUG
-    org.springframework.web.reactive.function.client: DEBUG
-
 management:
   endpoints:
     web:
@@ -170,3 +164,5 @@ logging:
   level:
     root: INFO
     com.lumie: DEBUG
+    org.springframework.ai: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
