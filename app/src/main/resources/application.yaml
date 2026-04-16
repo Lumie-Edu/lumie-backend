@@ -115,11 +115,14 @@ readonly-datasource:
   connection-timeout: 10000
 
 # Gemini via Spring AI (OpenAI-compat endpoint)
+# Spring AI appends completions-path to base-url. Default is /v1/chat/completions,
+# but Gemini's OpenAI-compat endpoint expects /chat/completions (no /v1 prefix).
 spring.ai:
   openai:
     api-key: ${GEMINI_API_KEY:}
     base-url: https://generativelanguage.googleapis.com/v1beta/openai
     chat:
+      completions-path: /chat/completions
       options:
         model: gemini-2.5-flash
         temperature: 0.7
