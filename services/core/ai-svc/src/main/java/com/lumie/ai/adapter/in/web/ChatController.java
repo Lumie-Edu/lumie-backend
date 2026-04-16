@@ -4,8 +4,11 @@ import com.lumie.ai.application.service.ChatService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 import java.util.Map;
 
@@ -20,6 +23,11 @@ public class ChatController {
     public ResponseEntity<Map<String, Object>> chat(@Valid @RequestBody ChatRequest request) {
         Map<String, Object> response = chatService.chat(request.conversationId(), request.message());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> chatStream(@Valid @RequestBody ChatRequest request) {
+        return chatService.chatStream(request.conversationId(), request.message());
     }
 
     @PostMapping("/confirm")

@@ -114,15 +114,16 @@ readonly-datasource:
   minimum-idle: 2
   connection-timeout: 10000
 
-# Gemini API (ai module)
-gemini:
-  api-key: ${GEMINI_API_KEY:}
-  base-url: https://generativelanguage.googleapis.com/v1beta/openai
-  model: gemini-2.5-flash
-  max-tokens: 4096
-  temperature: 0.7
-  # -1 = dynamic (model decides), 0 = disabled, >0 = explicit cap
-  thinking-budget: -1
+# Gemini via Spring AI (OpenAI-compat endpoint)
+spring.ai:
+  openai:
+    api-key: ${GEMINI_API_KEY:}
+    base-url: https://generativelanguage.googleapis.com/v1beta/openai
+    chat:
+      options:
+        model: gemini-2.5-flash
+        temperature: 0.7
+        maxTokens: 4096
 
 # Telegram Bot (ai module)
 telegram:

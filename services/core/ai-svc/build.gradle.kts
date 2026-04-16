@@ -6,6 +6,7 @@ plugins {
 dependencyManagement {
     imports {
         mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
+        mavenBom("org.springframework.ai:spring-ai-bom:1.0.0")
     }
 }
 
@@ -22,6 +23,9 @@ dependencies {
 
     // HTTP Client
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+
+    // Spring AI (OpenAI-compat starter — targeting Gemini's OpenAI endpoint)
+    implementation("org.springframework.ai:spring-ai-starter-model-openai")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")

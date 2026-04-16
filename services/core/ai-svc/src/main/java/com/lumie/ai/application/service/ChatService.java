@@ -1,11 +1,8 @@
 package com.lumie.ai.application.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lumie.ai.application.port.out.AiServicePort;
 import com.lumie.ai.application.tool.Tool;
-import com.lumie.ai.application.tool.ToolCategory;
 import com.lumie.ai.application.tool.ToolRegistry;
 import com.lumie.ai.application.tool.ToolResult;
 import com.lumie.ai.domain.entity.ChatMessage;
@@ -16,13 +13,23 @@ import com.lumie.ai.domain.repository.ChatMessageRepository;
 import com.lumie.ai.domain.repository.ConversationRepository;
 import com.lumie.ai.domain.vo.MessageRole;
 import com.lumie.ai.domain.vo.PendingAction;
+import com.lumie.ai.infrastructure.ai.LumieReadTools;
+import com.lumie.ai.infrastructure.ai.LumieWriteTools;
+import com.lumie.ai.infrastructure.ai.PendingActionRequiredException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.*;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.*;
 
@@ -31,10 +38,6 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ChatService {
 
-    private static final int MAX_TOOL_ITERATIONS = 20;
-
-    // Static prefix first (cache-friendly), dynamic schema appended at the end.
-    // Implicit prompt caching on Gemini 2.5+ requires a stable prefix to get cache hits.
     private static final String SYSTEM_PROMPT_PREFIX = """
             You are an AI assistant for a Korean academy (학원) management system called Lumie.
             You help academy owners and administrators manage their business through natural language.
@@ -45,7 +48,7 @@ public class ChatService {
             - Send notifications (SMS, Telegram)
             - Schedule recurring tasks
 
-            When querying data, use the general_query tool with SQL. Keep these rules in mind:
+            When querying data, use the generalQuery tool with SQL. Keep these rules in mind:
 
             IMPORTANT: Be efficient with queries. Combine multiple questions into a single SQL query \
             using JOINs, subqueries, or UNION where possible. Avoid querying information_schema - use \
@@ -61,7 +64,7 @@ public class ChatService {
               then explain what is missing.
             - When a question requires multi-step analysis (e.g., per-category score breakdown from \
               question_results), generate the SQL with GROUP BY / aggregation / JSONB unnesting and call \
-              the general_query tool. Don't describe what you would do - do it.
+              the generalQuery tool. Don't describe what you would do - do it.
 
             CRITICAL - Response style rules:
             - Always respond in Korean. Be concise and helpful.
@@ -69,8 +72,7 @@ public class ChatService {
               SQL queries, field names, data types, or any implementation details.
             - The user is a non-technical academy owner. Speak as a friendly assistant, not an engineer.
             - When something is not possible, explain simply what information is unavailable and suggest \
-              practical alternatives. For example, instead of "student_birth_year 필드에 연도만 저장되어 있어서", \
-              say "현재 학생 정보에 생년만 등록되어 있어 생일(월/일)은 확인이 어렵습니다."
+              practical alternatives.
             - When querying fails or returns no data, give a clear, human-friendly explanation.
             - For write operations, clearly describe what you plan to do before executing.
 
@@ -112,49 +114,105 @@ public class ChatService {
 
             """;
 
-    private static final String SYSTEM_PROMPT_SCHEMA_HEADER = "Tenant schema (tables and columns):\n%s";
+    private static final String SYSTEM_PROMPT_SCHEMA_HEADER = "\nTenant schema (tables and columns):\n%s";
 
-    private final AiServicePort aiServicePort;
+    private final ChatClient chatClient;
+    private final LumieReadTools readTools;
+    private final LumieWriteTools writeTools;
     private final ToolRegistry toolRegistry;
     private final ConversationRepository conversationRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ObjectMapper objectMapper;
     private final SchemaDiscoveryService schemaDiscoveryService;
 
+    // ── Streaming endpoint ──────────────────────────────────────────────
+
+    public Flux<ServerSentEvent<String>> chatStream(Long conversationId, String userMessage) {
+        Long userId = UserContextHolder.getRequiredUserId();
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+
+        return Mono.fromCallable(() -> prepareContext(conversationId, userMessage, userId, tenantSlug))
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMapMany(ctx -> {
+                    StringBuilder fullContent = new StringBuilder();
+
+                    return chatClient.prompt()
+                            .system(ctx.systemPrompt)
+                            .messages(ctx.history)
+                            .tools(readTools, writeTools)
+                            .stream()
+                            .chatResponse()
+                            .mapNotNull(response -> {
+                                String token = extractToken(response);
+                                if (token != null && !token.isEmpty()) {
+                                    fullContent.append(token);
+                                    return sseEvent("token", Map.of("content", token));
+                                }
+                                logUsageIfPresent(response);
+                                return null;
+                            })
+                            .onErrorResume(PendingActionRequiredException.class, e ->
+                                    Mono.fromCallable(() -> handlePendingAction(ctx.conversation, e))
+                                            .subscribeOn(Schedulers.boundedElastic())
+                                            .flux())
+                            .concatWith(Mono.fromCallable(() -> {
+                                if (!fullContent.isEmpty()) {
+                                    chatMessageRepository.save(ChatMessage.builder()
+                                            .conversationId(ctx.conversation.getId())
+                                            .role(MessageRole.ASSISTANT)
+                                            .content(fullContent.toString())
+                                            .build());
+                                }
+                                return sseEvent("done", Map.of(
+                                        "conversationId", ctx.conversation.getId()));
+                            }).subscribeOn(Schedulers.boundedElastic()))
+                            .onErrorResume(e -> {
+                                log.error("Chat stream error: {}", e.getMessage());
+                                return Flux.just(sseEvent("error",
+                                        Map.of("message", "요청 처리 중 오류가 발생했습니다.")));
+                            });
+                });
+    }
+
+    // ── Non-streaming endpoint (backward compat) ────────────────────────
+
     @Transactional
     public Map<String, Object> chat(Long conversationId, String userMessage) {
         Long userId = UserContextHolder.getRequiredUserId();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
-        Conversation conversation;
-        if (conversationId != null) {
-            conversation = conversationRepository.findByIdAndUserId(conversationId, userId)
-                    .orElseThrow(() -> new AiException(AiErrorCode.CONVERSATION_NOT_FOUND));
-        } else {
-            conversation = conversationRepository.save(
-                    Conversation.builder()
-                            .userId(userId)
-                            .title(userMessage.length() > 50 ? userMessage.substring(0, 50) + "..." : userMessage)
-                            .build()
+        StreamContext ctx = prepareContext(conversationId, userMessage, userId, tenantSlug);
+
+        try {
+            ChatResponse response = chatClient.prompt()
+                    .system(ctx.systemPrompt)
+                    .messages(ctx.history)
+                    .tools(readTools, writeTools)
+                    .call()
+                    .chatResponse();
+
+            String content = response.getResult().getOutput().getText();
+
+            chatMessageRepository.save(ChatMessage.builder()
+                    .conversationId(ctx.conversation.getId())
+                    .role(MessageRole.ASSISTANT)
+                    .content(content)
+                    .build());
+
+            logUsageIfPresent(response);
+
+            return Map.of(
+                    "conversationId", ctx.conversation.getId(),
+                    "message", content != null ? content : ""
             );
+        } catch (PendingActionRequiredException e) {
+            return handlePendingActionSync(ctx.conversation, e);
         }
-
-        chatMessageRepository.save(ChatMessage.builder()
-                .conversationId(conversation.getId())
-                .role(MessageRole.USER)
-                .content(userMessage)
-                .build());
-
-        List<Map<String, Object>> messages = buildMessageHistory(conversation.getId(), tenantSlug);
-        List<Map<String, Object>> tools = toolRegistry.getAllToolSchemas();
-
-        Map<String, Object> aiResponse = callAi(messages, tools);
-
-        return processAiResponse(conversation, aiResponse, tenantSlug, 0);
     }
 
+    // ── Confirm endpoint ────────────────────────────────────────────────
+
     @Transactional
-    @SuppressWarnings("unchecked")
     public Map<String, Object> confirm(Long messageId, boolean confirmed) {
         Long userId = UserContextHolder.getRequiredUserId();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -203,33 +261,20 @@ public class ChatService {
                 .toolCallId(action.actionId())
                 .build());
 
-        List<Map<String, Object>> messages = buildMessageHistory(conversation.getId(), tenantSlug);
-        List<Map<String, Object>> tools = toolRegistry.getAllToolSchemas();
+        String schemaInfo = schemaDiscoveryService.getSchemaDescription(tenantSlug);
+        String systemPrompt = SYSTEM_PROMPT_PREFIX + String.format(SYSTEM_PROMPT_SCHEMA_HEADER, schemaInfo);
+        List<Message> history = buildSpringAiHistory(conversation.getId());
 
-        Map<String, Object> aiResponse = callAi(messages, tools);
+        try {
+            ChatResponse response = chatClient.prompt()
+                    .system(systemPrompt)
+                    .messages(history)
+                    .tools(readTools, writeTools)
+                    .call()
+                    .chatResponse();
 
-        return processAiResponse(conversation, aiResponse, tenantSlug, 0);
-    }
+            String content = response.getResult().getOutput().getText();
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> processAiResponse(Conversation conversation,
-                                                    Map<String, Object> aiResponse,
-                                                    String tenantSlug,
-                                                    int iteration) {
-        if (iteration >= MAX_TOOL_ITERATIONS) {
-            String fallback = "죄송합니다, 요청 처리 중 반복 제한에 도달했습니다.";
-            chatMessageRepository.save(ChatMessage.builder()
-                    .conversationId(conversation.getId())
-                    .role(MessageRole.ASSISTANT)
-                    .content(fallback)
-                    .build());
-            return Map.of("conversationId", conversation.getId(), "message", fallback);
-        }
-
-        String content = (String) aiResponse.get("content");
-        List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) aiResponse.get("tool_calls");
-
-        if (toolCalls == null || toolCalls.isEmpty()) {
             chatMessageRepository.save(ChatMessage.builder()
                     .conversationId(conversation.getId())
                     .role(MessageRole.ASSISTANT)
@@ -238,156 +283,166 @@ public class ChatService {
 
             return Map.of(
                     "conversationId", conversation.getId(),
-                    "message", content
+                    "message", content != null ? content : ""
             );
+        } catch (PendingActionRequiredException e) {
+            return handlePendingActionSync(conversation, e);
         }
+    }
 
-        String toolCallsJson;
-        try {
-            toolCallsJson = objectMapper.writeValueAsString(toolCalls);
-        } catch (JsonProcessingException e) {
-            toolCallsJson = null;
+    // ── Internal helpers ────────────────────────────────────────────────
+
+    private StreamContext prepareContext(Long conversationId, String userMessage,
+                                         Long userId, String tenantSlug) {
+        Conversation conversation;
+        if (conversationId != null) {
+            conversation = conversationRepository.findByIdAndUserId(conversationId, userId)
+                    .orElseThrow(() -> new AiException(AiErrorCode.CONVERSATION_NOT_FOUND));
+        } else {
+            conversation = conversationRepository.save(
+                    Conversation.builder()
+                            .userId(userId)
+                            .title(userMessage.length() > 50 ? userMessage.substring(0, 50) + "..." : userMessage)
+                            .build()
+            );
         }
 
         chatMessageRepository.save(ChatMessage.builder()
                 .conversationId(conversation.getId())
-                .role(MessageRole.ASSISTANT)
-                .content(content)
-                .toolCalls(toolCallsJson)
+                .role(MessageRole.USER)
+                .content(userMessage)
                 .build());
-
-        for (Map<String, Object> toolCall : toolCalls) {
-            String toolCallId = (String) toolCall.get("id");
-            Map<String, Object> function = (Map<String, Object>) toolCall.get("function");
-            String toolName = (String) function.get("name");
-            String argsStr = (String) function.get("arguments");
-
-            Map<String, Object> arguments;
-            try {
-                arguments = objectMapper.readValue(argsStr, new TypeReference<>() {});
-            } catch (JsonProcessingException e) {
-                log.error("Failed to parse tool arguments: {}", argsStr);
-                arguments = Map.of();
-            }
-
-            Tool tool = toolRegistry.getTool(toolName).orElse(null);
-            if (tool == null) {
-                chatMessageRepository.save(ChatMessage.builder()
-                        .conversationId(conversation.getId())
-                        .role(MessageRole.TOOL)
-                        .content("Unknown tool: " + toolName)
-                        .toolCallId(toolCallId)
-                        .build());
-                continue;
-            }
-
-            if (tool.getCategory() == ToolCategory.WRITE || tool.getCategory() == ToolCategory.NOTIFICATION) {
-                PendingAction pendingAction = new PendingAction(
-                        toolCallId, toolName,
-                        "실행 확인 필요: " + tool.getDescription(),
-                        arguments
-                );
-
-                String pendingJson;
-                try {
-                    pendingJson = objectMapper.writeValueAsString(pendingAction);
-                } catch (JsonProcessingException e) {
-                    pendingJson = null;
-                }
-
-                ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
-                        .conversationId(conversation.getId())
-                        .role(MessageRole.ASSISTANT)
-                        .content(buildConfirmationMessage(toolName, arguments))
-                        .pendingAction(pendingJson)
-                        .build());
-
-                return Map.of(
-                        "conversationId", conversation.getId(),
-                        "message", buildConfirmationMessage(toolName, arguments),
-                        "pendingAction", Map.of(
-                                "messageId", saved.getId(),
-                                "toolName", toolName,
-                                "description", pendingAction.description(),
-                                "arguments", arguments
-                        )
-                );
-            }
-
-            ToolResult result = tool.execute(tenantSlug, arguments);
-
-            chatMessageRepository.save(ChatMessage.builder()
-                    .conversationId(conversation.getId())
-                    .role(MessageRole.TOOL)
-                    .content(result.success() ? result.data() : result.error())
-                    .toolCallId(toolCallId)
-                    .build());
-        }
-
-        List<Map<String, Object>> messages = buildMessageHistory(conversation.getId(), tenantSlug);
-        List<Map<String, Object>> tools = toolRegistry.getAllToolSchemas();
-
-        Map<String, Object> nextResponse = callAi(messages, tools);
-        return processAiResponse(conversation, nextResponse, tenantSlug, iteration + 1);
-    }
-
-    private List<Map<String, Object>> buildMessageHistory(Long conversationId, String tenantSlug) {
-        List<ChatMessage> history = chatMessageRepository
-                .findByConversationIdOrderByCreatedAtAsc(conversationId);
 
         String schemaInfo = schemaDiscoveryService.getSchemaDescription(tenantSlug);
         String systemPrompt = SYSTEM_PROMPT_PREFIX + String.format(SYSTEM_PROMPT_SCHEMA_HEADER, schemaInfo);
+        List<Message> history = buildSpringAiHistory(conversation.getId());
 
-        List<Map<String, Object>> messages = new ArrayList<>();
+        return new StreamContext(conversation, systemPrompt, history);
+    }
 
-        messages.add(Map.of("role", "system", "content", systemPrompt));
+    private List<Message> buildSpringAiHistory(Long conversationId) {
+        List<ChatMessage> history = chatMessageRepository
+                .findByConversationIdOrderByCreatedAtAsc(conversationId);
+
+        List<Message> messages = new ArrayList<>();
 
         for (ChatMessage msg : history) {
-            // Skip pendingAction confirmation messages - they are UI-only and break
-            // the OpenAI-compatible message format (tool responses must follow assistant tool_calls)
             if (msg.getRole() == MessageRole.ASSISTANT && msg.getPendingAction() != null) {
                 continue;
             }
 
-            Map<String, Object> messageMap = new HashMap<>();
-
             switch (msg.getRole()) {
-                case USER -> {
-                    messageMap.put("role", "user");
-                    messageMap.put("content", msg.getContent());
-                }
-                case ASSISTANT -> {
-                    messageMap.put("role", "assistant");
-                    if (msg.getContent() != null) {
-                        messageMap.put("content", msg.getContent());
-                    }
-                    if (msg.getToolCalls() != null) {
-                        try {
-                            List<Map<String, Object>> toolCalls = objectMapper.readValue(
-                                    msg.getToolCalls(), new TypeReference<>() {});
-                            messageMap.put("tool_calls", toolCalls);
-                        } catch (JsonProcessingException e) {
-                            log.warn("Failed to parse tool_calls: {}", msg.getToolCalls());
-                        }
-                    }
-                }
-                case TOOL -> {
-                    messageMap.put("role", "tool");
-                    messageMap.put("content", msg.getContent());
-                    if (msg.getToolCallId() != null) {
-                        messageMap.put("tool_call_id", msg.getToolCallId());
-                    }
-                }
-                case SYSTEM -> {
-                    messageMap.put("role", "system");
-                    messageMap.put("content", msg.getContent());
-                }
+                case USER -> messages.add(new UserMessage(msg.getContent()));
+                case ASSISTANT -> messages.add(new AssistantMessage(
+                        msg.getContent() != null ? msg.getContent() : ""));
+                case TOOL -> messages.add(new UserMessage(
+                        "[Tool result]: " + msg.getContent()));
+                case SYSTEM -> messages.add(new SystemMessage(msg.getContent()));
             }
-
-            messages.add(messageMap);
         }
 
         return messages;
+    }
+
+    private ServerSentEvent<String> handlePendingAction(Conversation conversation,
+                                                         PendingActionRequiredException e) {
+        PendingAction pendingAction = new PendingAction(
+                UUID.randomUUID().toString(), e.getToolName(),
+                e.getToolDescription(), e.getArguments());
+
+        String pendingJson;
+        try {
+            pendingJson = objectMapper.writeValueAsString(pendingAction);
+        } catch (JsonProcessingException ex) {
+            pendingJson = null;
+        }
+
+        ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
+                .conversationId(conversation.getId())
+                .role(MessageRole.ASSISTANT)
+                .content(buildConfirmationMessage(e.getToolName(), e.getArguments()))
+                .pendingAction(pendingJson)
+                .build());
+
+        return sseEvent("pending", Map.of(
+                "messageId", saved.getId(),
+                "toolName", e.getToolName(),
+                "description", e.getToolDescription(),
+                "arguments", e.getArguments()
+        ));
+    }
+
+    private Map<String, Object> handlePendingActionSync(Conversation conversation,
+                                                         PendingActionRequiredException e) {
+        PendingAction pendingAction = new PendingAction(
+                UUID.randomUUID().toString(), e.getToolName(),
+                e.getToolDescription(), e.getArguments());
+
+        String pendingJson;
+        try {
+            pendingJson = objectMapper.writeValueAsString(pendingAction);
+        } catch (JsonProcessingException ex) {
+            pendingJson = null;
+        }
+
+        ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
+                .conversationId(conversation.getId())
+                .role(MessageRole.ASSISTANT)
+                .content(buildConfirmationMessage(e.getToolName(), e.getArguments()))
+                .pendingAction(pendingJson)
+                .build());
+
+        return Map.of(
+                "conversationId", conversation.getId(),
+                "message", buildConfirmationMessage(e.getToolName(), e.getArguments()),
+                "pendingAction", Map.of(
+                        "messageId", saved.getId(),
+                        "toolName", e.getToolName(),
+                        "description", e.getToolDescription(),
+                        "arguments", e.getArguments()
+                )
+        );
+    }
+
+    private String extractToken(ChatResponse response) {
+        if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
+            return null;
+        }
+        return response.getResult().getOutput().getText();
+    }
+
+    private void logUsageIfPresent(ChatResponse response) {
+        if (response == null || response.getMetadata() == null || response.getMetadata().getUsage() == null) {
+            return;
+        }
+        var usage = response.getMetadata().getUsage();
+        if (usage.getTotalTokens() <= 0) {
+            return;
+        }
+        try {
+            MDC.put("promptTokens", String.valueOf(usage.getPromptTokens()));
+            MDC.put("completionTokens", String.valueOf(usage.getCompletionTokens()));
+            MDC.put("totalTokens", String.valueOf(usage.getTotalTokens()));
+            log.info("AI usage recorded");
+        } finally {
+            MDC.remove("promptTokens");
+            MDC.remove("completionTokens");
+            MDC.remove("totalTokens");
+        }
+    }
+
+    private ServerSentEvent<String> sseEvent(String eventType, Map<String, Object> data) {
+        try {
+            return ServerSentEvent.<String>builder()
+                    .event(eventType)
+                    .data(objectMapper.writeValueAsString(data))
+                    .build();
+        } catch (JsonProcessingException e) {
+            return ServerSentEvent.<String>builder()
+                    .event(eventType)
+                    .data("{}")
+                    .build();
+        }
     }
 
     private String buildConfirmationMessage(String toolName, Map<String, Object> arguments) {
@@ -425,33 +480,5 @@ public class ChatService {
         return sb.toString();
     }
 
-    private Map<String, Object> callAi(List<Map<String, Object>> messages, List<Map<String, Object>> tools) {
-        Map<String, Object> response = aiServicePort.chat(messages, tools);
-        logUsage(response);
-        return response;
-    }
-
-    @SuppressWarnings("unchecked")
-    private void logUsage(Map<String, Object> aiResponse) {
-        Object raw = aiResponse.get(AiServicePort.USAGE_KEY);
-        if (!(raw instanceof Map)) {
-            return;
-        }
-        Map<String, Object> usage = (Map<String, Object>) raw;
-        try {
-            MDC.put("promptTokens", String.valueOf(usage.get("prompt_tokens")));
-            MDC.put("completionTokens", String.valueOf(usage.get("completion_tokens")));
-            MDC.put("totalTokens", String.valueOf(usage.get("total_tokens")));
-            Object model = usage.get("model");
-            if (model != null) {
-                MDC.put("aiModel", String.valueOf(model));
-            }
-            log.info("AI usage recorded");
-        } finally {
-            MDC.remove("promptTokens");
-            MDC.remove("completionTokens");
-            MDC.remove("totalTokens");
-            MDC.remove("aiModel");
-        }
-    }
+    private record StreamContext(Conversation conversation, String systemPrompt, List<Message> history) {}
 }
