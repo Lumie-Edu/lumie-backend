@@ -3,6 +3,12 @@ plugins {
     id("io.spring.dependency-management")
 }
 
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.ai:spring-ai-bom:1.0.0")
+    }
+}
+
 dependencies {
     implementation(project(":libs:common"))
     implementation(project(":libs:internal-api"))
