@@ -125,56 +125,67 @@ public class ChatService {
     private final ObjectMapper objectMapper;
     private final SchemaDiscoveryService schemaDiscoveryService;
 
-    // ── Streaming endpoint ──────────────────────────────────────────────
+    // ── Streaming endpoint (simulated: call() + chunked SSE emission) ──
+
+    private static final int CHUNK_SIZE = 3; // characters per SSE token event
 
     public Flux<ServerSentEvent<String>> chatStream(Long conversationId, String userMessage) {
         Long userId = UserContextHolder.getRequiredUserId();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
-        return Mono.fromCallable(() -> prepareContext(conversationId, userMessage, userId, tenantSlug))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMapMany(ctx -> {
-                    StringBuilder fullContent = new StringBuilder();
+        return Mono.fromCallable(() -> {
+                    StreamContext ctx = prepareContext(conversationId, userMessage, userId, tenantSlug);
 
-                    return chatClient.prompt()
-                            .system(ctx.systemPrompt)
-                            .messages(ctx.history)
-                            .tools(readTools, writeTools)
-                            .stream()
-                            .chatResponse()
-                            .mapNotNull(response -> {
-                                String token = extractToken(response);
-                                if (token != null && !token.isEmpty()) {
-                                    fullContent.append(token);
-                                    return sseEvent("token", Map.of("content", token));
-                                }
-                                logUsageIfPresent(response);
-                                return null;
-                            })
-                            .onErrorResume(PendingActionRequiredException.class, e ->
-                                    Mono.fromCallable(() -> {
-                                        TenantContextHolder.setTenant(tenantSlug);
-                                        return handlePendingAction(ctx.conversation, e);
-                                    }).subscribeOn(Schedulers.boundedElastic()).flux())
-                            .concatWith(Mono.fromCallable(() -> {
-                                TenantContextHolder.setTenant(tenantSlug);
-                                if (!fullContent.isEmpty()) {
-                                    chatMessageRepository.save(ChatMessage.builder()
-                                            .conversationId(ctx.conversation.getId())
-                                            .role(MessageRole.ASSISTANT)
-                                            .content(fullContent.toString())
-                                            .build());
-                                }
-                                return sseEvent("done", Map.of(
-                                        "conversationId", ctx.conversation.getId()));
-                            }).subscribeOn(Schedulers.boundedElastic()))
-                            .onErrorResume(e -> {
-                                log.error("Chat stream error: {}", e.getMessage());
-                                return Flux.just(sseEvent("error",
-                                        Map.of("message", "요청 처리 중 오류가 발생했습니다.")));
-                            });
+                    try {
+                        ChatResponse response = chatClient.prompt()
+                                .system(ctx.systemPrompt)
+                                .messages(ctx.history)
+                                .tools(readTools, writeTools)
+                                .call()
+                                .chatResponse();
+
+                        logUsageIfPresent(response);
+                        String content = response.getResult().getOutput().getText();
+                        if (content == null) content = "";
+
+                        chatMessageRepository.save(ChatMessage.builder()
+                                .conversationId(ctx.conversation.getId())
+                                .role(MessageRole.ASSISTANT)
+                                .content(content)
+                                .build());
+
+                        return new StreamResult(ctx.conversation.getId(), content, null);
+                    } catch (PendingActionRequiredException e) {
+                        ServerSentEvent<String> pendingEvent = handlePendingAction(ctx.conversation, e);
+                        return new StreamResult(ctx.conversation.getId(), null, pendingEvent);
+                    }
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMapMany(result -> {
+                    if (result.pendingEvent != null) {
+                        return Flux.just(result.pendingEvent);
+                    }
+
+                    // Emit content in small chunks to simulate streaming
+                    List<ServerSentEvent<String>> events = new ArrayList<>();
+                    String content = result.content;
+                    for (int i = 0; i < content.length(); i += CHUNK_SIZE) {
+                        String chunk = content.substring(i, Math.min(i + CHUNK_SIZE, content.length()));
+                        events.add(sseEvent("token", Map.of("content", chunk)));
+                    }
+                    events.add(sseEvent("done", Map.of("conversationId", result.conversationId)));
+
+                    return Flux.fromIterable(events)
+                            .delayElements(java.time.Duration.ofMillis(20));
+                })
+                .onErrorResume(e -> {
+                    log.error("Chat stream error: {}", e.getMessage());
+                    return Flux.just(sseEvent("error",
+                            Map.of("message", "요청 처리 중 오류가 발생했습니다.")));
                 });
     }
+
+    private record StreamResult(Long conversationId, String content, ServerSentEvent<String> pendingEvent) {}
 
     // ── Non-streaming endpoint (backward compat) ────────────────────────
 
