@@ -4,11 +4,9 @@ import com.lumie.ai.application.service.ChatService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 
@@ -25,13 +23,13 @@ public class ChatController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> chatStream(
+    @PostMapping(value = "/stream", produces = "text/event-stream")
+    public SseEmitter chatStream(
             @Valid @RequestBody ChatRequest request,
             jakarta.servlet.http.HttpServletResponse response) {
         response.setHeader("X-Accel-Buffering", "no");
         response.setHeader("Cache-Control", "no-cache, no-transform");
-        return chatService.chatStream(request.conversationId(), request.message());
+        return chatService.chatStreamEmitter(request.conversationId(), request.message());
     }
 
     @PostMapping("/confirm")

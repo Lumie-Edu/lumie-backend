@@ -24,14 +24,13 @@ import org.slf4j.MDC;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.*;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
@@ -63,6 +62,8 @@ public class ChatService {
 
     private static final String SYSTEM_PROMPT_SCHEMA_HEADER = "\nTenant schema (tables and columns):\n%s";
 
+    private final Executor executor = Executors.newVirtualThreadPerTaskExecutor();
+
     private final ChatClient chatClient;
     private final LumieReadTools readTools;
     private final LumieWriteTools writeTools;
@@ -72,67 +73,107 @@ public class ChatService {
     private final ObjectMapper objectMapper;
     private final SchemaDiscoveryService schemaDiscoveryService;
 
-    // ── Streaming endpoint (simulated: call() + chunked SSE emission) ──
+    // ── Streaming endpoint (SseEmitter: proper connection lifecycle) ──
 
-    private static final int CHUNK_SIZE = 3; // characters per SSE token event
+    private static final int CHUNK_SIZE = 3;
+    private static final long SSE_TIMEOUT = 120_000L; // 2 minutes
 
-    public Flux<ServerSentEvent<String>> chatStream(Long conversationId, String userMessage) {
+    public SseEmitter chatStreamEmitter(Long conversationId, String userMessage) {
         Long userId = UserContextHolder.getRequiredUserId();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
-        return Mono.fromCallable(() -> {
-                    StreamContext ctx = prepareContext(conversationId, userMessage, userId, tenantSlug);
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
 
-                    try {
-                        ChatResponse response = chatClient.prompt()
-                                .system(ctx.systemPrompt)
-                                .messages(ctx.history)
-                                .tools(readTools, writeTools)
-                                .call()
-                                .chatResponse();
+        executor.execute(() -> {
+            try {
+                TenantContextHolder.setTenant(tenantSlug);
+                UserContextHolder.setUserId(userId);
 
-                        logUsageIfPresent(response);
-                        String content = response.getResult().getOutput().getText();
-                        if (content == null) content = "";
+                StreamContext ctx = prepareContext(conversationId, userMessage, userId, tenantSlug);
 
-                        chatMessageRepository.save(ChatMessage.builder()
-                                .conversationId(ctx.conversation.getId())
-                                .role(MessageRole.ASSISTANT)
-                                .content(content)
-                                .build());
+                ChatResponse response;
+                try {
+                    response = chatClient.prompt()
+                            .system(ctx.systemPrompt)
+                            .messages(ctx.history)
+                            .tools(readTools, writeTools)
+                            .call()
+                            .chatResponse();
+                } catch (PendingActionRequiredException e) {
+                    sendPendingAction(emitter, ctx.conversation, e);
+                    emitter.complete();
+                    return;
+                }
 
-                        return new StreamResult(ctx.conversation.getId(), content, null);
-                    } catch (PendingActionRequiredException e) {
-                        ServerSentEvent<String> pendingEvent = handlePendingAction(ctx.conversation, e);
-                        return new StreamResult(ctx.conversation.getId(), null, pendingEvent);
-                    }
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMapMany(result -> {
-                    if (result.pendingEvent != null) {
-                        return Flux.just(result.pendingEvent);
-                    }
+                logUsageIfPresent(response);
+                String content = response.getResult().getOutput().getText();
+                if (content == null) content = "";
 
-                    // Emit content in small chunks to simulate streaming
-                    List<ServerSentEvent<String>> events = new ArrayList<>();
-                    String content = result.content;
-                    for (int i = 0; i < content.length(); i += CHUNK_SIZE) {
-                        String chunk = content.substring(i, Math.min(i + CHUNK_SIZE, content.length()));
-                        events.add(sseEvent("token", Map.of("content", chunk)));
-                    }
-                    events.add(sseEvent("done", Map.of("conversationId", result.conversationId)));
+                chatMessageRepository.save(ChatMessage.builder()
+                        .conversationId(ctx.conversation.getId())
+                        .role(MessageRole.ASSISTANT)
+                        .content(content)
+                        .build());
 
-                    return Flux.fromIterable(events)
-                            .delayElements(java.time.Duration.ofMillis(20));
-                })
-                .onErrorResume(e -> {
-                    log.error("Chat stream error: {}", e.getMessage());
-                    return Flux.just(sseEvent("error",
-                            Map.of("message", "요청 처리 중 오류가 발생했습니다.")));
-                });
+                // Emit content in small chunks to simulate streaming
+                for (int i = 0; i < content.length(); i += CHUNK_SIZE) {
+                    String chunk = content.substring(i, Math.min(i + CHUNK_SIZE, content.length()));
+                    emitter.send(SseEmitter.event()
+                            .name("token")
+                            .data(objectMapper.writeValueAsString(Map.of("content", chunk))));
+                    Thread.sleep(20);
+                }
+
+                emitter.send(SseEmitter.event()
+                        .name("done")
+                        .data(objectMapper.writeValueAsString(
+                                Map.of("conversationId", ctx.conversation.getId()))));
+
+                emitter.complete();
+
+            } catch (Exception e) {
+                log.error("Chat stream error: {}", e.getMessage());
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("error")
+                            .data("{\"message\":\"요청 처리 중 오류가 발생했습니다.\"}"));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(e);
+            }
+        });
+
+        return emitter;
     }
 
-    private record StreamResult(Long conversationId, String content, ServerSentEvent<String> pendingEvent) {}
+    private void sendPendingAction(SseEmitter emitter, Conversation conversation,
+                                    PendingActionRequiredException e) throws Exception {
+        PendingAction pendingAction = new PendingAction(
+                UUID.randomUUID().toString(), e.getToolName(),
+                e.getToolDescription(), e.getArguments());
+
+        String pendingJson;
+        try {
+            pendingJson = objectMapper.writeValueAsString(pendingAction);
+        } catch (JsonProcessingException ex) {
+            pendingJson = null;
+        }
+
+        ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
+                .conversationId(conversation.getId())
+                .role(MessageRole.ASSISTANT)
+                .content(buildConfirmationMessage(e.getToolName(), e.getArguments()))
+                .pendingAction(pendingJson)
+                .build());
+
+        emitter.send(SseEmitter.event()
+                .name("pending")
+                .data(objectMapper.writeValueAsString(Map.of(
+                        "messageId", saved.getId(),
+                        "toolName", e.getToolName(),
+                        "description", e.getToolDescription(),
+                        "arguments", e.getArguments()
+                ))));
+    }
 
     // ── Non-streaming endpoint (backward compat) ────────────────────────
 
@@ -309,34 +350,6 @@ public class ChatService {
         return messages;
     }
 
-    private ServerSentEvent<String> handlePendingAction(Conversation conversation,
-                                                         PendingActionRequiredException e) {
-        PendingAction pendingAction = new PendingAction(
-                UUID.randomUUID().toString(), e.getToolName(),
-                e.getToolDescription(), e.getArguments());
-
-        String pendingJson;
-        try {
-            pendingJson = objectMapper.writeValueAsString(pendingAction);
-        } catch (JsonProcessingException ex) {
-            pendingJson = null;
-        }
-
-        ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
-                .conversationId(conversation.getId())
-                .role(MessageRole.ASSISTANT)
-                .content(buildConfirmationMessage(e.getToolName(), e.getArguments()))
-                .pendingAction(pendingJson)
-                .build());
-
-        return sseEvent("pending", Map.of(
-                "messageId", saved.getId(),
-                "toolName", e.getToolName(),
-                "description", e.getToolDescription(),
-                "arguments", e.getArguments()
-        ));
-    }
-
     private Map<String, Object> handlePendingActionSync(Conversation conversation,
                                                          PendingActionRequiredException e) {
         PendingAction pendingAction = new PendingAction(
@@ -369,13 +382,6 @@ public class ChatService {
         );
     }
 
-    private String extractToken(ChatResponse response) {
-        if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
-            return null;
-        }
-        return response.getResult().getOutput().getText();
-    }
-
     private void logUsageIfPresent(ChatResponse response) {
         if (response == null || response.getMetadata() == null || response.getMetadata().getUsage() == null) {
             return;
@@ -393,20 +399,6 @@ public class ChatService {
             MDC.remove("promptTokens");
             MDC.remove("completionTokens");
             MDC.remove("totalTokens");
-        }
-    }
-
-    private ServerSentEvent<String> sseEvent(String eventType, Map<String, Object> data) {
-        try {
-            return ServerSentEvent.<String>builder()
-                    .event(eventType)
-                    .data(objectMapper.writeValueAsString(data))
-                    .build();
-        } catch (JsonProcessingException e) {
-            return ServerSentEvent.<String>builder()
-                    .event(eventType)
-                    .data("{}")
-                    .build();
         }
     }
 
