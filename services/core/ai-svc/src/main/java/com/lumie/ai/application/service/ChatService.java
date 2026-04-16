@@ -136,10 +136,11 @@ public class ChatService {
                 .flatMapMany(ctx -> {
                     StringBuilder fullContent = new StringBuilder();
 
+                    // TODO: re-enable tools once streaming + tools is verified
                     return chatClient.prompt()
                             .system(ctx.systemPrompt)
                             .messages(ctx.history)
-                            .tools(readTools, writeTools)
+                            // .tools(readTools, writeTools)
                             .stream()
                             .chatResponse()
                             .mapNotNull(response -> {
