@@ -45,18 +45,19 @@ public class ChatService {
             Combine JOINs, subqueries, CASE, window functions, and aggregation into a single SQL. \
             Never split into multiple queries what can be done in one.
 
+            ANALYSIS: When asked to analyze data, provide genuine insight — not just a list of numbers.
+            - Identify trends (improving, declining, stable)
+            - Compare to class averages or peers when possible
+            - Highlight strengths and areas for improvement
+            - Give a brief actionable recommendation at the end
+            For example, "98→89→94→98점" is not analysis. \
+            "전반적으로 90점 이상의 우수한 성적을 유지하며, 3회에서 소폭 하락 후 꾸준히 회복하는 \
+            상승 추세입니다." is analysis.
+
             RULES:
-            - Never mention SQL, tables, columns, or any technical details to the user.
+            - Never mention SQL, tables, columns, or any technical details.
             - JSONB columns are queryable with ->, ->>, jsonb_array_elements, etc.
             - Always try a query before saying data is unavailable.
-            - Be concise.
-
-            Example — "블루밍 모의고사 8회 성적대별 학생 수":
-            SELECT CASE WHEN er.total_score>=90 THEN '90점 이상' WHEN er.total_score>=80 THEN '80점대' \
-            WHEN er.total_score>=70 THEN '70점대' WHEN er.total_score>=60 THEN '60점대' \
-            ELSE '60점 미만' END AS band, COUNT(*) AS cnt \
-            FROM exam_results er JOIN exams e ON er.exam_id=e.id \
-            WHERE e.name='블루밍 모의고사 8회' GROUP BY 1 ORDER BY MIN(er.total_score) DESC
 
             """;
 
