@@ -21,8 +21,8 @@ COMMON_ENV = {
     'RABBITMQ_HOST': 'rabbitmq-dev.lumie-dev.svc.cluster.local',
     'RABBITMQ_PORT': '5672',
     'RABBITMQ_USERNAME': 'lumie',
-    # Redis (dev-only standalone instance)
-    'REDIS_HOST': 'redis-dev.lumie-dev.svc.cluster.local',
+    # Redis (Bitnami Helm chart standalone)
+    'REDIS_HOST': 'redis-dev-master.lumie-dev.svc.cluster.local',
     'REDIS_PORT': '6379',
     # AI service
     'GRADING_SVC_URL': 'http://grading-svc.lumie-dev.svc:8000',
