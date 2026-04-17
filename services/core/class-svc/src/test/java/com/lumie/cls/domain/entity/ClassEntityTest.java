@@ -15,12 +15,11 @@ class ClassEntityTest {
     @DisplayName("create() 호출 시 필드가 올바르게 설정된다")
     void create_fieldsAreSetCorrectly() {
         ClassEntity entity = ClassEntity.create(
-                1L, "수학 기초반", "수학", 10L,
+                1L, "수학 기초반", 10L,
                 new SchedulePattern(List.of("MON", "WED"), "14:00", "15:30"),
                 "설명");
 
         assertThat(entity.getName()).isEqualTo("수학 기초반");
-        assertThat(entity.getSubject()).isEqualTo("수학");
         assertThat(entity.getAcademyId()).isEqualTo(1L);
         assertThat(entity.getTeacherId()).isEqualTo(10L);
         assertThat(entity.getDescription()).isEqualTo("설명");
@@ -31,12 +30,11 @@ class ClassEntityTest {
     void updateInfo_updatesFields() {
         ClassEntity entity = buildEntity();
 
-        entity.updateInfo("영어 고급반", "영어", 20L,
+        entity.updateInfo("영어 고급반", 20L,
                 new SchedulePattern(List.of("TUE", "THU"), "10:00", "11:30"),
                 "변경된 설명");
 
         assertThat(entity.getName()).isEqualTo("영어 고급반");
-        assertThat(entity.getSubject()).isEqualTo("영어");
         assertThat(entity.getTeacherId()).isEqualTo(20L);
         assertThat(entity.getDescription()).isEqualTo("변경된 설명");
     }
@@ -45,16 +43,15 @@ class ClassEntityTest {
     @DisplayName("create() 시 schedulePattern이 null이어도 생성 가능하다")
     void create_nullSchedulePattern_succeeds() {
         ClassEntity entity = ClassEntity.create(
-                1L, "반 이름", null, null,
+                1L, "반 이름", null,
                 null, null);
 
         assertThat(entity.getSchedulePattern()).isNull();
-        assertThat(entity.getSubject()).isNull();
     }
 
     private ClassEntity buildEntity() {
         return ClassEntity.create(
-                1L, "수학 기초반", "수학", 10L,
+                1L, "수학 기초반", 10L,
                 new SchedulePattern(List.of("MON", "WED"), "14:00", "15:30"),
                 "설명");
     }

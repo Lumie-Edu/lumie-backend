@@ -9,7 +9,7 @@ import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.ClassSearchCriteria;
-import com.lumie.cls.domain.vo.EnrollmentStatus;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,13 +45,11 @@ class ClassQueryServiceTest {
     void getClass_success() throws Exception {
         ClassEntity entity = buildClassEntity(1L);
         given(classRepository.findById(1L)).willReturn(Optional.of(entity));
-        given(enrollmentRepository.countByClassEntityIdAndStatus(1L, EnrollmentStatus.ENROLLED)).willReturn(5L);
 
         ClassResponse response = queryService.getClass(1L);
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("수학 기초반");
-        assertThat(response.enrolledCount()).isEqualTo(5L);
     }
 
     @Test
@@ -71,12 +69,10 @@ class ClassQueryServiceTest {
         Page<ClassEntity> page = new PageImpl<>(List.of(entity), pageable, 1);
 
         given(classRepository.findAll(any(ClassSearchCriteria.class), eq(pageable))).willReturn(page);
-        given(enrollmentRepository.countByClassEntityIdAndStatus(1L, EnrollmentStatus.ENROLLED)).willReturn(3L);
 
         Page<ClassResponse> response = queryService.listClasses(1L, null, null, pageable);
 
         assertThat(response.getContent()).hasSize(1);
-        assertThat(response.getContent().get(0).enrolledCount()).isEqualTo(3L);
     }
 
     @Test
@@ -100,12 +96,10 @@ class ClassQueryServiceTest {
         Page<ClassEntity> page = new PageImpl<>(List.of(entity), pageable, 1);
 
         given(classRepository.findByTeacherId(10L, pageable)).willReturn(page);
-        given(enrollmentRepository.countByClassEntityIdAndStatus(1L, EnrollmentStatus.ENROLLED)).willReturn(2L);
 
         Page<ClassResponse> response = queryService.getClassesByTeacher(10L, pageable);
 
         assertThat(response.getContent()).hasSize(1);
-        assertThat(response.getContent().get(0).enrolledCount()).isEqualTo(2L);
     }
 
     @Test
@@ -119,7 +113,6 @@ class ClassQueryServiceTest {
         Page<ClassEnrollment> page = new PageImpl<>(List.of(enrollment), pageable, 1);
 
         given(enrollmentRepository.findByStudentId(42L, pageable)).willReturn(page);
-        given(enrollmentRepository.countByClassEntityIdAndStatus(1L, EnrollmentStatus.ENROLLED)).willReturn(1L);
 
         Page<ClassResponse> response = queryService.getClassesByStudent(42L, pageable);
 
@@ -148,7 +141,7 @@ class ClassQueryServiceTest {
 
     private ClassEntity buildClassEntity(Long id) throws Exception {
         ClassEntity entity = ClassEntity.create(
-                1L, "수학 기초반", "수학", 10L, null, "설명");
+                1L, "수학 기초반", 10L, null, "설명");
         setField(entity, "id", id);
         return entity;
     }

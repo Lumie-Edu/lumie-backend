@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -51,6 +52,11 @@ public class ClassRepositoryAdapter implements ClassRepository {
     @Override
     public Page<ClassEntity> findByTeacherId(Long teacherId, Pageable pageable) {
         return jpaRepository.findByTeacherId(teacherId, pageable);
+    }
+
+    @Override
+    public List<ClassEntity> findAllByTeacherId(Long teacherId) {
+        return jpaRepository.findAllByTeacherId(teacherId);
     }
 
     @Override

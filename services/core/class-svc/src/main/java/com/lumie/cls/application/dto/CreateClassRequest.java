@@ -11,7 +11,6 @@ public record CreateClassRequest(
     @NotNull(message = "Academy ID is required")
     Long academyId,
 
-    String subject,
     Long teacherId,
     SchedulePattern schedulePattern,
     String description

@@ -16,10 +16,8 @@ public interface ClassInternalService {
     record ClassData(
             Long id,
             String name,
-            String subject,
             Long academyId,
             Long teacherId,
-            long enrolledCount,
             String createdAt,
             String updatedAt
     ) {}

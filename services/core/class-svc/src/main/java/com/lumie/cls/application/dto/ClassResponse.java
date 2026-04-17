@@ -9,26 +9,22 @@ public record ClassResponse(
     Long id,
     Long academyId,
     String name,
-    String subject,
     Long teacherId,
     String teacherName,
     SchedulePattern schedulePattern,
     String description,
-    long enrolledCount,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
-    public static ClassResponse from(ClassEntity entity, long enrolledCount, String teacherName) {
+    public static ClassResponse from(ClassEntity entity, String teacherName) {
         return new ClassResponse(
             entity.getId(),
             entity.getAcademyId(),
             entity.getName(),
-            entity.getSubject(),
             entity.getTeacherId(),
             teacherName,
             entity.getSchedulePattern(),
             entity.getDescription(),
-            enrolledCount,
             entity.getCreatedAt(),
             entity.getUpdatedAt()
         );

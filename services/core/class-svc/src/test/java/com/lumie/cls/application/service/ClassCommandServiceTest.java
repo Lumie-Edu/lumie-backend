@@ -55,7 +55,7 @@ class ClassCommandServiceTest {
         void createClass_success() {
             // given
             CreateClassRequest request = new CreateClassRequest(
-                    "수학 기초반", 1L, "수학", 10L, null, "설명");
+                    "수학 기초반", 1L, 10L, null, "설명");
 
             given(academyServicePort.getAcademy(1L))
                     .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "테스트학원", true)));
@@ -74,14 +74,13 @@ class ClassCommandServiceTest {
 
             // then
             assertThat(response.name()).isEqualTo("수학 기초반");
-            assertThat(response.enrolledCount()).isZero();
         }
 
         @Test
         @DisplayName("존재하지 않는 학원으로 생성 시 BusinessException이 발생한다")
         void createClass_academyNotFound_throwsException() {
             CreateClassRequest request = new CreateClassRequest(
-                    "수학반", 999L, null, null, null, null);
+                    "수학반", 999L, null, null, null);
 
             given(academyServicePort.getAcademy(999L)).willReturn(Optional.empty());
 
@@ -93,7 +92,7 @@ class ClassCommandServiceTest {
         @DisplayName("비활성 학원으로 생성 시 BusinessException이 발생한다")
         void createClass_inactiveAcademy_throwsException() {
             CreateClassRequest request = new CreateClassRequest(
-                    "수학반", 1L, null, null, null, null);
+                    "수학반", 1L, null, null, null);
 
             given(academyServicePort.getAcademy(1L))
                     .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", false)));
@@ -106,7 +105,7 @@ class ClassCommandServiceTest {
         @DisplayName("존재하지 않는 강사로 생성 시 BusinessException이 발생한다")
         void createClass_teacherNotFound_throwsException() {
             CreateClassRequest request = new CreateClassRequest(
-                    "수학반", 1L, null, 999L, null, null);
+                    "수학반", 1L, 999L, null, null);
 
             given(academyServicePort.getAcademy(1L))
                     .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
@@ -120,7 +119,7 @@ class ClassCommandServiceTest {
         @DisplayName("중복 수업명으로 생성 시 BusinessException이 발생한다")
         void createClass_duplicateName_throwsException() {
             CreateClassRequest request = new CreateClassRequest(
-                    "수학반", 1L, null, null, null, null);
+                    "수학반", 1L, null, null, null);
 
             given(academyServicePort.getAcademy(1L))
                     .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
@@ -140,16 +139,14 @@ class ClassCommandServiceTest {
         void updateClass_success() throws Exception {
             ClassEntity entity = buildClassEntity(1L);
             UpdateClassRequest request = new UpdateClassRequest(
-                    "변경된 이름", null, null, null, null);
+                    "변경된 이름", null, null, null);
 
             given(classRepository.findById(1L)).willReturn(Optional.of(entity));
             given(classRepository.save(any(ClassEntity.class))).willAnswer(inv -> inv.getArgument(0));
-            given(enrollmentRepository.countByClassEntityIdAndStatus(1L, EnrollmentStatus.ENROLLED)).willReturn(5L);
 
             ClassResponse response = commandService.updateClass(1L, request);
 
             assertThat(response.name()).isEqualTo("변경된 이름");
-            assertThat(response.enrolledCount()).isEqualTo(5L);
         }
 
         @Test
@@ -158,7 +155,7 @@ class ClassCommandServiceTest {
             given(classRepository.findById(999L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.updateClass(999L,
-                    new UpdateClassRequest(null, null, null, null, null)))
+                    new UpdateClassRequest(null, null, null, null)))
                     .isInstanceOf(ClassNotFoundException.class);
         }
     }
@@ -290,7 +287,7 @@ class ClassCommandServiceTest {
 
     private ClassEntity buildClassEntity(Long id) throws Exception {
         ClassEntity entity = ClassEntity.create(
-                1L, "수학 기초반", "수학", 10L, null, "설명");
+                1L, "수학 기초반", 10L, null, "설명");
         setField(entity, "id", id);
         return entity;
     }

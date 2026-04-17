@@ -61,7 +61,7 @@ class ClassControllerTest {
         given(commandService.createClass(any(CreateClassRequest.class))).willReturn(response);
 
         CreateClassRequest request = new CreateClassRequest(
-                "수학 기초반", 1L, "수학", 10L, null, "설명");
+                "수학 기초반", 1L, 10L, null, "설명");
 
         mockMvc.perform(post("/v1/classes")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -113,7 +113,7 @@ class ClassControllerTest {
         given(commandService.updateClass(eq(1L), any(UpdateClassRequest.class))).willReturn(response);
 
         UpdateClassRequest request = new UpdateClassRequest(
-                "변경된 이름", null, null, null, null);
+                "변경된 이름", null, null, null);
 
         mockMvc.perform(patch("/v1/classes/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -142,8 +142,8 @@ class ClassControllerTest {
 
     private ClassResponse buildClassResponse(Long id) {
         return new ClassResponse(
-                id, 1L, "수학 기초반", "수학", 10L, "김강사",
-                null, "설명", 5L,
+                id, 1L, "수학 기초반", 10L, "김강사",
+                null, "설명",
                 LocalDateTime.now(), LocalDateTime.now());
     }
 }

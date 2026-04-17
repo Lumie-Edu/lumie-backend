@@ -94,10 +94,8 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
         return new ClassData(
                 response.id(),
                 response.name(),
-                response.subject(),
                 response.academyId(),
                 response.teacherId(),
-                response.enrolledCount(),
                 response.createdAt() != null ? response.createdAt().toString() : "",
                 response.updatedAt() != null ? response.updatedAt().toString() : ""
         );

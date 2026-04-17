@@ -17,6 +17,7 @@ import com.lumie.cls.domain.exception.EnrollmentNotFoundException;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
+import com.lumie.cls.domain.vo.SchedulePattern;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.internal.activitylog.ActivityLogInternalService;
@@ -56,10 +57,11 @@ public class ClassCommandService {
                 "Class with name '" + request.name() + "' already exists in academy " + request.academyId());
         }
 
+        validateNoScheduleOverlap(request.teacherId(), request.schedulePattern(), null);
+
         ClassEntity entity = ClassEntity.create(
             request.academyId(),
             request.name(),
-            request.subject(),
             request.teacherId(),
             request.schedulePattern(),
             request.description()
@@ -72,7 +74,7 @@ public class ClassCommandService {
         String teacherName = saved.getTeacherId() != null
             ? adminServicePort.getAdmin(saved.getTeacherId()).map(AdminServicePort.AdminInfo::name).orElse(null)
             : null;
-        return ClassResponse.from(saved, 0L, teacherName);
+        return ClassResponse.from(saved, teacherName);
     }
 
     public ClassResponse updateClass(Long id, UpdateClassRequest request) {
@@ -80,22 +82,22 @@ public class ClassCommandService {
             .orElseThrow(() -> new ClassNotFoundException(id));
 
         String name = request.name() != null ? request.name() : entity.getName();
-        String subject = request.subject() != null ? request.subject() : entity.getSubject();
         Long teacherId = request.teacherId() != null ? request.teacherId() : entity.getTeacherId();
         var schedulePattern = request.schedulePattern() != null ? request.schedulePattern() : entity.getSchedulePattern();
         String description = request.description() != null ? request.description() : entity.getDescription();
 
-        entity.updateInfo(name, subject, teacherId, schedulePattern, description);
+        validateNoScheduleOverlap(teacherId, schedulePattern, id);
+
+        entity.updateInfo(name, teacherId, schedulePattern, description);
 
         ClassEntity saved = classRepository.save(entity);
 
-        long enrolledCount = enrollmentRepository.countByClassEntityIdAndStatus(saved.getId(), EnrollmentStatus.ENROLLED);
         log.info("Class updated: {}", saved.getId());
         logActivity("UPDATE", "CLASS", saved.getId(), saved.getName(), null);
         String updatedTeacherName = saved.getTeacherId() != null
             ? adminServicePort.getAdmin(saved.getTeacherId()).map(AdminServicePort.AdminInfo::name).orElse(null)
             : null;
-        return ClassResponse.from(saved, enrolledCount, updatedTeacherName);
+        return ClassResponse.from(saved, updatedTeacherName);
     }
 
     public void deleteClass(Long id) {
@@ -180,6 +182,37 @@ public class ClassCommandService {
 
         log.info("Enrollment {} status updated to {} in class: {}", enrollmentId, request.status(), classId);
         return ClassEnrollmentResponse.from(saved);
+    }
+
+    private void validateNoScheduleOverlap(Long teacherId, SchedulePattern newPattern, Long excludeClassId) {
+        if (teacherId == null || newPattern == null || newPattern.days().isEmpty()) {
+            return;
+        }
+
+        List<ClassEntity> teacherClasses = classRepository.findAllByTeacherId(teacherId);
+
+        for (ClassEntity existing : teacherClasses) {
+            if (excludeClassId != null && excludeClassId.equals(existing.getId())) {
+                continue;
+            }
+            SchedulePattern ep = existing.getSchedulePattern();
+            if (ep == null || ep.days().isEmpty()) {
+                continue;
+            }
+
+            boolean daysOverlap = ep.days().stream().anyMatch(newPattern.days()::contains);
+            if (!daysOverlap) {
+                continue;
+            }
+
+            boolean timeOverlap = newPattern.startTime().compareTo(ep.endTime()) < 0
+                    && newPattern.endTime().compareTo(ep.startTime()) > 0;
+            if (timeOverlap) {
+                throw new BusinessException(ClassErrorCode.SCHEDULE_OVERLAP,
+                        "Teacher " + teacherId + " already has class '" + existing.getName()
+                                + "' at overlapping time");
+            }
+        }
     }
 
     private void logActivity(String action, String entityType, Long entityId,

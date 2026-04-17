@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface JpaClassRepository extends JpaRepository<ClassEntity, Long>, JpaSpecificationExecutor<ClassEntity> {
@@ -21,6 +22,8 @@ public interface JpaClassRepository extends JpaRepository<ClassEntity, Long>, Jp
     Page<ClassEntity> findByAcademyId(Long academyId, Pageable pageable);
 
     Page<ClassEntity> findByTeacherId(Long teacherId, Pageable pageable);
+
+    List<ClassEntity> findAllByTeacherId(Long teacherId);
 
     long countByAcademyId(Long academyId);
 

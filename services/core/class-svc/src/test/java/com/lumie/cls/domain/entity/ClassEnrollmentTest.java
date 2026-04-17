@@ -47,7 +47,7 @@ class ClassEnrollmentTest {
 
     private ClassEntity buildClassEntity() {
         return ClassEntity.create(
-                1L, "수학 기초반", "수학", 10L,
+                1L, "수학 기초반", 10L,
                 null, null);
     }
 }
