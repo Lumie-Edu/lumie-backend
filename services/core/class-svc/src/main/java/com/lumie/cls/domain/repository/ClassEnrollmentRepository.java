@@ -20,7 +20,11 @@ public interface ClassEnrollmentRepository {
 
     List<ClassEnrollment> findByStudentId(Long studentId);
 
+    List<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status);
+
     Page<ClassEnrollment> findByStudentId(Long studentId, Pageable pageable);
+
+    Page<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status, Pageable pageable);
 
     long countByClassEntityIdAndStatus(Long classId, EnrollmentStatus status);
 

@@ -8,7 +8,7 @@ import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.ClassSearchCriteria;
-
+import com.lumie.cls.domain.vo.EnrollmentStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -62,7 +62,7 @@ public class ClassQueryService {
     }
 
     public Page<ClassResponse> getClassesByStudent(Long studentId, Pageable pageable) {
-        return enrollmentRepository.findByStudentId(studentId, pageable)
+        return enrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED, pageable)
             .map(enrollment -> {
                 ClassEntity entity = enrollment.getClassEntity();
                 String teacherName = resolveTeacherName(entity.getTeacherId());

@@ -43,8 +43,18 @@ public class ClassEnrollmentRepositoryAdapter implements ClassEnrollmentReposito
     }
 
     @Override
+    public List<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status) {
+        return jpaRepository.findByStudentIdAndStatus(studentId, status);
+    }
+
+    @Override
     public Page<ClassEnrollment> findByStudentId(Long studentId, Pageable pageable) {
         return jpaRepository.findByStudentId(studentId, pageable);
+    }
+
+    @Override
+    public Page<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status, Pageable pageable) {
+        return jpaRepository.findByStudentIdAndStatus(studentId, status, pageable);
     }
 
     @Override
