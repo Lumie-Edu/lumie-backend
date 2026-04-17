@@ -15,7 +15,8 @@ public enum ClassErrorCode implements ErrorCode {
     ACADEMY_NOT_FOUND("CLASS_007", "Academy not found or inactive", 404),
     TEACHER_NOT_FOUND("CLASS_008", "Teacher not found", 404),
     INVALID_STATUS("CLASS_009", "Invalid status value", 400),
-    SCHEDULE_OVERLAP("CLASS_010", "Teacher already has a class at the overlapping time", 409);
+    SCHEDULE_OVERLAP("CLASS_010", "Teacher already has a class at the overlapping time", 409),
+    STUDENT_SCHEDULE_OVERLAP("CLASS_011", "Student already has a class at the overlapping time", 409);
 
     private final String code;
     private final String message;

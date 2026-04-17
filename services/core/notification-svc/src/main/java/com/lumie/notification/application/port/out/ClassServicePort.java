@@ -12,8 +12,7 @@ public interface ClassServicePort {
     record ClassInfo(
         Long id,
         String name,
-        Long academyId,
-        long enrolledCount
+        Long academyId
     ) {
     }
 }

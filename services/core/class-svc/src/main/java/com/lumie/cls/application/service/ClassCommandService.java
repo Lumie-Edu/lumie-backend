@@ -119,6 +119,7 @@ public class ClassCommandService {
             if (enrollmentRepository.existsByClassEntityIdAndStudentId(classId, studentId)) {
                 throw new DuplicateEnrollmentException(classId, studentId);
             }
+            validateNoStudentScheduleOverlap(studentId, classEntity);
         }
 
         List<ClassEnrollment> enrollments = request.studentIds().stream()
@@ -199,20 +200,48 @@ public class ClassCommandService {
             if (ep == null || ep.days().isEmpty()) {
                 continue;
             }
-
-            boolean daysOverlap = ep.days().stream().anyMatch(newPattern.days()::contains);
-            if (!daysOverlap) {
-                continue;
-            }
-
-            boolean timeOverlap = newPattern.startTime().compareTo(ep.endTime()) < 0
-                    && newPattern.endTime().compareTo(ep.startTime()) > 0;
-            if (timeOverlap) {
+            if (hasTimeOverlap(newPattern, ep)) {
                 throw new BusinessException(ClassErrorCode.SCHEDULE_OVERLAP,
                         "Teacher " + teacherId + " already has class '" + existing.getName()
                                 + "' at overlapping time");
             }
         }
+    }
+
+    private void validateNoStudentScheduleOverlap(Long studentId, ClassEntity targetClass) {
+        SchedulePattern newPattern = targetClass.getSchedulePattern();
+        if (newPattern == null || newPattern.days().isEmpty()) {
+            return;
+        }
+
+        List<ClassEnrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
+        for (ClassEnrollment enrollment : enrollments) {
+            if (enrollment.getStatus() != EnrollmentStatus.ENROLLED) {
+                continue;
+            }
+            ClassEntity existing = enrollment.getClassEntity();
+            if (existing.getId().equals(targetClass.getId())) {
+                continue;
+            }
+            SchedulePattern ep = existing.getSchedulePattern();
+            if (ep == null || ep.days().isEmpty()) {
+                continue;
+            }
+            if (hasTimeOverlap(newPattern, ep)) {
+                throw new BusinessException(ClassErrorCode.STUDENT_SCHEDULE_OVERLAP,
+                        "Student " + studentId + " already has class '" + existing.getName()
+                                + "' at overlapping time");
+            }
+        }
+    }
+
+    private boolean hasTimeOverlap(SchedulePattern a, SchedulePattern b) {
+        boolean daysOverlap = a.days().stream().anyMatch(b.days()::contains);
+        if (!daysOverlap) {
+            return false;
+        }
+        return a.startTime().compareTo(b.endTime()) < 0
+                && a.endTime().compareTo(b.startTime()) > 0;
     }
 
     private void logActivity(String action, String entityType, Long entityId,

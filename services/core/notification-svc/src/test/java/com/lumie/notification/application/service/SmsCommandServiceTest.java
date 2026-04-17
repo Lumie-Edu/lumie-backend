@@ -135,7 +135,7 @@ class SmsCommandServiceTest {
             given(adminServicePort.getAdmin(10L))
                     .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "관리자")));
             given(classServicePort.getClass(5L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(5L, "수학반", 1L, 2)));
+                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(5L, "수학반", 1L)));
             given(classServicePort.getStudentIdsByClassId(5L))
                     .willReturn(List.of(100L, 200L));
             given(academyServicePort.getStudentsByIds(List.of(100L, 200L)))
@@ -167,7 +167,7 @@ class SmsCommandServiceTest {
             given(adminServicePort.getAdmin(10L))
                     .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "관리자")));
             given(classServicePort.getClass(5L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(5L, "수학반", 1L, 0)));
+                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(5L, "수학반", 1L)));
             given(classServicePort.getStudentIdsByClassId(5L))
                     .willReturn(List.of());
 
