@@ -87,6 +87,13 @@ public class ClassQueryService {
         return names;
     }
 
+    public List<Long> getEnrolledStudentIds(Long classId) {
+        return enrollmentRepository.findByClassEntityIdAndStatus(classId, EnrollmentStatus.ENROLLED)
+            .stream()
+            .map(enrollment -> enrollment.getStudentId())
+            .toList();
+    }
+
     public Page<ClassEnrollmentResponse> getEnrollments(Long classId, Pageable pageable) {
         return enrollmentRepository.findByClassEntityId(classId, pageable)
             .map(ClassEnrollmentResponse::from);

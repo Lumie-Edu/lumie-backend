@@ -1,6 +1,5 @@
 package com.lumie.attendance.domain.entity;
 
-import com.lumie.attendance.domain.vo.SessionStatus;
 import com.lumie.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -33,8 +32,11 @@ public class AttendanceSession extends BaseEntity {
     @Column(name = "session_date", nullable = false)
     private LocalDate sessionDate;
 
-    @Column(name = "subject", length = 100)
-    private String subject;
+    @Column(name = "class_id")
+    private Long classId;
+
+    @Column(name = "class_name", length = 100)
+    private String className;
 
     @Column(name = "attendance_code", nullable = false, length = 6)
     private String attendanceCode;
@@ -45,10 +47,6 @@ public class AttendanceSession extends BaseEntity {
     @Column(name = "late_threshold_minutes", nullable = false)
     private Integer lateThresholdMinutes;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    private SessionStatus status;
-
     @Column(name = "created_by")
     private Long createdBy;
 
@@ -56,36 +54,33 @@ public class AttendanceSession extends BaseEntity {
     private List<AttendanceRecord> records = new ArrayList<>();
 
     @Builder
-    private AttendanceSession(Long academyId, String name, LocalDate sessionDate, String subject,
-                              String attendanceCode, LocalDateTime codeExpiresAt,
-                              Integer lateThresholdMinutes, SessionStatus status, Long createdBy) {
+    private AttendanceSession(Long academyId, String name, LocalDate sessionDate, Long classId,
+                              String className, String attendanceCode, LocalDateTime codeExpiresAt,
+                              Integer lateThresholdMinutes, Long createdBy) {
         this.academyId = academyId;
         this.name = name;
         this.sessionDate = sessionDate;
-        this.subject = subject;
+        this.classId = classId;
+        this.className = className;
         this.attendanceCode = attendanceCode;
         this.codeExpiresAt = codeExpiresAt;
         this.lateThresholdMinutes = lateThresholdMinutes != null ? lateThresholdMinutes : 10;
-        this.status = status != null ? status : SessionStatus.OPEN;
         this.createdBy = createdBy;
     }
 
     public static AttendanceSession create(Long academyId, String name, LocalDate sessionDate,
-                                           String subject, Integer lateThresholdMinutes, Long createdBy) {
+                                           Long classId, String className,
+                                           Integer lateThresholdMinutes, Long createdBy) {
         return AttendanceSession.builder()
                 .academyId(academyId)
                 .name(name)
                 .sessionDate(sessionDate)
-                .subject(subject)
+                .classId(classId)
+                .className(className)
                 .attendanceCode(generateCode())
                 .lateThresholdMinutes(lateThresholdMinutes)
-                .status(SessionStatus.OPEN)
                 .createdBy(createdBy)
                 .build();
-    }
-
-    public void close() {
-        this.status = SessionStatus.CLOSED;
     }
 
     public void regenerateCode() {
@@ -94,10 +89,6 @@ public class AttendanceSession extends BaseEntity {
 
     public boolean isExpired() {
         return codeExpiresAt != null && LocalDateTime.now().isAfter(codeExpiresAt);
-    }
-
-    public boolean isOpen() {
-        return this.status == SessionStatus.OPEN;
     }
 
     private static String generateCode() {

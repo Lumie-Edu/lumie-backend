@@ -15,7 +15,7 @@ public record AttendanceSessionRequest(
     @NotNull(message = "Academy ID is required")
     Long academyId,
 
-    String subject,
+    Long classId,
 
     Integer lateThresholdMinutes
 ) {

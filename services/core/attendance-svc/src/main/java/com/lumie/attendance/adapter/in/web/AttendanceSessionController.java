@@ -4,7 +4,6 @@ import com.lumie.attendance.application.dto.AttendanceSessionRequest;
 import com.lumie.attendance.application.dto.AttendanceSessionResponse;
 import com.lumie.attendance.application.service.AttendanceSessionCommandService;
 import com.lumie.attendance.application.service.AttendanceSessionQueryService;
-import com.lumie.attendance.domain.vo.SessionStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -36,12 +35,12 @@ public class AttendanceSessionController {
     @GetMapping
     public ResponseEntity<Page<AttendanceSessionResponse>> getSessions(
             @RequestParam(required = false) Long academyId,
+            @RequestParam(required = false) Long classId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
-            @RequestParam(required = false) SessionStatus status,
             @PageableDefault(size = 20, sort = "sessionDate", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<AttendanceSessionResponse> response =
-            queryService.getSessions(academyId, dateFrom, dateTo, status, pageable);
+            queryService.getSessions(academyId, classId, dateFrom, dateTo, pageable);
         return ResponseEntity.ok(response);
     }
 
@@ -49,12 +48,6 @@ public class AttendanceSessionController {
     public ResponseEntity<AttendanceSessionResponse> getSession(@PathVariable Long id) {
         AttendanceSessionResponse response = queryService.getSession(id);
         return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/{id}/close")
-    public ResponseEntity<Void> closeSession(@PathVariable Long id) {
-        commandService.closeSession(id);
-        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/regenerate-code")

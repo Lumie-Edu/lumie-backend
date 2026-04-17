@@ -9,7 +9,6 @@ import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;
 import com.lumie.attendance.domain.exception.InvalidCodeException;
 import com.lumie.attendance.domain.exception.RecordNotFoundException;
-import com.lumie.attendance.domain.exception.SessionClosedException;
 import com.lumie.attendance.domain.exception.SessionNotFoundException;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
@@ -42,10 +41,6 @@ public class AttendanceRecordCommandService {
 
         AttendanceSession session = sessionRepository.findByAttendanceCode(request.code())
             .orElseThrow(InvalidCodeException::new);
-
-        if (!session.isOpen()) {
-            throw new SessionClosedException(session.getId());
-        }
 
         if (session.isExpired()) {
             throw new BusinessException(AttendanceErrorCode.CODE_EXPIRED);

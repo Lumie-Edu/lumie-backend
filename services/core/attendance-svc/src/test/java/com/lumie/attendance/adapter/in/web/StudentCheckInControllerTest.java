@@ -5,7 +5,6 @@ import com.lumie.attendance.application.dto.CheckInRequest;
 import com.lumie.attendance.application.dto.CheckInResponse;
 import com.lumie.attendance.application.service.AttendanceRecordCommandService;
 import com.lumie.attendance.domain.exception.InvalidCodeException;
-import com.lumie.attendance.domain.exception.SessionClosedException;
 import com.lumie.attendance.domain.vo.AttendanceStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -112,17 +111,4 @@ class StudentCheckInControllerTest {
             .andExpect(status().isBadRequest());
     }
 
-    @Test
-    @DisplayName("닫힌 세션으로 체크인 시 400 Bad Request를 반환한다")
-    void checkIn_closedSession_returns400() throws Exception {
-        // given
-        given(commandService.checkInByCode(any(), any())).willThrow(new SessionClosedException(1L));
-
-        // when / then
-        mockMvc.perform(post("/v1/attendance/check-in")
-                .header("X-User-Id", "1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new CheckInRequest("123456"))))
-            .andExpect(status().isBadRequest());
-    }
 }

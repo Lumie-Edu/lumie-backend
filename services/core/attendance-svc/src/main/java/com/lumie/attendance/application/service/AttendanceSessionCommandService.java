@@ -5,16 +5,18 @@ import com.lumie.attendance.application.dto.AttendanceSessionResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;
-import com.lumie.attendance.domain.exception.SessionClosedException;
 import com.lumie.attendance.domain.exception.SessionNotFoundException;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.internal.cls.ClassInternalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
@@ -26,24 +28,42 @@ public class AttendanceSessionCommandService {
     private final AttendanceSessionRepository sessionRepository;
     private final AttendanceRecordRepository recordRepository;
     private final StudentReadRepository studentReadRepository;
+    private final ClassInternalService classInternalService;
 
     public AttendanceSessionResponse createSession(AttendanceSessionRequest request) {
+        String className = null;
+        if (request.classId() != null) {
+            String tenantSlug = TenantContextHolder.getRequiredTenant();
+            className = classInternalService.getClass(tenantSlug, request.classId())
+                .map(ClassInternalService.ClassData::name)
+                .orElse(null);
+        }
+
         AttendanceSession session = AttendanceSession.create(
             request.academyId(),
             request.name(),
             request.sessionDate(),
-            request.subject(),
+            request.classId(),
+            className,
             request.lateThresholdMinutes(),
             null
         );
 
         AttendanceSession saved = sessionRepository.save(session);
 
-        List<StudentReadModel> activeStudents =
-            studentReadRepository.findByAcademyIdAndIsActiveTrue(request.academyId());
+        List<Long> studentIds;
+        if (request.classId() != null) {
+            String tenantSlug = TenantContextHolder.getRequiredTenant();
+            studentIds = classInternalService.getEnrolledStudentIds(tenantSlug, request.classId());
+        } else {
+            studentIds = studentReadRepository.findByAcademyIdAndIsActiveTrue(request.academyId())
+                .stream()
+                .map(StudentReadModel::getId)
+                .toList();
+        }
 
-        List<AttendanceRecord> records = activeStudents.stream()
-            .map(student -> AttendanceRecord.create(saved, student.getId()))
+        List<AttendanceRecord> records = studentIds.stream()
+            .map(studentId -> AttendanceRecord.create(saved, studentId))
             .toList();
 
         recordRepository.saveAll(records);
@@ -52,23 +72,35 @@ public class AttendanceSessionCommandService {
         return AttendanceSessionResponse.fromWithoutRecords(saved);
     }
 
-    public void closeSession(Long id) {
-        AttendanceSession session = sessionRepository.findById(id)
-            .orElseThrow(() -> new SessionNotFoundException(id));
+    public void createSessionForClass(Long academyId, Long classId, String className,
+                                      LocalDate date, Integer lateThresholdMinutes) {
+        if (sessionRepository.existsByClassIdAndSessionDate(classId, date)) {
+            log.debug("Session already exists for class {} on {}, skipping", classId, date);
+            return;
+        }
 
-        session.close();
-        sessionRepository.save(session);
+        AttendanceSession session = AttendanceSession.create(
+            academyId, className, date, classId, className,
+            lateThresholdMinutes, null
+        );
 
-        log.info("Attendance session closed: {}", id);
+        AttendanceSession saved = sessionRepository.save(session);
+
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        List<Long> studentIds = classInternalService.getEnrolledStudentIds(tenantSlug, classId);
+
+        List<AttendanceRecord> records = studentIds.stream()
+            .map(studentId -> AttendanceRecord.create(saved, studentId))
+            .toList();
+
+        recordRepository.saveAll(records);
+
+        log.info("Auto-created session for class {} on {} with {} students", classId, date, records.size());
     }
 
     public AttendanceSessionResponse regenerateCode(Long id) {
         AttendanceSession session = sessionRepository.findById(id)
             .orElseThrow(() -> new SessionNotFoundException(id));
-
-        if (!session.isOpen()) {
-            throw new SessionClosedException(id);
-        }
 
         session.regenerateCode();
         AttendanceSession saved = sessionRepository.save(session);

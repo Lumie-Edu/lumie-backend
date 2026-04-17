@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -82,6 +83,33 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
         }
     }
 
+    @Override
+    public ClassListData getAllClasses(String tenantSlug, int page, int size) {
+        String previous = TenantContextHolder.getTenant();
+        try {
+            TenantContextHolder.setTenant(tenantSlug);
+            Page<ClassResponse> classes = classQueryService.listClasses(null, null, null,
+                    PageRequest.of(page, size));
+            return new ClassListData(
+                    classes.getContent().stream().map(this::toClassData).toList(),
+                    classes.getTotalElements(), page, size
+            );
+        } finally {
+            restoreTenant(previous);
+        }
+    }
+
+    @Override
+    public List<Long> getEnrolledStudentIds(String tenantSlug, Long classId) {
+        String previous = TenantContextHolder.getTenant();
+        try {
+            TenantContextHolder.setTenant(tenantSlug);
+            return classQueryService.getEnrolledStudentIds(classId);
+        } finally {
+            restoreTenant(previous);
+        }
+    }
+
     private static void restoreTenant(String previous) {
         if (previous != null) {
             TenantContextHolder.setTenant(previous);
@@ -91,11 +119,15 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
     }
 
     private ClassData toClassData(ClassResponse response) {
+        var schedule = response.schedulePattern();
         return new ClassData(
                 response.id(),
                 response.name(),
                 response.academyId(),
                 response.teacherId(),
+                schedule != null ? schedule.days() : List.of(),
+                schedule != null ? schedule.startTime() : null,
+                schedule != null ? schedule.endTime() : null,
                 response.createdAt() != null ? response.createdAt().toString() : "",
                 response.updatedAt() != null ? response.updatedAt().toString() : ""
         );

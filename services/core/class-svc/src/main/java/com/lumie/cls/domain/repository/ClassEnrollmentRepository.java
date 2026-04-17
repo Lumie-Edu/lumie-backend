@@ -28,6 +28,8 @@ public interface ClassEnrollmentRepository {
 
     Page<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status, Pageable pageable);
 
+    List<ClassEnrollment> findByClassEntityIdAndStatus(Long classId, EnrollmentStatus status);
+
     long countByClassEntityIdAndStatus(Long classId, EnrollmentStatus status);
 
     boolean existsByClassEntityIdAndStudentId(Long classId, Long studentId);

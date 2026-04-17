@@ -21,6 +21,8 @@ public interface JpaClassEnrollmentRepository extends JpaRepository<ClassEnrollm
 
     Page<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status, Pageable pageable);
 
+    List<ClassEnrollment> findByClassEntityIdAndStatus(Long classEntityId, EnrollmentStatus status);
+
     long countByClassEntityIdAndStatus(Long classEntityId, EnrollmentStatus status);
 
     boolean existsByClassEntityIdAndStudentId(Long classEntityId, Long studentId);

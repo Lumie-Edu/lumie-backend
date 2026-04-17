@@ -9,7 +9,6 @@ import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;
 import com.lumie.attendance.domain.exception.InvalidCodeException;
 import com.lumie.attendance.domain.exception.RecordNotFoundException;
-import com.lumie.attendance.domain.exception.SessionClosedException;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
@@ -67,7 +66,7 @@ class AttendanceRecordCommandServiceTest {
     }
 
     private AttendanceSession buildOpenSession(String code) {
-        return AttendanceSession.create(1L, "수업", LocalDate.now(), "수학", 10, null);
+        return AttendanceSession.create(1L, "수업", LocalDate.now(), null, null, 10, null);
     }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {
@@ -100,7 +99,7 @@ class AttendanceRecordCommandServiceTest {
         // PRESENT: lateThresholdMinutes=10, sessionDate=today, so minutes since start of today
         // is large (>> 10 minutes) — set sessionDate to future to ensure PRESENT branch
         // Instead, set lateThresholdMinutes to a very large value via a session with big threshold
-        AttendanceSession earlySession = AttendanceSession.create(1L, "수업", LocalDate.now(), "수학", 99999, null);
+        AttendanceSession earlySession = AttendanceSession.create(1L, "수업", LocalDate.now(), null, null, 99999, null);
         AttendanceRecord record = AttendanceRecord.create(earlySession, student.getId());
 
         given(studentReadRepository.findByUserId(userId)).willReturn(Optional.of(student));
@@ -124,7 +123,7 @@ class AttendanceRecordCommandServiceTest {
         Long userId = 10L;
         StudentReadModel student = buildStudent(5L, userId);
         // lateThresholdMinutes=0 → always LATE when checking in during the day
-        AttendanceSession lateSession = AttendanceSession.create(1L, "수업", LocalDate.now(), "수학", 0, null);
+        AttendanceSession lateSession = AttendanceSession.create(1L, "수업", LocalDate.now(), null, null, 0, null);
         AttendanceRecord record = AttendanceRecord.create(lateSession, student.getId());
 
         given(studentReadRepository.findByUserId(userId)).willReturn(Optional.of(student));
@@ -169,30 +168,12 @@ class AttendanceRecordCommandServiceTest {
     }
 
     @Test
-    @DisplayName("세션이 닫혀 있으면 SessionClosedException을 던진다")
-    void checkInByCode_closedSession_throwsSessionClosedException() throws Exception {
-        // given
-        Long userId = 10L;
-        StudentReadModel student = buildStudent(5L, userId);
-        AttendanceSession session = AttendanceSession.create(1L, "수업", LocalDate.now(), "수학", 10, null);
-        session.close();
-
-        given(studentReadRepository.findByUserId(userId)).willReturn(Optional.of(student));
-        given(sessionRepository.findByAttendanceCode("123456")).willReturn(Optional.of(session));
-
-        // when / then
-        assertThatThrownBy(() ->
-            commandService.checkInByCode(userId, new CheckInRequest("123456")))
-            .isInstanceOf(SessionClosedException.class);
-    }
-
-    @Test
     @DisplayName("출석 레코드가 없으면 BusinessException을 던진다")
     void checkInByCode_recordNotFound_throwsBusinessException() throws Exception {
         // given
         Long userId = 10L;
         StudentReadModel student = buildStudent(5L, userId);
-        AttendanceSession session = AttendanceSession.create(1L, "수업", LocalDate.now(), "수학", 10, null);
+        AttendanceSession session = AttendanceSession.create(1L, "수업", LocalDate.now(), null, null, 10, null);
 
         given(studentReadRepository.findByUserId(userId)).willReturn(Optional.of(student));
         given(sessionRepository.findByAttendanceCode("123456")).willReturn(Optional.of(session));

@@ -1,11 +1,11 @@
 package com.lumie.attendance.domain.repository;
 
 import com.lumie.attendance.domain.entity.AttendanceSession;
-import com.lumie.attendance.domain.vo.SessionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface AttendanceSessionRepository {
@@ -18,8 +18,12 @@ public interface AttendanceSessionRepository {
 
     Optional<AttendanceSession> findByAttendanceCode(String code);
 
-    Page<AttendanceSession> search(Long academyId, LocalDate dateFrom, LocalDate dateTo,
-                                   SessionStatus status, Pageable pageable);
+    Page<AttendanceSession> search(Long academyId, Long classId, LocalDate dateFrom,
+                                   LocalDate dateTo, Pageable pageable);
+
+    boolean existsByClassIdAndSessionDate(Long classId, LocalDate sessionDate);
+
+    List<AttendanceSession> findByClassIdAndSessionDateBetween(Long classId, LocalDate from, LocalDate to);
 
     void deleteById(Long id);
 }

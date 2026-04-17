@@ -63,6 +63,11 @@ public class ClassEnrollmentRepositoryAdapter implements ClassEnrollmentReposito
     }
 
     @Override
+    public List<ClassEnrollment> findByClassEntityIdAndStatus(Long classId, EnrollmentStatus status) {
+        return jpaRepository.findByClassEntityIdAndStatus(classId, status);
+    }
+
+    @Override
     public long countByClassEntityIdAndStatus(Long classId, EnrollmentStatus status) {
         return jpaRepository.countByClassEntityIdAndStatus(classId, status);
     }

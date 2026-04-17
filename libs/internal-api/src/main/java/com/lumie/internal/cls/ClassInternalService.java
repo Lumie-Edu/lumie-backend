@@ -13,11 +13,18 @@ public interface ClassInternalService {
 
     ClassListData getClassesByStudent(String tenantSlug, Long studentId, int page, int size);
 
+    ClassListData getAllClasses(String tenantSlug, int page, int size);
+
+    List<Long> getEnrolledStudentIds(String tenantSlug, Long classId);
+
     record ClassData(
             Long id,
             String name,
             Long academyId,
             Long teacherId,
+            List<String> scheduleDays,
+            String startTime,
+            String endTime,
             String createdAt,
             String updatedAt
     ) {}

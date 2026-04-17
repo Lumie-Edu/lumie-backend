@@ -1,0 +1,114 @@
+package com.lumie.attendance.application.service;
+
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.internal.cls.ClassInternalService;
+import com.lumie.internal.cls.ClassInternalService.ClassData;
+import com.lumie.internal.cls.ClassInternalService.ClassListData;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AttendanceSessionScheduler {
+
+    private final AttendanceSessionCommandService commandService;
+    private final ClassInternalService classInternalService;
+    private final DataSource dataSource;
+
+    private static final Map<DayOfWeek, String> DAY_OF_WEEK_MAP = Map.of(
+        DayOfWeek.MONDAY, "MON",
+        DayOfWeek.TUESDAY, "TUE",
+        DayOfWeek.WEDNESDAY, "WED",
+        DayOfWeek.THURSDAY, "THU",
+        DayOfWeek.FRIDAY, "FRI",
+        DayOfWeek.SATURDAY, "SAT",
+        DayOfWeek.SUNDAY, "SUN"
+    );
+
+    @Scheduled(cron = "0 0 6 * * *", zone = "Asia/Seoul")
+    public void createDailyAttendanceSessions() {
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Seoul"));
+        String todayDay = DAY_OF_WEEK_MAP.get(today.getDayOfWeek());
+
+        log.info("Starting daily attendance session creation for {} ({})", today, todayDay);
+
+        List<String> tenantSlugs = getAllTenantSlugs();
+        int totalCreated = 0;
+
+        for (String slug : tenantSlugs) {
+            try {
+                TenantContextHolder.setTenant(slug);
+                int created = createSessionsForTenant(slug, today, todayDay);
+                totalCreated += created;
+            } catch (Exception e) {
+                log.error("Failed to create attendance sessions for tenant {}: {}", slug, e.getMessage());
+            } finally {
+                TenantContextHolder.clear();
+            }
+        }
+
+        log.info("Daily attendance session creation completed. Total created: {}", totalCreated);
+    }
+
+    private int createSessionsForTenant(String tenantSlug, LocalDate today, String todayDay) {
+        int created = 0;
+        int page = 0;
+        int size = 100;
+
+        while (true) {
+            ClassListData classListData = classInternalService.getAllClasses(tenantSlug, page, size);
+            List<ClassData> classes = classListData.classes();
+
+            if (classes.isEmpty()) break;
+
+            for (ClassData cls : classes) {
+                if (cls.scheduleDays() != null && cls.scheduleDays().contains(todayDay)) {
+                    try {
+                        commandService.createSessionForClass(
+                            cls.academyId(), cls.id(), cls.name(), today, 10
+                        );
+                        created++;
+                    } catch (Exception e) {
+                        log.error("Failed to create session for class {} in tenant {}: {}",
+                            cls.id(), tenantSlug, e.getMessage());
+                    }
+                }
+            }
+
+            if (classes.size() < size) break;
+            page++;
+        }
+
+        return created;
+    }
+
+    private List<String> getAllTenantSlugs() {
+        List<String> slugs = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                 "SELECT schema_name FROM information_schema.schemata " +
+                 "WHERE schema_name LIKE 'tenant_%'")) {
+            while (rs.next()) {
+                String schema = rs.getString("schema_name");
+                slugs.add(schema.substring("tenant_".length()).replace("_", "-"));
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch tenant list: {}", e.getMessage());
+        }
+        return slugs;
+    }
+}

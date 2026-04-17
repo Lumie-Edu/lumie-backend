@@ -2,8 +2,6 @@ package com.lumie.attendance.application.dto;
 
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
-import com.lumie.attendance.domain.vo.AttendanceStatus;
-import com.lumie.attendance.domain.vo.SessionStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,11 +12,11 @@ public record AttendanceSessionResponse(
     Long academyId,
     String name,
     LocalDate sessionDate,
-    String subject,
+    Long classId,
+    String className,
     String attendanceCode,
     LocalDateTime codeExpiresAt,
     Integer lateThresholdMinutes,
-    SessionStatus status,
     Long createdBy,
     LocalDateTime createdAt,
     LocalDateTime updatedAt,
@@ -53,11 +51,11 @@ public record AttendanceSessionResponse(
             session.getAcademyId(),
             session.getName(),
             session.getSessionDate(),
-            session.getSubject(),
+            session.getClassId(),
+            session.getClassName(),
             session.getAttendanceCode(),
             session.getCodeExpiresAt(),
             session.getLateThresholdMinutes(),
-            session.getStatus(),
             session.getCreatedBy(),
             session.getCreatedAt(),
             session.getUpdatedAt(),
@@ -75,11 +73,11 @@ public record AttendanceSessionResponse(
             session.getAcademyId(),
             session.getName(),
             session.getSessionDate(),
-            session.getSubject(),
+            session.getClassId(),
+            session.getClassName(),
             session.getAttendanceCode(),
             session.getCodeExpiresAt(),
             session.getLateThresholdMinutes(),
-            session.getStatus(),
             session.getCreatedBy(),
             session.getCreatedAt(),
             session.getUpdatedAt(),
