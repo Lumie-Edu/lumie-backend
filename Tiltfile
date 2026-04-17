@@ -138,7 +138,12 @@ spec:
           valueFrom:
             secretKeyRef:
               name: lumie-dev-ai-token-secrets
-              key: deepseek-api-key
+              key: DEEPSEEK_API_KEY
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-ai-token-secrets
+              key: GOOGLE_API_KEY
         resources:
           requests:
             cpu: 100m
