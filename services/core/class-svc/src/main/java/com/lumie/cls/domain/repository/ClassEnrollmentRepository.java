@@ -14,6 +14,8 @@ public interface ClassEnrollmentRepository {
 
     List<ClassEnrollment> saveAll(List<ClassEnrollment> enrollments);
 
+    void delete(ClassEnrollment enrollment);
+
     Optional<ClassEnrollment> findById(Long id);
 
     Page<ClassEnrollment> findByClassEntityId(Long classId, Pageable pageable);

@@ -52,11 +52,6 @@ public class ClassCommandService {
                     "Teacher not found with id: " + request.teacherId()));
         }
 
-        if (classRepository.existsByNameAndAcademyId(request.name(), request.academyId())) {
-            throw new BusinessException(ClassErrorCode.DUPLICATE_CLASS_NAME,
-                "Class with name '" + request.name() + "' already exists in academy " + request.academyId());
-        }
-
         validateNoScheduleOverlap(request.teacherId(), request.schedulePattern(), null);
 
         ClassEntity entity = ClassEntity.create(
@@ -144,22 +139,19 @@ public class ClassCommandService {
             throw new EnrollmentNotFoundException(enrollmentId);
         }
 
-        enrollment.drop();
-        enrollmentRepository.save(enrollment);
+        enrollmentRepository.delete(enrollment);
 
-        log.info("Enrollment {} dropped from class: {}", enrollmentId, classId);
+        log.info("Enrollment {} removed from class: {}", enrollmentId, classId);
         logActivity("DROP", "CLASS", classId, enrollment.getClassEntity().getName(), null);
     }
 
     public void removeEnrollmentByStudent(Long classId, Long studentId) {
-        // Repository query filters by both classId and studentId, so class ownership is enforced by the query itself
         ClassEnrollment enrollment = enrollmentRepository.findByClassEntityIdAndStudentId(classId, studentId)
             .orElseThrow(() -> new EnrollmentNotFoundException(classId, studentId));
 
-        enrollment.drop();
-        enrollmentRepository.save(enrollment);
+        enrollmentRepository.delete(enrollment);
 
-        log.info("Student {} dropped from class: {}", studentId, classId);
+        log.info("Student {} removed from class: {}", studentId, classId);
         logActivity("DROP", "CLASS", classId, enrollment.getClassEntity().getName(), null);
     }
 

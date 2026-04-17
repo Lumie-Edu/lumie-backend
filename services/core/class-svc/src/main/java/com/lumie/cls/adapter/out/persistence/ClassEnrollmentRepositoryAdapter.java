@@ -28,6 +28,11 @@ public class ClassEnrollmentRepositoryAdapter implements ClassEnrollmentReposito
     }
 
     @Override
+    public void delete(ClassEnrollment enrollment) {
+        jpaRepository.delete(enrollment);
+    }
+
+    @Override
     public Optional<ClassEnrollment> findById(Long id) {
         return jpaRepository.findById(id);
     }
