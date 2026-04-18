@@ -108,9 +108,9 @@ spec:
               name: lumie-dev-jwt-secrets
               key: secret
         - name: JWT_ACCESS_EXPIRATION
-          value: "3600000"
+          value: "3600"
         - name: JWT_REFRESH_EXPIRATION
-          value: "604800000"
+          value: "604800"
         - name: GOOGLE_CLIENT_ID
           value: "dev-google-client-id"
         - name: GOOGLE_CLIENT_SECRET
