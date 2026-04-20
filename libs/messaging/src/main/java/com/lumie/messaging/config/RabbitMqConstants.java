@@ -17,6 +17,7 @@ public final class RabbitMqConstants {
     // Routing Keys - Grading
     public static final String GRADING_OMR_REQUEST_ROUTING_KEY = "grading.omr.request";
     public static final String GRADING_COMPLETED_ROUTING_KEY = "grading.completed";
+    public static final String GRADING_DLQ_ROUTING_KEY = "grading.#";
 
     // Queues - Report
     public static final String REPORT_REQUEST_QUEUE = "report.generation-request";
@@ -24,6 +25,7 @@ public final class RabbitMqConstants {
 
     // Routing Keys - Report
     public static final String REPORT_REQUEST_ROUTING_KEY = "report.generation.request";
+    public static final String REPORT_DLQ_ROUTING_KEY = "report.#";
 
     // Queues - Lecture Processing
     public static final String LECTURE_PROCESS_QUEUE = "lecture.process-request";
@@ -31,4 +33,5 @@ public final class RabbitMqConstants {
 
     // Routing Keys - Lecture Processing
     public static final String LECTURE_PROCESS_ROUTING_KEY = "lecture.process.request";
+    public static final String LECTURE_DLQ_ROUTING_KEY = "lecture.#";
 }

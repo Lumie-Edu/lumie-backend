@@ -33,9 +33,10 @@ public class LectureRabbitMqConfig {
     }
 
     @Bean
-    public Binding lectureProcessDlqBinding(FanoutExchange lumieDlxExchange) {
+    public Binding lectureProcessDlqBinding(TopicExchange lumieDlxExchange) {
         return BindingBuilder
                 .bind(lectureProcessDlq())
-                .to(lumieDlxExchange);
+                .to(lumieDlxExchange)
+                .with(RabbitMqConstants.LECTURE_DLQ_ROUTING_KEY);
     }
 }

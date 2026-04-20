@@ -20,8 +20,8 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public FanoutExchange lumieDlxExchange() {
-        return new FanoutExchange(RabbitMqConstants.LUMIE_DLX_EXCHANGE);
+    public TopicExchange lumieDlxExchange() {
+        return new TopicExchange(RabbitMqConstants.LUMIE_DLX_EXCHANGE);
     }
 
     @Bean
@@ -52,7 +52,8 @@ public class RabbitMqConfig {
     public Binding gradingOmrRequestDlqBinding() {
         return BindingBuilder
                 .bind(gradingOmrRequestDlq())
-                .to(lumieDlxExchange());
+                .to(lumieDlxExchange())
+                .with(RabbitMqConstants.GRADING_DLQ_ROUTING_KEY);
     }
 
     // Report queues
@@ -84,7 +85,8 @@ public class RabbitMqConfig {
     public Binding reportRequestDlqBinding() {
         return BindingBuilder
                 .bind(reportRequestDlq())
-                .to(lumieDlxExchange());
+                .to(lumieDlxExchange())
+                .with(RabbitMqConstants.REPORT_DLQ_ROUTING_KEY);
     }
 
     @Bean
