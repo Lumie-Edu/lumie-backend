@@ -127,6 +127,12 @@ spring.ai:
         model: gemini-2.5-flash
         temperature: 0.7
         maxTokens: 4096
+  retry:
+    max-attempts: 3
+    backoff:
+      initial-interval: 1000
+      multiplier: 2
+      max-interval: 5000
 
 # Telegram Bot (ai module)
 telegram:
