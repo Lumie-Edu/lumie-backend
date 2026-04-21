@@ -2,8 +2,6 @@ package com.lumie.exam.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.lumie.messaging.config.RabbitMqConstants;
-import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -11,83 +9,18 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * AMQP client-side wiring for the monolith.
+ *
+ * <p>Exchanges, queues, bindings, and policies are declared as
+ * RabbitMQ Topology Operator Custom Resources in the
+ * {@code lumie-infra/platform/rabbitmq/base/topology/} directory, so this
+ * class only retains the application-layer beans that publishers and
+ * consumers depend on: {@link RabbitTemplate} (with JSON converter) and
+ * {@link MessageConverter}.
+ */
 @Configuration
 public class RabbitMqConfig {
-
-    @Bean
-    public DirectExchange lumieCommandsExchange() {
-        return new DirectExchange(RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE);
-    }
-
-    @Bean
-    public TopicExchange lumieDlxExchange() {
-        return new TopicExchange(RabbitMqConstants.LUMIE_DLX_EXCHANGE);
-    }
-
-    @Bean
-    public Queue gradingOmrRequestQueue() {
-        return QueueBuilder.durable(RabbitMqConstants.GRADING_OMR_REQUEST_QUEUE)
-                .withArgument("x-queue-type", "quorum")
-                .withArgument("x-dead-letter-exchange", RabbitMqConstants.LUMIE_DLX_EXCHANGE)
-                .withArgument("x-message-ttl", 600000)
-                .build();
-    }
-
-    @Bean
-    public Queue gradingOmrRequestDlq() {
-        return QueueBuilder.durable(RabbitMqConstants.GRADING_OMR_REQUEST_DLQ)
-                .withArgument("x-queue-type", "quorum")
-                .build();
-    }
-
-    @Bean
-    public Binding gradingOmrRequestBinding() {
-        return BindingBuilder
-                .bind(gradingOmrRequestQueue())
-                .to(lumieCommandsExchange())
-                .with(RabbitMqConstants.GRADING_OMR_REQUEST_ROUTING_KEY);
-    }
-
-    @Bean
-    public Binding gradingOmrRequestDlqBinding() {
-        return BindingBuilder
-                .bind(gradingOmrRequestDlq())
-                .to(lumieDlxExchange())
-                .with(RabbitMqConstants.GRADING_DLQ_ROUTING_KEY);
-    }
-
-    // Report queues
-    @Bean
-    public Queue reportRequestQueue() {
-        return QueueBuilder.durable(RabbitMqConstants.REPORT_REQUEST_QUEUE)
-                .withArgument("x-queue-type", "quorum")
-                .withArgument("x-dead-letter-exchange", RabbitMqConstants.LUMIE_DLX_EXCHANGE)
-                .withArgument("x-message-ttl", 1800000)
-                .build();
-    }
-
-    @Bean
-    public Queue reportRequestDlq() {
-        return QueueBuilder.durable(RabbitMqConstants.REPORT_REQUEST_DLQ)
-                .withArgument("x-queue-type", "quorum")
-                .build();
-    }
-
-    @Bean
-    public Binding reportRequestBinding() {
-        return BindingBuilder
-                .bind(reportRequestQueue())
-                .to(lumieCommandsExchange())
-                .with(RabbitMqConstants.REPORT_REQUEST_ROUTING_KEY);
-    }
-
-    @Bean
-    public Binding reportRequestDlqBinding() {
-        return BindingBuilder
-                .bind(reportRequestDlq())
-                .to(lumieDlxExchange())
-                .with(RabbitMqConstants.REPORT_DLQ_ROUTING_KEY);
-    }
 
     @Bean
     public MessageConverter jsonMessageConverter() {
