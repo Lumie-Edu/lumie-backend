@@ -126,7 +126,4 @@ jobs:
       repomix-include: ${{ matrix.include }}
       repomix-ignore: '**/build/**,**/test/**,**/*.class,**/bin/**,**/.gradle/**'
       docs-output-dir: backend
-    secrets:
-      gemini-api-key: ${{ secrets.GOOGLE_API_KEY }}
-      docs-github-token: ${{ secrets.DOCS_GITHUB_TOKEN }}
-      docs-gitea-token: ${{ secrets.DOCS_GITEA_TOKEN }}
+    secrets: inherit
