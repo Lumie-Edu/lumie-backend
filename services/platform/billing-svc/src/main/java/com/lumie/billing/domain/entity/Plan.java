@@ -67,6 +67,15 @@ public class Plan extends BaseEntity {
     @Column(name = "active", nullable = false)
     private boolean active;
 
+    @Column(name = "paddle_product_id", length = 50)
+    private String paddleProductId;
+
+    @Column(name = "paddle_monthly_price_id", length = 50)
+    private String paddleMonthlyPriceId;
+
+    @Column(name = "paddle_yearly_price_id", length = 50)
+    private String paddleYearlyPriceId;
+
     @Builder
     private Plan(String id, String name, String description, Money monthlyPrice, Money yearlyPrice,
                  int maxStudents, int maxAcademies, int maxAdmins, int omrMonthlyQuota,

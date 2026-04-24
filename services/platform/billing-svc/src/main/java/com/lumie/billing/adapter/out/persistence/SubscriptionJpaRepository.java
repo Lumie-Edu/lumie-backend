@@ -20,5 +20,7 @@ public interface SubscriptionJpaRepository extends JpaRepository<Subscription, L
 
     List<Subscription> findAllByStatus(SubscriptionStatus status);
 
+    Optional<Subscription> findByPaddleSubscriptionId(String paddleSubscriptionId);
+
     boolean existsByTenantId(Long tenantId);
 }

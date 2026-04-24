@@ -68,6 +68,12 @@ public class Invoice extends BaseEntity {
     @Column(name = "failure_reason", length = 500)
     private String failureReason;
 
+    @Column(name = "paddle_transaction_id", length = 50)
+    private String paddleTransactionId;
+
+    @Column(name = "currency", length = 3)
+    private String currency;
+
     @Builder
     private Invoice(String invoiceNumber, Subscription subscription, String tenantSlug,
                     Money amount, String description, LocalDateTime billingPeriodStart,

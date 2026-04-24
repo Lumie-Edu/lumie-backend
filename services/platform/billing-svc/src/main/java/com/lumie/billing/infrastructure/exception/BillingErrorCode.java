@@ -25,6 +25,10 @@ public enum BillingErrorCode {
     INVOICE_NOT_FOUND("B303", "Invoice not found", HttpStatus.NOT_FOUND),
     INVALID_INVOICE_STATE("B304", "Invalid invoice state for this operation", HttpStatus.BAD_REQUEST),
 
+    // Paddle errors
+    PADDLE_WEBHOOK_SIGNATURE_INVALID("B401", "Invalid Paddle webhook signature", HttpStatus.UNAUTHORIZED),
+    PADDLE_API_ERROR("B402", "Paddle API call failed", HttpStatus.BAD_GATEWAY),
+
     // General errors
     INTERNAL_ERROR("B999", "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
 

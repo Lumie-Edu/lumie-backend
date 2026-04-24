@@ -96,6 +96,14 @@ oauth2:
     scope: openid email profile
   frontend-callback-url: ${FRONTEND_CALLBACK_URL:https://lumie-edu.com/auth/callback}
 
+# Paddle (billing module)
+paddle:
+  enabled: ${PADDLE_ENABLED:false}
+  sandbox: ${PADDLE_SANDBOX:true}
+  api-key: ${PADDLE_API_KEY:}
+  webhook-secret: ${PADDLE_WEBHOOK_SECRET:}
+  client-token: ${PADDLE_CLIENT_TOKEN:}
+
 # MinIO (exam + file modules)
 minio:
   endpoint: ${MINIO_ENDPOINT:http://localhost:9000}

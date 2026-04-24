@@ -39,6 +39,7 @@ public class SecurityConfig {
                         .requestMatchers("/v1/oauth2/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/internal/**").permitAll()
+                        .requestMatchers("/v1/payments/paddle/webhook").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

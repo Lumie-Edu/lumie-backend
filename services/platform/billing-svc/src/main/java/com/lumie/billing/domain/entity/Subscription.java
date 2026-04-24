@@ -52,6 +52,15 @@ public class Subscription extends BaseEntity {
     @Column(name = "billing_cycle_day")
     private Integer billingCycleDay;
 
+    @Column(name = "paddle_subscription_id", length = 50)
+    private String paddleSubscriptionId;
+
+    @Column(name = "paddle_customer_id", length = 50)
+    private String paddleCustomerId;
+
+    @Column(name = "billing_cycle", length = 10)
+    private String billingCycle;
+
     @Builder
     private Subscription(Long tenantId, String tenantSlug, Plan plan, LocalDateTime startedAt,
                          LocalDateTime expiresAt, Integer billingCycleDay) {
@@ -91,9 +100,30 @@ public class Subscription extends BaseEntity {
     }
 
     public void cancel() {
-        validateActive();
+        if (this.status != SubscriptionStatus.ACTIVE && this.status != SubscriptionStatus.PAST_DUE) {
+            throw new InvalidSubscriptionStateException(
+                    "Can only cancel active or past_due subscriptions. Current status: " + this.status);
+        }
         this.status = SubscriptionStatus.CANCELLED;
         this.cancelledAt = LocalDateTime.now();
+    }
+
+    public void markPastDue() {
+        validateActive();
+        this.status = SubscriptionStatus.PAST_DUE;
+    }
+
+    public void resumeFromPastDue() {
+        if (this.status != SubscriptionStatus.PAST_DUE) {
+            throw new InvalidSubscriptionStateException(
+                    "Can only resume from past_due state. Current status: " + this.status);
+        }
+        this.status = SubscriptionStatus.ACTIVE;
+    }
+
+    public void linkPaddle(String paddleSubscriptionId, String paddleCustomerId) {
+        this.paddleSubscriptionId = paddleSubscriptionId;
+        this.paddleCustomerId = paddleCustomerId;
     }
 
     public void expire() {

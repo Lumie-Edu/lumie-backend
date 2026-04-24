@@ -13,6 +13,7 @@ public interface SubscriptionPersistencePort {
     Optional<Subscription> findByTenantSlug(String tenantSlug);
     Optional<Subscription> findActiveByTenantSlug(String tenantSlug);
     List<Subscription> findAllByStatus(SubscriptionStatus status);
+    Optional<Subscription> findByPaddleSubscriptionId(String paddleSubscriptionId);
     boolean existsByTenantId(Long tenantId);
     void delete(Subscription subscription);
 }

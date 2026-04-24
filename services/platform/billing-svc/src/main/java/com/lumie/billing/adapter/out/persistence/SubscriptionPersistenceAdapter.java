@@ -46,6 +46,11 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPersistencePo
     }
 
     @Override
+    public Optional<Subscription> findByPaddleSubscriptionId(String paddleSubscriptionId) {
+        return subscriptionJpaRepository.findByPaddleSubscriptionId(paddleSubscriptionId);
+    }
+
+    @Override
     public boolean existsByTenantId(Long tenantId) {
         return subscriptionJpaRepository.existsByTenantId(tenantId);
     }
