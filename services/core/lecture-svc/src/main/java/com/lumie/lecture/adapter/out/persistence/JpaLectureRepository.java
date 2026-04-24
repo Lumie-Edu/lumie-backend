@@ -13,6 +13,6 @@ public interface JpaLectureRepository extends JpaRepository<Lecture, Long> {
 
     @Query("SELECT l FROM Lecture l WHERE l.classId = :classId " +
            "AND l.status = 'ACTIVE' " +
-           "AND l.visibility IN ('STUDENT', 'PARENT')")
+           "AND l.visibility = 'STUDENT'")
     Page<Lecture> findVisibleByClassId(@Param("classId") Long classId, Pageable pageable);
 }

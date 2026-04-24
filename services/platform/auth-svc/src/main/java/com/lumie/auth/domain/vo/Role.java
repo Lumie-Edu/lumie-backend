@@ -8,8 +8,7 @@ public enum Role {
     OWNER(0),
     MANAGER(1),
     INSTRUCTOR(2),
-    PARENT(3),
-    STUDENT(4);
+    STUDENT(3);
 
     private final int level;
 

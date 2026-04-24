@@ -163,8 +163,7 @@ public class Lecture extends BaseEntity {
     }
 
     public boolean isVisibleToStudents() {
-        return this.visibility == LectureVisibility.STUDENT
-                || this.visibility == LectureVisibility.PARENT;
+        return this.visibility == LectureVisibility.STUDENT;
     }
 
     public boolean isProcessingComplete() {
