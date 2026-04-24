@@ -12,7 +12,6 @@ import com.lumie.academy.domain.entity.Academy;
 import com.lumie.academy.domain.entity.Student;
 import com.lumie.academy.domain.exception.AcademyNotFoundException;
 import com.lumie.academy.domain.exception.DuplicatePhoneException;
-import com.lumie.academy.domain.exception.DuplicateUserLoginIdException;
 import com.lumie.academy.domain.exception.QuotaExceededException;
 import com.lumie.academy.domain.exception.StudentNotFoundException;
 import com.lumie.academy.domain.repository.AcademyRepository;
@@ -27,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +36,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Transactional
 public class StudentCommandService {
+
+    private static final String DEFAULT_PASSWORD = "0000!Lumie";
+    private static final int MAX_LOGIN_ID_ATTEMPTS = 10;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final StudentRepository studentRepository;
     private final AcademyRepository academyRepository;
@@ -49,20 +53,17 @@ public class StudentCommandService {
 
         checkStudentQuota(tenantSlug);
 
-        if (studentRepository.existsByUserLoginId(request.userLoginId())) {
-            throw new DuplicateUserLoginIdException(request.userLoginId());
-        }
+        String userLoginId = generateUniqueLoginId();
 
         validatePhoneUniqueness(request.phone(), request.parentPhone(), null);
 
         Academy academy = academyRepository.findById(request.academyId())
                 .orElseThrow(() -> new AcademyNotFoundException(request.academyId()));
 
-        // Create user in auth-svc first
         AuthServicePort.CreateUserResult userResult = authServicePort.createUser(
                 new AuthServicePort.CreateUserRequest(
-                        request.userLoginId(),
-                        request.password(),
+                        userLoginId,
+                        DEFAULT_PASSWORD,
                         request.name(),
                         request.phone(),
                         "STUDENT",
@@ -76,7 +77,7 @@ public class StudentCommandService {
 
         Student student = Student.create(
             userResult.userId(),
-            request.userLoginId(),
+            userLoginId,
             request.name(),
             request.phone(),
             academy,
@@ -292,6 +293,7 @@ public class StudentCommandService {
 
     public BulkImportResult bulkImportStudents(Long academyId, MultipartFile file) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
 
         Academy academy = academyRepository.findById(academyId)
                 .orElseThrow(() -> new AcademyNotFoundException(academyId));
@@ -311,30 +313,51 @@ public class StudentCommandService {
                 totalRows++;
 
                 try {
-                    String userLoginId = getCellStringValue(row.getCell(0));
-                    String name = getCellStringValue(row.getCell(1));
-                    String phone = getCellStringValue(row.getCell(2));
-                    String studentHighschool = getCellStringValue(row.getCell(3));
-                    Integer studentBirthYear = getCellIntegerValue(row.getCell(4));
+                    String name = getCellStringValue(row.getCell(0));
+                    String phone = getCellStringValue(row.getCell(1));
+                    String studentHighschool = getCellStringValue(row.getCell(2));
+                    Integer studentBirthYear = getCellIntegerValue(row.getCell(3));
+                    String parentPhone = getCellStringValue(row.getCell(4));
                     String studentMemo = getCellStringValue(row.getCell(5));
 
-                    if (userLoginId == null || userLoginId.isBlank()) {
-                        errors.add(new BulkImportResult.RowError(i + 1, "userLoginId", "User login ID is required"));
-                        continue;
-                    }
-
-                    if (studentRepository.existsByUserLoginId(userLoginId)) {
-                        errors.add(new BulkImportResult.RowError(i + 1, "userLoginId", "User login ID already exists"));
+                    if (name == null || name.isBlank()) {
+                        errors.add(new BulkImportResult.RowError(i + 1, "name", "Name is required"));
                         continue;
                     }
 
                     checkStudentQuota(tenantSlug);
 
-                    // For bulk import, we need to create users in auth-svc first
-                    // This is a simplified version that assumes users already exist
-                    // TODO: Implement proper bulk user creation via auth-svc gRPC
-                    errors.add(new BulkImportResult.RowError(i + 1, "userLoginId",
-                        "Bulk import requires users to be pre-registered in auth service"));
+                    String userLoginId = generateUniqueLoginId();
+
+                    AuthServicePort.CreateUserResult userResult = authServicePort.createUser(
+                            new AuthServicePort.CreateUserRequest(
+                                    userLoginId,
+                                    DEFAULT_PASSWORD,
+                                    name,
+                                    phone,
+                                    "STUDENT",
+                                    tenantId
+                            )
+                    );
+
+                    if (!userResult.success()) {
+                        errors.add(new BulkImportResult.RowError(i + 1, "user", "Failed to create user: " + userResult.message()));
+                        continue;
+                    }
+
+                    Student student = Student.create(
+                            userResult.userId(),
+                            userLoginId,
+                            name,
+                            phone,
+                            academy,
+                            studentHighschool,
+                            studentBirthYear,
+                            parentPhone,
+                            studentMemo
+                    );
+                    studentRepository.save(student);
+                    successCount++;
 
                 } catch (QuotaExceededException e) {
                     errors.add(new BulkImportResult.RowError(i + 1, "quota", "Student quota exceeded"));
@@ -352,6 +375,16 @@ public class StudentCommandService {
                  successCount, errors.size(), tenantSlug);
 
         return BulkImportResult.partial(totalRows, successCount, errors);
+    }
+
+    private String generateUniqueLoginId() {
+        for (int i = 0; i < MAX_LOGIN_ID_ATTEMPTS; i++) {
+            String loginId = "s" + String.format("%08d", RANDOM.nextInt(100_000_000));
+            if (!studentRepository.existsByUserLoginId(loginId)) {
+                return loginId;
+            }
+        }
+        throw new RuntimeException("Failed to generate unique login ID after " + MAX_LOGIN_ID_ATTEMPTS + " attempts");
     }
 
     private void validatePhoneUniqueness(String phone, String parentPhone, Long excludeId) {
