@@ -9,12 +9,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.security.SecureRandom;
 import java.util.Optional;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AuthInternalServiceAdapter implements AuthInternalService {
+
+    private static final String DEFAULT_PASSWORD = "0000!Lumie";
+    private static final int MAX_LOGIN_ID_ATTEMPTS = 10;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final ValidateTokenUseCase validateTokenUseCase;
     private final UserLookupPort userLookupPort;
@@ -58,21 +63,27 @@ public class AuthInternalServiceAdapter implements AuthInternalService {
     }
 
     @Override
-    public CreateUserResult createUser(String userLoginId, String password, String name,
-                                       String phone, String role, Long tenantId) {
-        if (userLookupPort.existsByUserLoginId(userLoginId)) {
-            return new CreateUserResult(false, "User login ID already exists: " + userLoginId, null);
-        }
-
+    public CreateUserResult createUser(String name, String phone, String role, Long tenantId) {
         try {
-            String passwordHash = passwordEncoder.encode(password);
             Role userRole = Role.valueOf(role);
+            String userLoginId = generateUniqueLoginId();
+            String passwordHash = passwordEncoder.encode(DEFAULT_PASSWORD);
             UserLookupPort.UserData user = userLookupPort.createUser(
                     userLoginId, name, phone, passwordHash, userRole, tenantId);
-            return new CreateUserResult(true, "User created successfully", user.id());
+            return new CreateUserResult(true, "User created successfully", user.id(), user.userLoginId());
         } catch (IllegalArgumentException e) {
-            return new CreateUserResult(false, "Invalid role: " + role, null);
+            return new CreateUserResult(false, "Invalid role: " + role, null, null);
         }
+    }
+
+    private String generateUniqueLoginId() {
+        for (int i = 0; i < MAX_LOGIN_ID_ATTEMPTS; i++) {
+            String loginId = "s" + String.format("%08d", RANDOM.nextInt(100_000_000));
+            if (!userLookupPort.existsByUserLoginId(loginId)) {
+                return loginId;
+            }
+        }
+        throw new RuntimeException("Failed to generate unique login ID after " + MAX_LOGIN_ID_ATTEMPTS + " attempts");
     }
 
     @Override

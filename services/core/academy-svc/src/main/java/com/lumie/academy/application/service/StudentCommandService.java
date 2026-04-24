@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +35,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Transactional
 public class StudentCommandService {
-
-    private static final String DEFAULT_PASSWORD = "0000!Lumie";
-    private static final int MAX_LOGIN_ID_ATTEMPTS = 10;
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final StudentRepository studentRepository;
     private final AcademyRepository academyRepository;
@@ -53,8 +48,6 @@ public class StudentCommandService {
 
         checkStudentQuota(tenantSlug);
 
-        String userLoginId = generateUniqueLoginId();
-
         validatePhoneUniqueness(request.phone(), request.parentPhone(), null);
 
         Academy academy = academyRepository.findById(request.academyId())
@@ -62,8 +55,6 @@ public class StudentCommandService {
 
         AuthServicePort.CreateUserResult userResult = authServicePort.createUser(
                 new AuthServicePort.CreateUserRequest(
-                        userLoginId,
-                        DEFAULT_PASSWORD,
                         request.name(),
                         request.phone(),
                         "STUDENT",
@@ -77,7 +68,7 @@ public class StudentCommandService {
 
         Student student = Student.create(
             userResult.userId(),
-            userLoginId,
+            userResult.userLoginId(),
             request.name(),
             request.phone(),
             academy,
@@ -327,12 +318,8 @@ public class StudentCommandService {
 
                     checkStudentQuota(tenantSlug);
 
-                    String userLoginId = generateUniqueLoginId();
-
                     AuthServicePort.CreateUserResult userResult = authServicePort.createUser(
                             new AuthServicePort.CreateUserRequest(
-                                    userLoginId,
-                                    DEFAULT_PASSWORD,
                                     name,
                                     phone,
                                     "STUDENT",
@@ -347,7 +334,7 @@ public class StudentCommandService {
 
                     Student student = Student.create(
                             userResult.userId(),
-                            userLoginId,
+                            userResult.userLoginId(),
                             name,
                             phone,
                             academy,
@@ -375,16 +362,6 @@ public class StudentCommandService {
                  successCount, errors.size(), tenantSlug);
 
         return BulkImportResult.partial(totalRows, successCount, errors);
-    }
-
-    private String generateUniqueLoginId() {
-        for (int i = 0; i < MAX_LOGIN_ID_ATTEMPTS; i++) {
-            String loginId = "s" + String.format("%08d", RANDOM.nextInt(100_000_000));
-            if (!studentRepository.existsByUserLoginId(loginId)) {
-                return loginId;
-            }
-        }
-        throw new RuntimeException("Failed to generate unique login ID after " + MAX_LOGIN_ID_ATTEMPTS + " attempts");
     }
 
     private void validatePhoneUniqueness(String phone, String parentPhone, Long excludeId) {

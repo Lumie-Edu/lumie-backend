@@ -39,16 +39,14 @@ public class AuthInternalAdapter implements AuthServicePort {
 
     @Override
     public CreateUserResult createUser(CreateUserRequest request) {
-        log.debug("Creating user via internal API: {}", request.userLoginId());
+        log.debug("Creating user via internal API: name={}, role={}", request.name(), request.role());
         var result = authInternalService.createUser(
-                request.userLoginId(),
-                request.password(),
                 request.name(),
                 request.phone(),
                 request.role(),
                 request.tenantId()
         );
-        return new CreateUserResult(result.success(), result.message(), result.userId());
+        return new CreateUserResult(result.success(), result.message(), result.userId(), result.userLoginId());
     }
 
     @Override

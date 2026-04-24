@@ -8,8 +8,7 @@ public interface AuthInternalService {
 
     Optional<UserData> getUserInfo(String token);
 
-    CreateUserResult createUser(String userLoginId, String password, String name,
-                                String phone, String role, Long tenantId);
+    CreateUserResult createUser(String name, String phone, String role, Long tenantId);
 
     DeleteUserResult deleteUser(Long userId);
 
@@ -41,7 +40,8 @@ public interface AuthInternalService {
     record CreateUserResult(
             boolean success,
             String message,
-            Long userId
+            Long userId,
+            String userLoginId
     ) {}
 
     record DeleteUserResult(

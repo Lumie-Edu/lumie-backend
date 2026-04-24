@@ -46,8 +46,6 @@ public interface AuthServicePort {
      * Request for creating a new user.
      */
     record CreateUserRequest(
-            String userLoginId,
-            String password,
             String name,
             String phone,
             String role,
@@ -60,7 +58,8 @@ public interface AuthServicePort {
     record CreateUserResult(
             boolean success,
             String message,
-            Long userId
+            Long userId,
+            String userLoginId
     ) {}
 
     /**

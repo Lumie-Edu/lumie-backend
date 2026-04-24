@@ -8,7 +8,6 @@ import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.entity.AdminPermission;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
 import com.lumie.admin.domain.exception.DuplicatePhoneException;
-import com.lumie.admin.domain.exception.DuplicateUserLoginIdException;
 import com.lumie.admin.domain.exception.QuotaExceededException;
 import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
@@ -32,23 +31,39 @@ import java.util.Set;
 @Transactional
 public class AdminCommandService {
 
+    private static final Set<String> ALLOWED_ROLES = Set.of("MANAGER", "INSTRUCTOR");
+
     private final AdminRepository adminRepository;
     private final AdminPermissionRepository adminPermissionRepository;
     private final AuthServicePort authServicePort;
     private final BillingServicePort billingServicePort;
     private final ActivityLogInternalService activityLogInternalService;
 
-    public AdminResponse registerAdmin(Long userId, AdminRequest request) {
+    public AdminResponse registerAdmin(AdminRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
+        String creatorRole = UserContextHolder.getUserRole();
+
+        String requestedRole = request.role().toUpperCase();
+        validateRolePermission(creatorRole, requestedRole);
 
         checkAdminQuota(tenantSlug);
 
-        if (adminRepository.existsByUserLoginId(request.userLoginId())) {
-            throw new DuplicateUserLoginIdException(request.userLoginId());
-        }
-
         if (request.phone() != null && adminRepository.existsByPhone(request.phone())) {
             throw new DuplicatePhoneException(request.phone());
+        }
+
+        AuthServicePort.CreateUserResult userResult = authServicePort.createUser(
+                new AuthServicePort.CreateUserRequest(
+                        request.name(),
+                        request.phone(),
+                        requestedRole,
+                        tenantId
+                )
+        );
+
+        if (!userResult.success()) {
+            throw new RuntimeException("Failed to create user: " + userResult.message());
         }
 
         Set<Long> academyIds = new HashSet<>();
@@ -57,8 +72,8 @@ public class AdminCommandService {
         }
 
         Admin admin = Admin.create(
-            userId,
-            request.userLoginId(),
+            userResult.userId(),
+            userResult.userLoginId(),
             request.name(),
             request.phone(),
             request.email(),
@@ -68,7 +83,7 @@ public class AdminCommandService {
 
         Admin saved = adminRepository.save(admin);
 
-        log.info("Admin registered: {} in tenant: {}", saved.getUserLoginId(), tenantSlug);
+        log.info("Admin registered: {} (role={}) in tenant: {}", saved.getUserLoginId(), requestedRole, tenantSlug);
         logActivity("CREATE", "ADMIN", saved.getId(), saved.getName(), null);
         return AdminResponse.from(saved);
     }
@@ -173,6 +188,19 @@ public class AdminCommandService {
         } catch (Exception e) {
             log.warn("Failed to log activity: {}", e.getMessage());
         }
+    }
+
+    private void validateRolePermission(String creatorRole, String requestedRole) {
+        if (!ALLOWED_ROLES.contains(requestedRole)) {
+            throw new IllegalArgumentException("Invalid role: " + requestedRole + ". Allowed: MANAGER, INSTRUCTOR");
+        }
+        if ("OWNER".equals(creatorRole)) {
+            return;
+        }
+        if ("MANAGER".equals(creatorRole) && "INSTRUCTOR".equals(requestedRole)) {
+            return;
+        }
+        throw new IllegalStateException("Insufficient permission to create " + requestedRole);
     }
 
     private void checkAdminQuota(String tenantSlug) {

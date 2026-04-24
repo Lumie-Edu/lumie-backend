@@ -6,7 +6,6 @@ import com.lumie.admin.application.dto.AdminRequest;
 import com.lumie.admin.application.dto.AdminResponse;
 import com.lumie.admin.application.service.AdminCommandService;
 import com.lumie.admin.application.service.AdminQueryService;
-import com.lumie.common.tenant.UserContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,8 +29,7 @@ public class AdminController {
 
     @PostMapping
     public ResponseEntity<AdminResponse> registerAdmin(@Valid @RequestBody AdminRequest request) {
-        Long userId = UserContextHolder.getRequiredUserId();
-        AdminResponse response = adminCommandService.registerAdmin(userId, request);
+        AdminResponse response = adminCommandService.registerAdmin(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
