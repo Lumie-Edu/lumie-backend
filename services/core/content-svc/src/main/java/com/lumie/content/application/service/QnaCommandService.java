@@ -1,16 +1,19 @@
 package com.lumie.content.application.service;
 
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.application.dto.request.CreateCommentRequest;
 import com.lumie.content.application.dto.request.CreateQnaRequest;
 import com.lumie.content.application.dto.request.UpdateQnaRequest;
 import com.lumie.content.application.dto.response.QnaBoardResponse;
 import com.lumie.content.application.dto.response.QnaCommentResponse;
+import com.lumie.content.application.port.out.AdminServicePort;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.QnaBoardRepository;
 import com.lumie.content.domain.repository.QnaCommentRepository;
+import com.lumie.internal.file.FileInternalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,7 @@ public class QnaCommandService {
 
     private final QnaBoardRepository qnaBoardRepository;
     private final QnaCommentRepository qnaCommentRepository;
+    private final FileInternalService fileInternalService;
 
     @Transactional
     public QnaBoardResponse createQna(CreateQnaRequest request) {
@@ -37,7 +41,7 @@ public class QnaCommandService {
         QnaBoard saved = qnaBoardRepository.save(qnaBoard);
         log.info("Q&A created with id: {}", saved.getId());
 
-        return QnaBoardResponse.from(saved);
+        return QnaBoardResponse.from(saved, null);
     }
 
     @Transactional
@@ -49,10 +53,14 @@ public class QnaCommandService {
 
         qnaBoard.update(request.qnaTitle(), request.qnaContent());
 
+        if (request.fileIdsToDelete() != null && !request.fileIdsToDelete().isEmpty()) {
+            fileInternalService.deleteFilesByIds(request.fileIdsToDelete());
+        }
+
         QnaBoard updated = qnaBoardRepository.save(qnaBoard);
         log.info("Q&A updated: {}", updated.getId());
 
-        return QnaBoardResponse.from(updated);
+        return QnaBoardResponse.from(updated, null);
     }
 
     @Transactional
@@ -63,6 +71,7 @@ public class QnaCommandService {
             throw new ContentException(ContentErrorCode.QNA_NOT_FOUND);
         }
 
+        fileInternalService.deleteFilesByEntity("qna", id);
         qnaBoardRepository.deleteById(id);
         log.info("Q&A deleted: {}", id);
     }
@@ -86,22 +95,31 @@ public class QnaCommandService {
         qnaBoardRepository.save(qnaBoard);
 
         log.info("Comment added with id: {}", saved.getId());
-        return QnaCommentResponse.from(saved);
+        return QnaCommentResponse.from(saved, null);
     }
 
     @Transactional
     public void deleteComment(Long qnaId, Long commentId) {
         log.info("Deleting comment {} from Q&A: {}", commentId, qnaId);
 
-        if (!qnaBoardRepository.existsById(qnaId)) {
-            throw new ContentException(ContentErrorCode.QNA_NOT_FOUND);
-        }
+        QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(qnaId)
+                .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
 
         if (!qnaCommentRepository.existsById(commentId)) {
             throw new ContentException(ContentErrorCode.COMMENT_NOT_FOUND);
         }
 
         qnaCommentRepository.deleteById(commentId);
+        qnaBoard.getComments().removeIf(c -> c.getId().equals(commentId));
+
+        boolean stillHasAdminComment = qnaBoard.getComments().stream()
+                .anyMatch(c -> c.getAdminId() != null);
+
+        if (!stillHasAdminComment) {
+            qnaBoard.markAsUnanswered();
+            qnaBoardRepository.save(qnaBoard);
+        }
+
         log.info("Comment deleted: {}", commentId);
     }
 }
