@@ -48,12 +48,12 @@ public class ScheduleController {
         return ResponseEntity.ok(queryService.listAvailableSchedules(startDate, endDate));
     }
 
-    @GetMapping("/admin/{adminId}")
-    public ResponseEntity<List<ScheduleResponse>> listSchedulesByAdmin(
-            @PathVariable Long adminId,
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<ScheduleResponse>> listSchedulesByUser(
+            @PathVariable Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(queryService.listSchedulesByAdmin(adminId, startDate, endDate));
+        return ResponseEntity.ok(queryService.listSchedulesByUser(userId, startDate, endDate));
     }
 
     @GetMapping("/{id}")
@@ -63,8 +63,8 @@ public class ScheduleController {
 
     @PostMapping
     public ResponseEntity<ScheduleResponse> createSchedule(@Valid @RequestBody CreateScheduleRequest request) {
-        Long adminId = UserContextHolder.getRequiredUserId();
-        ScheduleResponse response = commandService.createSchedule(request, adminId);
+        Long userId = UserContextHolder.getRequiredUserId();
+        ScheduleResponse response = commandService.createSchedule(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

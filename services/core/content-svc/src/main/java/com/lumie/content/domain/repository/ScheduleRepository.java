@@ -22,7 +22,7 @@ public interface ScheduleRepository {
 
     List<Schedule> findByDateBetweenAndIsAvailableTrue(LocalDate startDate, LocalDate endDate);
 
-    List<Schedule> findByAdminIdAndDateBetween(Long adminId, LocalDate startDate, LocalDate endDate);
+    List<Schedule> findByUserIdAndDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
 
     void deleteById(Long id);
 

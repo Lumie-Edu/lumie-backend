@@ -14,7 +14,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "counseling_schedules", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"admin_id", "date", "start_time"})
+    @UniqueConstraint(columnNames = {"user_id", "date", "start_time"})
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -24,8 +24,8 @@ public class Schedule extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "admin_id", nullable = false)
-    private Long adminId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Column(name = "date", nullable = false)
     private LocalDate date;
@@ -36,6 +36,9 @@ public class Schedule extends BaseEntity {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "is_available", nullable = false)
     private Boolean isAvailable;
 
@@ -44,20 +47,22 @@ public class Schedule extends BaseEntity {
     private List<Reservation> reservations = new ArrayList<>();
 
     @Builder
-    private Schedule(Long adminId, LocalDate date, LocalTime startTime, LocalTime endTime, Boolean isAvailable) {
-        this.adminId = adminId;
+    private Schedule(Long userId, LocalDate date, LocalTime startTime, LocalTime endTime, String description, Boolean isAvailable) {
+        this.userId = userId;
         this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.description = description;
         this.isAvailable = isAvailable != null ? isAvailable : true;
     }
 
-    public static Schedule create(Long adminId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+    public static Schedule create(Long userId, LocalDate date, LocalTime startTime, LocalTime endTime, String description) {
         return Schedule.builder()
-                .adminId(adminId)
+                .userId(userId)
                 .date(date)
                 .startTime(startTime)
                 .endTime(endTime)
+                .description(description)
                 .isAvailable(true)
                 .build();
     }

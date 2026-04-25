@@ -25,8 +25,8 @@ public class Reservation extends BaseEntity {
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
-    @Column(name = "admin_id", nullable = false)
-    private Long adminId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Column(name = "consultation_content", columnDefinition = "TEXT")
     private String consultationContent;
@@ -36,19 +36,19 @@ public class Reservation extends BaseEntity {
     private ReservationStatus status;
 
     @Builder
-    private Reservation(Schedule schedule, Long studentId, Long adminId, String consultationContent) {
+    private Reservation(Schedule schedule, Long studentId, Long userId, String consultationContent) {
         this.schedule = schedule;
         this.studentId = studentId;
-        this.adminId = adminId;
+        this.userId = userId;
         this.consultationContent = consultationContent;
         this.status = ReservationStatus.PENDING;
     }
 
-    public static Reservation create(Schedule schedule, Long studentId, Long adminId, String consultationContent) {
+    public static Reservation create(Schedule schedule, Long studentId, Long userId, String consultationContent) {
         return Reservation.builder()
                 .schedule(schedule)
                 .studentId(studentId)
-                .adminId(adminId)
+                .userId(userId)
                 .consultationContent(consultationContent)
                 .build();
     }

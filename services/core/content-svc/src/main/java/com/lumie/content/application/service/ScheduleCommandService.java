@@ -20,18 +20,19 @@ public class ScheduleCommandService {
     private final ScheduleRepository scheduleRepository;
 
     @Transactional
-    public ScheduleResponse createSchedule(CreateScheduleRequest request, Long adminId) {
-        log.info("Creating schedule for date: {} by admin: {}", request.date(), adminId);
+    public ScheduleResponse createSchedule(CreateScheduleRequest request, Long userId) {
+        log.info("Creating schedule for date: {} by admin: {}", request.date(), userId);
 
         if (!request.endTime().isAfter(request.startTime())) {
             throw new ContentException(ContentErrorCode.INVALID_TIME_RANGE);
         }
 
         Schedule schedule = Schedule.create(
-                adminId,
+                userId,
                 request.date(),
                 request.startTime(),
-                request.endTime()
+                request.endTime(),
+                request.description()
         );
 
         Schedule saved = scheduleRepository.save(schedule);

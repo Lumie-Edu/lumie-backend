@@ -8,17 +8,19 @@ public record QnaCommentResponse(
         Long id,
         Long qnaId,
         Long studentId,
-        Long adminId,
+        Long userId,
+        String adminName,
         String commentContent,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public static QnaCommentResponse from(QnaComment comment) {
+    public static QnaCommentResponse from(QnaComment comment, String adminName) {
         return new QnaCommentResponse(
                 comment.getId(),
                 comment.getQnaBoard().getId(),
                 comment.getStudentId(),
-                comment.getAdminId(),
+                comment.getUserId(),
+                adminName,
                 comment.getCommentContent(),
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()

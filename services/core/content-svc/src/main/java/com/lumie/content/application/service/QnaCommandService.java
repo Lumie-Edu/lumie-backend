@@ -84,8 +84,8 @@ public class QnaCommandService {
                 .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
 
         QnaComment comment;
-        if (request.adminId() != null) {
-            comment = QnaComment.createByAdmin(qnaBoard, request.adminId(), request.commentContent());
+        if (request.userId() != null) {
+            comment = QnaComment.createByAdmin(qnaBoard, request.userId(), request.commentContent());
         } else {
             comment = QnaComment.createByStudent(qnaBoard, request.studentId(), request.commentContent());
         }
@@ -113,7 +113,7 @@ public class QnaCommandService {
         qnaBoard.getComments().removeIf(c -> c.getId().equals(commentId));
 
         boolean stillHasAdminComment = qnaBoard.getComments().stream()
-                .anyMatch(c -> c.getAdminId() != null);
+                .anyMatch(c -> c.getUserId() != null);
 
         if (!stillHasAdminComment) {
             qnaBoard.markAsUnanswered();

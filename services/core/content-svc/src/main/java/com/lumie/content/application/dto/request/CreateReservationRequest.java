@@ -9,8 +9,8 @@ public record CreateReservationRequest(
         @NotNull(message = "Student ID is required")
         Long studentId,
 
-        @NotNull(message = "Admin ID is required")
-        Long adminId,
+        @NotNull(message = "User ID is required")
+        Long userId,
 
         String consultationContent
 ) {

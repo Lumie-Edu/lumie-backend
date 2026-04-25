@@ -51,7 +51,7 @@ public class ReservationCommandService {
         Reservation reservation = Reservation.create(
                 schedule,
                 request.studentId(),
-                request.adminId(),
+                request.userId(),
                 request.consultationContent()
         );
 

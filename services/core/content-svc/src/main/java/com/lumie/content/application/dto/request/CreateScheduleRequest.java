@@ -16,6 +16,8 @@ public record CreateScheduleRequest(
 
         @NotNull(message = "End time is required")
         @JsonFormat(pattern = "HH:mm")
-        LocalTime endTime
+        LocalTime endTime,
+
+        String description
 ) {
 }

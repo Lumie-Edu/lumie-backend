@@ -65,14 +65,18 @@ public class QnaBoard extends BaseEntity {
         this.isItAnswered = true;
     }
 
+    public void markAsUnanswered() {
+        this.isItAnswered = false;
+    }
+
     public void addComment(QnaComment comment) {
         this.comments.add(comment);
-        if (!this.isItAnswered && comment.getAdminId() != null) {
+        if (!this.isItAnswered && comment.getUserId() != null) {
             this.markAsAnswered();
         }
     }
 
     public boolean hasAdminComment() {
-        return comments.stream().anyMatch(c -> c.getAdminId() != null);
+        return comments.stream().anyMatch(c -> c.getUserId() != null);
     }
 }

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 public record CreateCommentRequest(
         Long studentId,
 
-        Long adminId,
+        Long userId,
 
         @NotBlank(message = "Content is required")
         String commentContent

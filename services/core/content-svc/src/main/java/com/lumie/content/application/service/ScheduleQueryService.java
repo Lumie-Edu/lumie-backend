@@ -54,10 +54,10 @@ public class ScheduleQueryService {
                 .toList();
     }
 
-    public List<ScheduleResponse> listSchedulesByAdmin(Long adminId, LocalDate startDate, LocalDate endDate) {
-        log.debug("Listing schedules for admin {} from {} to {}", adminId, startDate, endDate);
+    public List<ScheduleResponse> listSchedulesByUser(Long userId, LocalDate startDate, LocalDate endDate) {
+        log.debug("Listing schedules for user {} from {} to {}", userId, startDate, endDate);
 
-        return scheduleRepository.findByAdminIdAndDateBetween(adminId, startDate, endDate).stream()
+        return scheduleRepository.findByUserIdAndDateBetween(userId, startDate, endDate).stream()
                 .map(ScheduleResponse::from)
                 .toList();
     }
