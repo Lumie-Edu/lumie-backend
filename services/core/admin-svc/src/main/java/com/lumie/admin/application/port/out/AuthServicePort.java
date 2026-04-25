@@ -6,6 +6,8 @@ public interface AuthServicePort {
     Optional<TokenClaimsData> validateToken(String token);
     CreateUserResult createUser(CreateUserRequest request);
     DeleteUserResult deleteUser(Long userId);
+    ResetPasswordResult resetPassword(Long userId);
+    ChangeLoginIdResult changeLoginId(Long userId, String newLoginId);
 
     record TokenClaimsData(
         Long userId,
@@ -31,5 +33,16 @@ public interface AuthServicePort {
     record DeleteUserResult(
         boolean success,
         String message
+    ) {}
+
+    record ResetPasswordResult(
+        boolean success,
+        String message
+    ) {}
+
+    record ChangeLoginIdResult(
+        boolean success,
+        String message,
+        String newLoginId
     ) {}
 }

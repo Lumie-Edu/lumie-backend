@@ -15,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/v1/students")
 @RequiredArgsConstructor
@@ -63,6 +65,24 @@ public class StudentController {
     public ResponseEntity<Void> reactivateStudent(@PathVariable Long id) {
         studentCommandService.reactivateStudent(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/reset-password")
+    public ResponseEntity<Void> resetStudentPassword(@PathVariable Long id) {
+        studentCommandService.resetStudentPassword(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/login-id")
+    public ResponseEntity<Map<String, String>> changeStudentLoginId(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String newLoginId = body.get("loginId");
+        if (newLoginId == null || newLoginId.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        String result = studentCommandService.changeStudentLoginId(id, newLoginId);
+        return ResponseEntity.ok(Map.of("loginId", result));
     }
 
     @DeleteMapping("/{id}")

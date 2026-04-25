@@ -178,6 +178,38 @@ public class StudentCommandService {
         log.info("Student permanently deleted: {} in tenant: {}", id, tenantSlug);
     }
 
+    public void resetStudentPassword(Long id) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new StudentNotFoundException(id));
+
+        AuthServicePort.ResetPasswordResult result = authServicePort.resetPassword(student.getUserId());
+        if (!result.success()) {
+            throw new RuntimeException("Failed to reset password: " + result.message());
+        }
+
+        log.info("Password reset for student: {} in tenant: {}", id, tenantSlug);
+    }
+
+    public String changeStudentLoginId(Long id, String newLoginId) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new StudentNotFoundException(id));
+
+        AuthServicePort.ChangeLoginIdResult result = authServicePort.changeLoginId(student.getUserId(), newLoginId);
+        if (!result.success()) {
+            throw new RuntimeException("Failed to change login ID: " + result.message());
+        }
+
+        student.updateLoginId(result.newLoginId());
+        studentRepository.save(student);
+
+        log.info("Login ID changed for student: {} in tenant: {}", id, tenantSlug);
+        return result.newLoginId();
+    }
+
     public BatchOperationResult batchDeactivate(List<Long> ids) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         List<BatchOperationResult.FailedItem> failures = new ArrayList<>();

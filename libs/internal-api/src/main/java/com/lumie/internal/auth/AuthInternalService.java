@@ -12,6 +12,10 @@ public interface AuthInternalService {
 
     DeleteUserResult deleteUser(Long userId);
 
+    ResetPasswordResult resetPassword(Long userId);
+
+    ChangeLoginIdResult changeLoginId(Long userId, String newLoginId);
+
     record TokenValidationResult(
             boolean valid,
             String message,
@@ -47,5 +51,16 @@ public interface AuthInternalService {
     record DeleteUserResult(
             boolean success,
             String message
+    ) {}
+
+    record ResetPasswordResult(
+            boolean success,
+            String message
+    ) {}
+
+    record ChangeLoginIdResult(
+            boolean success,
+            String message,
+            String newLoginId
     ) {}
 }

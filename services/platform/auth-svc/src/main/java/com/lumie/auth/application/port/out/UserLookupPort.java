@@ -68,6 +68,26 @@ public interface UserLookupPort {
     boolean deleteUser(Long userId);
 
     /**
+     * Resets a user's password to the given hash.
+     *
+     * @param userId the user's ID
+     * @param newPasswordHash the new BCrypt-hashed password
+     * @return true if the user was found and updated
+     */
+    boolean resetPassword(Long userId, String newPasswordHash);
+
+    /**
+     * Changes a user's login ID.
+     *
+     * @param userId the user's ID
+     * @param newLoginId the new login ID
+     * @return result containing success status and message
+     */
+    ChangeLoginIdResult changeLoginId(Long userId, String newLoginId);
+
+    record ChangeLoginIdResult(boolean success, String message, String newLoginId) {}
+
+    /**
      * User data record from public.users table.
      */
     record UserData(

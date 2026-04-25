@@ -158,6 +158,40 @@ public class AdminCommandService {
         logActivity("TERMINATE", "ADMIN", id, admin.getName(), null);
     }
 
+    public void resetAdminPassword(Long id) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+
+        Admin admin = adminRepository.findById(id)
+                .orElseThrow(() -> new AdminNotFoundException(id));
+
+        AuthServicePort.ResetPasswordResult result = authServicePort.resetPassword(admin.getUserId());
+        if (!result.success()) {
+            throw new RuntimeException("Failed to reset password: " + result.message());
+        }
+
+        log.info("Password reset for admin: {} in tenant: {}", id, tenantSlug);
+        logActivity("RESET_PASSWORD", "ADMIN", id, admin.getName(), null);
+    }
+
+    public String changeAdminLoginId(Long id, String newLoginId) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+
+        Admin admin = adminRepository.findById(id)
+                .orElseThrow(() -> new AdminNotFoundException(id));
+
+        AuthServicePort.ChangeLoginIdResult result = authServicePort.changeLoginId(admin.getUserId(), newLoginId);
+        if (!result.success()) {
+            throw new RuntimeException("Failed to change login ID: " + result.message());
+        }
+
+        admin.updateLoginId(result.newLoginId());
+        adminRepository.save(admin);
+
+        log.info("Login ID changed for admin: {} in tenant: {}", id, tenantSlug);
+        logActivity("CHANGE_LOGIN_ID", "ADMIN", id, admin.getName(), null);
+        return result.newLoginId();
+    }
+
     public void deleteAdmin(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Admin admin = adminRepository.findById(id)

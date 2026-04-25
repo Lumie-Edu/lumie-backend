@@ -55,4 +55,18 @@ public class AuthInternalAdapter implements AuthServicePort {
         var result = authInternalService.deleteUser(userId);
         return new DeleteUserResult(result.success(), result.message());
     }
+
+    @Override
+    public ResetPasswordResult resetPassword(Long userId) {
+        log.debug("Resetting password via internal API: {}", userId);
+        var result = authInternalService.resetPassword(userId);
+        return new ResetPasswordResult(result.success(), result.message());
+    }
+
+    @Override
+    public ChangeLoginIdResult changeLoginId(Long userId, String newLoginId) {
+        log.debug("Changing login ID via internal API: {}", userId);
+        var result = authInternalService.changeLoginId(userId, newLoginId);
+        return new ChangeLoginIdResult(result.success(), result.message(), result.newLoginId());
+    }
 }

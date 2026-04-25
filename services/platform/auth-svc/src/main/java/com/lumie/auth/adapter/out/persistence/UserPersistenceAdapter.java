@@ -86,6 +86,37 @@ public class UserPersistenceAdapter implements UserLookupPort {
                 .orElse(false);
     }
 
+    @Override
+    @Transactional
+    public boolean resetPassword(Long userId, String newPasswordHash) {
+        log.debug("Resetting password for user ID: {}", userId);
+        return userRepository.findById(userId)
+                .map(user -> {
+                    user.resetPassword(newPasswordHash);
+                    userRepository.save(user);
+                    log.info("Password reset for user: {}", userId);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    @Override
+    @Transactional
+    public ChangeLoginIdResult changeLoginId(Long userId, String newLoginId) {
+        log.debug("Changing login ID for user ID: {}", userId);
+        if (userRepository.existsByUserLoginId(newLoginId)) {
+            return new ChangeLoginIdResult(false, "Login ID already in use: " + newLoginId, null);
+        }
+        return userRepository.findById(userId)
+                .map(user -> {
+                    user.changeLoginId(newLoginId);
+                    userRepository.save(user);
+                    log.info("Login ID changed for user: {}", userId);
+                    return new ChangeLoginIdResult(true, "Login ID changed successfully", newLoginId);
+                })
+                .orElse(new ChangeLoginIdResult(false, "User not found: " + userId, null));
+    }
+
     private UserData toUserData(User user) {
         return new UserData(
                 user.getId(),

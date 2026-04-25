@@ -85,6 +85,10 @@ public class Admin extends BaseEntity {
                 .build();
     }
 
+    public void updateLoginId(String newLoginId) {
+        this.userLoginId = newLoginId;
+    }
+
     public void updateInfo(String name, String phone, String email, String adminMemo) {
         if (name != null && !name.isBlank()) {
             this.name = name;

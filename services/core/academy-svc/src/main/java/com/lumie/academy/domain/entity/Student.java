@@ -112,6 +112,10 @@ public class Student extends BaseEntity {
         }
     }
 
+    public void updateLoginId(String newLoginId) {
+        this.userLoginId = newLoginId;
+    }
+
     public void deactivate() {
         this.isActive = false;
     }

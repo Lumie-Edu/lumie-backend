@@ -79,4 +79,12 @@ public class User {
     public boolean isEnabled() {
         return STATUS_ACTIVE.equals(status);
     }
+
+    public void resetPassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+    }
+
+    public void changeLoginId(String newLoginId) {
+        this.userLoginId = newLoginId;
+    }
 }

@@ -72,6 +72,24 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/{id}/reset-password")
+    public ResponseEntity<Void> resetAdminPassword(@PathVariable Long id) {
+        adminCommandService.resetAdminPassword(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/login-id")
+    public ResponseEntity<Map<String, String>> changeAdminLoginId(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String newLoginId = body.get("loginId");
+        if (newLoginId == null || newLoginId.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        String result = adminCommandService.changeAdminLoginId(id, newLoginId);
+        return ResponseEntity.ok(Map.of("loginId", result));
+    }
+
     @PostMapping("/{id}/deactivate")
     public ResponseEntity<Void> deactivateAdmin(@PathVariable Long id) {
         adminCommandService.deactivateAdmin(id);

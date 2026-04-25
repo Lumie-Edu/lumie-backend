@@ -94,4 +94,20 @@ public class AuthInternalServiceAdapter implements AuthInternalService {
         }
         return new DeleteUserResult(false, "User not found: " + userId);
     }
+
+    @Override
+    public ResetPasswordResult resetPassword(Long userId) {
+        String newPasswordHash = passwordEncoder.encode(DEFAULT_PASSWORD);
+        boolean updated = userLookupPort.resetPassword(userId, newPasswordHash);
+        if (updated) {
+            return new ResetPasswordResult(true, "Password reset successfully");
+        }
+        return new ResetPasswordResult(false, "User not found: " + userId);
+    }
+
+    @Override
+    public ChangeLoginIdResult changeLoginId(Long userId, String newLoginId) {
+        var result = userLookupPort.changeLoginId(userId, newLoginId);
+        return new ChangeLoginIdResult(result.success(), result.message(), result.newLoginId());
+    }
 }

@@ -69,4 +69,38 @@ public interface AuthServicePort {
             boolean success,
             String message
     ) {}
+
+    /**
+     * Resets a user's password to the system default.
+     *
+     * @param userId the user ID
+     * @return the result containing success status
+     */
+    ResetPasswordResult resetPassword(Long userId);
+
+    /**
+     * Result of password reset.
+     */
+    record ResetPasswordResult(
+            boolean success,
+            String message
+    ) {}
+
+    /**
+     * Changes a user's login ID.
+     *
+     * @param userId the user ID
+     * @param newLoginId the new login ID
+     * @return the result containing success status and new login ID
+     */
+    ChangeLoginIdResult changeLoginId(Long userId, String newLoginId);
+
+    /**
+     * Result of login ID change.
+     */
+    record ChangeLoginIdResult(
+            boolean success,
+            String message,
+            String newLoginId
+    ) {}
 }
