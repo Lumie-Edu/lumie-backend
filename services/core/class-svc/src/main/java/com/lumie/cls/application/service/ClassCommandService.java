@@ -52,6 +52,11 @@ public class ClassCommandService {
                     "Teacher not found with id: " + request.teacherId()));
         }
 
+        if (classRepository.existsByNameAndAcademyId(request.name(), request.academyId())) {
+            throw new BusinessException(ClassErrorCode.DUPLICATE_CLASS_NAME,
+                "Class name already exists in academy: " + request.name());
+        }
+
         validateNoScheduleOverlap(request.teacherId(), request.schedulePattern(), null);
 
         ClassEntity entity = ClassEntity.create(

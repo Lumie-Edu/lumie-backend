@@ -13,7 +13,10 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "classes")
+@Table(name = "classes",
+    uniqueConstraints = @UniqueConstraint(
+        name = "classes_name_academy_id_key",
+        columnNames = {"name", "academy_id"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ClassEntity extends BaseEntity {
