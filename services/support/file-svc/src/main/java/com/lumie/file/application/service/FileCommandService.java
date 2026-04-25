@@ -9,6 +9,7 @@ import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.exception.FileException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.domain.repository.TextbookFolderRepository;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FilePath;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class FileCommandService {
     private static final int UPLOAD_URL_EXPIRY_SECONDS = 3600; // 1 hour
 
     private final FileMetadataRepository fileMetadataRepository;
+    private final TextbookFolderRepository textbookFolderRepository;
     private final StoragePort storagePort;
 
     @Transactional
@@ -48,7 +50,8 @@ public class FileCommandService {
                 request.filename(),
                 request.contentType(),
                 request.fileSize(),
-                objectKey
+                objectKey,
+                null
         );
 
         FileMetadata saved = fileMetadataRepository.save(fileMetadata);
@@ -64,7 +67,12 @@ public class FileCommandService {
     }
 
     @Transactional
-    public FileMetadataResponse uploadFile(EntityType entityType, Long entityId, MultipartFile file) {
+    public FileMetadataResponse uploadFile(EntityType entityType, Long entityId, UUID folderId, MultipartFile file) {
+        if (folderId != null) {
+            textbookFolderRepository.findById(folderId)
+                    .orElseThrow(() -> new FileException(FileErrorCode.FOLDER_NOT_FOUND));
+        }
+
         UUID fileId = UUID.randomUUID();
 
         FilePath filePath = FilePath.of(entityType, fileId, file.getOriginalFilename());
@@ -72,7 +80,7 @@ public class FileCommandService {
 
         FileMetadata fileMetadata = FileMetadata.create(
                 entityType, entityId, file.getOriginalFilename(),
-                file.getContentType(), file.getSize(), objectKey
+                file.getContentType(), file.getSize(), objectKey, folderId
         );
 
         FileMetadata saved = fileMetadataRepository.save(fileMetadata);

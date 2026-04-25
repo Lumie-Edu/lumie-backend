@@ -10,4 +10,10 @@ import java.util.UUID;
 public interface JpaFileMetadataRepository extends JpaRepository<FileMetadata, UUID> {
 
     List<FileMetadata> findByEntityTypeAndEntityId(EntityType entityType, Long entityId);
+
+    List<FileMetadata> findByEntityTypeAndFolderId(EntityType entityType, UUID folderId);
+
+    List<FileMetadata> findByEntityTypeAndFolderIdIsNull(EntityType entityType);
+
+    boolean existsByFolderId(UUID folderId);
 }

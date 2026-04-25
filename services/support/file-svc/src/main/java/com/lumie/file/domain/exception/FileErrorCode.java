@@ -13,9 +13,15 @@ public enum FileErrorCode implements ErrorCode {
     INVALID_CONTENT_TYPE("F002", "Invalid content type", 400),
     FILE_TOO_LARGE("F003", "File exceeds maximum size", 400),
     INVALID_ENTITY_TYPE("F004", "Invalid entity type", 400),
+    MAX_DEPTH_EXCEEDED("F005", "Maximum folder depth exceeded", 400),
+    FOLDER_NOT_EMPTY("F006", "Folder is not empty", 400),
 
     // 404 Not Found
     FILE_NOT_FOUND("F101", "File not found", 404),
+    FOLDER_NOT_FOUND("F102", "Folder not found", 404),
+
+    // 409 Conflict
+    DUPLICATE_FOLDER_NAME("F007", "Folder with this name already exists", 409),
 
     // 403 Forbidden
     TENANT_INVALID("F301", "Invalid tenant", 403),

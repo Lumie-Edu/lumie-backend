@@ -32,6 +32,14 @@ public class FileMetadataRepositoryAdapter implements FileMetadataRepository {
     }
 
     @Override
+    public List<FileMetadata> findByEntityTypeAndFolderId(EntityType entityType, UUID folderId) {
+        if (folderId == null) {
+            return jpaRepository.findByEntityTypeAndFolderIdIsNull(entityType);
+        }
+        return jpaRepository.findByEntityTypeAndFolderId(entityType, folderId);
+    }
+
+    @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
@@ -39,5 +47,10 @@ public class FileMetadataRepositoryAdapter implements FileMetadataRepository {
     @Override
     public boolean existsById(UUID id) {
         return jpaRepository.existsById(id);
+    }
+
+    @Override
+    public boolean existsByFolderId(UUID folderId) {
+        return jpaRepository.existsByFolderId(folderId);
     }
 }

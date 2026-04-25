@@ -45,10 +45,13 @@ public class FileMetadata extends BaseEntity {
     @Column(name = "upload_completed", nullable = false)
     private boolean uploadCompleted;
 
+    @Column(name = "folder_id")
+    private UUID folderId;
+
     @Builder
     private FileMetadata(EntityType entityType, Long entityId,
                          String originalFilename, String storedFilename, String contentType,
-                         Long fileSize, String objectKey, boolean uploadCompleted) {
+                         Long fileSize, String objectKey, boolean uploadCompleted, UUID folderId) {
         this.entityType = entityType;
         this.entityId = entityId;
         this.originalFilename = originalFilename;
@@ -57,11 +60,12 @@ public class FileMetadata extends BaseEntity {
         this.fileSize = fileSize;
         this.objectKey = objectKey;
         this.uploadCompleted = uploadCompleted;
+        this.folderId = folderId;
     }
 
     public static FileMetadata create(EntityType entityType, Long entityId,
                                        String originalFilename, String contentType, Long fileSize,
-                                       String objectKey) {
+                                       String objectKey, UUID folderId) {
         String storedFilename = generateStoredFilename(originalFilename);
         return FileMetadata.builder()
                 .entityType(entityType)
@@ -72,6 +76,7 @@ public class FileMetadata extends BaseEntity {
                 .fileSize(fileSize)
                 .objectKey(objectKey)
                 .uploadCompleted(false)
+                .folderId(folderId)
                 .build();
     }
 

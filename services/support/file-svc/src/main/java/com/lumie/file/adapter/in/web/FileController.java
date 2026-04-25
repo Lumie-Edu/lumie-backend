@@ -32,8 +32,9 @@ public class FileController {
     public ResponseEntity<FileMetadataResponse> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("entityType") EntityType entityType,
-            @RequestParam(value = "entityId", required = false) Long entityId) {
-        FileMetadataResponse response = fileCommandService.uploadFile(entityType, entityId, file);
+            @RequestParam(value = "entityId", required = false) Long entityId,
+            @RequestParam(value = "folderId", required = false) UUID folderId) {
+        FileMetadataResponse response = fileCommandService.uploadFile(entityType, entityId, folderId, file);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -88,8 +89,14 @@ public class FileController {
     @GetMapping
     public ResponseEntity<List<FileMetadataResponse>> getFilesByEntityType(
             @RequestParam EntityType entityType,
-            @RequestParam(required = false) Long entityId) {
-        List<FileMetadataResponse> response = fileQueryService.getFilesByEntity(entityType, entityId);
+            @RequestParam(required = false) Long entityId,
+            @RequestParam(required = false) UUID folderId) {
+        List<FileMetadataResponse> response;
+        if (entityType == EntityType.TEXTBOOK && (folderId != null || entityId == null)) {
+            response = fileQueryService.getFilesByEntityAndFolder(entityType, folderId);
+        } else {
+            response = fileQueryService.getFilesByEntity(entityType, entityId);
+        }
         return ResponseEntity.ok(response);
     }
 }
