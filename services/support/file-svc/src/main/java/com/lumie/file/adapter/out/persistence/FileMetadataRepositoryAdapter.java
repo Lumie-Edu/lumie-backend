@@ -40,6 +40,11 @@ public class FileMetadataRepositoryAdapter implements FileMetadataRepository {
     }
 
     @Override
+    public List<FileMetadata> findByEntityType(EntityType entityType) {
+        return jpaRepository.findByEntityType(entityType);
+    }
+
+    @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }

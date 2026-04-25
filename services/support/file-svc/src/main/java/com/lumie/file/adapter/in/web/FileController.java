@@ -90,9 +90,12 @@ public class FileController {
     public ResponseEntity<List<FileMetadataResponse>> getFilesByEntityType(
             @RequestParam EntityType entityType,
             @RequestParam(required = false) Long entityId,
-            @RequestParam(required = false) UUID folderId) {
+            @RequestParam(required = false) UUID folderId,
+            @RequestParam(required = false, defaultValue = "false") boolean all) {
         List<FileMetadataResponse> response;
-        if (entityType == EntityType.TEXTBOOK && (folderId != null || entityId == null)) {
+        if (entityType == EntityType.TEXTBOOK && all) {
+            response = fileQueryService.getAllFilesByEntityType(entityType);
+        } else if (entityType == EntityType.TEXTBOOK && (folderId != null || entityId == null)) {
             response = fileQueryService.getFilesByEntityAndFolder(entityType, folderId);
         } else {
             response = fileQueryService.getFilesByEntity(entityType, entityId);

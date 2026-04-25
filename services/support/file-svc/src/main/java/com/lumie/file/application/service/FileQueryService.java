@@ -99,4 +99,13 @@ public class FileQueryService {
                 .map(FileMetadataResponse::from)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<FileMetadataResponse> getAllFilesByEntityType(EntityType entityType) {
+        List<FileMetadata> files = fileMetadataRepository.findByEntityType(entityType);
+
+        return files.stream()
+                .map(FileMetadataResponse::from)
+                .toList();
+    }
 }

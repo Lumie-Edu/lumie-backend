@@ -15,5 +15,7 @@ public interface JpaFileMetadataRepository extends JpaRepository<FileMetadata, U
 
     List<FileMetadata> findByEntityTypeAndFolderIdIsNull(EntityType entityType);
 
+    List<FileMetadata> findByEntityType(EntityType entityType);
+
     boolean existsByFolderId(UUID folderId);
 }

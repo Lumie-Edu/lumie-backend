@@ -17,6 +17,8 @@ public interface FileMetadataRepository {
 
     List<FileMetadata> findByEntityTypeAndFolderId(EntityType entityType, UUID folderId);
 
+    List<FileMetadata> findByEntityType(EntityType entityType);
+
     void deleteById(UUID id);
 
     boolean existsById(UUID id);
