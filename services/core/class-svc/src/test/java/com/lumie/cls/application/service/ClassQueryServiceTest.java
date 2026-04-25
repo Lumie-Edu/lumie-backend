@@ -9,6 +9,7 @@ import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.ClassSearchCriteria;
+import com.lumie.cls.domain.vo.EnrollmentStatus;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -112,7 +113,7 @@ class ClassQueryServiceTest {
         Pageable pageable = PageRequest.of(0, 20);
         Page<ClassEnrollment> page = new PageImpl<>(List.of(enrollment), pageable, 1);
 
-        given(enrollmentRepository.findByStudentId(42L, pageable)).willReturn(page);
+        given(enrollmentRepository.findByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED, pageable)).willReturn(page);
 
         Page<ClassResponse> response = queryService.getClassesByStudent(42L, pageable);
 

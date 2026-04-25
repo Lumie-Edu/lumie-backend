@@ -131,8 +131,8 @@ class AttendanceRecordQueryServiceTest {
         assertThat(stats.absentCount()).isEqualTo(1);
         assertThat(stats.lateCount()).isEqualTo(1);
         assertThat(stats.excusedCount()).isEqualTo(1);
-        // (PRESENT + EXCUSED) / totalSessions = 2/4 = 50.0
-        assertThat(stats.attendanceRate()).isEqualTo(50.0);
+        // (PRESENT + LATE + EXCUSED) / totalSessions = 3/4 = 75.0
+        assertThat(stats.attendanceRate()).isEqualTo(75.0);
     }
 
     @Test

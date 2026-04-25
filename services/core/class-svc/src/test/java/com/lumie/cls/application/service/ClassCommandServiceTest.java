@@ -220,18 +220,17 @@ class ClassCommandServiceTest {
     class RemoveEnrollment {
 
         @Test
-        @DisplayName("정상 제거 시 상태가 DROPPED로 변경된다")
+        @DisplayName("정상 제거 시 enrollment가 삭제된다")
         void removeEnrollment_success() throws Exception {
             ClassEntity classEntity = buildClassEntity(1L);
             ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 100L);
             setField(enrollment, "id", 10L);
 
             given(enrollmentRepository.findById(10L)).willReturn(Optional.of(enrollment));
-            given(enrollmentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             commandService.removeEnrollment(1L, 10L);
 
-            assertThat(enrollment.getStatus()).isEqualTo(EnrollmentStatus.DROPPED);
+            verify(enrollmentRepository).delete(enrollment);
         }
 
         @Test
