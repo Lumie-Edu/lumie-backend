@@ -8,12 +8,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "counseling_schedules", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"admin_id", "date", "time_slot_id"})
+    @UniqueConstraint(columnNames = {"admin_id", "date", "start_time"})
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -29,8 +30,11 @@ public class Schedule extends BaseEntity {
     @Column(name = "date", nullable = false)
     private LocalDate date;
 
-    @Column(name = "time_slot_id", nullable = false)
-    private Integer timeSlotId;
+    @Column(name = "start_time", nullable = false)
+    private LocalTime startTime;
+
+    @Column(name = "end_time", nullable = false)
+    private LocalTime endTime;
 
     @Column(name = "is_available", nullable = false)
     private Boolean isAvailable;
@@ -40,28 +44,33 @@ public class Schedule extends BaseEntity {
     private List<Reservation> reservations = new ArrayList<>();
 
     @Builder
-    private Schedule(Long adminId, LocalDate date, Integer timeSlotId, Boolean isAvailable) {
+    private Schedule(Long adminId, LocalDate date, LocalTime startTime, LocalTime endTime, Boolean isAvailable) {
         this.adminId = adminId;
         this.date = date;
-        this.timeSlotId = timeSlotId;
+        this.startTime = startTime;
+        this.endTime = endTime;
         this.isAvailable = isAvailable != null ? isAvailable : true;
     }
 
-    public static Schedule create(Long adminId, LocalDate date, Integer timeSlotId) {
+    public static Schedule create(Long adminId, LocalDate date, LocalTime startTime, LocalTime endTime) {
         return Schedule.builder()
                 .adminId(adminId)
                 .date(date)
-                .timeSlotId(timeSlotId)
+                .startTime(startTime)
+                .endTime(endTime)
                 .isAvailable(true)
                 .build();
     }
 
-    public void update(LocalDate date, Integer timeSlotId) {
+    public void update(LocalDate date, LocalTime startTime, LocalTime endTime) {
         if (date != null) {
             this.date = date;
         }
-        if (timeSlotId != null) {
-            this.timeSlotId = timeSlotId;
+        if (startTime != null) {
+            this.startTime = startTime;
+        }
+        if (endTime != null) {
+            this.endTime = endTime;
         }
     }
 

@@ -29,7 +29,8 @@ public enum ContentErrorCode implements ErrorCode {
     // 400 Bad Request
     INVALID_RESERVATION_STATUS("C401", "Invalid reservation status transition", 400),
     SCHEDULE_NOT_AVAILABLE("C402", "Schedule is not available", 400),
-    INVALID_DATE_RANGE("C403", "Invalid date range", 400);
+    INVALID_DATE_RANGE("C403", "Invalid date range", 400),
+    INVALID_TIME_RANGE("C404", "End time must be after start time", 400);
 
     private final String code;
     private final String message;

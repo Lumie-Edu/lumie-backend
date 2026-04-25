@@ -1,16 +1,19 @@
 package com.lumie.content.application.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lumie.content.domain.entity.Reservation;
 import com.lumie.content.domain.vo.ReservationStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public record ReservationResponse(
         Long id,
         Long scheduleId,
         LocalDate date,
-        Integer timeSlotId,
+        @JsonFormat(pattern = "HH:mm") LocalTime startTime,
+        @JsonFormat(pattern = "HH:mm") LocalTime endTime,
         Long studentId,
         Long adminId,
         String consultationContent,
@@ -23,7 +26,8 @@ public record ReservationResponse(
                 reservation.getId(),
                 reservation.getSchedule().getId(),
                 reservation.getSchedule().getDate(),
-                reservation.getSchedule().getTimeSlotId(),
+                reservation.getSchedule().getStartTime(),
+                reservation.getSchedule().getEndTime(),
                 reservation.getStudentId(),
                 reservation.getAdminId(),
                 reservation.getConsultationContent(),

@@ -23,10 +23,15 @@ public class ScheduleCommandService {
     public ScheduleResponse createSchedule(CreateScheduleRequest request, Long adminId) {
         log.info("Creating schedule for date: {} by admin: {}", request.date(), adminId);
 
+        if (!request.endTime().isAfter(request.startTime())) {
+            throw new ContentException(ContentErrorCode.INVALID_TIME_RANGE);
+        }
+
         Schedule schedule = Schedule.create(
                 adminId,
                 request.date(),
-                request.timeSlotId()
+                request.startTime(),
+                request.endTime()
         );
 
         Schedule saved = scheduleRepository.save(schedule);
@@ -42,7 +47,7 @@ public class ScheduleCommandService {
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.SCHEDULE_NOT_FOUND));
 
-        schedule.update(request.date(), request.timeSlotId());
+        schedule.update(request.date(), request.startTime(), request.endTime());
 
         if (request.isAvailable() != null) {
             if (request.isAvailable()) {

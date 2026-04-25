@@ -1,15 +1,18 @@
 package com.lumie.content.application.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lumie.content.domain.entity.Schedule;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public record ScheduleResponse(
         Long id,
         Long adminId,
         LocalDate date,
-        Integer timeSlotId,
+        @JsonFormat(pattern = "HH:mm") LocalTime startTime,
+        @JsonFormat(pattern = "HH:mm") LocalTime endTime,
         Boolean isAvailable,
         Boolean hasReservation,
         Integer confirmedCount,
@@ -21,7 +24,8 @@ public record ScheduleResponse(
                 schedule.getId(),
                 schedule.getAdminId(),
                 schedule.getDate(),
-                schedule.getTimeSlotId(),
+                schedule.getStartTime(),
+                schedule.getEndTime(),
                 schedule.getIsAvailable(),
                 schedule.hasReservation(),
                 schedule.getConfirmedCount(),
