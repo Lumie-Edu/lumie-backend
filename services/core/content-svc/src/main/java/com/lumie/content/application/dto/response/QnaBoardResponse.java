@@ -7,19 +7,19 @@ import java.time.LocalDateTime;
 public record QnaBoardResponse(
         Long id,
         Long qnaUserId,
+        String qnaUserName,
         String qnaTitle,
-        String qnaContent,
         Boolean isItAnswered,
         Integer commentCount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public static QnaBoardResponse from(QnaBoard qnaBoard) {
+    public static QnaBoardResponse from(QnaBoard qnaBoard, String qnaUserName) {
         return new QnaBoardResponse(
                 qnaBoard.getId(),
                 qnaBoard.getQnaUserId(),
+                qnaUserName,
                 qnaBoard.getQnaTitle(),
-                qnaBoard.getQnaContent(),
                 qnaBoard.getIsItAnswered(),
                 qnaBoard.getComments() != null ? qnaBoard.getComments().size() : 0,
                 qnaBoard.getCreatedAt(),

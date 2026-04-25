@@ -34,6 +34,12 @@ public class StudentQueryService {
                 .toList();
     }
 
+    public List<StudentResponse> getStudentsByUserIds(List<Long> userIds) {
+        return studentRepository.findAllByUserIds(userIds).stream()
+                .map(StudentResponse::from)
+                .toList();
+    }
+
     public StudentResponse getStudentByUserLoginId(String userLoginId) {
         Student student = studentRepository.findByUserLoginId(userLoginId)
                 .orElseThrow(() -> new StudentNotFoundException(userLoginId));

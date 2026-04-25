@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -35,4 +36,15 @@ public class StudentInternalAdapter implements StudentServicePort {
                         s.isActive()
                 ));
     }
+
+    @Override
+    public List<StudentInfo> getStudentsByUserIds(String tenantSlug, List<Long> userIds) {
+        log.debug("Getting students by userIds via internal API, tenant: {}, userIds: {}", tenantSlug, userIds);
+        return academyInternalService.getStudentsByUserIds(tenantSlug, userIds)
+                .students()
+                .stream()
+                .map(s -> new StudentInfo(s.userId(), s.studentName()))
+                .toList();
+    }
+
 }

@@ -96,6 +96,21 @@ public class AcademyInternalServiceAdapter implements AcademyInternalService {
     }
 
     @Override
+    public StudentListData getStudentsByUserIds(String tenantSlug, List<Long> userIds) {
+        String previous = TenantContextHolder.getTenant();
+        try {
+            TenantContextHolder.setTenant(tenantSlug);
+            List<StudentResponse> students = studentQueryService.getStudentsByUserIds(userIds);
+            return new StudentListData(
+                    students.stream().map(this::toStudentData).toList(),
+                    students.size(), 0, students.size()
+            );
+        } finally {
+            restoreTenant(previous);
+        }
+    }
+
+    @Override
     public Optional<AcademyData> getAcademy(String tenantSlug, Long academyId) {
         String previous = TenantContextHolder.getTenant();
         try {

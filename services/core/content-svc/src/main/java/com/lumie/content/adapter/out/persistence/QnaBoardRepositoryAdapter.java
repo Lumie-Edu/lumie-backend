@@ -46,6 +46,11 @@ public class QnaBoardRepositoryAdapter implements QnaBoardRepository {
     }
 
     @Override
+    public Page<QnaBoard> findByIsItAnswered(Boolean isItAnswered, Pageable pageable) {
+        return jpaRepository.findByIsItAnswered(isItAnswered, pageable);
+    }
+
+    @Override
     public void deleteById(Long id) {
         jpaRepository.deleteById(id);
     }

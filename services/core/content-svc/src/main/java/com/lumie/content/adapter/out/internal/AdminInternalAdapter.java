@@ -16,15 +16,9 @@ public class AdminInternalAdapter implements AdminServicePort {
     private final AdminInternalService adminInternalService;
 
     @Override
-    public boolean validateAdmin(String tenantSlug, Long adminId) {
-        log.debug("Validating admin via internal API: {} in tenant: {}", adminId, tenantSlug);
-        return adminInternalService.validateAdmin(tenantSlug, adminId).valid();
-    }
-
-    @Override
-    public Optional<AdminData> getAdmin(String tenantSlug, Long adminId) {
-        log.debug("Getting admin via internal API: {} in tenant: {}", adminId, tenantSlug);
-        return adminInternalService.getAdmin(tenantSlug, adminId)
+    public Optional<AdminData> getAdminByUserId(String tenantSlug, Long userId) {
+        log.debug("Getting admin by userId via internal API: {} in tenant: {}", userId, tenantSlug);
+        return adminInternalService.getAdminByUserId(tenantSlug, userId)
                 .map(a -> new AdminData(
                         a.id(),
                         a.userId(),

@@ -47,6 +47,11 @@ public class StudentRepositoryAdapter implements StudentRepository {
     }
 
     @Override
+    public List<Student> findAllByUserIds(List<Long> userIds) {
+        return jpaStudentRepository.findByUserIdIn(userIds);
+    }
+
+    @Override
     public Optional<Student> findByUserLoginId(String userLoginId) {
         return jpaStudentRepository.findByUserLoginId(userLoginId);
     }

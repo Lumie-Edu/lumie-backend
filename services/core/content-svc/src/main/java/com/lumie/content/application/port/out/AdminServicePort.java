@@ -4,9 +4,7 @@ import java.util.Optional;
 
 public interface AdminServicePort {
 
-    boolean validateAdmin(String tenantSlug, Long adminId);
-
-    Optional<AdminData> getAdmin(String tenantSlug, Long adminId);
+    Optional<AdminData> getAdminByUserId(String tenantSlug, Long userId);
 
     record AdminData(
             Long id,

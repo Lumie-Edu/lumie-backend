@@ -20,6 +20,8 @@ public interface QnaBoardRepository {
 
     Page<QnaBoard> findByIsItAnsweredFalse(Pageable pageable);
 
+    Page<QnaBoard> findByIsItAnswered(Boolean isItAnswered, Pageable pageable);
+
     void deleteById(Long id);
 
     boolean existsById(Long id);

@@ -28,8 +28,9 @@ public class QnaController {
 
     @GetMapping
     public ResponseEntity<Page<QnaBoardResponse>> listQnas(
+            @RequestParam(required = false) Boolean isItAnswered,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.listQnas(pageable));
+        return ResponseEntity.ok(queryService.listQnas(isItAnswered, pageable));
     }
 
     @GetMapping("/unanswered")

@@ -15,6 +15,8 @@ public interface AcademyInternalService {
 
     ValidateStudentResult validateStudent(String tenantSlug, Long studentId);
 
+    StudentListData getStudentsByUserIds(String tenantSlug, List<Long> userIds);
+
     Optional<AcademyData> getAcademy(String tenantSlug, Long academyId);
 
     record StudentData(

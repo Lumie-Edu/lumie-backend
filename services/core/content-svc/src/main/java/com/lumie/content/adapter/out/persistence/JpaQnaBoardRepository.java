@@ -17,4 +17,6 @@ public interface JpaQnaBoardRepository extends JpaRepository<QnaBoard, Long> {
     Page<QnaBoard> findByQnaUserId(Long qnaUserId, Pageable pageable);
 
     Page<QnaBoard> findByIsItAnsweredFalse(Pageable pageable);
+
+    Page<QnaBoard> findByIsItAnswered(Boolean isItAnswered, Pageable pageable);
 }

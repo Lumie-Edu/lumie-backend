@@ -19,6 +19,8 @@ public interface StudentRepository {
 
     Optional<Student> findByUserId(Long userId);
 
+    List<Student> findAllByUserIds(List<Long> userIds);
+
     Optional<Student> findByUserLoginId(String userLoginId);
 
     Optional<Student> findByPhone(String phone);
