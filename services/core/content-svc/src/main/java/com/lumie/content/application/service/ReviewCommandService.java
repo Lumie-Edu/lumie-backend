@@ -1,5 +1,11 @@
 package com.lumie.content.application.service;
 
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.content.application.dto.request.CreateReviewRequest;
+import com.lumie.content.application.dto.response.ReviewResponse;
+import com.lumie.content.application.port.out.StudentServicePort;
+import com.lumie.content.domain.entity.Review;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.ReviewRepository;
@@ -8,12 +14,34 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ReviewCommandService {
 
     private final ReviewRepository reviewRepository;
+    private final StudentServicePort studentServicePort;
+
+    @Transactional
+    public ReviewResponse createReview(CreateReviewRequest request) {
+        Long userId = UserContextHolder.getRequiredUserId();
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        log.info("Creating review for userId: {}", userId);
+
+        String reviewerName = studentServicePort.getStudentsByUserIds(tenantSlug, List.of(userId))
+                .stream()
+                .findFirst()
+                .map(StudentServicePort.StudentInfo::name)
+                .orElseThrow(() -> new ContentException(ContentErrorCode.STUDENT_NOT_FOUND));
+
+        Review review = Review.create(reviewerName, request.reviewTitle(), request.reviewContent());
+        Review saved = reviewRepository.save(review);
+        log.info("Review created: {}", saved.getId());
+
+        return ReviewResponse.from(saved);
+    }
 
     @Transactional
     public void deleteReview(Long id) {

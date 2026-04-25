@@ -1,5 +1,6 @@
 package com.lumie.content.adapter.in.web;
 
+import com.lumie.content.application.dto.request.CreateReviewRequest;
 import com.lumie.content.application.dto.request.UpdateReviewPopupSettingRequest;
 import com.lumie.content.application.dto.response.ReviewPopupSettingResponse;
 import com.lumie.content.application.dto.response.ReviewResponse;
@@ -15,6 +16,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
+
 @RestController
 @RequestMapping("/v1/reviews")
 @RequiredArgsConstructor
@@ -23,6 +26,12 @@ public class ReviewController {
     private final ReviewQueryService queryService;
     private final ReviewCommandService commandService;
     private final ReviewPopupSettingService popupSettingService;
+
+    @PostMapping
+    public ResponseEntity<ReviewResponse> createReview(@Valid @RequestBody CreateReviewRequest request) {
+        ReviewResponse response = commandService.createReview(request);
+        return ResponseEntity.created(URI.create("/v1/reviews/" + response.id())).body(response);
+    }
 
     @GetMapping
     public ResponseEntity<Page<ReviewResponse>> listReviews(
