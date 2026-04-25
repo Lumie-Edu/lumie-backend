@@ -1,4 +1,0 @@
-spring:
-  datasource:
-    url: jdbc:postgresql://pgbouncer.lumie-dev.svc:5432/lumie?prepareThreshold=0
-
