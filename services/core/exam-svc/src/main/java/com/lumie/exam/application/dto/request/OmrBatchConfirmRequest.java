@@ -8,6 +8,6 @@ import java.util.List;
 
 public record OmrBatchConfirmRequest(
         @NotBlank String batchKey,
-        @NotNull @Size(min = 1, max = 200)
+        @NotNull @Size(min = 1, max = 100)
         List<String> objectKeys
 ) {}
