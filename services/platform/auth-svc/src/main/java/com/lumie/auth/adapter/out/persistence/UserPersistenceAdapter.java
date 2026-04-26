@@ -119,6 +119,20 @@ public class UserPersistenceAdapter implements UserLookupPort {
                 .orElse(new ChangeLoginIdResult(false, "User not found: " + userId, null));
     }
 
+    @Override
+    @Transactional
+    public boolean updateAvatarSeed(Long userId, String avatarSeed) {
+        log.debug("Updating avatar seed for user ID: {}", userId);
+        return userRepository.findById(userId)
+                .map(user -> {
+                    user.setAvatarSeed(avatarSeed);
+                    userRepository.save(user);
+                    log.info("Avatar seed updated for user: {}", userId);
+                    return true;
+                })
+                .orElse(false);
+    }
+
     private UserData toUserData(User user) {
         return new UserData(
                 user.getId(),
@@ -128,7 +142,8 @@ public class UserPersistenceAdapter implements UserLookupPort {
                 user.getPasswordHash(),
                 user.getRole(),
                 user.getTenantId(),
-                user.isEnabled()
+                user.isEnabled(),
+                user.getAvatarSeed()
         );
     }
 }

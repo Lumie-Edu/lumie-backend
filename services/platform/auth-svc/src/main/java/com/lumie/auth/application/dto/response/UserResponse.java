@@ -10,6 +10,7 @@ public record UserResponse(
         String name,
         Role role,
         String tenantSlug,
-        Long tenantId
+        Long tenantId,
+        String avatarSeed
 ) {
 }

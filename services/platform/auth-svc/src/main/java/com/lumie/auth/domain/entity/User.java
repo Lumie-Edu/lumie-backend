@@ -52,6 +52,9 @@ public class User {
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 
+    @Column(name = "avatar_seed", length = 50)
+    private String avatarSeed;
+
     private User(String userLoginId, String passwordHash, String name, String phone,
                  Role role, String status, Long tenantId) {
         this.userLoginId = userLoginId;
@@ -82,5 +85,9 @@ public class User {
 
     public void changeLoginId(String newLoginId) {
         this.userLoginId = newLoginId;
+    }
+
+    public void setAvatarSeed(String avatarSeed) {
+        this.avatarSeed = avatarSeed;
     }
 }

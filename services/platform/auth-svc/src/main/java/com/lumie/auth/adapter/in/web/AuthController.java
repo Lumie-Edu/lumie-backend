@@ -4,6 +4,7 @@ import com.lumie.auth.application.dto.request.LoginRequest;
 import com.lumie.auth.application.dto.request.OwnerRegisterRequest;
 import com.lumie.auth.application.dto.request.RefreshTokenRequest;
 import com.lumie.auth.application.dto.request.RegisterRequest;
+import com.lumie.auth.application.dto.request.UpdateAvatarRequest;
 import com.lumie.auth.application.dto.response.AuthResponse;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
@@ -12,8 +13,10 @@ import com.lumie.auth.application.port.in.LogoutUseCase;
 import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
 import com.lumie.auth.application.port.in.RefreshTokenUseCase;
 import com.lumie.auth.application.port.in.RegisterUseCase;
+import com.lumie.auth.application.port.in.UpdateAvatarUseCase;
 import com.lumie.auth.infrastructure.config.CookieConfig;
 import com.lumie.auth.infrastructure.util.CookieUtils;
+import com.lumie.common.tenant.UserContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -30,8 +33,19 @@ public class AuthController {
     private final LoginUseCase loginUseCase;
     private final LogoutUseCase logoutUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
+    private final UpdateAvatarUseCase updateAvatarUseCase;
     private final CookieUtils cookieUtils;
     private final CookieConfig cookieConfig;
+
+    @PatchMapping("/me/avatar")
+    public ResponseEntity<Void> updateAvatar(@Valid @RequestBody UpdateAvatarRequest request) {
+        Long userId = UserContextHolder.getUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        updateAvatarUseCase.updateAvatar(userId, request.avatarSeed());
+        return ResponseEntity.noContent().build();
+    }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {

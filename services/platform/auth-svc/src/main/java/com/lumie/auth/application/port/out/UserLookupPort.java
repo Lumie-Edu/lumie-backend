@@ -88,6 +88,15 @@ public interface UserLookupPort {
     record ChangeLoginIdResult(boolean success, String message, String newLoginId) {}
 
     /**
+     * Updates the avatar seed for the given user.
+     *
+     * @param userId the user's ID
+     * @param avatarSeed the new avatar seed (one of the curated picker values)
+     * @return true if the user was found and updated
+     */
+    boolean updateAvatarSeed(Long userId, String avatarSeed);
+
+    /**
      * User data record from public.users table.
      */
     record UserData(
@@ -98,7 +107,8 @@ public interface UserLookupPort {
             String passwordHash,
             Role role,
             Long tenantId,
-            boolean enabled
+            boolean enabled,
+            String avatarSeed
     ) {
         public UserResponse toUserResponse(String tenantSlug) {
             return UserResponse.builder()
@@ -108,6 +118,7 @@ public interface UserLookupPort {
                     .role(role)
                     .tenantSlug(tenantSlug)
                     .tenantId(tenantId)
+                    .avatarSeed(avatarSeed)
                     .build();
         }
     }
