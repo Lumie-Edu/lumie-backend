@@ -47,9 +47,11 @@ public class UserPersistenceAdapter implements UserLookupPort {
         return userRepository.findByUserLoginId(userLoginId)
                 .map(this::toUserData)
                 .orElseGet(() -> {
-                    User newUser = User.createOAuth2User(userLoginId, name, tenantId, provider);
+                    User newUser = User.createOAuth2User(userLoginId, name, tenantId);
                     User savedUser = userRepository.save(newUser);
-                    log.info("Created new OAuth2 user: {} for tenant: {}", userLoginId, tenantId);
+                    log.info("Created new OAuth2 user: {} via {} for tenant: {}", userLoginId, provider, tenantId);
+                    // TODO: persist federated_identities row (provider, provider_user_id, user_id)
+                    //       once Connected Accounts feature lands.
                     return toUserData(savedUser);
                 });
     }

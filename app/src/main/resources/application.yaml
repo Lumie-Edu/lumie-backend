@@ -86,14 +86,14 @@ oauth2:
     token-uri: https://kauth.kakao.com/oauth/token
     user-info-uri: https://kapi.kakao.com/v2/user/me
     scope: profile_nickname account_email
-  keycloak:
-    client-id: ${KEYCLOAK_CLIENT_ID:lumie-app}
-    client-secret: ${KEYCLOAK_CLIENT_SECRET:}
-    redirect-uri: ${KEYCLOAK_REDIRECT_URI:https://lumie-edu.com/api/auth/v1/oauth2/keycloak/callback}
-    authorization-uri: ${KEYCLOAK_AUTH_URI:https://auth.lumie-edu.com/realms/lumie/protocol/openid-connect/auth}
-    token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak-keycloakx-http.keycloak.svc.cluster.local/realms/lumie/protocol/openid-connect/token}
-    user-info-uri: ${KEYCLOAK_USERINFO_URI:http://keycloak-keycloakx-http.keycloak.svc.cluster.local/realms/lumie/protocol/openid-connect/userinfo}
-    scope: openid email profile
+  naver:
+    client-id: ${NAVER_CLIENT_ID:}
+    client-secret: ${NAVER_CLIENT_SECRET:}
+    redirect-uri: ${NAVER_REDIRECT_URI:https://lumie-edu.com/api/auth/v1/oauth2/naver/callback}
+    authorization-uri: https://nid.naver.com/oauth2.0/authorize
+    token-uri: https://nid.naver.com/oauth2.0/token
+    user-info-uri: https://openapi.naver.com/v1/nid/me
+    scope: name email
   frontend-callback-url: ${FRONTEND_CALLBACK_URL:https://lumie-edu.com/auth/callback}
 
 # Paddle (billing module)

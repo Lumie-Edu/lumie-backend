@@ -52,11 +52,8 @@ public class User {
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 
-    @Column(name = "oauth_provider")
-    private String oauthProvider;
-
     private User(String userLoginId, String passwordHash, String name, String phone,
-                 Role role, String status, Long tenantId, String oauthProvider) {
+                 Role role, String status, Long tenantId) {
         this.userLoginId = userLoginId;
         this.passwordHash = passwordHash;
         this.name = name;
@@ -64,16 +61,15 @@ public class User {
         this.role = role;
         this.status = status;
         this.tenantId = tenantId;
-        this.oauthProvider = oauthProvider;
     }
 
     public static User create(String userLoginId, String name, String phone,
                               String passwordHash, Role role, Long tenantId) {
-        return new User(userLoginId, passwordHash, name, phone, role, STATUS_ACTIVE, tenantId, null);
+        return new User(userLoginId, passwordHash, name, phone, role, STATUS_ACTIVE, tenantId);
     }
 
-    public static User createOAuth2User(String userLoginId, String name, Long tenantId, String provider) {
-        return new User(userLoginId, "", name, null, Role.STUDENT, STATUS_ACTIVE, tenantId, provider);
+    public static User createOAuth2User(String userLoginId, String name, Long tenantId) {
+        return new User(userLoginId, "", name, null, Role.STUDENT, STATUS_ACTIVE, tenantId);
     }
 
     public boolean isEnabled() {

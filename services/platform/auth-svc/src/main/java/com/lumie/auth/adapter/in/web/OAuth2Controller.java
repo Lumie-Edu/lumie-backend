@@ -29,9 +29,8 @@ public class OAuth2Controller {
     @GetMapping("/{provider}/authorize")
     public ResponseEntity<Void> authorize(
             @PathVariable String provider,
-            @RequestParam("tenant") String tenantSlug,
-            @RequestParam(name = "idp_hint", required = false) String idpHint) {
-        String authUrl = oAuth2LoginUseCase.getAuthorizationUrl(provider, tenantSlug, idpHint);
+            @RequestParam("tenant") String tenantSlug) {
+        String authUrl = oAuth2LoginUseCase.getAuthorizationUrl(provider, tenantSlug);
         return ResponseEntity
                 .status(HttpStatus.FOUND)
                 .location(URI.create(authUrl))

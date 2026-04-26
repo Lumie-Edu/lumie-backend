@@ -40,7 +40,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Override
-    public String getAuthorizationUrl(String provider, String tenantSlug, String idpHint) {
+    public String getAuthorizationUrl(String provider, String tenantSlug) {
         log.info("Generating OAuth2 authorization URL for provider: {} tenant: {}", provider, tenantSlug);
 
         // Validate tenant exists
@@ -53,22 +53,17 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
 
         OAuth2Config.ProviderConfig config = getProviderConfig(provider);
 
-        StringBuilder authUrl = new StringBuilder(String.format(
+        String authUrl = String.format(
                 "%s?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s",
                 config.getAuthorizationUri(),
                 URLEncoder.encode(config.getClientId(), StandardCharsets.UTF_8),
                 URLEncoder.encode(config.getRedirectUri(), StandardCharsets.UTF_8),
                 URLEncoder.encode(config.getScope(), StandardCharsets.UTF_8),
                 URLEncoder.encode(state, StandardCharsets.UTF_8)
-        ));
-
-        // Append kc_idp_hint for Keycloak to skip login screen and go directly to social provider
-        if ("keycloak".equalsIgnoreCase(provider) && idpHint != null && !idpHint.isBlank()) {
-            authUrl.append("&kc_idp_hint=").append(URLEncoder.encode(idpHint, StandardCharsets.UTF_8));
-        }
+        );
 
         log.debug("Generated authorization URL for provider: {}", provider);
-        return authUrl.toString();
+        return authUrl;
     }
 
     @Override
@@ -147,7 +142,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         return switch (provider.toLowerCase()) {
             case "google" -> oAuth2Config.getGoogle();
             case "kakao" -> oAuth2Config.getKakao();
-            case "keycloak" -> oAuth2Config.getKeycloak();
+            case "naver" -> oAuth2Config.getNaver();
             default -> throw new IllegalArgumentException("Unsupported OAuth2 provider: " + provider);
         };
     }
@@ -194,11 +189,15 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
                         (String) profile.get("nickname")
                 );
             }
-            case "keycloak" -> new OAuth2UserInfo(
-                    (String) response.get("sub"),
-                    (String) response.getOrDefault("name",
-                            response.getOrDefault("preferred_username", "Unknown"))
-            );
+            case "naver" -> {
+                // Naver wraps profile in `response` object
+                Map<String, Object> naverProfile = (Map<String, Object>) response.get("response");
+                yield new OAuth2UserInfo(
+                        (String) naverProfile.get("id"),
+                        (String) naverProfile.getOrDefault("name",
+                                naverProfile.getOrDefault("nickname", "Unknown"))
+                );
+            }
             default -> throw new IllegalArgumentException("Unsupported provider: " + provider);
         };
     }
