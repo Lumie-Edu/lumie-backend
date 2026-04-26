@@ -42,6 +42,9 @@ public class User {
     @Column
     private String phone;
 
+    @Column
+    private String email;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
@@ -81,6 +84,12 @@ public class User {
 
     public void resetPassword(String newPasswordHash) {
         this.passwordHash = newPasswordHash;
+    }
+
+    public void updateProfile(String name, String phone, String email) {
+        this.name = name;
+        this.phone = phone;
+        this.email = email;
     }
 
     public void changeLoginId(String newLoginId) {

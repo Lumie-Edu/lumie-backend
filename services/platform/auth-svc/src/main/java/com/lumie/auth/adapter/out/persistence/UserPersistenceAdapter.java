@@ -121,6 +121,20 @@ public class UserPersistenceAdapter implements UserLookupPort {
 
     @Override
     @Transactional
+    public boolean updateProfile(Long userId, String name, String phone, String email) {
+        log.debug("Updating profile for user ID: {}", userId);
+        return userRepository.findById(userId)
+                .map(user -> {
+                    user.updateProfile(name, phone, email);
+                    userRepository.save(user);
+                    log.info("Profile updated for user: {}", userId);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    @Override
+    @Transactional
     public boolean updateAvatarSeed(Long userId, String avatarSeed) {
         log.debug("Updating avatar seed for user ID: {}", userId);
         return userRepository.findById(userId)
@@ -139,6 +153,7 @@ public class UserPersistenceAdapter implements UserLookupPort {
                 user.getUserLoginId(),
                 user.getName(),
                 user.getPhone(),
+                user.getEmail(),
                 user.getPasswordHash(),
                 user.getRole(),
                 user.getTenantId(),

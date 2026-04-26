@@ -8,6 +8,8 @@ public record UserResponse(
         Long id,
         String userLoginId,
         String name,
+        String phone,
+        String email,
         Role role,
         String tenantSlug,
         Long tenantId,

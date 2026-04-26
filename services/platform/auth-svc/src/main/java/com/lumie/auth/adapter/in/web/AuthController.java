@@ -1,21 +1,28 @@
 package com.lumie.auth.adapter.in.web;
 
+import com.lumie.auth.application.dto.request.ChangePasswordRequest;
 import com.lumie.auth.application.dto.request.LoginRequest;
 import com.lumie.auth.application.dto.request.OwnerRegisterRequest;
 import com.lumie.auth.application.dto.request.RefreshTokenRequest;
 import com.lumie.auth.application.dto.request.RegisterRequest;
 import com.lumie.auth.application.dto.request.UpdateAvatarRequest;
+import com.lumie.auth.application.dto.request.UpdateProfileRequest;
 import com.lumie.auth.application.dto.response.AuthResponse;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
+import com.lumie.auth.application.dto.response.UserResponse;
+import com.lumie.auth.application.port.in.ChangePasswordUseCase;
+import com.lumie.auth.application.port.in.GetMeUseCase;
 import com.lumie.auth.application.port.in.LoginUseCase;
 import com.lumie.auth.application.port.in.LogoutUseCase;
 import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
 import com.lumie.auth.application.port.in.RefreshTokenUseCase;
 import com.lumie.auth.application.port.in.RegisterUseCase;
 import com.lumie.auth.application.port.in.UpdateAvatarUseCase;
+import com.lumie.auth.application.port.in.UpdateProfileUseCase;
 import com.lumie.auth.infrastructure.config.CookieConfig;
 import com.lumie.auth.infrastructure.util.CookieUtils;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,8 +41,41 @@ public class AuthController {
     private final LogoutUseCase logoutUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
     private final UpdateAvatarUseCase updateAvatarUseCase;
+    private final GetMeUseCase getMeUseCase;
+    private final UpdateProfileUseCase updateProfileUseCase;
+    private final ChangePasswordUseCase changePasswordUseCase;
     private final CookieUtils cookieUtils;
     private final CookieConfig cookieConfig;
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getMe() {
+        Long userId = UserContextHolder.getUserId();
+        String tenantSlug = TenantContextHolder.getTenant();
+        if (userId == null || tenantSlug == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(getMeUseCase.getMe(userId, tenantSlug));
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        Long userId = UserContextHolder.getUserId();
+        String tenantSlug = TenantContextHolder.getTenant();
+        if (userId == null || tenantSlug == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(updateProfileUseCase.updateProfile(userId, tenantSlug, request));
+    }
+
+    @PostMapping("/me/password")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        Long userId = UserContextHolder.getUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        changePasswordUseCase.changePassword(userId, request);
+        return ResponseEntity.noContent().build();
+    }
 
     @PatchMapping("/me/avatar")
     public ResponseEntity<Void> updateAvatar(@Valid @RequestBody UpdateAvatarRequest request) {

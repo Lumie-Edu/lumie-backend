@@ -1,16 +1,21 @@
 package com.lumie.auth.application.service;
 
+import com.lumie.auth.application.dto.request.ChangePasswordRequest;
 import com.lumie.auth.application.dto.request.LoginRequest;
 import com.lumie.auth.application.dto.request.OwnerRegisterRequest;
 import com.lumie.auth.application.dto.request.RefreshTokenRequest;
 import com.lumie.auth.application.dto.request.RegisterRequest;
+import com.lumie.auth.application.dto.request.UpdateProfileRequest;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
+import com.lumie.auth.application.dto.response.UserResponse;
+import com.lumie.auth.application.port.in.ChangePasswordUseCase;
 import com.lumie.auth.application.port.in.LoginUseCase;
 import com.lumie.auth.application.port.in.LogoutUseCase;
 import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
 import com.lumie.auth.application.port.in.RefreshTokenUseCase;
 import com.lumie.auth.application.port.in.RegisterUseCase;
+import com.lumie.auth.application.port.in.UpdateProfileUseCase;
 import com.lumie.auth.domain.vo.Role;
 import com.lumie.auth.application.port.out.TenantServicePort;
 import com.lumie.auth.application.port.out.TenantServicePort.TenantCreationResult;
@@ -34,7 +39,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshTokenUseCase, RegisterUseCase, OwnerRegisterUseCase {
+public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshTokenUseCase, RegisterUseCase, OwnerRegisterUseCase, UpdateProfileUseCase, ChangePasswordUseCase {
 
     private final TenantServicePort tenantServicePort;
     private final UserLookupPort userLookupPort;
@@ -245,6 +250,47 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         log.info("Token refresh successful for user: {}", user.id());
 
         return TokenResponse.from(newTokenPair);
+    }
+
+    @Override
+    public UserResponse updateProfile(Long userId, String tenantSlug, UpdateProfileRequest request) {
+        log.info("Profile update request for user: {}", userId);
+
+        boolean updated = userLookupPort.updateProfile(userId, request.name(), request.phone(), request.email());
+        if (!updated) {
+            throw new ResourceNotFoundException("User", String.valueOf(userId));
+        }
+
+        UserData user = userLookupPort.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
+
+        return user.toUserResponse(tenantSlug);
+    }
+
+    @Override
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        log.info("Password change request for user: {}", userId);
+
+        UserData user = userLookupPort.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.passwordHash())) {
+            throw new IllegalStateException("Current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(request.newPassword(), user.passwordHash())) {
+            throw new IllegalArgumentException("New password must differ from the current password");
+        }
+
+        String newHash = passwordEncoder.encode(request.newPassword());
+        userLookupPort.resetPassword(userId, newHash);
+
+        // Revoke all other refresh sessions so other devices/browsers are forced to re-login.
+        // The current request's access token continues to work until expiry; the cookie-based
+        // refresh on the same browser will fail and prompt re-login on next refresh attempt.
+        tokenPersistencePort.deleteAllRefreshTokensForUser(userId);
+
+        log.info("Password changed and refresh sessions revoked for user: {}", userId);
     }
 
     private TokenPair generateTokenPair(UserData user, String tenantSlug) {

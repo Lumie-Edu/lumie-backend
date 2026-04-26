@@ -1,9 +1,14 @@
 package com.lumie.auth.application.service;
 
+import com.lumie.auth.application.dto.response.UserResponse;
+import com.lumie.auth.application.port.in.GetMeUseCase;
 import com.lumie.auth.application.port.in.ValidateTokenUseCase;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
+import com.lumie.auth.application.port.out.UserLookupPort;
+import com.lumie.auth.application.port.out.UserLookupPort.UserData;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.infrastructure.security.JwtTokenProvider;
+import com.lumie.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,10 +18,11 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthQueryService implements ValidateTokenUseCase {
+public class AuthQueryService implements ValidateTokenUseCase, GetMeUseCase {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenPersistencePort tokenPersistencePort;
+    private final UserLookupPort userLookupPort;
 
     @Override
     public Optional<TokenClaims> validate(String token) {
@@ -50,5 +56,12 @@ public class AuthQueryService implements ValidateTokenUseCase {
     @Override
     public boolean isValid(String token) {
         return validate(token).isPresent();
+    }
+
+    @Override
+    public UserResponse getMe(Long userId, String tenantSlug) {
+        UserData user = userLookupPort.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
+        return user.toUserResponse(tenantSlug);
     }
 }

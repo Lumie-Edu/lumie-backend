@@ -97,6 +97,17 @@ public interface UserLookupPort {
     boolean updateAvatarSeed(Long userId, String avatarSeed);
 
     /**
+     * Updates name, phone, and email for the given user.
+     *
+     * @param userId the user's ID
+     * @param name the new display name
+     * @param phone the new phone (nullable)
+     * @param email the new email (nullable)
+     * @return true if the user was found and updated
+     */
+    boolean updateProfile(Long userId, String name, String phone, String email);
+
+    /**
      * User data record from public.users table.
      */
     record UserData(
@@ -104,6 +115,7 @@ public interface UserLookupPort {
             String userLoginId,
             String name,
             String phone,
+            String email,
             String passwordHash,
             Role role,
             Long tenantId,
@@ -115,6 +127,8 @@ public interface UserLookupPort {
                     .id(id)
                     .userLoginId(userLoginId)
                     .name(name)
+                    .phone(phone)
+                    .email(email)
                     .role(role)
                     .tenantSlug(tenantSlug)
                     .tenantId(tenantId)
