@@ -2,7 +2,9 @@
 -- Replaces the single oauth_provider column on users with a 1:N relationship,
 -- enabling Connected Accounts (link/unlink Google/Kakao/Naver per user).
 --
--- Green-field migration: production users.oauth_provider has no data, safe to drop.
+-- The legacy users.oauth_provider column is left in place; the JPA entity no
+-- longer maps it so Hibernate ignores it. Drop it in a follow-up DBA-owned
+-- migration (requires table-owner privilege which the application role lacks).
 
 CREATE TABLE IF NOT EXISTS federated_identities (
     id BIGSERIAL PRIMARY KEY,
@@ -16,5 +18,3 @@ CREATE TABLE IF NOT EXISTS federated_identities (
 );
 
 CREATE INDEX IF NOT EXISTS idx_federated_identities_user_id ON federated_identities(user_id);
-
-ALTER TABLE users DROP COLUMN IF EXISTS oauth_provider;
