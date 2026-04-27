@@ -61,7 +61,6 @@ class ClassCommandServiceTest {
                     .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "테스트학원", true)));
             given(adminServicePort.getAdmin(10L))
                     .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "김선생")));
-            given(classRepository.existsByNameAndAcademyId("수학 기초반", 1L)).willReturn(false);
             given(classRepository.save(any(ClassEntity.class)))
                     .willAnswer(inv -> {
                         ClassEntity entity = inv.getArgument(0);
@@ -115,19 +114,6 @@ class ClassCommandServiceTest {
                     .isInstanceOf(BusinessException.class);
         }
 
-        @Test
-        @DisplayName("중복 수업명으로 생성 시 BusinessException이 발생한다")
-        void createClass_duplicateName_throwsException() {
-            CreateClassRequest request = new CreateClassRequest(
-                    "수학반", 1L, null, null, null);
-
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
-            given(classRepository.existsByNameAndAcademyId("수학반", 1L)).willReturn(true);
-
-            assertThatThrownBy(() -> commandService.createClass(request))
-                    .isInstanceOf(BusinessException.class);
-        }
     }
 
     @Nested

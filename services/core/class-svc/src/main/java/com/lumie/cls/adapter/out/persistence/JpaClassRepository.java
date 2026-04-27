@@ -26,6 +26,4 @@ public interface JpaClassRepository extends JpaRepository<ClassEntity, Long>, Jp
     List<ClassEntity> findAllByTeacherId(Long teacherId);
 
     long countByAcademyId(Long academyId);
-
-    boolean existsByNameAndAcademyId(String name, Long academyId);
 }

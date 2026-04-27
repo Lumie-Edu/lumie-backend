@@ -10,7 +10,6 @@ public enum ClassErrorCode implements ErrorCode {
 
     CLASS_NOT_FOUND("CLASS_001", "Class not found", 404),
     ENROLLMENT_NOT_FOUND("CLASS_002", "Enrollment not found", 404),
-    DUPLICATE_CLASS_NAME("CLASS_003", "Class with this name already exists in the academy", 409),
     DUPLICATE_ENROLLMENT("CLASS_004", "Student is already enrolled in this class", 409),
     ACADEMY_NOT_FOUND("CLASS_007", "Academy not found or inactive", 404),
     TEACHER_NOT_FOUND("CLASS_008", "Teacher not found", 404),

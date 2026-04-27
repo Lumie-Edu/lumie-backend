@@ -69,11 +69,6 @@ public class ClassRepositoryAdapter implements ClassRepository {
         return jpaRepository.count();
     }
 
-    @Override
-    public boolean existsByNameAndAcademyId(String name, Long academyId) {
-        return jpaRepository.existsByNameAndAcademyId(name, academyId);
-    }
-
     private Specification<ClassEntity> toSpecification(ClassSearchCriteria criteria) {
         Specification<ClassEntity> spec = Specification.where(null);
 
