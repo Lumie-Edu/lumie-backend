@@ -4,6 +4,7 @@ import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface AssignmentSubmissionRepository {
@@ -19,4 +20,6 @@ public interface AssignmentSubmissionRepository {
     Page<AssignmentSubmission> findByAssignmentIdAndStudentId(Long assignmentId, Long studentId, Pageable pageable);
 
     boolean existsByAssignmentIdAndStudentId(Long assignmentId, Long studentId);
+
+    List<Object[]> countGroupedByStatus();
 }

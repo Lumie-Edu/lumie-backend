@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -60,6 +61,16 @@ public class AdminRepositoryAdapter implements AdminRepository {
     @Override
     public boolean existsByPhoneAndIdNot(String phone, Long excludeId) {
         return jpaAdminRepository.existsByPhoneAndIdNot(phone, excludeId);
+    }
+
+    @Override
+    public long countByIsActive(Boolean isActive) {
+        return jpaAdminRepository.countByIsActive(isActive);
+    }
+
+    @Override
+    public List<Object[]> countActiveGroupedByRole() {
+        return jpaAdminRepository.countGroupedByRoleAndIsActive(true);
     }
 
     @Override

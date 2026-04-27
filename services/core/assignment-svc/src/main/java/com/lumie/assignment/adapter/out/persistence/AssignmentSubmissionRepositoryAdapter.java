@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -43,5 +44,10 @@ public class AssignmentSubmissionRepositoryAdapter implements AssignmentSubmissi
     @Override
     public boolean existsByAssignmentIdAndStudentId(Long assignmentId, Long studentId) {
         return jpaRepository.existsByAssignmentIdAndStudentId(assignmentId, studentId);
+    }
+
+    @Override
+    public List<Object[]> countGroupedByStatus() {
+        return jpaRepository.countGroupedByStatus();
     }
 }

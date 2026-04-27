@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+
 public interface JpaAttendanceSessionRepository extends JpaRepository<AttendanceSession, Long>,
         JpaSpecificationExecutor<AttendanceSession> {
 
@@ -20,4 +21,6 @@ public interface JpaAttendanceSessionRepository extends JpaRepository<Attendance
     boolean existsByClassIdAndSessionDate(Long classId, LocalDate sessionDate);
 
     List<AttendanceSession> findByClassIdAndSessionDateBetween(Long classId, LocalDate from, LocalDate to);
+
+    long countBySessionDateBetween(LocalDate from, LocalDate to);
 }

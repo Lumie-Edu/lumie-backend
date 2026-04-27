@@ -7,7 +7,9 @@ public record DashboardStatisticsResponse(
         int totalResults,
         double overallAverageScore,
         List<TypeAccuracy> typeAccuracyList,
-        List<TopIncorrectQuestion> topIncorrectQuestions
+        List<TopIncorrectQuestion> topIncorrectQuestions,
+        int activeExams,
+        GradeDistributionByScale gradeDistribution
 ) {
     public record TypeAccuracy(
             String questionType,
@@ -27,5 +29,16 @@ public record DashboardStatisticsResponse(
             double incorrectRate,
             String topWrongChoice,
             double topWrongChoiceRate
+    ) {}
+
+    public record GradeBucket(
+            int grade,
+            int count,
+            double percentage
+    ) {}
+
+    public record GradeDistributionByScale(
+            List<GradeBucket> fiveGrade,
+            List<GradeBucket> nineGrade
     ) {}
 }

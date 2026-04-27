@@ -79,4 +79,9 @@ public class AttendanceSessionRepositoryAdapter implements AttendanceSessionRepo
     public void deleteById(Long id) {
         jpaRepository.deleteById(id);
     }
+
+    @Override
+    public long countBySessionDateBetween(LocalDate from, LocalDate to) {
+        return jpaRepository.countBySessionDateBetween(from, to);
+    }
 }

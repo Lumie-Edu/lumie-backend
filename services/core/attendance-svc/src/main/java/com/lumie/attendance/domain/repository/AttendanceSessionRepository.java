@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+
 public interface AttendanceSessionRepository {
 
     AttendanceSession save(AttendanceSession session);
@@ -26,4 +27,6 @@ public interface AttendanceSessionRepository {
     List<AttendanceSession> findByClassIdAndSessionDateBetween(Long classId, LocalDate from, LocalDate to);
 
     void deleteById(Long id);
+
+    long countBySessionDateBetween(LocalDate from, LocalDate to);
 }

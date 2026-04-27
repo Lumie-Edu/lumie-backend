@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,6 +99,11 @@ public class StudentRepositoryAdapter implements StudentRepository {
     @Override
     public long countByIsActive(Boolean isActive) {
         return jpaStudentRepository.countByIsActive(isActive);
+    }
+
+    @Override
+    public long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to) {
+        return jpaStudentRepository.countByCreatedAtBetween(from, to);
     }
 
     @Override

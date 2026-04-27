@@ -65,6 +65,11 @@ public class ClassRepositoryAdapter implements ClassRepository {
     }
 
     @Override
+    public long count() {
+        return jpaRepository.count();
+    }
+
+    @Override
     public boolean existsByNameAndAcademyId(String name, Long academyId) {
         return jpaRepository.existsByNameAndAcademyId(name, academyId);
     }

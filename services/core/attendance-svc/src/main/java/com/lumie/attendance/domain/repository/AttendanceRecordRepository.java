@@ -1,9 +1,11 @@
 package com.lumie.attendance.domain.repository;
 
 import com.lumie.attendance.domain.entity.AttendanceRecord;
+import com.lumie.attendance.domain.vo.AttendanceStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,4 +26,8 @@ public interface AttendanceRecordRepository {
     List<AttendanceRecord> findAllById(List<Long> ids);
 
     List<AttendanceRecord> findByStudentIdWithSession(Long studentId);
+
+    long countBySessionSessionDateBetween(LocalDate from, LocalDate to);
+
+    long countBySessionSessionDateBetweenAndStatus(LocalDate from, LocalDate to, AttendanceStatus status);
 }

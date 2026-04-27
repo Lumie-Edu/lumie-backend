@@ -158,9 +158,15 @@ public class ExamStatisticsQueryService {
         }
 
         if (allResults.isEmpty()) {
+            // TODO: Exam entity has no active/published status field; activeExams equals totalExams until a status concept is added
             return new DashboardStatisticsResponse(
                     allExams.size(), 0, 0.0,
-                    Collections.emptyList(), Collections.emptyList()
+                    Collections.emptyList(), Collections.emptyList(),
+                    allExams.size(),
+                    new DashboardStatisticsResponse.GradeDistributionByScale(
+                            buildGradeBuckets(Collections.emptyMap(), 5),
+                            buildGradeBuckets(Collections.emptyMap(), 9)
+                    )
             );
         }
 
@@ -238,11 +244,46 @@ public class ExamStatisticsQueryService {
                 })
                 .toList();
 
+        Map<Integer, Integer> fiveBuckets = new HashMap<>();
+        Map<Integer, Integer> nineBuckets = new HashMap<>();
+        for (ExamResult result : allResults) {
+            Exam exam = result.getExam();
+            Integer grade = result.getGrade();
+            GradeScale scale = exam.getGradeScale();
+            if (grade == null || grade <= 0 || scale == null) continue;
+            if (scale == GradeScale.FIVE_GRADE) {
+                fiveBuckets.merge(grade, 1, Integer::sum);
+            } else if (scale == GradeScale.NINE_GRADE) {
+                nineBuckets.merge(grade, 1, Integer::sum);
+            }
+        }
+
+        DashboardStatisticsResponse.GradeDistributionByScale gradeDistribution =
+                new DashboardStatisticsResponse.GradeDistributionByScale(
+                        buildGradeBuckets(fiveBuckets, 5),
+                        buildGradeBuckets(nineBuckets, 9)
+                );
+
+        // TODO: Exam entity has no active/published status field; activeExams equals totalExams until a status concept is added
         return new DashboardStatisticsResponse(
                 allExams.size(), allResults.size(),
                 Math.round(overallAverage * 10) / 10.0,
-                typeAccuracyList, topIncorrect
+                typeAccuracyList, topIncorrect,
+                allExams.size(),
+                gradeDistribution
         );
+    }
+
+    private List<DashboardStatisticsResponse.GradeBucket> buildGradeBuckets(
+            Map<Integer, Integer> counts, int maxGrade) {
+        int total = counts.values().stream().mapToInt(Integer::intValue).sum();
+        List<DashboardStatisticsResponse.GradeBucket> buckets = new ArrayList<>(maxGrade);
+        for (int grade = 1; grade <= maxGrade; grade++) {
+            int count = counts.getOrDefault(grade, 0);
+            double pct = total > 0 ? Math.round((double) count / total * 1000) / 10.0 : 0.0;
+            buckets.add(new DashboardStatisticsResponse.GradeBucket(grade, count, pct));
+        }
+        return buckets;
     }
 
     public List<AcademyComparisonResponse> getAcademyComparison(Long examId) {

@@ -4,6 +4,7 @@ import com.lumie.academy.domain.entity.Student;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,6 +39,8 @@ public interface StudentRepository {
     long countByAcademyId(Long academyId);
 
     long countByIsActive(Boolean isActive);
+
+    long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
 
     boolean existsByUserLoginId(String userLoginId);
 

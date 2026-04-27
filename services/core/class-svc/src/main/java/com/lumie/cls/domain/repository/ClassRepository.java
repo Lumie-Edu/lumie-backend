@@ -28,5 +28,7 @@ public interface ClassRepository {
 
     long countByAcademyId(Long academyId);
 
+    long count();
+
     boolean existsByNameAndAcademyId(String name, Long academyId);
 }

@@ -2,11 +2,13 @@ package com.lumie.attendance.adapter.out.persistence;
 
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
+import com.lumie.attendance.domain.vo.AttendanceStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -54,5 +56,15 @@ public class AttendanceRecordRepositoryAdapter implements AttendanceRecordReposi
     @Override
     public List<AttendanceRecord> findByStudentIdWithSession(Long studentId) {
         return jpaRepository.findByStudentIdWithSession(studentId);
+    }
+
+    @Override
+    public long countBySessionSessionDateBetween(LocalDate from, LocalDate to) {
+        return jpaRepository.countBySessionSessionDateBetween(from, to);
+    }
+
+    @Override
+    public long countBySessionSessionDateBetweenAndStatus(LocalDate from, LocalDate to, AttendanceStatus status) {
+        return jpaRepository.countBySessionSessionDateBetweenAndStatus(from, to, status);
     }
 }
