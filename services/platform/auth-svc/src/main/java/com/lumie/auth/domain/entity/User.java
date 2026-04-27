@@ -67,6 +67,7 @@ public class User {
         this.role = role;
         this.status = status;
         this.tenantId = tenantId;
+        this.avatarSeed = com.lumie.auth.domain.vo.AvatarSeeds.randomSeed();
     }
 
     public static User create(String userLoginId, String name, String phone,
