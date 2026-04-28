@@ -14,9 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 @Slf4j
 @RestController
@@ -48,27 +45,11 @@ public class OAuth2Controller {
         var metadata = SessionMetadataExtractor.extract(httpRequest);
         LoginResponse response = oAuth2LoginUseCase.handleCallback(provider, code, state, metadata);
 
-        // Encode user info as base64 JSON for frontend to parse
-        String userJson = String.format(
-                "{\"id\":%d,\"userLoginId\":\"%s\",\"name\":\"%s\",\"role\":\"%s\",\"tenantSlug\":\"%s\",\"tenantId\":%d}",
-                response.user().id(),
-                response.user().userLoginId(),
-                response.user().name(),
-                response.user().role(),
-                response.user().tenantSlug(),
-                response.user().tenantId()
-        );
-        String userParam = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(userJson.getBytes(StandardCharsets.UTF_8));
-
-        String redirectUrl = oAuth2Config.getFrontendCallbackUrl()
-                + "?user=" + URLEncoder.encode(userParam, StandardCharsets.UTF_8);
-
         return ResponseEntity
                 .status(HttpStatus.FOUND)
                 .header(HttpHeaders.SET_COOKIE, cookieUtils.createAccessTokenCookie(response.accessToken()).toString())
                 .header(HttpHeaders.SET_COOKIE, cookieUtils.createRefreshTokenCookie(response.refreshToken()).toString())
-                .location(URI.create(redirectUrl))
+                .location(URI.create(oAuth2Config.getFrontendCallbackUrl()))
                 .build();
     }
 }

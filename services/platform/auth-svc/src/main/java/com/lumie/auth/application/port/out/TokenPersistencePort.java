@@ -38,4 +38,8 @@ public interface TokenPersistencePort {
     void deleteAllSessionsForUser(String tenantSlug, Long userId);
 
     Map<String, String> findSessionsBulk(String tenantSlug, Set<String> jtis);
+
+    void saveOAuth2Nonce(String nonce, String tenantSlug, long ttlSeconds);
+
+    Optional<String> consumeOAuth2Nonce(String nonce);
 }

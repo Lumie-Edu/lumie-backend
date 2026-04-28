@@ -45,6 +45,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     private final ObjectMapper objectMapper;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final long OAUTH2_NONCE_TTL_SECONDS = 600;
 
     @Override
     public String getAuthorizationUrl(String provider, String tenantSlug) {
@@ -54,6 +55,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
 
         String nonce = generateNonce();
+        tokenPersistencePort.saveOAuth2Nonce(nonce, tenantSlug, OAUTH2_NONCE_TTL_SECONDS);
         String state = encodeState(tenantSlug, nonce);
 
         OAuth2Config.ProviderConfig config = getProviderConfig(provider);
@@ -77,6 +79,13 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
 
         String[] stateParts = decodeState(state);
         String tenantSlug = stateParts[0];
+        String nonce = stateParts[1];
+
+        String storedTenantSlug = tokenPersistencePort.consumeOAuth2Nonce(nonce)
+                .orElseThrow(() -> new IllegalStateException("Invalid or expired OAuth2 state"));
+        if (!storedTenantSlug.equals(tenantSlug)) {
+            throw new IllegalStateException("OAuth2 state tenant mismatch");
+        }
 
         TenantData tenant = tenantServicePort.validateTenant(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
