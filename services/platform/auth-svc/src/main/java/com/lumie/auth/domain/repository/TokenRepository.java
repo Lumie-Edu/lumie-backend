@@ -2,7 +2,9 @@ package com.lumie.auth.domain.repository;
 
 import com.lumie.auth.domain.entity.AuthToken;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Domain repository interface for token persistence (Redis).
@@ -82,4 +84,14 @@ public interface TokenRepository {
      * @param jti the JWT ID
      */
     void deleteSession(String tenantSlug, String jti);
+
+    void addSessionToIndex(String tenantSlug, Long userId, String jti);
+
+    Set<String> findAllSessionJtis(String tenantSlug, Long userId);
+
+    void removeSessionFromIndex(String tenantSlug, Long userId, String jti);
+
+    void deleteAllSessionsForUser(String tenantSlug, Long userId);
+
+    Map<String, String> findSessionsBulk(String tenantSlug, Set<String> jtis);
 }

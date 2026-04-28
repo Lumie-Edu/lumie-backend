@@ -31,7 +31,8 @@ public class JwtTokenProvider {
         this.secretKey = Keys.hmacShaKeyFor(jwtConfig.getSecretKey().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(Long userId, String tenantSlug, Long tenantId, Role role, String jti) {
+    public String generateAccessToken(Long userId, String tenantSlug, Long tenantId,
+                                       Role role, String jti, String sid) {
         Instant now = Instant.now();
         Instant expiration = now.plusSeconds(jwtConfig.getAccessExpiration());
 
@@ -41,6 +42,7 @@ public class JwtTokenProvider {
                 .claim("tenant_id", tenantId)
                 .claim("role", role.name())
                 .claim("type", "access")
+                .claim("sid", sid)
                 .id(jti)
                 .issuer(jwtConfig.getIssuer())
                 .issuedAt(Date.from(now))
@@ -49,7 +51,8 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String generateRefreshToken(Long userId, String tenantSlug, Long tenantId, Role role, String jti) {
+    public String generateRefreshToken(Long userId, String tenantSlug, Long tenantId,
+                                        Role role, String jti, String sid) {
         Instant now = Instant.now();
         Instant expiration = now.plusSeconds(jwtConfig.getRefreshExpiration());
 
@@ -59,6 +62,7 @@ public class JwtTokenProvider {
                 .claim("tenant_id", tenantId)
                 .claim("role", role.name())
                 .claim("type", "refresh")
+                .claim("sid", sid)
                 .id(jti)
                 .issuer(jwtConfig.getIssuer())
                 .issuedAt(Date.from(now))
@@ -82,7 +86,8 @@ public class JwtTokenProvider {
                     Role.fromString(claims.get("role", String.class)),
                     claims.getIssuedAt().toInstant(),
                     claims.getExpiration().toInstant(),
-                    claims.getId()
+                    claims.getId(),
+                    claims.get("sid", String.class)
             ));
         } catch (JwtException e) {
             log.debug("Failed to parse JWT: {}", e.getMessage());

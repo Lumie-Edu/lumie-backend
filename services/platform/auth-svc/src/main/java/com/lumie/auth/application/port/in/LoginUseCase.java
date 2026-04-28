@@ -2,6 +2,7 @@ package com.lumie.auth.application.port.in;
 
 import com.lumie.auth.application.dto.request.LoginRequest;
 import com.lumie.auth.application.dto.response.LoginResponse;
+import com.lumie.auth.domain.vo.SessionMetadata;
 
 public interface LoginUseCase {
     /**
@@ -9,7 +10,8 @@ public interface LoginUseCase {
      * Tenant is determined from the user's record in public.users table.
      *
      * @param request the login request containing userLoginId and password
+     * @param metadata session metadata (device, IP) captured from the HTTP request
      * @return login response with tokens and user info
      */
-    LoginResponse login(LoginRequest request);
+    LoginResponse login(LoginRequest request, SessionMetadata metadata);
 }

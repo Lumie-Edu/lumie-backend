@@ -10,6 +10,7 @@ public final class UserContextHolder {
 
     private static final ThreadLocal<Long> CURRENT_USER_ID = new ThreadLocal<>();
     private static final ThreadLocal<String> CURRENT_USER_ROLE = new ThreadLocal<>();
+    private static final ThreadLocal<String> CURRENT_SID = new ThreadLocal<>();
 
     private UserContextHolder() {
     }
@@ -38,8 +39,17 @@ public final class UserContextHolder {
         return CURRENT_USER_ROLE.get();
     }
 
+    public static void setCurrentSid(String sid) {
+        CURRENT_SID.set(sid);
+    }
+
+    public static String getCurrentSid() {
+        return CURRENT_SID.get();
+    }
+
     public static void clear() {
         CURRENT_USER_ID.remove();
         CURRENT_USER_ROLE.remove();
+        CURRENT_SID.remove();
     }
 }

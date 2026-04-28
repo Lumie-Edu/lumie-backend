@@ -9,26 +9,33 @@ import com.lumie.auth.application.dto.request.UpdateAvatarRequest;
 import com.lumie.auth.application.dto.request.UpdateProfileRequest;
 import com.lumie.auth.application.dto.response.AuthResponse;
 import com.lumie.auth.application.dto.response.LoginResponse;
+import com.lumie.auth.application.dto.response.SessionResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
 import com.lumie.auth.application.dto.response.UserResponse;
 import com.lumie.auth.application.port.in.ChangePasswordUseCase;
 import com.lumie.auth.application.port.in.GetMeUseCase;
+import com.lumie.auth.application.port.in.GetSessionsUseCase;
 import com.lumie.auth.application.port.in.LoginUseCase;
 import com.lumie.auth.application.port.in.LogoutUseCase;
 import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
 import com.lumie.auth.application.port.in.RefreshTokenUseCase;
 import com.lumie.auth.application.port.in.RegisterUseCase;
+import com.lumie.auth.application.port.in.RevokeSessionUseCase;
 import com.lumie.auth.application.port.in.UpdateAvatarUseCase;
 import com.lumie.auth.application.port.in.UpdateProfileUseCase;
+import com.lumie.auth.infrastructure.util.SessionMetadataExtractor;
 import com.lumie.auth.infrastructure.config.CookieConfig;
 import com.lumie.auth.infrastructure.util.CookieUtils;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/v1")
@@ -44,6 +51,8 @@ public class AuthController {
     private final GetMeUseCase getMeUseCase;
     private final UpdateProfileUseCase updateProfileUseCase;
     private final ChangePasswordUseCase changePasswordUseCase;
+    private final GetSessionsUseCase getSessionsUseCase;
+    private final RevokeSessionUseCase revokeSessionUseCase;
     private final CookieUtils cookieUtils;
     private final CookieConfig cookieConfig;
 
@@ -70,10 +79,11 @@ public class AuthController {
     @PostMapping("/me/password")
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         Long userId = UserContextHolder.getUserId();
-        if (userId == null) {
+        String tenantSlug = TenantContextHolder.getTenant();
+        if (userId == null || tenantSlug == null) {
             return ResponseEntity.status(401).build();
         }
-        changePasswordUseCase.changePassword(userId, request);
+        changePasswordUseCase.changePassword(userId, tenantSlug, request);
         return ResponseEntity.noContent().build();
     }
 
@@ -87,21 +97,65 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/me/sessions")
+    public ResponseEntity<List<SessionResponse>> getSessions() {
+        Long userId = UserContextHolder.getUserId();
+        String tenantSlug = TenantContextHolder.getTenant();
+        String currentSid = UserContextHolder.getCurrentSid();
+        if (userId == null || tenantSlug == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(getSessionsUseCase.getSessions(userId, tenantSlug, currentSid));
+    }
+
+    @DeleteMapping("/me/sessions/{sid}")
+    public ResponseEntity<Void> revokeSession(@PathVariable String sid) {
+        Long userId = UserContextHolder.getUserId();
+        String tenantSlug = TenantContextHolder.getTenant();
+        String currentSid = UserContextHolder.getCurrentSid();
+        if (userId == null || tenantSlug == null) {
+            return ResponseEntity.status(401).build();
+        }
+        if (sid.equals(currentSid)) {
+            return ResponseEntity.badRequest().build();
+        }
+        revokeSessionUseCase.revokeSession(userId, tenantSlug, sid);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/me/sessions/revoke-others")
+    public ResponseEntity<Void> revokeOtherSessions() {
+        Long userId = UserContextHolder.getUserId();
+        String tenantSlug = TenantContextHolder.getTenant();
+        String currentSid = UserContextHolder.getCurrentSid();
+        if (userId == null || tenantSlug == null) {
+            return ResponseEntity.status(401).build();
+        }
+        revokeSessionUseCase.revokeOtherSessions(userId, tenantSlug, currentSid);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        LoginResponse response = registerUseCase.register(request);
+    public ResponseEntity<AuthResponse> register(
+            @Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+        var metadata = SessionMetadataExtractor.extract(httpRequest);
+        LoginResponse response = registerUseCase.register(request, metadata);
         return buildAuthResponse(response, 201);
     }
 
     @PostMapping("/register/owner")
-    public ResponseEntity<AuthResponse> registerOwner(@Valid @RequestBody OwnerRegisterRequest request) {
-        LoginResponse response = ownerRegisterUseCase.registerOwner(request);
+    public ResponseEntity<AuthResponse> registerOwner(
+            @Valid @RequestBody OwnerRegisterRequest request, HttpServletRequest httpRequest) {
+        var metadata = SessionMetadataExtractor.extract(httpRequest);
+        LoginResponse response = ownerRegisterUseCase.registerOwner(request, metadata);
         return buildAuthResponse(response, 201);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = loginUseCase.login(request);
+    public ResponseEntity<AuthResponse> login(
+            @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        var metadata = SessionMetadataExtractor.extract(httpRequest);
+        LoginResponse response = loginUseCase.login(request, metadata);
         return buildAuthResponse(response, 200);
     }
 
@@ -110,7 +164,6 @@ public class AuthController {
             @CookieValue(name = "lumie_refresh_token", required = false) String refreshTokenFromCookie,
             @RequestBody(required = false) RefreshTokenRequest request
     ) {
-        // Support both cookie-based and body-based refresh token
         String refreshToken = refreshTokenFromCookie;
         if (refreshToken == null && request != null) {
             refreshToken = request.refreshToken();

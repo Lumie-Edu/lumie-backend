@@ -2,7 +2,9 @@ package com.lumie.auth.application.port.out;
 
 import com.lumie.auth.domain.entity.AuthToken;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Output port for token persistence operations (Redis).
@@ -26,4 +28,14 @@ public interface TokenPersistencePort {
     Optional<String> findSession(String tenantSlug, String jti);
 
     void deleteSession(String tenantSlug, String jti);
+
+    void addSessionToIndex(String tenantSlug, Long userId, String jti);
+
+    Set<String> findAllSessionJtis(String tenantSlug, Long userId);
+
+    void removeSessionFromIndex(String tenantSlug, Long userId, String jti);
+
+    void deleteAllSessionsForUser(String tenantSlug, Long userId);
+
+    Map<String, String> findSessionsBulk(String tenantSlug, Set<String> jtis);
 }

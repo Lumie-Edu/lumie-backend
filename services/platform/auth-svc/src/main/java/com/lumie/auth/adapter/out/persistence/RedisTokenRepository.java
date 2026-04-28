@@ -13,6 +13,11 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -27,6 +32,7 @@ public class RedisTokenRepository implements TokenRepository, TokenPersistencePo
     private static final String BLACKLIST_PREFIX = "auth:blacklist:";
     private static final String REFRESH_PREFIX = "auth:refresh:";
     private static final String SESSION_SUFFIX = ":session:";
+    private static final String SESSION_INDEX_SUFFIX = ":sessions:";
 
     @Override
     public void saveRefreshToken(AuthToken token) {
@@ -105,6 +111,65 @@ public class RedisTokenRepository implements TokenRepository, TokenPersistencePo
         String key = tenantSlug + SESSION_SUFFIX + jti;
         redisTemplate.delete(key);
         log.debug("Deleted session for tenant: {} jti: {}", tenantSlug, jti);
+    }
+
+    private static final long SESSION_INDEX_TTL_SECONDS = 604800;
+
+    @Override
+    public void addSessionToIndex(String tenantSlug, Long userId, String jti) {
+        String key = tenantSlug + SESSION_INDEX_SUFFIX + userId;
+        redisTemplate.opsForSet().add(key, jti);
+        redisTemplate.expire(key, Duration.ofSeconds(SESSION_INDEX_TTL_SECONDS));
+        log.debug("Added session {} to index for user: {}", jti, userId);
+    }
+
+    @Override
+    public Set<String> findAllSessionJtis(String tenantSlug, Long userId) {
+        String key = tenantSlug + SESSION_INDEX_SUFFIX + userId;
+        Set<String> members = redisTemplate.opsForSet().members(key);
+        return members != null ? members : Collections.emptySet();
+    }
+
+    @Override
+    public void removeSessionFromIndex(String tenantSlug, Long userId, String jti) {
+        String key = tenantSlug + SESSION_INDEX_SUFFIX + userId;
+        redisTemplate.opsForSet().remove(key, jti);
+        log.debug("Removed session {} from index for user: {}", jti, userId);
+    }
+
+    @Override
+    public void deleteAllSessionsForUser(String tenantSlug, Long userId) {
+        String indexKey = tenantSlug + SESSION_INDEX_SUFFIX + userId;
+        Set<String> jtis = redisTemplate.opsForSet().members(indexKey);
+        if (jtis != null && !jtis.isEmpty()) {
+            List<String> sessionKeys = jtis.stream()
+                    .map(jti -> tenantSlug + SESSION_SUFFIX + jti)
+                    .toList();
+            redisTemplate.delete(sessionKeys);
+            log.debug("Deleted {} session keys for user: {}", sessionKeys.size(), userId);
+        }
+        redisTemplate.delete(indexKey);
+        log.debug("Deleted session index for user: {}", userId);
+    }
+
+    @Override
+    public Map<String, String> findSessionsBulk(String tenantSlug, Set<String> jtis) {
+        if (jtis.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<String> jtiList = new ArrayList<>(jtis);
+        List<String> keys = jtiList.stream()
+                .map(jti -> tenantSlug + SESSION_SUFFIX + jti)
+                .toList();
+        List<String> values = redisTemplate.opsForValue().multiGet(keys);
+        Map<String, String> result = new HashMap<>();
+        for (int i = 0; i < jtiList.size(); i++) {
+            String value = values != null ? values.get(i) : null;
+            if (value != null) {
+                result.put(jtiList.get(i), value);
+            }
+        }
+        return result;
     }
 
     private RedisToken toRedisToken(AuthToken token) {

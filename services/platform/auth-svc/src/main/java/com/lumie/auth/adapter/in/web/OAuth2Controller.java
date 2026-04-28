@@ -2,8 +2,10 @@ package com.lumie.auth.adapter.in.web;
 
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.port.in.OAuth2LoginUseCase;
+import com.lumie.auth.infrastructure.util.SessionMetadataExtractor;
 import com.lumie.auth.infrastructure.config.OAuth2Config;
 import com.lumie.auth.infrastructure.util.CookieUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -41,8 +43,10 @@ public class OAuth2Controller {
     public ResponseEntity<Void> callback(
             @PathVariable String provider,
             @RequestParam String code,
-            @RequestParam String state) {
-        LoginResponse response = oAuth2LoginUseCase.handleCallback(provider, code, state);
+            @RequestParam String state,
+            HttpServletRequest httpRequest) {
+        var metadata = SessionMetadataExtractor.extract(httpRequest);
+        LoginResponse response = oAuth2LoginUseCase.handleCallback(provider, code, state, metadata);
 
         // Encode user info as base64 JSON for frontend to parse
         String userJson = String.format(

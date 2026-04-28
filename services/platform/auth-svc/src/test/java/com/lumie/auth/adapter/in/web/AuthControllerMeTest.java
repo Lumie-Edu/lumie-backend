@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.dto.response.UserResponse;
 import com.lumie.auth.application.port.in.ChangePasswordUseCase;
 import com.lumie.auth.application.port.in.GetMeUseCase;
+import com.lumie.auth.application.port.in.GetSessionsUseCase;
 import com.lumie.auth.application.port.in.LoginUseCase;
 import com.lumie.auth.application.port.in.LogoutUseCase;
 import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
 import com.lumie.auth.application.port.in.RefreshTokenUseCase;
 import com.lumie.auth.application.port.in.RegisterUseCase;
+import com.lumie.auth.application.port.in.RevokeSessionUseCase;
 import com.lumie.auth.application.port.in.UpdateAvatarUseCase;
 import com.lumie.auth.application.port.in.UpdateProfileUseCase;
 import com.lumie.auth.domain.vo.Role;
@@ -52,6 +54,8 @@ class AuthControllerMeTest {
     @Mock private GetMeUseCase getMeUseCase;
     @Mock private UpdateProfileUseCase updateProfileUseCase;
     @Mock private ChangePasswordUseCase changePasswordUseCase;
+    @Mock private GetSessionsUseCase getSessionsUseCase;
+    @Mock private RevokeSessionUseCase revokeSessionUseCase;
     @Mock private CookieUtils cookieUtils;
     @Mock private CookieConfig cookieConfig;
 
@@ -180,13 +184,15 @@ class AuthControllerMeTest {
     @DisplayName("POST /v1/me/password - 인증된 사용자의 비밀번호 변경 시 204를 반환한다")
     void changePassword_authenticated_returns204() throws Exception {
         UserContextHolder.setUserId(42L);
+        TenantContextHolder.setTenant("acme");
 
         mockMvc.perform(post("/v1/me/password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 new ChangePasswordBody("Old@Pass1", "New@Pass2"))))
                 .andExpect(status().isNoContent());
-        then(changePasswordUseCase).should().changePassword(eq(42L), org.mockito.ArgumentMatchers.any());
+        then(changePasswordUseCase).should()
+                .changePassword(eq(42L), eq("acme"), org.mockito.ArgumentMatchers.any());
     }
 
     @Test

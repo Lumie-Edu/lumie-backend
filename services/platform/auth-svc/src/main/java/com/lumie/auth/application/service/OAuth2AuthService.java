@@ -1,5 +1,7 @@
 package com.lumie.auth.application.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.port.in.OAuth2LoginUseCase;
 import com.lumie.auth.application.port.out.TenantServicePort;
@@ -8,6 +10,8 @@ import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
 import com.lumie.auth.domain.entity.AuthToken;
+import com.lumie.auth.domain.vo.DeviceCategory;
+import com.lumie.auth.domain.vo.SessionMetadata;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.domain.vo.TokenPair;
 import com.lumie.auth.infrastructure.config.OAuth2Config;
@@ -21,8 +25,10 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -36,6 +42,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     private final TokenPersistencePort tokenPersistencePort;
     private final JwtTokenProvider jwtTokenProvider;
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -43,11 +50,9 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     public String getAuthorizationUrl(String provider, String tenantSlug) {
         log.info("Generating OAuth2 authorization URL for provider: {} tenant: {}", provider, tenantSlug);
 
-        // Validate tenant exists
         tenantServicePort.validateTenant(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
 
-        // Generate state with tenant info: base64({tenantSlug}:{nonce})
         String nonce = generateNonce();
         String state = encodeState(tenantSlug, nonce);
 
@@ -67,14 +72,12 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     }
 
     @Override
-    public LoginResponse handleCallback(String provider, String code, String state) {
+    public LoginResponse handleCallback(String provider, String code, String state, SessionMetadata metadata) {
         log.info("Handling OAuth2 callback for provider: {}", provider);
 
-        // 1. Decode state to get tenant slug
         String[] stateParts = decodeState(state);
         String tenantSlug = stateParts[0];
 
-        // 2. Validate tenant
         TenantData tenant = tenantServicePort.validateTenant(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
 
@@ -84,18 +87,13 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
 
         OAuth2Config.ProviderConfig config = getProviderConfig(provider);
 
-        // 3. Exchange code for access token
         Map<String, String> tokenResponse = exchangeCodeForToken(provider, code, config);
         String accessToken = tokenResponse.get("access_token");
 
-        // 4. Get user info from provider
         OAuth2UserInfo userInfo = getUserInfo(provider, accessToken, config);
 
-        // 5. Generate userLoginId from OAuth provider
-        // For keycloak, use keycloak_{sub} to track the Keycloak user identity
         String userLoginId = provider.toLowerCase() + "_" + userInfo.providerId();
 
-        // 6. Find or create user in public.users
         UserData user = userLookupPort.findOrCreateOAuth2User(
                 userLoginId,
                 userInfo.name(),
@@ -103,11 +101,18 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
                 provider
         );
 
-        // 7. Generate tokens
-        TokenPair tokenPair = generateTokenPair(user, tenantSlug);
+        enforceSessionLimitByCategory(tenantSlug, user.id(), metadata.category());
 
-        // 8. Save refresh token
-        saveRefreshToken(user.id(), tenantSlug, tenant.id(), user.role(), tokenPair);
+        String sid = UUID.randomUUID().toString();
+        TokenPair tokenPair = generateTokenPair(user, tenantSlug, sid);
+
+        TokenClaims refreshClaims = jwtTokenProvider.parseToken(tokenPair.refreshToken())
+                .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
+        TokenClaims accessClaims = jwtTokenProvider.parseToken(tokenPair.accessToken())
+                .orElseThrow(() -> new IllegalStateException("Failed to parse generated access token"));
+
+        saveRefreshToken(user.id(), tenantSlug, tenant.id(), user.role(), refreshClaims);
+        saveSessionData(tenantSlug, user.id(), sid, accessClaims.jti(), refreshClaims.jti(), metadata);
 
         log.info("OAuth2 login successful for user: {} via {}", user.userLoginId(), provider);
 
@@ -190,7 +195,6 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
                 );
             }
             case "naver" -> {
-                // Naver wraps profile in `response` object
                 Map<String, Object> naverProfile = (Map<String, Object>) response.get("response");
                 yield new OAuth2UserInfo(
                         (String) naverProfile.get("id"),
@@ -202,14 +206,14 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         };
     }
 
-    private TokenPair generateTokenPair(UserData user, String tenantSlug) {
+    private TokenPair generateTokenPair(UserData user, String tenantSlug, String sid) {
         String accessJti = UUID.randomUUID().toString();
         String refreshJti = UUID.randomUUID().toString();
 
         String accessToken = jwtTokenProvider.generateAccessToken(
-                user.id(), tenantSlug, user.tenantId(), user.role(), accessJti);
+                user.id(), tenantSlug, user.tenantId(), user.role(), accessJti, sid);
         String refreshToken = jwtTokenProvider.generateRefreshToken(
-                user.id(), tenantSlug, user.tenantId(), user.role(), refreshJti);
+                user.id(), tenantSlug, user.tenantId(), user.role(), refreshJti, sid);
 
         return TokenPair.of(
                 accessToken,
@@ -220,10 +224,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     }
 
     private void saveRefreshToken(Long userId, String tenantSlug, Long tenantId,
-                                   com.lumie.auth.domain.vo.Role role, TokenPair tokenPair) {
-        TokenClaims refreshClaims = jwtTokenProvider.parseToken(tokenPair.refreshToken())
-                .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
-
+                                   com.lumie.auth.domain.vo.Role role, TokenClaims refreshClaims) {
         AuthToken authToken = AuthToken.create(
                 refreshClaims.jti(),
                 userId,
@@ -232,8 +233,65 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
                 role,
                 refreshClaims.exp()
         );
-
         tokenPersistencePort.saveRefreshToken(authToken);
+    }
+
+    private void saveSessionData(String tenantSlug, Long userId, String sid,
+                                  String accessJti, String refreshJti, SessionMetadata metadata) {
+        Map<String, Object> sessionData = Map.of(
+                "userId", userId,
+                "device", metadata.device(),
+                "deviceCategory", metadata.category().name(),
+                "ipAddress", metadata.ipAddress(),
+                "createdAt", Instant.now().toEpochMilli(),
+                "accessJti", accessJti,
+                "refreshJti", refreshJti
+        );
+
+        try {
+            String json = objectMapper.writeValueAsString(sessionData);
+            long ttl = jwtTokenProvider.getRefreshTokenExpiration();
+            tokenPersistencePort.saveSession(tenantSlug, sid, json, ttl);
+            tokenPersistencePort.addSessionToIndex(tenantSlug, userId, sid);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize session data", e);
+        }
+    }
+
+    private void enforceSessionLimitByCategory(String tenantSlug, Long userId, DeviceCategory category) {
+        if (category == null || category == DeviceCategory.UNKNOWN) {
+            return;
+        }
+        Set<String> allSids = tokenPersistencePort.findAllSessionJtis(tenantSlug, userId);
+        if (allSids.isEmpty()) {
+            return;
+        }
+        Map<String, String> sessionDataMap = tokenPersistencePort.findSessionsBulk(tenantSlug, allSids);
+
+        for (Map.Entry<String, String> entry : sessionDataMap.entrySet()) {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = objectMapper.readValue(entry.getValue(), Map.class);
+                String existingCategory = (String) data.get("deviceCategory");
+                if (!category.name().equals(existingCategory)) {
+                    continue;
+                }
+                String sid = entry.getKey();
+                String accessJti = (String) data.get("accessJti");
+                String refreshJti = (String) data.get("refreshJti");
+                if (accessJti != null) {
+                    tokenPersistencePort.blacklistToken(accessJti, jwtTokenProvider.getAccessTokenExpiration());
+                }
+                if (refreshJti != null) {
+                    tokenPersistencePort.deleteRefreshToken(userId, refreshJti);
+                }
+                tokenPersistencePort.deleteSession(tenantSlug, sid);
+                tokenPersistencePort.removeSessionFromIndex(tenantSlug, userId, sid);
+                log.info("Revoked existing {} session for user {}: sid={}", category, userId, sid);
+            } catch (JsonProcessingException e) {
+                log.error("Failed to parse session data during category enforcement for sid: {}", entry.getKey(), e);
+            }
+        }
     }
 
     private record OAuth2UserInfo(String providerId, String name) {

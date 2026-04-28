@@ -65,6 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 TenantContextHolder.setTenantId(claims.tenantId());
                 UserContextHolder.setUserId(claims.getUserId());
                 UserContextHolder.setUserRole(claims.role().name());
+                UserContextHolder.setCurrentSid(claims.sid());
 
                 log.debug("Authenticated user: {} for tenant: {}", claims.sub(), claims.tenantSlug());
             }

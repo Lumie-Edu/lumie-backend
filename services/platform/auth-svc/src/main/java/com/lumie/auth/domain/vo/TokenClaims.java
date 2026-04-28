@@ -11,7 +11,8 @@ import java.time.Instant;
  * @param role the user role
  * @param iat issued at timestamp
  * @param exp expiration timestamp
- * @param jti JWT ID (unique identifier)
+ * @param jti unique identifier for this individual token
+ * @param sid session identifier shared by both access and refresh tokens of the same login
  */
 public record TokenClaims(
         String sub,
@@ -20,11 +21,12 @@ public record TokenClaims(
         Role role,
         Instant iat,
         Instant exp,
-        String jti
+        String jti,
+        String sid
 ) {
     public static TokenClaims of(String sub, String tenantSlug, Long tenantId,
-                                  Role role, Instant iat, Instant exp, String jti) {
-        return new TokenClaims(sub, tenantSlug, tenantId, role, iat, exp, jti);
+                                  Role role, Instant iat, Instant exp, String jti, String sid) {
+        return new TokenClaims(sub, tenantSlug, tenantId, role, iat, exp, jti, sid);
     }
 
     public boolean isExpired() {

@@ -1,6 +1,7 @@
 package com.lumie.auth.application.port.in;
 
 import com.lumie.auth.application.dto.response.LoginResponse;
+import com.lumie.auth.domain.vo.SessionMetadata;
 
 public interface OAuth2LoginUseCase {
     /**
@@ -18,7 +19,8 @@ public interface OAuth2LoginUseCase {
      * @param provider the OAuth2 provider
      * @param code the authorization code
      * @param state the state parameter containing tenant info
+     * @param metadata session metadata (device, IP) captured from the HTTP request
      * @return login response with tokens and user info
      */
-    LoginResponse handleCallback(String provider, String code, String state);
+    LoginResponse handleCallback(String provider, String code, String state, SessionMetadata metadata);
 }
