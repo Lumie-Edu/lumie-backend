@@ -12,21 +12,8 @@ public final class SessionMetadataExtractor {
     public static SessionMetadata extract(HttpServletRequest request) {
         String userAgent = request.getHeader("User-Agent");
         String device = parseDevice(userAgent);
-        String ip = resolveIp(request);
         DeviceCategory category = parseCategory(userAgent);
-        return new SessionMetadata(device, ip, category);
-    }
-
-    private static String resolveIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) {
-            return realIp.trim();
-        }
-        return request.getRemoteAddr();
+        return new SessionMetadata(device, category);
     }
 
     private static String parseDevice(String ua) {

@@ -242,7 +242,6 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
                 "userId", userId,
                 "device", metadata.device(),
                 "deviceCategory", metadata.category().name(),
-                "ipAddress", metadata.ipAddress(),
                 "createdAt", Instant.now().toEpochMilli(),
                 "accessJti", accessJti,
                 "refreshJti", refreshJti

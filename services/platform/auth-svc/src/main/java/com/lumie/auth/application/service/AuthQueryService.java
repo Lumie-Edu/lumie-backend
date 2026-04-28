@@ -98,12 +98,11 @@ public class AuthQueryService implements ValidateTokenUseCase, GetMeUseCase, Get
                 Map<String, Object> data = objectMapper.readValue(entry.getValue(), Map.class);
                 String device = (String) data.getOrDefault("device", "Unknown");
                 String deviceCategory = (String) data.getOrDefault("deviceCategory", "UNKNOWN");
-                String ipAddress = (String) data.getOrDefault("ipAddress", "Unknown");
                 long createdAt = ((Number) data.getOrDefault("createdAt", 0L)).longValue();
                 String sid = entry.getKey();
                 boolean isCurrent = currentSid != null && currentSid.equals(sid);
 
-                sessions.add(new SessionResponse(sid, device, deviceCategory, ipAddress, createdAt, isCurrent));
+                sessions.add(new SessionResponse(sid, device, deviceCategory, createdAt, isCurrent));
             } catch (JsonProcessingException e) {
                 log.error("Failed to deserialize session data for sid: {}", entry.getKey(), e);
             }

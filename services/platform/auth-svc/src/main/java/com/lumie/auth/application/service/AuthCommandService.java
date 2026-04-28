@@ -410,7 +410,6 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
                 "userId", userId,
                 "device", metadata.device(),
                 "deviceCategory", metadata.category().name(),
-                "ipAddress", metadata.ipAddress(),
                 "createdAt", Instant.now().toEpochMilli(),
                 "accessJti", accessJti,
                 "refreshJti", refreshJti

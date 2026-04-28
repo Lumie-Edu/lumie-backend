@@ -4,7 +4,6 @@ public record SessionResponse(
         String sid,
         String device,
         String deviceCategory,
-        String ipAddress,
         long createdAt,
         boolean isCurrent
 ) {
