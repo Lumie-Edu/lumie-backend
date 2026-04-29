@@ -36,6 +36,10 @@ public interface StudentRepository {
 
     long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
 
+    long countByCreatedAtBefore(LocalDateTime cutoff);
+
+    List<Object[]> countMonthlyEnrollmentsSince(LocalDateTime from);
+
     boolean existsByUserLoginId(String userLoginId);
 
     boolean existsByPhoneInAnyField(String phone);

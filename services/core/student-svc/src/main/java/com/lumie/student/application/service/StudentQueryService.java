@@ -1,5 +1,6 @@
 package com.lumie.student.application.service;
 
+import com.lumie.student.application.dto.EnrollmentTrendResponse;
 import com.lumie.student.application.dto.StudentResponse;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.StudentNotFoundException;
@@ -11,7 +12,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -82,6 +90,30 @@ public class StudentQueryService {
 
     public long countActiveStudents() {
         return studentRepository.countByIsActive(true);
+    }
+
+    public EnrollmentTrendResponse getEnrollmentTrend(int months) {
+        int window = Math.max(1, Math.min(months, 24));
+        ZoneId zone = ZoneId.systemDefault();
+        YearMonth currentMonth = YearMonth.now(zone);
+        YearMonth firstMonth = currentMonth.minusMonths(window - 1L);
+        LocalDateTime windowStart = firstMonth.atDay(1).atStartOfDay();
+
+        Map<String, Long> bucketed = new HashMap<>();
+        for (Object[] row : studentRepository.countMonthlyEnrollmentsSince(windowStart)) {
+            bucketed.put((String) row[0], ((Number) row[1]).longValue());
+        }
+
+        long cumulative = studentRepository.countByCreatedAtBefore(windowStart);
+        List<EnrollmentTrendResponse.MonthlyEnrollment> series = new ArrayList<>(window);
+        for (int i = 0; i < window; i++) {
+            YearMonth ym = firstMonth.plusMonths(i);
+            String key = ym.toString();
+            long monthlyNew = bucketed.getOrDefault(key, 0L);
+            cumulative += monthlyNew;
+            series.add(new EnrollmentTrendResponse.MonthlyEnrollment(key, monthlyNew, cumulative));
+        }
+        return new EnrollmentTrendResponse(series);
     }
 
     public boolean existsByUserLoginId(String userLoginId) {

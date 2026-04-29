@@ -28,6 +28,18 @@ public interface JpaStudentRepository extends JpaRepository<Student, Long>, JpaS
 
     long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
 
+    long countByCreatedAtBefore(LocalDateTime cutoff);
+
+    @Query(value = """
+            SELECT to_char(date_trunc('month', s.created_at), 'YYYY-MM') AS month,
+                   COUNT(*)                                               AS new_count
+            FROM students s
+            WHERE s.created_at >= :from
+            GROUP BY date_trunc('month', s.created_at)
+            ORDER BY date_trunc('month', s.created_at)
+            """, nativeQuery = true)
+    List<Object[]> countMonthlyEnrollmentsSince(@Param("from") LocalDateTime from);
+
     boolean existsByUserLoginId(String userLoginId);
 
     @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE s.phone = :phone OR s.parentPhone = :phone")

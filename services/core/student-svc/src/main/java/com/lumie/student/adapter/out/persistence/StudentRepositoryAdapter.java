@@ -91,6 +91,16 @@ public class StudentRepositoryAdapter implements StudentRepository {
     }
 
     @Override
+    public long countByCreatedAtBefore(LocalDateTime cutoff) {
+        return jpaStudentRepository.countByCreatedAtBefore(cutoff);
+    }
+
+    @Override
+    public List<Object[]> countMonthlyEnrollmentsSince(LocalDateTime from) {
+        return jpaStudentRepository.countMonthlyEnrollmentsSince(from);
+    }
+
+    @Override
     public boolean existsByUserLoginId(String userLoginId) {
         return jpaStudentRepository.existsByUserLoginId(userLoginId);
     }

@@ -37,6 +37,12 @@ public class StudentController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/statistics/enrollment-trend")
+    public ResponseEntity<EnrollmentTrendResponse> getEnrollmentTrend(
+            @RequestParam(defaultValue = "6") int months) {
+        return ResponseEntity.ok(studentQueryService.getEnrollmentTrend(months));
+    }
+
     @GetMapping
     public ResponseEntity<Page<StudentResponse>> getStudents(
             @RequestParam(required = false) Boolean isActive,
