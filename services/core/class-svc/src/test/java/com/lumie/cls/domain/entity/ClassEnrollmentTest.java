@@ -1,6 +1,9 @@
 package com.lumie.cls.domain.entity;
 
 import com.lumie.cls.domain.vo.EnrollmentStatus;
+import com.lumie.common.tenant.TenantContextHolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -8,6 +11,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("ClassEnrollment 도메인 엔티티 테스트")
 class ClassEnrollmentTest {
+
+    @BeforeEach
+    void setUpTenantContext() {
+        TenantContextHolder.setTenantId(1L);
+    }
+
+    @AfterEach
+    void clearTenantContext() {
+        TenantContextHolder.clear();
+    }
 
     @Test
     @DisplayName("create() 호출 시 기본 상태는 ENROLLED이다")
@@ -47,7 +60,7 @@ class ClassEnrollmentTest {
 
     private ClassEntity buildClassEntity() {
         return ClassEntity.create(
-                1L, "수학 기초반", 10L,
+                "수학 기초반", 10L,
                 null, null);
     }
 }

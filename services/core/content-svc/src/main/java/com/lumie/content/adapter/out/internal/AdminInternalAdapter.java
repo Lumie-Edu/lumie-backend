@@ -23,8 +23,6 @@ public class AdminInternalAdapter implements AdminServicePort {
                         a.id(),
                         a.userId(),
                         a.name(),
-                        null,
-                        null,
                         a.isActive()
                 ));
     }

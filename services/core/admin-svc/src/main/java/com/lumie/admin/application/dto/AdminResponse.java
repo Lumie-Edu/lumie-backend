@@ -4,7 +4,6 @@ import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.vo.EmploymentStatus;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 public record AdminResponse(
     Long id,
@@ -14,7 +13,6 @@ public record AdminResponse(
     String phone,
     String email,
     String role,
-    List<Long> academyIds,
     String adminMemo,
     Boolean isActive,
     EmploymentStatus employmentStatus,
@@ -30,7 +28,6 @@ public record AdminResponse(
             admin.getAdminPhone(),
             admin.getEmail(),
             admin.getRole(),
-            List.copyOf(admin.getAcademyIds()),
             admin.getAdminMemo(),
             admin.isActive(),
             admin.getEmploymentStatus(),

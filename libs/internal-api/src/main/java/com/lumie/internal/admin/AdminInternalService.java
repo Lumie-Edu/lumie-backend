@@ -13,7 +13,7 @@ public interface AdminInternalService {
 
     AdminPermissionsData getAdminPermissions(String tenantSlug, Long adminId);
 
-    AdminListData getAdminsByAcademy(String tenantSlug, Long academyId, int page, int size);
+    AdminListData getAllAdmins(String tenantSlug, int page, int size);
 
     record AdminData(
             Long id,

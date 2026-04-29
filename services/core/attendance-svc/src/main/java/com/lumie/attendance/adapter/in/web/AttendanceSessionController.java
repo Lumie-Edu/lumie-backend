@@ -34,13 +34,12 @@ public class AttendanceSessionController {
 
     @GetMapping
     public ResponseEntity<Page<AttendanceSessionResponse>> getSessions(
-            @RequestParam(required = false) Long academyId,
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @PageableDefault(size = 20, sort = "sessionDate", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<AttendanceSessionResponse> response =
-            queryService.getSessions(academyId, classId, dateFrom, dateTo, pageable);
+            queryService.getSessions(classId, dateFrom, dateTo, pageable);
         return ResponseEntity.ok(response);
     }
 

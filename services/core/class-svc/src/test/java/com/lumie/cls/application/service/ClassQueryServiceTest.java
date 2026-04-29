@@ -10,7 +10,10 @@ import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.ClassSearchCriteria;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
+import com.lumie.common.tenant.TenantContextHolder;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +43,16 @@ class ClassQueryServiceTest {
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private AdminServicePort adminServicePort;
     @InjectMocks private ClassQueryService queryService;
+
+    @BeforeEach
+    void setUpTenantContext() {
+        TenantContextHolder.setTenantId(1L);
+    }
+
+    @AfterEach
+    void clearTenantContext() {
+        TenantContextHolder.clear();
+    }
 
     @Test
     @DisplayName("getClass 성공 시 ClassResponse를 반환한다")
@@ -71,7 +84,7 @@ class ClassQueryServiceTest {
 
         given(classRepository.findAll(any(ClassSearchCriteria.class), eq(pageable))).willReturn(page);
 
-        Page<ClassResponse> response = queryService.listClasses(1L, null, null, pageable);
+        Page<ClassResponse> response = queryService.listClasses(null, null, pageable);
 
         assertThat(response.getContent()).hasSize(1);
     }
@@ -84,7 +97,7 @@ class ClassQueryServiceTest {
 
         given(classRepository.findAll(any(ClassSearchCriteria.class), eq(pageable))).willReturn(emptyPage);
 
-        Page<ClassResponse> response = queryService.listClasses(1L, 10L, "수학", pageable);
+        Page<ClassResponse> response = queryService.listClasses(10L, "수학", pageable);
 
         assertThat(response.getContent()).isEmpty();
     }
@@ -142,7 +155,7 @@ class ClassQueryServiceTest {
 
     private ClassEntity buildClassEntity(Long id) throws Exception {
         ClassEntity entity = ClassEntity.create(
-                1L, "수학 기초반", 10L, null, "설명");
+                "수학 기초반", 10L, null, "설명");
         setField(entity, "id", id);
         return entity;
     }

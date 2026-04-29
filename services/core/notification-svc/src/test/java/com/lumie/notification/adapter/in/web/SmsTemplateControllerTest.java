@@ -61,7 +61,7 @@ class SmsTemplateControllerTest {
         SmsTemplateResponse response = buildTemplateResponse(1L);
         Page<SmsTemplateResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1);
 
-        given(queryService.listTemplates(any(), any())).willReturn(page);
+        given(queryService.listTemplates(any())).willReturn(page);
 
         mockMvc.perform(get("/v1/sms/templates"))
                 .andExpect(status().isOk())
@@ -76,7 +76,7 @@ class SmsTemplateControllerTest {
         given(commandService.createTemplate(any(CreateTemplateRequest.class))).willReturn(response);
 
         CreateTemplateRequest request = new CreateTemplateRequest(
-                1L, "출석 알림", "{학생명}님이 출석했습니다.", TemplateCategory.ATTENDANCE);
+                "출석 알림", "{학생명}님이 출석했습니다.", TemplateCategory.ATTENDANCE);
 
         mockMvc.perform(post("/v1/sms/templates")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -121,7 +121,7 @@ class SmsTemplateControllerTest {
 
     private SmsTemplateResponse buildTemplateResponse(Long id) {
         return new SmsTemplateResponse(
-                id, 1L, "출석 알림", "{학생명}님이 출석했습니다.",
+                id, "출석 알림", "{학생명}님이 출석했습니다.",
                 TemplateCategory.ATTENDANCE,
                 LocalDateTime.now(), LocalDateTime.now());
     }

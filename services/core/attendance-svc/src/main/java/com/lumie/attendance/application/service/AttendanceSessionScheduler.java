@@ -78,7 +78,7 @@ public class AttendanceSessionScheduler {
                 if (cls.scheduleDays() != null && cls.scheduleDays().contains(todayDay)) {
                     try {
                         commandService.createSessionForClass(
-                            cls.academyId(), cls.id(), cls.name(), today, 10
+                            cls.id(), cls.name(), today, 10
                         );
                         created++;
                     } catch (Exception e) {

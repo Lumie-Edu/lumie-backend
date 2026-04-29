@@ -11,5 +11,5 @@ public interface StudentReadRepository {
 
     Optional<StudentReadModel> findByUserId(Long userId);
 
-    List<StudentReadModel> findByAcademyIdAndIsActiveTrue(Long academyId);
+    List<StudentReadModel> findByIsActiveTrue();
 }

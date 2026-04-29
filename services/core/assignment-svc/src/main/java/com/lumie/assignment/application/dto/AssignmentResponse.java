@@ -10,7 +10,6 @@ import java.util.List;
 public record AssignmentResponse(
     Long id,
     Long classId,
-    Long academyId,
     String title,
     String description,
     AssignmentType type,
@@ -26,7 +25,6 @@ public record AssignmentResponse(
         return new AssignmentResponse(
             entity.getId(),
             entity.getClassId(),
-            entity.getAcademyId(),
             entity.getTitle(),
             entity.getDescription(),
             entity.getType(),

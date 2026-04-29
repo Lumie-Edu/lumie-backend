@@ -33,11 +33,6 @@ public class TextbookRepositoryAdapter implements TextbookRepository {
     }
 
     @Override
-    public Page<Textbook> findByAcademyId(Long academyId, Pageable pageable) {
-        return jpaRepository.findByAcademyId(academyId, pageable);
-    }
-
-    @Override
     public Page<Textbook> findBySubject(String subject, Pageable pageable) {
         return jpaRepository.findBySubject(subject, pageable);
     }

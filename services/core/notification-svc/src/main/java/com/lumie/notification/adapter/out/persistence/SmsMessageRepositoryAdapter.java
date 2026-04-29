@@ -33,18 +33,9 @@ public class SmsMessageRepositoryAdapter implements SmsMessageRepository {
         return jpaRepository.findAll(spec, pageable);
     }
 
-    @Override
-    public Page<SmsMessage> findByAcademyId(Long academyId, Pageable pageable) {
-        return jpaRepository.findByAcademyId(academyId, pageable);
-    }
-
     private Specification<SmsMessage> toSpecification(SmsSearchCriteria criteria) {
         Specification<SmsMessage> spec = Specification.where(null);
 
-        if (criteria.academyId() != null) {
-            spec = spec.and((root, query, cb) ->
-                cb.equal(root.get("academyId"), criteria.academyId()));
-        }
         if (criteria.status() != null) {
             spec = spec.and((root, query, cb) ->
                 cb.equal(root.get("status"), criteria.status()));

@@ -16,8 +16,6 @@ public interface StudentServicePort {
             Long userId,
             String studentName,
             String studentPhone,
-            Long academyId,
-            String academyName,
             boolean isActive
     ) {
     }

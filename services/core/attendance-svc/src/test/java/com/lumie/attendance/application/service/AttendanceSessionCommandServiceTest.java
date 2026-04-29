@@ -49,11 +49,11 @@ class AttendanceSessionCommandServiceTest {
     private AttendanceSessionCommandService commandService;
 
     private AttendanceSessionRequest buildRequest() {
-        return new AttendanceSessionRequest("수학 수업", LocalDate.now(), 1L, null, 10);
+        return new AttendanceSessionRequest("수학 수업", LocalDate.now(), null, 10);
     }
 
     private AttendanceSession buildSavedSession(Long id) throws Exception {
-        AttendanceSession session = AttendanceSession.create(1L, "수학 수업", LocalDate.now(), null, null, 10, null);
+        AttendanceSession session = AttendanceSession.create("수학 수업", LocalDate.now(), null, null, 10, null);
         setField(session, "id", id);
         return session;
     }
@@ -62,7 +62,6 @@ class AttendanceSessionCommandServiceTest {
         StudentReadModel student = new StudentReadModel() {};
         setField(student, "id", id);
         setField(student, "name", "학생" + id);
-        setField(student, "academyId", 1L);
         setField(student, "isActive", true);
         setField(student, "userId", id + 100L);
         return student;
@@ -92,13 +91,12 @@ class AttendanceSessionCommandServiceTest {
         StudentReadModel s2 = buildStudent(11L);
 
         given(sessionRepository.save(any(AttendanceSession.class))).willReturn(saved);
-        given(studentReadRepository.findByAcademyIdAndIsActiveTrue(1L)).willReturn(List.of(s1, s2));
+        given(studentReadRepository.findByIsActiveTrue()).willReturn(List.of(s1, s2));
         given(recordRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
 
         AttendanceSessionResponse response = commandService.createSession(request);
 
         assertThat(response).isNotNull();
-        assertThat(response.academyId()).isEqualTo(1L);
 
         ArgumentCaptor<List<AttendanceRecord>> captor = ArgumentCaptor.forClass(List.class);
         verify(recordRepository).saveAll(captor.capture());
@@ -110,7 +108,7 @@ class AttendanceSessionCommandServiceTest {
     void createSession_noActiveStudents_savesEmptyRecords() throws Exception {
         AttendanceSession saved = buildSavedSession(1L);
         given(sessionRepository.save(any())).willReturn(saved);
-        given(studentReadRepository.findByAcademyIdAndIsActiveTrue(1L)).willReturn(List.of());
+        given(studentReadRepository.findByIsActiveTrue()).willReturn(List.of());
         given(recordRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
 
         commandService.createSession(buildRequest());

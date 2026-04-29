@@ -15,11 +15,9 @@ public interface AttendanceSessionRepository {
 
     Optional<AttendanceSession> findById(Long id);
 
-    Page<AttendanceSession> findByAcademyId(Long academyId, Pageable pageable);
-
     Optional<AttendanceSession> findByAttendanceCode(String code);
 
-    Page<AttendanceSession> search(Long academyId, Long classId, LocalDate dateFrom,
+    Page<AttendanceSession> search(Long classId, LocalDate dateFrom,
                                    LocalDate dateTo, Pageable pageable);
 
     boolean existsByClassIdAndSessionDate(Long classId, LocalDate sessionDate);

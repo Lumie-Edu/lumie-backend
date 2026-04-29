@@ -20,7 +20,7 @@ dependencies {
     implementation(project(":services:platform:billing-svc"))
 
     // Core modules
-    implementation(project(":services:core:academy-svc"))
+    implementation(project(":services:core:student-svc"))
     implementation(project(":services:core:admin-svc"))
     implementation(project(":services:core:activity-log-svc"))
     implementation(project(":services:core:exam-svc"))

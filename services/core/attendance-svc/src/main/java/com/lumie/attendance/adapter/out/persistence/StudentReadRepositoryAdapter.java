@@ -25,7 +25,7 @@ public class StudentReadRepositoryAdapter implements StudentReadRepository {
     }
 
     @Override
-    public List<StudentReadModel> findByAcademyIdAndIsActiveTrue(Long academyId) {
-        return jpaRepository.findByAcademyIdAndIsActiveTrue(academyId);
+    public List<StudentReadModel> findByIsActiveTrue() {
+        return jpaRepository.findByIsActiveTrue();
     }
 }

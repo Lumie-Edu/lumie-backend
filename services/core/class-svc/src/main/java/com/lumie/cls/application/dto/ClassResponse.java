@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 
 public record ClassResponse(
     Long id,
-    Long academyId,
     String name,
     Long teacherId,
     String teacherName,
@@ -19,7 +18,6 @@ public record ClassResponse(
     public static ClassResponse from(ClassEntity entity, String teacherName) {
         return new ClassResponse(
             entity.getId(),
-            entity.getAcademyId(),
             entity.getName(),
             entity.getTeacherId(),
             teacherName,

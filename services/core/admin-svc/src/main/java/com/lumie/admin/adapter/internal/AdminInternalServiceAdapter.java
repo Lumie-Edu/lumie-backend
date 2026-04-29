@@ -88,11 +88,11 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
     }
 
     @Override
-    public AdminListData getAdminsByAcademy(String tenantSlug, Long academyId, int page, int size) {
+    public AdminListData getAllAdmins(String tenantSlug, int page, int size) {
         String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
-            var filter = new AdminFilterRequest(academyId, true, null);
+            var filter = new AdminFilterRequest(true, null);
             var pageable = PageRequest.of(page, size);
             var admins = adminQueryService.getAllAdmins(filter, pageable);
 

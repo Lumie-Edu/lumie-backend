@@ -1,13 +1,12 @@
 package com.lumie.notification.application.service;
 
 import com.lumie.notification.application.dto.*;
-import com.lumie.notification.application.port.out.AcademyServicePort;
 import com.lumie.notification.application.port.out.AdminServicePort;
 import com.lumie.notification.application.port.out.ClassServicePort;
+import com.lumie.notification.application.port.out.StudentServicePort;
 import com.lumie.notification.domain.entity.SmsMessage;
 import com.lumie.notification.domain.entity.SmsTemplate;
 import com.lumie.notification.domain.exception.SmsErrorCode;
-import com.lumie.notification.domain.exception.SmsMessageNotFoundException;
 import com.lumie.notification.domain.exception.SmsTemplateNotFoundException;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.repository.SmsTemplateRepository;
@@ -30,18 +29,13 @@ public class SmsCommandService {
 
     private final SmsMessageRepository messageRepository;
     private final SmsTemplateRepository templateRepository;
-    private final AcademyServicePort academyServicePort;
+    private final StudentServicePort studentServicePort;
     private final AdminServicePort adminServicePort;
     private final ClassServicePort classServicePort;
 
     public SmsMessageResponse sendSms(SendSmsRequest request) {
-        academyServicePort.getAcademy(request.academyId())
-            .filter(AcademyServicePort.AcademyInfo::isActive)
-            .orElseThrow(() -> new BusinessException(SmsErrorCode.ACADEMY_NOT_FOUND,
-                "Academy not found or inactive: " + request.academyId()));
-
         adminServicePort.getAdmin(request.senderId())
-            .orElseThrow(() -> new BusinessException(SmsErrorCode.ACADEMY_NOT_FOUND,
+            .orElseThrow(() -> new BusinessException(SmsErrorCode.SENDER_NOT_FOUND,
                 "Sender not found with id: " + request.senderId()));
 
         if (request.recipients() == null || request.recipients().isEmpty()) {
@@ -49,7 +43,6 @@ public class SmsCommandService {
         }
 
         SmsMessage message = SmsMessage.create(
-            request.academyId(),
             request.senderId(),
             request.recipientType(),
             request.recipients(),
@@ -62,23 +55,18 @@ public class SmsCommandService {
         message.markAsSent();
 
         SmsMessage saved = messageRepository.save(message);
-        log.info("SMS message sent (mock): {} to {} recipients in academy: {}",
-            saved.getId(), saved.getRecipients().size(), saved.getAcademyId());
+        log.info("SMS message sent (mock): {} to {} recipients",
+            saved.getId(), saved.getRecipients().size());
         return SmsMessageResponse.from(saved);
     }
 
     public SmsMessageResponse sendToClass(Long classId, SendToClassRequest request) {
-        academyServicePort.getAcademy(request.academyId())
-            .filter(AcademyServicePort.AcademyInfo::isActive)
-            .orElseThrow(() -> new BusinessException(SmsErrorCode.ACADEMY_NOT_FOUND,
-                "Academy not found or inactive: " + request.academyId()));
-
         adminServicePort.getAdmin(request.senderId())
-            .orElseThrow(() -> new BusinessException(SmsErrorCode.ACADEMY_NOT_FOUND,
+            .orElseThrow(() -> new BusinessException(SmsErrorCode.SENDER_NOT_FOUND,
                 "Sender not found with id: " + request.senderId()));
 
         ClassServicePort.ClassInfo classInfo = classServicePort.getClass(classId)
-            .orElseThrow(() -> new BusinessException(SmsErrorCode.ACADEMY_NOT_FOUND,
+            .orElseThrow(() -> new BusinessException(SmsErrorCode.CLASS_NOT_FOUND,
                 "Class not found with id: " + classId));
 
         List<Long> studentIds = classServicePort.getStudentIdsByClassId(classId);
@@ -86,7 +74,7 @@ public class SmsCommandService {
             throw new BusinessException(SmsErrorCode.EMPTY_RECIPIENTS, "No students enrolled in class: " + classId);
         }
 
-        Map<Long, AcademyServicePort.StudentInfo> students = academyServicePort.getStudentsByIds(studentIds);
+        Map<Long, StudentServicePort.StudentInfo> students = studentServicePort.getStudentsByIds(studentIds);
 
         List<Recipient> recipients = students.values().stream()
             .map(s -> new Recipient(s.phone(), s.name(), s.id()))
@@ -97,7 +85,6 @@ public class SmsCommandService {
         }
 
         SmsMessage message = SmsMessage.create(
-            request.academyId(),
             request.senderId(),
             RecipientType.STUDENT,
             recipients,
@@ -116,20 +103,14 @@ public class SmsCommandService {
     }
 
     public SmsTemplateResponse createTemplate(CreateTemplateRequest request) {
-        academyServicePort.getAcademy(request.academyId())
-            .filter(AcademyServicePort.AcademyInfo::isActive)
-            .orElseThrow(() -> new BusinessException(SmsErrorCode.ACADEMY_NOT_FOUND,
-                "Academy not found or inactive: " + request.academyId()));
-
         SmsTemplate template = SmsTemplate.create(
-            request.academyId(),
             request.name(),
             request.content(),
             request.category()
         );
 
         SmsTemplate saved = templateRepository.save(template);
-        log.info("SMS template created: {} in academy: {}", saved.getId(), saved.getAcademyId());
+        log.info("SMS template created: {}", saved.getId());
         return SmsTemplateResponse.from(saved);
     }
 

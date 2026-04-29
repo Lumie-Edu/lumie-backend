@@ -61,7 +61,7 @@ class ClassControllerTest {
         given(commandService.createClass(any(CreateClassRequest.class))).willReturn(response);
 
         CreateClassRequest request = new CreateClassRequest(
-                "수학 기초반", 1L, 10L, null, "설명");
+                "수학 기초반", 10L, null, "설명");
 
         mockMvc.perform(post("/v1/classes")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -77,7 +77,7 @@ class ClassControllerTest {
         ClassResponse response = buildClassResponse(1L);
         Page<ClassResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1);
 
-        given(queryService.listClasses(any(), any(), any(), any())).willReturn(page);
+        given(queryService.listClasses(any(), any(), any())).willReturn(page);
 
         mockMvc.perform(get("/v1/classes"))
                 .andExpect(status().isOk())
@@ -142,7 +142,7 @@ class ClassControllerTest {
 
     private ClassResponse buildClassResponse(Long id) {
         return new ClassResponse(
-                id, 1L, "수학 기초반", 10L, "김강사",
+                id, "수학 기초반", 10L, "김강사",
                 null, "설명",
                 LocalDateTime.now(), LocalDateTime.now());
     }

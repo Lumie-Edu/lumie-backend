@@ -32,17 +32,17 @@ public class SmsQueryService {
         return SmsMessageResponse.from(message);
     }
 
-    public Page<SmsMessageResponse> listMessages(Long academyId, SmsStatus status,
+    public Page<SmsMessageResponse> listMessages(SmsStatus status,
                                                    RecipientType recipientType, String search,
                                                    Pageable pageable) {
-        SmsSearchCriteria criteria = new SmsSearchCriteria(academyId, status, recipientType, search);
+        SmsSearchCriteria criteria = new SmsSearchCriteria(status, recipientType, search);
 
         return messageRepository.findAll(criteria, pageable)
             .map(SmsMessageResponse::from);
     }
 
-    public Page<SmsTemplateResponse> listTemplates(Long academyId, Pageable pageable) {
-        return templateRepository.findByAcademyId(academyId, pageable)
+    public Page<SmsTemplateResponse> listTemplates(Pageable pageable) {
+        return templateRepository.findAll(pageable)
             .map(SmsTemplateResponse::from);
     }
 }

@@ -18,9 +18,6 @@ public class SmsTemplate extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "academy_id", nullable = false)
-    private Long academyId;
-
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
@@ -32,16 +29,14 @@ public class SmsTemplate extends BaseEntity {
     private TemplateCategory category;
 
     @Builder
-    private SmsTemplate(Long academyId, String name, String content, TemplateCategory category) {
-        this.academyId = academyId;
+    private SmsTemplate(String name, String content, TemplateCategory category) {
         this.name = name;
         this.content = content;
         this.category = category != null ? category : TemplateCategory.GENERAL;
     }
 
-    public static SmsTemplate create(Long academyId, String name, String content, TemplateCategory category) {
+    public static SmsTemplate create(String name, String content, TemplateCategory category) {
         return SmsTemplate.builder()
-                .academyId(academyId)
                 .name(name)
                 .content(content)
                 .category(category != null ? category : TemplateCategory.GENERAL)

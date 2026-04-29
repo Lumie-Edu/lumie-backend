@@ -28,9 +28,6 @@ public class Lecture extends BaseEntity {
     @Column(name = "class_id")
     private Long classId;
 
-    @Column(name = "academy_id", nullable = false)
-    private Long academyId;
-
     @Column(name = "teacher_id", nullable = false)
     private Long teacherId;
 
@@ -80,11 +77,10 @@ public class Lecture extends BaseEntity {
     private LocalDate lectureDate;
 
     @Builder
-    private Lecture(Long classId, Long academyId, Long teacherId, String title,
+    private Lecture(Long classId, Long teacherId, String title,
                     String description, String youtubeUrl,
                     LectureVisibility visibility, LocalDate lectureDate) {
         this.classId = classId;
-        this.academyId = academyId;
         this.teacherId = teacherId;
         this.title = title;
         this.description = description;
@@ -95,12 +91,11 @@ public class Lecture extends BaseEntity {
         this.processingStatus = ProcessingStatus.PENDING_PROCESSING;
     }
 
-    public static Lecture create(Long classId, Long academyId, Long teacherId,
+    public static Lecture create(Long classId, Long teacherId,
                                   String title, String description, String youtubeUrl,
                                   LectureVisibility visibility, LocalDate lectureDate) {
         return Lecture.builder()
                 .classId(classId)
-                .academyId(academyId)
                 .teacherId(teacherId)
                 .title(title)
                 .description(description)

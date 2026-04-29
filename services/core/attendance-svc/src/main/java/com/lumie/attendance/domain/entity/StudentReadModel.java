@@ -20,9 +20,6 @@ public class StudentReadModel {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "academy_id")
-    private Long academyId;
-
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 

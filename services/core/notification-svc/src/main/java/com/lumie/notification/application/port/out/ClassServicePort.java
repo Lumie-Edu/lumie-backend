@@ -11,8 +11,7 @@ public interface ClassServicePort {
 
     record ClassInfo(
         Long id,
-        String name,
-        Long academyId
+        String name
     ) {
     }
 }

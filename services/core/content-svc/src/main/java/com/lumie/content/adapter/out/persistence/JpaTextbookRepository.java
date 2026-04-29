@@ -10,8 +10,6 @@ import java.util.List;
 
 public interface JpaTextbookRepository extends JpaRepository<Textbook, Long> {
 
-    Page<Textbook> findByAcademyId(Long academyId, Pageable pageable);
-
     Page<Textbook> findBySubject(String subject, Pageable pageable);
 
     List<Textbook> findByStatus(TextbookStatus status);

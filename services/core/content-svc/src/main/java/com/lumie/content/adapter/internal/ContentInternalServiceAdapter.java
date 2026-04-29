@@ -8,8 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.Set;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -21,7 +19,7 @@ public class ContentInternalServiceAdapter implements ContentInternalService {
     public String createAnnouncement(Long authorId, String title, String content,
                                      boolean isImportant, boolean isAsset) {
         CreateAnnouncementRequest request = new CreateAnnouncementRequest(
-                authorId, title, content, isAsset, isImportant, Set.of());
+                authorId, title, content, isAsset, isImportant);
         AnnouncementResponse response = announcementCommandService.createAnnouncement(request);
         return "Announcement created successfully: " + response.announcementTitle();
     }

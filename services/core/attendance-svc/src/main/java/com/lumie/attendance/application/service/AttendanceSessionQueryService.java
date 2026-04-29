@@ -24,10 +24,10 @@ public class AttendanceSessionQueryService {
             .orElseThrow(() -> new SessionNotFoundException(id));
     }
 
-    public Page<AttendanceSessionResponse> getSessions(Long academyId, Long classId,
+    public Page<AttendanceSessionResponse> getSessions(Long classId,
                                                         LocalDate dateFrom, LocalDate dateTo,
                                                         Pageable pageable) {
-        return sessionRepository.search(academyId, classId, dateFrom, dateTo, pageable)
+        return sessionRepository.search(classId, dateFrom, dateTo, pageable)
             .map(AttendanceSessionResponse::from);
     }
 }

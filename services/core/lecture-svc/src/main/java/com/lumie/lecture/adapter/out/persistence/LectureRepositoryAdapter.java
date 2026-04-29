@@ -93,9 +93,6 @@ public class LectureRepositoryAdapter implements LectureRepository {
         if (criteria.classId() != null) {
             predicates.add(cb.equal(root.get("classId"), criteria.classId()));
         }
-        if (criteria.academyId() != null) {
-            predicates.add(cb.equal(root.get("academyId"), criteria.academyId()));
-        }
         if (criteria.teacherId() != null) {
             predicates.add(cb.equal(root.get("teacherId"), criteria.teacherId()));
         }

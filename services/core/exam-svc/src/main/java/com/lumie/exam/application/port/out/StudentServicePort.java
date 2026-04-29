@@ -19,7 +19,6 @@ public interface StudentServicePort {
             String name,
             String email,
             String phone,
-            String academyName,
             boolean isActive
     ) {
     }

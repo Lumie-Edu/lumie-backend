@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 
 public record SmsTemplateResponse(
     Long id,
-    Long academyId,
     String name,
     String content,
     TemplateCategory category,
@@ -17,7 +16,6 @@ public record SmsTemplateResponse(
     public static SmsTemplateResponse from(SmsTemplate entity) {
         return new SmsTemplateResponse(
             entity.getId(),
-            entity.getAcademyId(),
             entity.getName(),
             entity.getContent(),
             entity.getCategory(),

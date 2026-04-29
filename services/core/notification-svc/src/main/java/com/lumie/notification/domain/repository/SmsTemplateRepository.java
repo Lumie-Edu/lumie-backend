@@ -12,7 +12,7 @@ public interface SmsTemplateRepository {
 
     Optional<SmsTemplate> findById(Long id);
 
-    Page<SmsTemplate> findByAcademyId(Long academyId, Pageable pageable);
+    Page<SmsTemplate> findAll(Pageable pageable);
 
     void deleteById(Long id);
 }

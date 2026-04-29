@@ -24,7 +24,6 @@ public class TextbookCommandService {
         log.info("Creating textbook: {}", request.name());
 
         Textbook textbook = Textbook.create(
-                request.academyId(),
                 request.name(),
                 request.description(),
                 request.author(),

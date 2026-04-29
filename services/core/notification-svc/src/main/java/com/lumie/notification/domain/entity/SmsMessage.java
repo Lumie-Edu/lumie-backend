@@ -28,9 +28,6 @@ public class SmsMessage extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "academy_id", nullable = false)
-    private Long academyId;
-
     @Column(name = "sender_id", nullable = false)
     private Long senderId;
 
@@ -66,10 +63,9 @@ public class SmsMessage extends BaseEntity {
     private int failCount;
 
     @Builder
-    private SmsMessage(Long academyId, Long senderId, RecipientType recipientType,
+    private SmsMessage(Long senderId, RecipientType recipientType,
                        List<Recipient> recipients, String title, String content,
                        Long templateId, SmsStatus status) {
-        this.academyId = academyId;
         this.senderId = senderId;
         this.recipientType = recipientType;
         this.recipients = recipients;
@@ -81,11 +77,10 @@ public class SmsMessage extends BaseEntity {
         this.failCount = 0;
     }
 
-    public static SmsMessage create(Long academyId, Long senderId, RecipientType recipientType,
+    public static SmsMessage create(Long senderId, RecipientType recipientType,
                                     List<Recipient> recipients, String title, String content,
                                     Long templateId) {
         return SmsMessage.builder()
-                .academyId(academyId)
                 .senderId(senderId)
                 .recipientType(recipientType)
                 .recipients(recipients)

@@ -4,9 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record SendToClassRequest(
-    @NotNull(message = "Academy ID is required")
-    Long academyId,
-
     @NotNull(message = "Sender ID is required")
     Long senderId,
 

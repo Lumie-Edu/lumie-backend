@@ -63,7 +63,6 @@ public class AssignmentInternalServiceAdapter implements AssignmentInternalServi
                 response.id(),
                 response.title(),
                 response.classId(),
-                response.academyId(),
                 response.type() != null ? response.type().name() : "HOMEWORK",
                 response.status() != null ? response.status().name() : "ACTIVE",
                 response.createdAt() != null ? response.createdAt().toString() : "",

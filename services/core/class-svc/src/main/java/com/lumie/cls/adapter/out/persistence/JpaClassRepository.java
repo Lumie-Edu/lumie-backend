@@ -19,11 +19,7 @@ public interface JpaClassRepository extends JpaRepository<ClassEntity, Long>, Jp
     @Query("SELECT c FROM ClassEntity c WHERE c.id = :id")
     Optional<ClassEntity> findByIdWithLock(@Param("id") Long id);
 
-    Page<ClassEntity> findByAcademyId(Long academyId, Pageable pageable);
-
     Page<ClassEntity> findByTeacherId(Long teacherId, Pageable pageable);
 
     List<ClassEntity> findAllByTeacherId(Long teacherId);
-
-    long countByAcademyId(Long academyId);
 }

@@ -4,7 +4,6 @@ public enum EntityType {
     ANNOUNCEMENT("announcement"),
     QNA("qna"),
     TEXTBOOK("textbook"),
-    ACADEMY("academy"),
     OMR("omr");
 
     private final String pathSegment;

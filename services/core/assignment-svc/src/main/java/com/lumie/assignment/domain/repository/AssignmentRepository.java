@@ -16,6 +16,4 @@ public interface AssignmentRepository {
     Page<Assignment> findAll(AssignmentSearchCriteria criteria, Pageable pageable);
 
     Page<Assignment> findByClassId(Long classId, Pageable pageable);
-
-    Page<Assignment> findByAcademyId(Long academyId, Pageable pageable);
 }

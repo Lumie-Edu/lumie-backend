@@ -10,8 +10,6 @@ public interface AdminServicePort {
             Long id,
             Long userId,
             String adminName,
-            Long academyId,
-            String academyName,
             boolean isActive
     ) {
     }

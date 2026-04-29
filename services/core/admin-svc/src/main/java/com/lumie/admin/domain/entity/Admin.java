@@ -9,9 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Formula;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Entity
 @Table(name = "admins")
 @Getter
@@ -43,11 +40,6 @@ public class Admin extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "admin_academies", joinColumns = @JoinColumn(name = "admin_id"))
-    @Column(name = "academy_id")
-    private Set<Long> academyIds = new HashSet<>();
-
     @Column(name = "admin_memo", columnDefinition = "TEXT")
     private String adminMemo;
 
@@ -57,28 +49,26 @@ public class Admin extends BaseEntity {
 
     @Builder
     private Admin(Long userId, String userLoginId, String name, String phone, String email,
-                 Set<Long> academyIds, String adminMemo,
+                 String adminMemo,
                  EmploymentStatus employmentStatus, Boolean isActive) {
         this.userId = userId;
         this.userLoginId = userLoginId;
         this.name = name;
         this.phone = phone;
         this.email = email;
-        this.academyIds = academyIds != null ? academyIds : new HashSet<>();
         this.adminMemo = adminMemo;
         this.employmentStatus = employmentStatus != null ? employmentStatus : EmploymentStatus.ACTIVE;
         this.isActive = isActive != null ? isActive : true;
     }
 
     public static Admin create(Long userId, String userLoginId, String name, String phone, String email,
-                               Set<Long> academyIds, String adminMemo) {
+                               String adminMemo) {
         return Admin.builder()
                 .userId(userId)
                 .userLoginId(userLoginId)
                 .name(name)
                 .phone(phone)
                 .email(email)
-                .academyIds(academyIds)
                 .adminMemo(adminMemo)
                 .employmentStatus(EmploymentStatus.ACTIVE)
                 .isActive(true)
@@ -101,13 +91,6 @@ public class Admin extends BaseEntity {
         }
         if (adminMemo != null) {
             this.adminMemo = adminMemo;
-        }
-    }
-
-    public void setAcademyIds(Set<Long> academyIds) {
-        this.academyIds.clear();
-        if (academyIds != null) {
-            this.academyIds.addAll(academyIds);
         }
     }
 

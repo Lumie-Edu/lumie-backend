@@ -22,7 +22,7 @@ public class ClassInternalAdapter implements ClassServicePort {
         String slug = TenantContextHolder.getRequiredTenant();
         log.debug("Getting class via internal API: {} in tenant: {}", classId, slug);
         return classInternalService.getClass(slug, classId)
-                .map(c -> new ClassInfo(c.id(), c.name(), c.academyId()));
+                .map(c -> new ClassInfo(c.id(), c.name()));
     }
 
     @Override

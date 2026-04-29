@@ -15,7 +15,6 @@ public enum AdminErrorCode implements ErrorCode {
     // 404 Not Found
     ADMIN_NOT_FOUND("A510", "Admin not found", 404),
     PERMISSION_NOT_FOUND("A512", "Permission not found", 404),
-    ACADEMY_NOT_FOUND("A518", "Academy not found", 404),
 
     // 409 Conflict
     DUPLICATE_USER_LOGIN_ID("A520", "User login ID already exists", 409),

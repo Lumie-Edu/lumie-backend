@@ -13,7 +13,6 @@ public interface AssignmentInternalService {
             Long id,
             String title,
             Long classId,
-            Long academyId,
             String type,
             String status,
             String createdAt,

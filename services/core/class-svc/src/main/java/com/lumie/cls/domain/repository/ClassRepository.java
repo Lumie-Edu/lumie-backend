@@ -20,13 +20,9 @@ public interface ClassRepository {
 
     Page<ClassEntity> findAll(ClassSearchCriteria criteria, Pageable pageable);
 
-    Page<ClassEntity> findByAcademyId(Long academyId, Pageable pageable);
-
     Page<ClassEntity> findByTeacherId(Long teacherId, Pageable pageable);
 
     List<ClassEntity> findAllByTeacherId(Long teacherId);
-
-    long countByAcademyId(Long academyId);
 
     long count();
 }

@@ -33,11 +33,10 @@ public class ClassController {
 
     @GetMapping
     public ResponseEntity<Page<ClassResponse>> listClasses(
-            @RequestParam(required = false) Long academyId,
             @RequestParam(required = false) Long teacherId,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<ClassResponse> response = queryService.listClasses(academyId, teacherId, search, pageable);
+        Page<ClassResponse> response = queryService.listClasses(teacherId, search, pageable);
         return ResponseEntity.ok(response);
     }
 

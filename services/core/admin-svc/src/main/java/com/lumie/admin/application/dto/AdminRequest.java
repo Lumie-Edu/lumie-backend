@@ -2,8 +2,6 @@ package com.lumie.admin.application.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-import java.util.List;
-
 public record AdminRequest(
     @NotBlank(message = "Role is required")
     String role,
@@ -14,7 +12,6 @@ public record AdminRequest(
     String phone,
     String email,
 
-    List<Long> academyIds,
     String adminMemo
 ) {
 }

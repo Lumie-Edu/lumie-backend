@@ -70,7 +70,7 @@ class AssignmentQueryServiceTest {
 
         given(assignmentRepository.findAll(any(AssignmentSearchCriteria.class), eq(pageable))).willReturn(page);
 
-        Page<AssignmentResponse> response = queryService.listAssignments(10L, 1L, null, null, null, pageable);
+        Page<AssignmentResponse> response = queryService.listAssignments(1L, null, null, null, pageable);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).title()).isEqualTo("수학 숙제");
@@ -85,7 +85,7 @@ class AssignmentQueryServiceTest {
         given(assignmentRepository.findAll(any(AssignmentSearchCriteria.class), eq(pageable))).willReturn(emptyPage);
 
         Page<AssignmentResponse> response = queryService.listAssignments(
-                10L, 1L, AssignmentType.HOMEWORK, AssignmentStatus.ACTIVE, "수학", pageable);
+                1L, AssignmentType.HOMEWORK, AssignmentStatus.ACTIVE, "수학", pageable);
 
         assertThat(response.getContent()).isEmpty();
     }
@@ -143,7 +143,7 @@ class AssignmentQueryServiceTest {
 
     private Assignment buildAssignment(Long id) throws Exception {
         Assignment entity = Assignment.create(
-                1L, 10L, "수학 숙제", "1장 풀기",
+                1L, "수학 숙제", "1장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
                 100, null, 5L);
         setField(entity, "id", id);

@@ -6,7 +6,6 @@ import com.lumie.assignment.application.dto.CreateSubmissionRequest;
 import com.lumie.assignment.application.dto.SubmissionResponse;
 import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
-import com.lumie.assignment.application.port.out.AcademyServicePort;
 import com.lumie.assignment.application.port.out.AdminServicePort;
 import com.lumie.assignment.application.port.out.ClassServicePort;
 import com.lumie.assignment.domain.entity.Assignment;
@@ -36,15 +35,9 @@ public class AssignmentCommandService {
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
     private final ClassServicePort classServicePort;
-    private final AcademyServicePort academyServicePort;
     private final AdminServicePort adminServicePort;
 
     public AssignmentResponse createAssignment(CreateAssignmentRequest request) {
-        academyServicePort.getAcademy(request.academyId())
-            .filter(AcademyServicePort.AcademyInfo::isActive)
-            .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ACADEMY_NOT_FOUND,
-                "Academy not found or inactive: " + request.academyId()));
-
         classServicePort.getClass(request.classId())
             .orElseThrow(() -> new BusinessException(AssignmentErrorCode.CLASS_NOT_FOUND,
                 "Class not found with id: " + request.classId()));
@@ -55,7 +48,6 @@ public class AssignmentCommandService {
 
         Assignment entity = Assignment.create(
             request.classId(),
-            request.academyId(),
             request.title(),
             request.description(),
             type,

@@ -80,10 +80,4 @@ public class StatisticsController {
     public ResponseEntity<DashboardStatisticsResponse> getDashboardStatistics() {
         return ResponseEntity.ok(examStatisticsQueryService.getDashboardStatistics());
     }
-
-    @GetMapping("/exams/{examId}/academy-comparison")
-    public ResponseEntity<List<AcademyComparisonResponse>> getAcademyComparison(
-            @PathVariable Long examId) {
-        return ResponseEntity.ok(examStatisticsQueryService.getAcademyComparison(examId));
-    }
 }

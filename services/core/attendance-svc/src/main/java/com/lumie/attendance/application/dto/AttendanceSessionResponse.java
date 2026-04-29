@@ -9,7 +9,6 @@ import java.util.List;
 
 public record AttendanceSessionResponse(
     Long id,
-    Long academyId,
     String name,
     LocalDate sessionDate,
     Long classId,
@@ -48,7 +47,6 @@ public record AttendanceSessionResponse(
 
         return new AttendanceSessionResponse(
             session.getId(),
-            session.getAcademyId(),
             session.getName(),
             session.getSessionDate(),
             session.getClassId(),
@@ -70,7 +68,6 @@ public record AttendanceSessionResponse(
     public static AttendanceSessionResponse fromWithoutRecords(AttendanceSession session) {
         return new AttendanceSessionResponse(
             session.getId(),
-            session.getAcademyId(),
             session.getName(),
             session.getSessionDate(),
             session.getClassId(),

@@ -68,14 +68,4 @@ public class ExamResultRepositoryAdapter implements ExamResultRepository {
     public int linkUnregisteredByPhone(String phoneNumber, Long studentId) {
         return jpaRepository.linkUnregisteredByPhone(phoneNumber, studentId);
     }
-
-    @Override
-    public List<AcademyComparisonProjection> findAcademyComparisonByExamId(Long examId) {
-        return jpaRepository.findAcademyComparisonByExamId(examId);
-    }
-
-    @Override
-    public List<ResultWithAcademyProjection> findResultsWithAcademyByExamId(Long examId) {
-        return jpaRepository.findResultsWithAcademyByExamId(examId);
-    }
 }

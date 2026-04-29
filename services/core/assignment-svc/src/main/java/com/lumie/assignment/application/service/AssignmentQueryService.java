@@ -30,10 +30,10 @@ public class AssignmentQueryService {
             .orElseThrow(() -> new AssignmentNotFoundException(id));
     }
 
-    public Page<AssignmentResponse> listAssignments(Long academyId, Long classId,
+    public Page<AssignmentResponse> listAssignments(Long classId,
                                                      AssignmentType type, AssignmentStatus status,
                                                      String search, Pageable pageable) {
-        AssignmentSearchCriteria criteria = new AssignmentSearchCriteria(classId, academyId, type, status, search);
+        AssignmentSearchCriteria criteria = new AssignmentSearchCriteria(classId, type, status, search);
         return assignmentRepository.findAll(criteria, pageable)
             .map(AssignmentResponse::from);
     }

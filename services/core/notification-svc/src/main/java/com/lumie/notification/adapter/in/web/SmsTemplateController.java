@@ -26,9 +26,8 @@ public class SmsTemplateController {
 
     @GetMapping
     public ResponseEntity<Page<SmsTemplateResponse>> listTemplates(
-            @RequestParam(required = false) Long academyId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<SmsTemplateResponse> response = queryService.listTemplates(academyId, pageable);
+        Page<SmsTemplateResponse> response = queryService.listTemplates(pageable);
         return ResponseEntity.ok(response);
     }
 

@@ -22,9 +22,6 @@ public class ClassEntity extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "academy_id", nullable = false)
-    private Long academyId;
-
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
@@ -40,19 +37,17 @@ public class ClassEntity extends BaseEntity {
     private String description;
 
     @Builder
-    private ClassEntity(Long academyId, String name, Long teacherId,
+    private ClassEntity(String name, Long teacherId,
                         SchedulePattern schedulePattern, String description) {
-        this.academyId = academyId;
         this.name = name;
         this.teacherId = teacherId;
         this.schedulePattern = schedulePattern;
         this.description = description;
     }
 
-    public static ClassEntity create(Long academyId, String name, Long teacherId,
+    public static ClassEntity create(String name, Long teacherId,
                                      SchedulePattern schedulePattern, String description) {
         return ClassEntity.builder()
-                .academyId(academyId)
                 .name(name)
                 .teacherId(teacherId)
                 .schedulePattern(schedulePattern)

@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 
 public record TextbookResponse(
         Long id,
-        Long academyId,
         String name,
         String description,
         String author,
@@ -25,7 +24,6 @@ public record TextbookResponse(
     public static TextbookResponse from(Textbook textbook) {
         return new TextbookResponse(
                 textbook.getId(),
-                textbook.getAcademyId(),
                 textbook.getName(),
                 textbook.getDescription(),
                 textbook.getAuthor(),

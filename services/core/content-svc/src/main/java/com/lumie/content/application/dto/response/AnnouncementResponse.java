@@ -3,7 +3,6 @@ package com.lumie.content.application.dto.response;
 import com.lumie.content.domain.entity.Announcement;
 
 import java.time.LocalDateTime;
-import java.util.Set;
 
 public record AnnouncementResponse(
         Long id,
@@ -12,7 +11,6 @@ public record AnnouncementResponse(
         String announcementContent,
         Boolean isItAssetAnnouncement,
         Boolean isItImportantAnnouncement,
-        Set<Long> academyIds,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -24,7 +22,6 @@ public record AnnouncementResponse(
                 announcement.getAnnouncementContent(),
                 announcement.getIsItAssetAnnouncement(),
                 announcement.getIsItImportantAnnouncement(),
-                announcement.getAcademyIds(),
                 announcement.getCreatedAt(),
                 announcement.getUpdatedAt()
         );

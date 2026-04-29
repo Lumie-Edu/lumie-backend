@@ -27,25 +27,9 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
         try {
             TenantContextHolder.setTenant(tenantSlug);
             ClassResponse response = classQueryService.getClass(classId);
-            return Optional.of(toClassData(response));
+            return Optional.of(toClassData(response, TenantContextHolder.getTenantId()));
         } catch (ClassNotFoundException e) {
             return Optional.empty();
-        } finally {
-            restoreTenant(previous);
-        }
-    }
-
-    @Override
-    public ClassListData getClassesByAcademy(String tenantSlug, Long academyId, int page, int size) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
-            Page<ClassResponse> classes = classQueryService.listClasses(academyId, null, null,
-                    PageRequest.of(page, size));
-            return new ClassListData(
-                    classes.getContent().stream().map(this::toClassData).toList(),
-                    classes.getTotalElements(), page, size
-            );
         } finally {
             restoreTenant(previous);
         }
@@ -59,7 +43,7 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
             Page<ClassResponse> classes = classQueryService.getClassesByTeacher(teacherId,
                     PageRequest.of(page, size));
             return new ClassListData(
-                    classes.getContent().stream().map(this::toClassData).toList(),
+                    classes.getContent().stream().map(r -> toClassData(r, TenantContextHolder.getTenantId())).toList(),
                     classes.getTotalElements(), page, size
             );
         } finally {
@@ -75,7 +59,7 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
             Page<ClassResponse> classes = classQueryService.getClassesByStudent(studentId,
                     PageRequest.of(page, size));
             return new ClassListData(
-                    classes.getContent().stream().map(this::toClassData).toList(),
+                    classes.getContent().stream().map(r -> toClassData(r, TenantContextHolder.getTenantId())).toList(),
                     classes.getTotalElements(), page, size
             );
         } finally {
@@ -88,10 +72,11 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
         String previous = TenantContextHolder.getTenant();
         try {
             TenantContextHolder.setTenant(tenantSlug);
-            Page<ClassResponse> classes = classQueryService.listClasses(null, null, null,
+            Page<ClassResponse> classes = classQueryService.listClasses(null, null,
                     PageRequest.of(page, size));
+            Long tenantId = TenantContextHolder.getTenantId();
             return new ClassListData(
-                    classes.getContent().stream().map(this::toClassData).toList(),
+                    classes.getContent().stream().map(r -> toClassData(r, tenantId)).toList(),
                     classes.getTotalElements(), page, size
             );
         } finally {
@@ -118,12 +103,12 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
         }
     }
 
-    private ClassData toClassData(ClassResponse response) {
+    private ClassData toClassData(ClassResponse response, Long tenantId) {
         var schedule = response.schedulePattern();
         return new ClassData(
                 response.id(),
                 response.name(),
-                response.academyId(),
+                tenantId,
                 response.teacherId(),
                 schedule != null ? schedule.days() : List.of(),
                 schedule != null ? schedule.startTime() : null,

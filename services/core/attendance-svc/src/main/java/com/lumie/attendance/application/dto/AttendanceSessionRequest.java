@@ -12,9 +12,6 @@ public record AttendanceSessionRequest(
     @NotNull(message = "Session date is required")
     LocalDate sessionDate,
 
-    @NotNull(message = "Academy ID is required")
-    Long academyId,
-
     Long classId,
 
     Integer lateThresholdMinutes

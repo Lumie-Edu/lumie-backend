@@ -40,7 +40,6 @@ public class AttendanceSessionCommandService {
         }
 
         AttendanceSession session = AttendanceSession.create(
-            request.academyId(),
             request.name(),
             request.sessionDate(),
             request.classId(),
@@ -56,7 +55,7 @@ public class AttendanceSessionCommandService {
             String tenantSlug = TenantContextHolder.getRequiredTenant();
             studentIds = classInternalService.getEnrolledStudentIds(tenantSlug, request.classId());
         } else {
-            studentIds = studentReadRepository.findByAcademyIdAndIsActiveTrue(request.academyId())
+            studentIds = studentReadRepository.findByIsActiveTrue()
                 .stream()
                 .map(StudentReadModel::getId)
                 .toList();
@@ -72,7 +71,7 @@ public class AttendanceSessionCommandService {
         return AttendanceSessionResponse.fromWithoutRecords(saved);
     }
 
-    public void createSessionForClass(Long academyId, Long classId, String className,
+    public void createSessionForClass(Long classId, String className,
                                       LocalDate date, Integer lateThresholdMinutes) {
         if (sessionRepository.existsByClassIdAndSessionDate(classId, date)) {
             log.debug("Session already exists for class {} on {}, skipping", classId, date);
@@ -80,7 +79,7 @@ public class AttendanceSessionCommandService {
         }
 
         AttendanceSession session = AttendanceSession.create(
-            academyId, className, date, classId, className,
+            className, date, classId, className,
             lateThresholdMinutes, null
         );
 

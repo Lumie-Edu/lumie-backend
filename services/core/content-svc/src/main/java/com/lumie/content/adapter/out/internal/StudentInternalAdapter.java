@@ -1,7 +1,7 @@
 package com.lumie.content.adapter.out.internal;
 
 import com.lumie.content.application.port.out.StudentServicePort;
-import com.lumie.internal.academy.AcademyInternalService;
+import com.lumie.internal.student.StudentInternalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -14,25 +14,23 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class StudentInternalAdapter implements StudentServicePort {
 
-    private final AcademyInternalService academyInternalService;
+    private final StudentInternalService studentInternalService;
 
     @Override
     public boolean validateStudent(String tenantSlug, Long studentId) {
         log.debug("Validating student via internal API: {} in tenant: {}", studentId, tenantSlug);
-        return academyInternalService.validateStudent(tenantSlug, studentId).valid();
+        return studentInternalService.validateStudent(tenantSlug, studentId).valid();
     }
 
     @Override
     public Optional<StudentData> getStudent(String tenantSlug, Long studentId) {
         log.debug("Getting student via internal API: {} in tenant: {}", studentId, tenantSlug);
-        return academyInternalService.getStudent(tenantSlug, studentId)
+        return studentInternalService.getStudent(tenantSlug, studentId)
                 .map(s -> new StudentData(
                         s.id(),
                         s.userId(),
                         s.studentName(),
                         s.studentPhone(),
-                        s.academyId(),
-                        s.academyName(),
                         s.isActive()
                 ));
     }
@@ -40,7 +38,7 @@ public class StudentInternalAdapter implements StudentServicePort {
     @Override
     public List<StudentInfo> getStudentsByUserIds(String tenantSlug, List<Long> userIds) {
         log.debug("Getting students by userIds via internal API, tenant: {}, userIds: {}", tenantSlug, userIds);
-        return academyInternalService.getStudentsByUserIds(tenantSlug, userIds)
+        return studentInternalService.getStudentsByUserIds(tenantSlug, userIds)
                 .students()
                 .stream()
                 .map(s -> new StudentInfo(s.userId(), s.studentName()))

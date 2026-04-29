@@ -1,9 +1,9 @@
 package com.lumie.notification.application.service;
 
 import com.lumie.notification.application.dto.*;
-import com.lumie.notification.application.port.out.AcademyServicePort;
 import com.lumie.notification.application.port.out.AdminServicePort;
 import com.lumie.notification.application.port.out.ClassServicePort;
+import com.lumie.notification.application.port.out.StudentServicePort;
 import com.lumie.notification.domain.entity.SmsMessage;
 import com.lumie.notification.domain.entity.SmsTemplate;
 import com.lumie.notification.domain.exception.SmsTemplateNotFoundException;
@@ -39,7 +39,7 @@ class SmsCommandServiceTest {
 
     @Mock private SmsMessageRepository messageRepository;
     @Mock private SmsTemplateRepository templateRepository;
-    @Mock private AcademyServicePort academyServicePort;
+    @Mock private StudentServicePort studentServicePort;
     @Mock private AdminServicePort adminServicePort;
     @Mock private ClassServicePort classServicePort;
     @InjectMocks private SmsCommandService commandService;
@@ -52,12 +52,10 @@ class SmsCommandServiceTest {
         @DisplayName("정상 발송 시 SmsMessageResponse를 반환한다")
         void sendSms_success() {
             SendSmsRequest request = new SendSmsRequest(
-                    1L, 10L, RecipientType.STUDENT,
+                    10L, RecipientType.STUDENT,
                     List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                     "제목", "내용", null);
 
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "테스트학원", true)));
             given(adminServicePort.getAdmin(10L))
                     .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "관리자")));
             given(messageRepository.save(any(SmsMessage.class)))
@@ -75,28 +73,12 @@ class SmsCommandServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 학원으로 발송 시 BusinessException이 발생한다")
-        void sendSms_academyNotFound_throwsException() {
-            SendSmsRequest request = new SendSmsRequest(
-                    999L, 10L, RecipientType.STUDENT,
-                    List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
-                    "제목", "내용", null);
-
-            given(academyServicePort.getAcademy(999L)).willReturn(Optional.empty());
-
-            assertThatThrownBy(() -> commandService.sendSms(request))
-                    .isInstanceOf(BusinessException.class);
-        }
-
-        @Test
         @DisplayName("빈 수신자 목록으로 발송 시 BusinessException이 발생한다")
         void sendSms_emptyRecipients_throwsException() {
             SendSmsRequest request = new SendSmsRequest(
-                    1L, 10L, RecipientType.STUDENT,
+                    10L, RecipientType.STUDENT,
                     List.of(), "제목", "내용", null);
 
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
             given(adminServicePort.getAdmin(10L))
                     .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "관리자")));
 
@@ -108,12 +90,10 @@ class SmsCommandServiceTest {
         @DisplayName("존재하지 않는 발송자로 발송 시 BusinessException이 발생한다")
         void sendSms_senderNotFound_throwsException() {
             SendSmsRequest request = new SendSmsRequest(
-                    1L, 999L, RecipientType.STUDENT,
+                    999L, RecipientType.STUDENT,
                     List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                     "제목", "내용", null);
 
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
             given(adminServicePort.getAdmin(999L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.sendSms(request))
@@ -128,20 +108,18 @@ class SmsCommandServiceTest {
         @Test
         @DisplayName("반 전체 발송 시 성공한다")
         void sendToClass_success() {
-            SendToClassRequest request = new SendToClassRequest(1L, 10L, "제목", "내용", null);
+            SendToClassRequest request = new SendToClassRequest(10L, "제목", "내용", null);
 
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
             given(adminServicePort.getAdmin(10L))
                     .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "관리자")));
             given(classServicePort.getClass(5L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(5L, "수학반", 1L)));
+                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(5L, "수학반")));
             given(classServicePort.getStudentIdsByClassId(5L))
                     .willReturn(List.of(100L, 200L));
-            given(academyServicePort.getStudentsByIds(List.of(100L, 200L)))
+            given(studentServicePort.getStudentsByIds(List.of(100L, 200L)))
                     .willReturn(Map.of(
-                        100L, new AcademyServicePort.StudentInfo(100L, "홍길동", "010-1111-1111", 1L, true),
-                        200L, new AcademyServicePort.StudentInfo(200L, "김철수", "010-2222-2222", 1L, true)
+                        100L, new StudentServicePort.StudentInfo(100L, "홍길동", "010-1111-1111", true),
+                        200L, new StudentServicePort.StudentInfo(200L, "김철수", "010-2222-2222", true)
                     ));
             given(messageRepository.save(any(SmsMessage.class)))
                     .willAnswer(inv -> {
@@ -160,14 +138,12 @@ class SmsCommandServiceTest {
         @Test
         @DisplayName("수강생이 없는 반에 발송 시 BusinessException이 발생한다")
         void sendToClass_noStudents_throwsException() {
-            SendToClassRequest request = new SendToClassRequest(1L, 10L, "제목", "내용", null);
+            SendToClassRequest request = new SendToClassRequest(10L, "제목", "내용", null);
 
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
             given(adminServicePort.getAdmin(10L))
                     .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "관리자")));
             given(classServicePort.getClass(5L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(5L, "수학반", 1L)));
+                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(5L, "수학반")));
             given(classServicePort.getStudentIdsByClassId(5L))
                     .willReturn(List.of());
 
@@ -184,10 +160,8 @@ class SmsCommandServiceTest {
         @DisplayName("정상 생성 시 SmsTemplateResponse를 반환한다")
         void createTemplate_success() {
             CreateTemplateRequest request = new CreateTemplateRequest(
-                    1L, "출석 알림", "{학생명}님이 출석했습니다.", TemplateCategory.ATTENDANCE);
+                    "출석 알림", "{학생명}님이 출석했습니다.", TemplateCategory.ATTENDANCE);
 
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
             given(templateRepository.save(any(SmsTemplate.class)))
                     .willAnswer(inv -> {
                         SmsTemplate t = inv.getArgument(0);
@@ -209,7 +183,7 @@ class SmsCommandServiceTest {
         @Test
         @DisplayName("정상 업데이트 시 변경된 SmsTemplateResponse를 반환한다")
         void updateTemplate_success() throws Exception {
-            SmsTemplate template = SmsTemplate.create(1L, "원래", "원래 내용", TemplateCategory.GENERAL);
+            SmsTemplate template = SmsTemplate.create("원래", "원래 내용", TemplateCategory.GENERAL);
             setField(template, "id", 1L);
 
             given(templateRepository.findById(1L)).willReturn(Optional.of(template));
@@ -241,7 +215,7 @@ class SmsCommandServiceTest {
         @Test
         @DisplayName("정상 삭제 시 성공한다")
         void deleteTemplate_success() throws Exception {
-            SmsTemplate template = SmsTemplate.create(1L, "이름", "내용", TemplateCategory.GENERAL);
+            SmsTemplate template = SmsTemplate.create("이름", "내용", TemplateCategory.GENERAL);
             setField(template, "id", 1L);
             given(templateRepository.findById(1L)).willReturn(Optional.of(template));
 

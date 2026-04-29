@@ -6,7 +6,6 @@ import com.lumie.assignment.application.dto.CreateSubmissionRequest;
 import com.lumie.assignment.application.dto.SubmissionResponse;
 import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
-import com.lumie.assignment.application.port.out.AcademyServicePort;
 import com.lumie.assignment.application.port.out.AdminServicePort;
 import com.lumie.assignment.application.port.out.ClassServicePort;
 import com.lumie.assignment.domain.entity.Assignment;
@@ -46,7 +45,6 @@ class AssignmentCommandServiceTest {
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private AssignmentSubmissionRepository submissionRepository;
     @Mock private ClassServicePort classServicePort;
-    @Mock private AcademyServicePort academyServicePort;
     @Mock private AdminServicePort adminServicePort;
     @InjectMocks private AssignmentCommandService commandService;
 
@@ -58,13 +56,11 @@ class AssignmentCommandServiceTest {
         @DisplayName("정상 생성 시 AssignmentResponse를 반환한다")
         void createAssignment_success() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    1L, 10L, "수학 숙제", "1장 풀기", "HOMEWORK",
+                    1L, "수학 숙제", "1장 풀기", "HOMEWORK",
                     LocalDateTime.of(2026, 4, 15, 23, 59), 100, null, 5L);
 
-            given(academyServicePort.getAcademy(10L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(10L, "테스트학원", true)));
             given(classServicePort.getClass(1L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반", 10L)));
+                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반")));
             given(assignmentRepository.save(any(Assignment.class)))
                     .willAnswer(inv -> {
                         Assignment entity = inv.getArgument(0);
@@ -80,25 +76,11 @@ class AssignmentCommandServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 학원으로 생성 시 BusinessException이 발생한다")
-        void createAssignment_academyNotFound_throwsException() {
-            CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    1L, 999L, "과제", null, null, null, null, null, 5L);
-
-            given(academyServicePort.getAcademy(999L)).willReturn(Optional.empty());
-
-            assertThatThrownBy(() -> commandService.createAssignment(request))
-                    .isInstanceOf(BusinessException.class);
-        }
-
-        @Test
         @DisplayName("존재하지 않는 수업으로 생성 시 BusinessException이 발생한다")
         void createAssignment_classNotFound_throwsException() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    999L, 10L, "과제", null, null, null, null, null, 5L);
+                    999L, "과제", null, null, null, null, null, 5L);
 
-            given(academyServicePort.getAcademy(10L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(10L, "학원", true)));
             given(classServicePort.getClass(999L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.createAssignment(request))
@@ -249,7 +231,7 @@ class AssignmentCommandServiceTest {
 
     private Assignment buildAssignment(Long id) throws Exception {
         Assignment entity = Assignment.create(
-                1L, 10L, "수학 숙제", "1장 풀기",
+                1L, "수학 숙제", "1장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
                 100, null, 5L);
         setField(entity, "id", id);

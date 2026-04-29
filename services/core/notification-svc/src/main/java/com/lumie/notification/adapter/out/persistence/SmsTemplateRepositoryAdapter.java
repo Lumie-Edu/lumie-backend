@@ -26,8 +26,8 @@ public class SmsTemplateRepositoryAdapter implements SmsTemplateRepository {
     }
 
     @Override
-    public Page<SmsTemplate> findByAcademyId(Long academyId, Pageable pageable) {
-        return jpaRepository.findByAcademyId(academyId, pageable);
+    public Page<SmsTemplate> findAll(Pageable pageable) {
+        return jpaRepository.findAll(pageable);
     }
 
     @Override

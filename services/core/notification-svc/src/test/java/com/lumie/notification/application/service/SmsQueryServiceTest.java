@@ -67,7 +67,7 @@ class SmsQueryServiceTest {
 
         given(messageRepository.findAll(any(SmsSearchCriteria.class), eq(pageable))).willReturn(page);
 
-        Page<SmsMessageResponse> response = queryService.listMessages(1L, null, null, null, pageable);
+        Page<SmsMessageResponse> response = queryService.listMessages(null, null, null, pageable);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).id()).isEqualTo(1L);
@@ -82,7 +82,7 @@ class SmsQueryServiceTest {
         given(messageRepository.findAll(any(SmsSearchCriteria.class), eq(pageable))).willReturn(emptyPage);
 
         Page<SmsMessageResponse> response = queryService.listMessages(
-            1L, SmsStatus.SENT, RecipientType.STUDENT, "검색어", pageable);
+            SmsStatus.SENT, RecipientType.STUDENT, "검색어", pageable);
 
         assertThat(response.getContent()).isEmpty();
     }
@@ -90,14 +90,14 @@ class SmsQueryServiceTest {
     @Test
     @DisplayName("listTemplates 성공 시 페이지네이션된 결과를 반환한다")
     void listTemplates_success() throws Exception {
-        SmsTemplate template = SmsTemplate.create(1L, "출석 알림", "내용", TemplateCategory.ATTENDANCE);
+        SmsTemplate template = SmsTemplate.create("출석 알림", "내용", TemplateCategory.ATTENDANCE);
         setField(template, "id", 1L);
         Pageable pageable = PageRequest.of(0, 20);
         Page<SmsTemplate> page = new PageImpl<>(List.of(template), pageable, 1);
 
-        given(templateRepository.findByAcademyId(1L, pageable)).willReturn(page);
+        given(templateRepository.findAll(pageable)).willReturn(page);
 
-        Page<SmsTemplateResponse> response = queryService.listTemplates(1L, pageable);
+        Page<SmsTemplateResponse> response = queryService.listTemplates(pageable);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).name()).isEqualTo("출석 알림");
@@ -107,7 +107,7 @@ class SmsQueryServiceTest {
 
     private SmsMessage buildSmsMessage(Long id) throws Exception {
         SmsMessage message = SmsMessage.create(
-                1L, 10L, RecipientType.STUDENT,
+                10L, RecipientType.STUDENT,
                 List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                 "테스트 제목", "테스트 내용", null);
         setField(message, "id", id);

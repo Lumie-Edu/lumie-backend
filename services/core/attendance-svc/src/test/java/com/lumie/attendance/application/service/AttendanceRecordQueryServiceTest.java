@@ -55,14 +55,13 @@ class AttendanceRecordQueryServiceTest {
         StudentReadModel student = new StudentReadModel() {};
         setField(student, "id", id);
         setField(student, "name", name);
-        setField(student, "academyId", 1L);
         setField(student, "isActive", true);
         setField(student, "userId", id + 100L);
         return student;
     }
 
     private AttendanceRecord buildRecord(Long studentId, AttendanceStatus status) throws Exception {
-        AttendanceSession session = AttendanceSession.create(1L, "수업", LocalDate.now(), null, null, 10, null);
+        AttendanceSession session = AttendanceSession.create("수업", LocalDate.now(), null, null, 10, null);
         setField(session, "id", 1L);
         AttendanceRecord record = AttendanceRecord.create(session, studentId);
         setField(record, "id", studentId * 10L);

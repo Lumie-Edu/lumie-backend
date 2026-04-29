@@ -17,12 +17,11 @@ class SmsMessageTest {
     @DisplayName("create() 호출 시 기본 상태는 PENDING이다")
     void create_defaultStatusIsPending() {
         SmsMessage message = SmsMessage.create(
-                1L, 10L, RecipientType.STUDENT,
+                10L, RecipientType.STUDENT,
                 List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                 "테스트 제목", "테스트 내용", null);
 
         assertThat(message.getStatus()).isEqualTo(SmsStatus.PENDING);
-        assertThat(message.getAcademyId()).isEqualTo(1L);
         assertThat(message.getSenderId()).isEqualTo(10L);
         assertThat(message.getRecipientType()).isEqualTo(RecipientType.STUDENT);
         assertThat(message.getRecipients()).hasSize(1);
@@ -85,7 +84,7 @@ class SmsMessageTest {
     @DisplayName("create() 시 templateId가 null이어도 생성 가능하다")
     void create_nullTemplateId_succeeds() {
         SmsMessage message = SmsMessage.create(
-                1L, 10L, RecipientType.CUSTOM,
+                10L, RecipientType.CUSTOM,
                 List.of(new Recipient("010-0000-0000", "테스트", null)),
                 null, "내용", null);
 
@@ -96,7 +95,7 @@ class SmsMessageTest {
 
     private SmsMessage buildMessage() {
         return SmsMessage.create(
-                1L, 10L, RecipientType.STUDENT,
+                10L, RecipientType.STUDENT,
                 List.of(
                     new Recipient("010-1234-5678", "홍길동", 100L),
                     new Recipient("010-9876-5432", "김철수", 200L)

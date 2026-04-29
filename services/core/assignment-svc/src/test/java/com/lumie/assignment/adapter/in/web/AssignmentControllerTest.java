@@ -63,7 +63,7 @@ class AssignmentControllerTest {
         given(commandService.createAssignment(any(CreateAssignmentRequest.class))).willReturn(response);
 
         CreateAssignmentRequest request = new CreateAssignmentRequest(
-                1L, 10L, "수학 숙제", "1장 풀기", "HOMEWORK",
+                1L, "수학 숙제", "1장 풀기", "HOMEWORK",
                 LocalDateTime.of(2026, 4, 15, 23, 59), 100, null, 5L);
 
         mockMvc.perform(post("/v1/assignments")
@@ -81,7 +81,7 @@ class AssignmentControllerTest {
         AssignmentResponse response = buildAssignmentResponse(1L);
         Page<AssignmentResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1);
 
-        given(queryService.listAssignments(any(), any(), any(), any(), any(), any())).willReturn(page);
+        given(queryService.listAssignments(any(), any(), any(), any(), any())).willReturn(page);
 
         mockMvc.perform(get("/v1/assignments"))
                 .andExpect(status().isOk())
@@ -159,7 +159,7 @@ class AssignmentControllerTest {
 
     private AssignmentResponse buildAssignmentResponse(Long id) {
         return new AssignmentResponse(
-                id, 1L, 10L, "수학 숙제", "1장 풀기",
+                id, 1L, "수학 숙제", "1장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
                 100, null, 5L, AssignmentStatus.ACTIVE,
                 LocalDateTime.now(), LocalDateTime.now());

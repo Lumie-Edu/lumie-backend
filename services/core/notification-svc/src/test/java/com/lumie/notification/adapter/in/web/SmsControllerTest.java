@@ -60,7 +60,7 @@ class SmsControllerTest {
         given(commandService.sendSms(any(SendSmsRequest.class))).willReturn(response);
 
         SendSmsRequest request = new SendSmsRequest(
-                1L, 10L, RecipientType.STUDENT,
+                10L, RecipientType.STUDENT,
                 List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                 "제목", "내용", null);
 
@@ -78,7 +78,7 @@ class SmsControllerTest {
         SmsMessageResponse response = buildSmsResponse(1L);
         Page<SmsMessageResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1);
 
-        given(queryService.listMessages(any(), any(), any(), any(), any())).willReturn(page);
+        given(queryService.listMessages(any(), any(), any(), any())).willReturn(page);
 
         mockMvc.perform(get("/v1/sms/history"))
                 .andExpect(status().isOk())
@@ -109,7 +109,7 @@ class SmsControllerTest {
 
     private SmsMessageResponse buildSmsResponse(Long id) {
         return new SmsMessageResponse(
-                id, 1L, 10L, RecipientType.STUDENT,
+                id, 10L, RecipientType.STUDENT,
                 List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                 "테스트 제목", "테스트 내용", null,
                 LocalDateTime.now(), SmsStatus.SENT, 1, 0,

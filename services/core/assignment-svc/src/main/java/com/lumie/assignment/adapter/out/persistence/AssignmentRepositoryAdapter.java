@@ -38,21 +38,12 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
         return jpaRepository.findByClassId(classId, pageable);
     }
 
-    @Override
-    public Page<Assignment> findByAcademyId(Long academyId, Pageable pageable) {
-        return jpaRepository.findByAcademyId(academyId, pageable);
-    }
-
     private Specification<Assignment> toSpecification(AssignmentSearchCriteria criteria) {
         Specification<Assignment> spec = Specification.where(null);
 
         if (criteria.classId() != null) {
             spec = spec.and((root, query, cb) ->
                 cb.equal(root.get("classId"), criteria.classId()));
-        }
-        if (criteria.academyId() != null) {
-            spec = spec.and((root, query, cb) ->
-                cb.equal(root.get("academyId"), criteria.academyId()));
         }
         if (criteria.type() != null) {
             spec = spec.and((root, query, cb) ->

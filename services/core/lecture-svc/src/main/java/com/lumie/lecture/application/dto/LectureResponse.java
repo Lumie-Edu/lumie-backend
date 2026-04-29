@@ -9,7 +9,6 @@ import java.util.List;
 public record LectureResponse(
         Long id,
         Long classId,
-        Long academyId,
         Long teacherId,
         String title,
         String description,
@@ -30,7 +29,6 @@ public record LectureResponse(
         return new LectureResponse(
                 lecture.getId(),
                 lecture.getClassId(),
-                lecture.getAcademyId(),
                 lecture.getTeacherId(),
                 lecture.getTitle(),
                 lecture.getDescription(),

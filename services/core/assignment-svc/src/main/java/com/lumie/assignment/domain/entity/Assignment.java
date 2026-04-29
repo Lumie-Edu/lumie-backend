@@ -30,9 +30,6 @@ public class Assignment extends BaseEntity {
     @Column(name = "class_id", nullable = false)
     private Long classId;
 
-    @Column(name = "academy_id", nullable = false)
-    private Long academyId;
-
     @Column(name = "title", nullable = false, length = 200)
     private String title;
 
@@ -62,11 +59,10 @@ public class Assignment extends BaseEntity {
     private AssignmentStatus status;
 
     @Builder
-    private Assignment(Long classId, Long academyId, String title, String description,
+    private Assignment(Long classId, String title, String description,
                        AssignmentType type, LocalDateTime dueDate, Integer maxScore,
                        List<Long> attachments, Long createdBy, AssignmentStatus status) {
         this.classId = classId;
-        this.academyId = academyId;
         this.title = title;
         this.description = description;
         this.type = type != null ? type : AssignmentType.HOMEWORK;
@@ -77,12 +73,11 @@ public class Assignment extends BaseEntity {
         this.status = status != null ? status : AssignmentStatus.ACTIVE;
     }
 
-    public static Assignment create(Long classId, Long academyId, String title, String description,
+    public static Assignment create(Long classId, String title, String description,
                                     AssignmentType type, LocalDateTime dueDate, Integer maxScore,
                                     List<Long> attachments, Long createdBy) {
         return Assignment.builder()
                 .classId(classId)
-                .academyId(academyId)
                 .title(title)
                 .description(description)
                 .type(type != null ? type : AssignmentType.HOMEWORK)

@@ -16,10 +16,6 @@ public final class AdminSpecification {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (filter.academyId() != null) {
-                predicates.add(cb.isMember(filter.academyId(), root.get("academyIds")));
-            }
-
             if (filter.isActive() != null) {
                 predicates.add(cb.equal(root.get("isActive"), filter.isActive()));
             }

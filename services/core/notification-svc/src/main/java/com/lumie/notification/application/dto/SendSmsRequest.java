@@ -8,9 +8,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record SendSmsRequest(
-    @NotNull(message = "Academy ID is required")
-    Long academyId,
-
     @NotNull(message = "Sender ID is required")
     Long senderId,
 

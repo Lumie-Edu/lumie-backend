@@ -9,6 +9,4 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface JpaAssignmentRepository extends JpaRepository<Assignment, Long>, JpaSpecificationExecutor<Assignment> {
 
     Page<Assignment> findByClassId(Long classId, Pageable pageable);
-
-    Page<Assignment> findByAcademyId(Long academyId, Pageable pageable);
 }

@@ -12,7 +12,7 @@ include(
     "services:platform:tenant-svc",
     "services:platform:auth-svc",
     "services:platform:billing-svc",
-    "services:core:academy-svc",
+    "services:core:student-svc",
     "services:core:attendance-svc",
     "services:core:admin-svc",
     "services:core:activity-log-svc",

@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,18 +65,12 @@ public class AdminCommandService {
             throw new RuntimeException("Failed to create user: " + userResult.message());
         }
 
-        Set<Long> academyIds = new HashSet<>();
-        if (request.academyIds() != null) {
-            academyIds.addAll(request.academyIds());
-        }
-
         Admin admin = Admin.create(
             userResult.userId(),
             userResult.userLoginId(),
             request.name(),
             request.phone(),
             request.email(),
-            academyIds,
             request.adminMemo()
         );
 
@@ -100,10 +93,6 @@ public class AdminCommandService {
 
         admin.updateInfo(request.name(), request.phone(), request.email(),
                 request.adminMemo());
-
-        if (request.academyIds() != null) {
-            admin.setAcademyIds(new HashSet<>(request.academyIds()));
-        }
 
         Admin updated = adminRepository.save(admin);
 

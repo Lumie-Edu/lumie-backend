@@ -6,7 +6,6 @@ import com.lumie.cls.application.dto.CreateClassRequest;
 import com.lumie.cls.application.dto.EnrollStudentsRequest;
 import com.lumie.cls.application.dto.UpdateClassRequest;
 import com.lumie.cls.application.dto.UpdateEnrollmentRequest;
-import com.lumie.cls.application.port.out.AcademyServicePort;
 import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.cls.domain.entity.ClassEnrollment;
 import com.lumie.cls.domain.entity.ClassEntity;
@@ -17,6 +16,9 @@ import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.tenant.TenantContextHolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -42,9 +44,18 @@ class ClassCommandServiceTest {
 
     @Mock private ClassRepository classRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
-    @Mock private AcademyServicePort academyServicePort;
     @Mock private AdminServicePort adminServicePort;
     @InjectMocks private ClassCommandService commandService;
+
+    @BeforeEach
+    void setUpTenant() {
+        TenantContextHolder.setTenantId(1L);
+    }
+
+    @AfterEach
+    void clearTenant() {
+        TenantContextHolder.clear();
+    }
 
     @Nested
     @DisplayName("createClass")
@@ -55,10 +66,8 @@ class ClassCommandServiceTest {
         void createClass_success() {
             // given
             CreateClassRequest request = new CreateClassRequest(
-                    "수학 기초반", 1L, 10L, null, "설명");
+                    "수학 기초반", 10L, null, "설명");
 
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "테스트학원", true)));
             given(adminServicePort.getAdmin(10L))
                     .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "김선생")));
             given(classRepository.save(any(ClassEntity.class)))
@@ -76,38 +85,11 @@ class ClassCommandServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 학원으로 생성 시 BusinessException이 발생한다")
-        void createClass_academyNotFound_throwsException() {
-            CreateClassRequest request = new CreateClassRequest(
-                    "수학반", 999L, null, null, null);
-
-            given(academyServicePort.getAcademy(999L)).willReturn(Optional.empty());
-
-            assertThatThrownBy(() -> commandService.createClass(request))
-                    .isInstanceOf(BusinessException.class);
-        }
-
-        @Test
-        @DisplayName("비활성 학원으로 생성 시 BusinessException이 발생한다")
-        void createClass_inactiveAcademy_throwsException() {
-            CreateClassRequest request = new CreateClassRequest(
-                    "수학반", 1L, null, null, null);
-
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", false)));
-
-            assertThatThrownBy(() -> commandService.createClass(request))
-                    .isInstanceOf(BusinessException.class);
-        }
-
-        @Test
         @DisplayName("존재하지 않는 강사로 생성 시 BusinessException이 발생한다")
         void createClass_teacherNotFound_throwsException() {
             CreateClassRequest request = new CreateClassRequest(
-                    "수학반", 1L, 999L, null, null);
+                    "수학반", 999L, null, null);
 
-            given(academyServicePort.getAcademy(1L))
-                    .willReturn(Optional.of(new AcademyServicePort.AcademyInfo(1L, "학원", true)));
             given(adminServicePort.getAdmin(999L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.createClass(request))
@@ -272,7 +254,7 @@ class ClassCommandServiceTest {
 
     private ClassEntity buildClassEntity(Long id) throws Exception {
         ClassEntity entity = ClassEntity.create(
-                1L, "수학 기초반", 10L, null, "설명");
+                "수학 기초반", 10L, null, "설명");
         setField(entity, "id", id);
         return entity;
     }

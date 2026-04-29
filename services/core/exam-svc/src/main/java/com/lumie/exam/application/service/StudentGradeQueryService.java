@@ -109,7 +109,6 @@ public class StudentGradeQueryService {
                             result.getPhoneNumber(),
                             result.getStudentId() != null,
                             student.name(),
-                            student.academyName(),
                             student.isActive(),
                             result.getTotalScore(),
                             result.getGrade(),
@@ -139,11 +138,11 @@ public class StudentGradeQueryService {
             String displayName = result.getPhoneNumber() != null
                     ? result.getPhoneNumber() : "미등록 학생";
             return new StudentServicePort.StudentInfo(
-                    null, displayName, null, result.getPhoneNumber(), "", false);
+                    null, displayName, null, result.getPhoneNumber(), false);
         }
         return studentMap.getOrDefault(result.getStudentId(),
                 new StudentServicePort.StudentInfo(
                         result.getStudentId(), "학생 " + result.getStudentId(),
-                        null, null, "", true));
+                        null, null, true));
     }
 }

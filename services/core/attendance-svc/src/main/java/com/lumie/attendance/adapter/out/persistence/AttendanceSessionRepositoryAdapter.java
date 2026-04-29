@@ -29,29 +29,21 @@ public class AttendanceSessionRepositoryAdapter implements AttendanceSessionRepo
     }
 
     @Override
-    public Page<AttendanceSession> findByAcademyId(Long academyId, Pageable pageable) {
-        return jpaRepository.findByAcademyId(academyId, pageable);
-    }
-
-    @Override
     public Optional<AttendanceSession> findByAttendanceCode(String code) {
         return jpaRepository.findByAttendanceCodeAndSessionDate(code, LocalDate.now());
     }
 
     @Override
-    public Page<AttendanceSession> search(Long academyId, Long classId, LocalDate dateFrom,
+    public Page<AttendanceSession> search(Long classId, LocalDate dateFrom,
                                           LocalDate dateTo, Pageable pageable) {
-        Specification<AttendanceSession> spec = buildSearchSpec(academyId, classId, dateFrom, dateTo);
+        Specification<AttendanceSession> spec = buildSearchSpec(classId, dateFrom, dateTo);
         return jpaRepository.findAll(spec, pageable);
     }
 
-    private Specification<AttendanceSession> buildSearchSpec(Long academyId, Long classId,
+    private Specification<AttendanceSession> buildSearchSpec(Long classId,
                                                              LocalDate dateFrom, LocalDate dateTo) {
         Specification<AttendanceSession> spec = Specification.where(null);
 
-        if (academyId != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("academyId"), academyId));
-        }
         if (classId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("classId"), classId));
         }

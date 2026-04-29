@@ -1,6 +1,5 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.exam.adapter.out.persistence.AcademyComparisonProjection;
 import com.lumie.exam.application.dto.response.statistics.*;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
@@ -286,30 +285,6 @@ public class ExamStatisticsQueryService {
         return buckets;
     }
 
-    public List<AcademyComparisonResponse> getAcademyComparison(Long examId) {
-        Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
-
-        if (exam.getCategory() != ExamCategory.GRADED ||
-            exam.getGradingType() != GradingType.RELATIVE) {
-            List<AcademyComparisonProjection> projections =
-                    resultRepository.findAcademyComparisonByExamId(examId);
-
-            return projections.stream()
-                    .map(p -> new AcademyComparisonResponse(
-                            p.getAcademyId(), p.getAcademyName(), p.getParticipantCount(),
-                            Math.round(p.getAverage() * 10) / 10.0,
-                            p.getGrade1Count(),
-                            p.getParticipantCount() > 0
-                                    ? Math.round((double) p.getGrade1Count() / p.getParticipantCount() * 1000) / 10.0
-                                    : 0.0
-                    ))
-                    .toList();
-        }
-
-        return calculateAcademyComparisonForRelativeGrading(exam);
-    }
-
     // === Private helpers ===
 
     private static class QuestionErrorInfo {
@@ -499,53 +474,4 @@ public class ExamStatisticsQueryService {
                 .toList();
     }
 
-    private List<AcademyComparisonResponse> calculateAcademyComparisonForRelativeGrading(Exam exam) {
-        var resultsWithAcademy = resultRepository.findResultsWithAcademyByExamId(exam.getId());
-
-        if (resultsWithAcademy.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<Integer> allScores = resultsWithAcademy.stream()
-                .map(r -> r.getTotalScore())
-                .toList();
-
-        GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
-
-        Map<Long, List<com.lumie.exam.adapter.out.persistence.ResultWithAcademyProjection>> byAcademy =
-                resultsWithAcademy.stream()
-                        .collect(Collectors.groupingBy(r -> r.getAcademyId()));
-
-        return byAcademy.entrySet().stream()
-                .map(entry -> {
-                    Long academyId = entry.getKey();
-                    var academyResults = entry.getValue();
-                    String academyName = academyResults.get(0).getAcademyName();
-
-                    int participantCount = academyResults.size();
-                    double average = academyResults.stream()
-                            .mapToInt(r -> r.getTotalScore())
-                            .average()
-                            .orElse(0.0);
-
-                    long grade1Count = academyResults.stream()
-                            .filter(r -> {
-                                int grade = gradeCalculator.calculateRelativeGrade(
-                                        r.getTotalScore(), allScores, gradeScale);
-                                return grade == 1;
-                            })
-                            .count();
-
-                    double grade1Percentage = participantCount > 0
-                            ? Math.round((double) grade1Count / participantCount * 1000) / 10.0
-                            : 0.0;
-
-                    return new AcademyComparisonResponse(
-                            academyId, academyName, participantCount,
-                            Math.round(average * 10) / 10.0, (int) grade1Count, grade1Percentage
-                    );
-                })
-                .sorted(Comparator.comparingDouble(AcademyComparisonResponse::average).reversed())
-                .toList();
-    }
 }

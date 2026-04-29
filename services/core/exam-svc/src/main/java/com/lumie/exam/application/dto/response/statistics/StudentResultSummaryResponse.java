@@ -8,7 +8,6 @@ public record StudentResultSummaryResponse(
         String phoneNumber,
         boolean isRegistered,
         String studentName,
-        String academyName,
         boolean isActive,
         int score,
         Integer grade,

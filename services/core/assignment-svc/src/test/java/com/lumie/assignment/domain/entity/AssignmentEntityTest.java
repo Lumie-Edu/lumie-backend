@@ -17,7 +17,7 @@ class AssignmentEntityTest {
     @DisplayName("create() 호출 시 기본 상태는 ACTIVE이다")
     void create_defaultStatusIsActive() {
         Assignment entity = Assignment.create(
-                1L, 10L, "수학 숙제", "1장~3장 풀기",
+                1L, "수학 숙제", "1장~3장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
                 100, List.of(1L, 2L), 5L);
 
@@ -25,7 +25,6 @@ class AssignmentEntityTest {
         assertThat(entity.getTitle()).isEqualTo("수학 숙제");
         assertThat(entity.getDescription()).isEqualTo("1장~3장 풀기");
         assertThat(entity.getClassId()).isEqualTo(1L);
-        assertThat(entity.getAcademyId()).isEqualTo(10L);
         assertThat(entity.getType()).isEqualTo(AssignmentType.HOMEWORK);
         assertThat(entity.getMaxScore()).isEqualTo(100);
         assertThat(entity.getCreatedBy()).isEqualTo(5L);
@@ -86,7 +85,7 @@ class AssignmentEntityTest {
     @DisplayName("create() 시 type이 null이면 HOMEWORK가 기본값이다")
     void create_nullType_defaultsToHomework() {
         Assignment entity = Assignment.create(
-                1L, 10L, "과제", null, null,
+                1L, "과제", null, null,
                 null, null, null, 5L);
 
         assertThat(entity.getType()).isEqualTo(AssignmentType.HOMEWORK);
@@ -96,7 +95,7 @@ class AssignmentEntityTest {
 
     private Assignment buildEntity() {
         return Assignment.create(
-                1L, 10L, "수학 숙제", "1장~3장 풀기",
+                1L, "수학 숙제", "1장~3장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
                 100, null, 5L);
     }

@@ -23,9 +23,6 @@ public class AttendanceSession extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "academy_id", nullable = false)
-    private Long academyId;
-
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
@@ -54,10 +51,9 @@ public class AttendanceSession extends BaseEntity {
     private List<AttendanceRecord> records = new ArrayList<>();
 
     @Builder
-    private AttendanceSession(Long academyId, String name, LocalDate sessionDate, Long classId,
+    private AttendanceSession(String name, LocalDate sessionDate, Long classId,
                               String className, String attendanceCode, LocalDateTime codeExpiresAt,
                               Integer lateThresholdMinutes, Long createdBy) {
-        this.academyId = academyId;
         this.name = name;
         this.sessionDate = sessionDate;
         this.classId = classId;
@@ -68,11 +64,10 @@ public class AttendanceSession extends BaseEntity {
         this.createdBy = createdBy;
     }
 
-    public static AttendanceSession create(Long academyId, String name, LocalDate sessionDate,
+    public static AttendanceSession create(String name, LocalDate sessionDate,
                                            Long classId, String className,
                                            Integer lateThresholdMinutes, Long createdBy) {
         return AttendanceSession.builder()
-                .academyId(academyId)
                 .name(name)
                 .sessionDate(sessionDate)
                 .classId(classId)

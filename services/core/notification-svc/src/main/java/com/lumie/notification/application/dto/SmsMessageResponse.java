@@ -10,7 +10,6 @@ import java.util.List;
 
 public record SmsMessageResponse(
     Long id,
-    Long academyId,
     Long senderId,
     RecipientType recipientType,
     List<Recipient> recipients,
@@ -27,7 +26,6 @@ public record SmsMessageResponse(
     public static SmsMessageResponse from(SmsMessage entity) {
         return new SmsMessageResponse(
             entity.getId(),
-            entity.getAcademyId(),
             entity.getSenderId(),
             entity.getRecipientType(),
             entity.getRecipients(),

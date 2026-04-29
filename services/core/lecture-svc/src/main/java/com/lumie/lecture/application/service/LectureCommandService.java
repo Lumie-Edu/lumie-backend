@@ -38,7 +38,6 @@ public class LectureCommandService {
 
         Lecture lecture = Lecture.create(
                 request.classId(),
-                request.academyId(),
                 teacherId,
                 request.title(),
                 request.description(),

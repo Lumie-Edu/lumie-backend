@@ -40,9 +40,8 @@ public class ClassQueryService {
         return ClassResponse.from(entity, teacherName);
     }
 
-    public Page<ClassResponse> listClasses(Long academyId, Long teacherId,
-                                           String search, Pageable pageable) {
-        ClassSearchCriteria criteria = new ClassSearchCriteria(academyId, teacherId, search);
+    public Page<ClassResponse> listClasses(Long teacherId, String search, Pageable pageable) {
+        ClassSearchCriteria criteria = new ClassSearchCriteria(teacherId, search);
 
         Page<ClassEntity> page = classRepository.findAll(criteria, pageable);
         Map<Long, String> teacherNames = resolveTeacherNames(page.getContent());

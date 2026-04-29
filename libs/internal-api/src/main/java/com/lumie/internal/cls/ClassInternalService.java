@@ -7,8 +7,6 @@ public interface ClassInternalService {
 
     Optional<ClassData> getClass(String tenantSlug, Long classId);
 
-    ClassListData getClassesByAcademy(String tenantSlug, Long academyId, int page, int size);
-
     ClassListData getClassesByTeacher(String tenantSlug, Long teacherId, int page, int size);
 
     ClassListData getClassesByStudent(String tenantSlug, Long studentId, int page, int size);
@@ -20,7 +18,7 @@ public interface ClassInternalService {
     record ClassData(
             Long id,
             String name,
-            Long academyId,
+            Long tenantId,
             Long teacherId,
             List<String> scheduleDays,
             String startTime,

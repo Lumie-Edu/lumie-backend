@@ -6,7 +6,6 @@ import com.lumie.cls.application.dto.CreateClassRequest;
 import com.lumie.cls.application.dto.EnrollStudentsRequest;
 import com.lumie.cls.application.dto.UpdateClassRequest;
 import com.lumie.cls.application.dto.UpdateEnrollmentRequest;
-import com.lumie.cls.application.port.out.AcademyServicePort;
 import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.cls.domain.entity.ClassEnrollment;
 import com.lumie.cls.domain.entity.ClassEntity;
@@ -36,16 +35,10 @@ public class ClassCommandService {
 
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
-    private final AcademyServicePort academyServicePort;
     private final AdminServicePort adminServicePort;
     private final ActivityLogInternalService activityLogInternalService;
 
     public ClassResponse createClass(CreateClassRequest request) {
-        academyServicePort.getAcademy(request.academyId())
-            .filter(AcademyServicePort.AcademyInfo::isActive)
-            .orElseThrow(() -> new BusinessException(ClassErrorCode.ACADEMY_NOT_FOUND,
-                "Academy not found or inactive: " + request.academyId()));
-
         if (request.teacherId() != null) {
             adminServicePort.getAdmin(request.teacherId())
                 .orElseThrow(() -> new BusinessException(ClassErrorCode.TEACHER_NOT_FOUND,
@@ -55,7 +48,6 @@ public class ClassCommandService {
         validateNoScheduleOverlap(request.teacherId(), request.schedulePattern(), null);
 
         ClassEntity entity = ClassEntity.create(
-            request.academyId(),
             request.name(),
             request.teacherId(),
             request.schedulePattern(),
@@ -64,7 +56,7 @@ public class ClassCommandService {
 
         ClassEntity saved = classRepository.save(entity);
 
-        log.info("Class created: {} in academy: {}", saved.getId(), saved.getAcademyId());
+        log.info("Class created: {}", saved.getId());
         logActivity("CREATE", "CLASS", saved.getId(), saved.getName(), null);
         String teacherName = saved.getTeacherId() != null
             ? adminServicePort.getAdmin(saved.getTeacherId()).map(AdminServicePort.AdminInfo::name).orElse(null)

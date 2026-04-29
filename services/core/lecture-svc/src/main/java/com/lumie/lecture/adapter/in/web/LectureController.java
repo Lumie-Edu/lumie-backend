@@ -31,7 +31,6 @@ public class LectureController {
     @GetMapping
     public ResponseEntity<Page<LectureResponse>> findAll(
             @RequestParam(required = false) Long classId,
-            @RequestParam(required = false) Long academyId,
             @RequestParam(required = false) Long teacherId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String processingStatus,
@@ -40,7 +39,7 @@ public class LectureController {
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(queryService.findAll(
-                classId, academyId, teacherId, status, processingStatus,
+                classId, teacherId, status, processingStatus,
                 startDate, endDate, search, pageable));
     }
 

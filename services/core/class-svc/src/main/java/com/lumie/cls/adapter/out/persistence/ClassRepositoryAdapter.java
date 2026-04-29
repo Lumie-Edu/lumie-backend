@@ -45,11 +45,6 @@ public class ClassRepositoryAdapter implements ClassRepository {
     }
 
     @Override
-    public Page<ClassEntity> findByAcademyId(Long academyId, Pageable pageable) {
-        return jpaRepository.findByAcademyId(academyId, pageable);
-    }
-
-    @Override
     public Page<ClassEntity> findByTeacherId(Long teacherId, Pageable pageable) {
         return jpaRepository.findByTeacherId(teacherId, pageable);
     }
@@ -60,11 +55,6 @@ public class ClassRepositoryAdapter implements ClassRepository {
     }
 
     @Override
-    public long countByAcademyId(Long academyId) {
-        return jpaRepository.countByAcademyId(academyId);
-    }
-
-    @Override
     public long count() {
         return jpaRepository.count();
     }
@@ -72,10 +62,6 @@ public class ClassRepositoryAdapter implements ClassRepository {
     private Specification<ClassEntity> toSpecification(ClassSearchCriteria criteria) {
         Specification<ClassEntity> spec = Specification.where(null);
 
-        if (criteria.academyId() != null) {
-            spec = spec.and((root, query, cb) ->
-                cb.equal(root.get("academyId"), criteria.academyId()));
-        }
         if (criteria.teacherId() != null) {
             spec = spec.and((root, query, cb) ->
                 cb.equal(root.get("teacherId"), criteria.teacherId()));

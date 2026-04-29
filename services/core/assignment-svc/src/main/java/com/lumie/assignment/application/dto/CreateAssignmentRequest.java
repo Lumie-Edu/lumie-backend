@@ -10,9 +10,6 @@ public record CreateAssignmentRequest(
     @NotNull(message = "Class ID is required")
     Long classId,
 
-    @NotNull(message = "Academy ID is required")
-    Long academyId,
-
     @NotBlank(message = "Title is required")
     String title,
 

@@ -34,13 +34,12 @@ public class AssignmentController {
 
     @GetMapping
     public ResponseEntity<Page<AssignmentResponse>> listAssignments(
-            @RequestParam(required = false) Long academyId,
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) AssignmentType type,
             @RequestParam(required = false) AssignmentStatus status,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<AssignmentResponse> response = queryService.listAssignments(academyId, classId, type, status, search, pageable);
+        Page<AssignmentResponse> response = queryService.listAssignments(classId, type, status, search, pageable);
         return ResponseEntity.ok(response);
     }
 

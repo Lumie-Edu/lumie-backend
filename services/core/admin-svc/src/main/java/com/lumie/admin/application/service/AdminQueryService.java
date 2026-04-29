@@ -60,7 +60,6 @@ public class AdminQueryService {
     }
 
     private boolean hasAnyFilter(AdminFilterRequest filter) {
-        return filter.academyId() != null
-                || filter.isActive() != null || (filter.search() != null && !filter.search().isBlank());
+        return filter.isActive() != null || (filter.search() != null && !filter.search().isBlank());
     }
 }

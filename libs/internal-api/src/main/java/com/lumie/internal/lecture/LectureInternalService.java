@@ -12,7 +12,6 @@ public interface LectureInternalService {
     record LectureData(
             Long id,
             Long classId,
-            Long academyId,
             Long teacherId,
             String title,
             String description,

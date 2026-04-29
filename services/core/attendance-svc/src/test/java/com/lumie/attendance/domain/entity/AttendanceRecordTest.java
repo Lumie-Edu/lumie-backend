@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AttendanceRecordTest {
 
     private AttendanceSession buildSession() {
-        return AttendanceSession.create(1L, "테스트 세션", LocalDate.now(), null, null, 10, null);
+        return AttendanceSession.create("테스트 세션", LocalDate.now(), null, null, 10, null);
     }
 
     @Test

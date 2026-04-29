@@ -86,7 +86,7 @@ class OmrGradingJobProcessorTest {
         OmrGradingCallbackRequest request = buildSuccessCallback();
         Long studentId = 200L;
         StudentServicePort.StudentInfo student = new StudentServicePort.StudentInfo(
-                studentId, "홍길동", "hong@test.com", "01012345678", "루미아카데미", true);
+                studentId, "홍길동", "hong@test.com", "01012345678", true);
         ExamResult resolvedResult = ExamResult.create(exam, studentId, 100);
 
         given(examRepository.findById(10L)).willReturn(Optional.of(exam));

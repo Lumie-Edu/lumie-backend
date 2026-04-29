@@ -30,8 +30,7 @@ public class AnnouncementCommandService {
                 request.announcementTitle(),
                 request.announcementContent(),
                 request.isItAssetAnnouncement(),
-                request.isItImportantAnnouncement(),
-                request.academyIds()
+                request.isItImportantAnnouncement()
         );
 
         Announcement saved = announcementRepository.save(announcement);
@@ -53,10 +52,6 @@ public class AnnouncementCommandService {
                 request.isItAssetAnnouncement(),
                 request.isItImportantAnnouncement()
         );
-
-        if (request.academyIds() != null) {
-            announcement.setAcademyIds(request.academyIds());
-        }
 
         if (request.fileIdsToDelete() != null && !request.fileIdsToDelete().isEmpty()) {
             fileInternalService.deleteFilesByIds(request.fileIdsToDelete());

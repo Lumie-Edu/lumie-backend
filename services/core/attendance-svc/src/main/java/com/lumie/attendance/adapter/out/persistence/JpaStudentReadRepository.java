@@ -10,5 +10,5 @@ public interface JpaStudentReadRepository extends JpaRepository<StudentReadModel
 
     Optional<StudentReadModel> findByUserId(Long userId);
 
-    List<StudentReadModel> findByAcademyIdAndIsActiveTrue(Long academyId);
+    List<StudentReadModel> findByIsActiveTrue();
 }

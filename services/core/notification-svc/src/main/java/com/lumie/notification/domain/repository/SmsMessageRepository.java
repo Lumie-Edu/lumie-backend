@@ -14,6 +14,4 @@ public interface SmsMessageRepository {
     Optional<SmsMessage> findById(Long id);
 
     Page<SmsMessage> findAll(SmsSearchCriteria criteria, Pageable pageable);
-
-    Page<SmsMessage> findByAcademyId(Long academyId, Pageable pageable);
 }

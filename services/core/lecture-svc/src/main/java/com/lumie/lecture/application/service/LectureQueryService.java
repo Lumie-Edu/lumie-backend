@@ -25,12 +25,12 @@ public class LectureQueryService {
 
     private final LectureRepository lectureRepository;
 
-    public Page<LectureResponse> findAll(Long classId, Long academyId, Long teacherId,
+    public Page<LectureResponse> findAll(Long classId, Long teacherId,
                                           String status, String processingStatus,
                                           LocalDate startDate, LocalDate endDate,
                                           String search, Pageable pageable) {
         LectureSearchCriteria criteria = new LectureSearchCriteria(
-                classId, academyId, teacherId,
+                classId, teacherId,
                 status != null ? LectureStatus.valueOf(status) : null,
                 processingStatus != null ? ProcessingStatus.valueOf(processingStatus) : null,
                 startDate, endDate, search

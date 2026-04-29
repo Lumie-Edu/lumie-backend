@@ -35,13 +35,12 @@ public class SmsController {
 
     @GetMapping("/history")
     public ResponseEntity<Page<SmsMessageResponse>> listMessages(
-            @RequestParam(required = false) Long academyId,
             @RequestParam(required = false) SmsStatus status,
             @RequestParam(required = false) RecipientType recipientType,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<SmsMessageResponse> response = queryService.listMessages(
-            academyId, status, recipientType, search, pageable);
+            status, recipientType, search, pageable);
         return ResponseEntity.ok(response);
     }
 

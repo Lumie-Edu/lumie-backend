@@ -16,8 +16,6 @@ public interface TextbookRepository {
 
     Page<Textbook> findAll(Pageable pageable);
 
-    Page<Textbook> findByAcademyId(Long academyId, Pageable pageable);
-
     Page<Textbook> findBySubject(String subject, Pageable pageable);
 
     List<Textbook> findByStatus(TextbookStatus status);

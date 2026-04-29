@@ -20,9 +20,6 @@ public class Textbook extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "academy_id", nullable = false)
-    private Long academyId;
-
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 
@@ -55,10 +52,9 @@ public class Textbook extends BaseEntity {
     private TextbookStatus status;
 
     @Builder
-    private Textbook(Long academyId, String name, String description, String author,
+    private Textbook(String name, String description, String author,
                      String publisher, String isbn, String subject, String gradeLevel,
                      BigDecimal price, String coverImagePath, TextbookStatus status) {
-        this.academyId = academyId;
         this.name = name;
         this.description = description;
         this.author = author;
@@ -71,11 +67,10 @@ public class Textbook extends BaseEntity {
         this.status = status != null ? status : TextbookStatus.ACTIVE;
     }
 
-    public static Textbook create(Long academyId, String name, String description, String author,
+    public static Textbook create(String name, String description, String author,
                                    String publisher, String isbn, String subject, String gradeLevel,
                                    BigDecimal price, String coverImagePath) {
         return Textbook.builder()
-                .academyId(academyId)
                 .name(name)
                 .description(description)
                 .author(author)
