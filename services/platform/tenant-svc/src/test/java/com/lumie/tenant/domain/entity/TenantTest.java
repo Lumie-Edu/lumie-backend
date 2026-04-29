@@ -131,22 +131,19 @@ class TenantTest {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
         assertThat(tenant.getPlan()).isEqualTo(TenantPlan.FREE);
 
-        tenant.updatePlan(TenantPlan.ENTERPRISE);
+        tenant.updatePlan(TenantPlan.MAX);
 
-        assertThat(tenant.getPlan()).isEqualTo(TenantPlan.ENTERPRISE);
+        assertThat(tenant.getPlan()).isEqualTo(TenantPlan.MAX);
         assertThat(tenant.supportsCustomDomains()).isTrue();
     }
 
     @Test
-    @DisplayName("getOrCreateSettings 호출 시 Settings 생성됨")
-    void getOrCreateSettingsCreatesSettings() {
+    @DisplayName("updateLogoObjectKey 호출 시 logoObjectKey 갱신됨")
+    void updateLogoObjectKey() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
 
-        // Settings는 명시적 호출 전까지 null
-        TenantSettings settings = tenant.getOrCreateSettings();
+        tenant.updateLogoObjectKey("c704d223/branding/logo");
 
-        assertThat(settings).isNotNull();
-        assertThat(settings.getTenant()).isEqualTo(tenant);
-        assertThat(settings.getTheme()).isEmpty();
+        assertThat(tenant.getLogoObjectKey()).isEqualTo("c704d223/branding/logo");
     }
 }

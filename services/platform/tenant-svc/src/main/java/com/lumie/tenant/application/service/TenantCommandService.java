@@ -75,10 +75,26 @@ public class TenantCommandService implements
 
         Tenant tenant = findTenantOrThrow(slug);
         tenant.updateInfo(request.name(), request.displayName());
+        tenant.updateContact(request.phone(), request.address());
+        applyCustomIdUpdate(tenant, request.customId());
         Tenant updatedTenant = tenantPersistencePort.save(tenant);
 
         log.info("Tenant updated: {}", slug);
         return TenantResponse.from(updatedTenant);
+    }
+
+    private void applyCustomIdUpdate(Tenant tenant, String requested) {
+        if (requested == null) {
+            return;
+        }
+        String normalized = requested.isBlank() ? null : requested.trim().toLowerCase(java.util.Locale.ROOT);
+        if (java.util.Objects.equals(normalized, tenant.getCustomId())) {
+            return;
+        }
+        if (normalized != null && tenantPersistencePort.existsByCustomId(normalized)) {
+            throw new DuplicateResourceException("CustomId", normalized);
+        }
+        tenant.updateCustomId(normalized);
     }
 
     @Override

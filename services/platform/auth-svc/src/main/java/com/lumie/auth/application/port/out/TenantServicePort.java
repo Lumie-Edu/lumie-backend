@@ -51,7 +51,8 @@ public interface TenantServicePort {
             String slug,
             String name,
             String schemaName,
-            String status
+            String status,
+            String customId
     ) {
         public boolean isActive() {
             return "ACTIVE".equalsIgnoreCase(status);

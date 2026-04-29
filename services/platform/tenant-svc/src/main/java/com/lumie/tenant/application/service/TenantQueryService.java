@@ -1,6 +1,7 @@
 package com.lumie.tenant.application.service;
 
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.tenant.application.dto.response.PublicTenantResponse;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.port.in.GetTenantUseCase;
 import com.lumie.tenant.application.port.in.ValidateTenantUseCase;
@@ -54,5 +55,12 @@ public class TenantQueryService implements GetTenantUseCase, ValidateTenantUseCa
     public Optional<Long> getTenantIdBySlug(String slug) {
         return tenantPersistencePort.findBySlug(slug)
                 .map(Tenant::getId);
+    }
+
+    public PublicTenantResponse getPublicTenantByCustomId(String customId) {
+        return tenantPersistencePort.findByCustomId(customId)
+                .filter(Tenant::isActive)
+                .map(PublicTenantResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", customId));
     }
 }

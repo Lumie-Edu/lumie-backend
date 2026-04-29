@@ -4,17 +4,17 @@ public enum TenantPlan {
     FREE,
     BASIC,
     PRO,
-    ENTERPRISE;
+    MAX;
 
     public boolean supportsCustomDomains() {
-        return this == PRO || this == ENTERPRISE;
+        return this == PRO || this == MAX;
     }
 
     public boolean supportsAdvancedAnalytics() {
-        return this == PRO || this == ENTERPRISE;
+        return this == PRO || this == MAX;
     }
 
     public boolean supportsPrioritySupport() {
-        return this == ENTERPRISE;
+        return this == MAX;
     }
 }

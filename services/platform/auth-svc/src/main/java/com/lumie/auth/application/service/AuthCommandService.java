@@ -113,6 +113,12 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
             throw new IllegalStateException("Tenant is not active");
         }
 
+        if (request.customId() != null && !request.customId().isBlank()
+                && !request.customId().equalsIgnoreCase(tenant.customId())) {
+            log.info("CustomId mismatch on login: requested={}, tenant={}", request.customId(), tenant.customId());
+            throw new InvalidCredentialsException("Invalid user login ID or password");
+        }
+
         IssuedTokens issued = issueTokensForLogin(user, tenant.slug(), tenant.id(), metadata);
 
         log.info("Login successful for user: {} on tenant: {}", user.id(), tenant.slug());

@@ -9,6 +9,7 @@ import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
+import com.lumie.auth.application.service.AuthCommandService.InvalidCredentialsException;
 import com.lumie.auth.domain.entity.AuthToken;
 import com.lumie.auth.domain.vo.DeviceCategory;
 import com.lumie.auth.domain.vo.SessionMetadata;
@@ -109,6 +110,11 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
                 tenant.id(),
                 provider
         );
+
+        if (!user.tenantId().equals(tenant.id())) {
+            log.info("OAuth2 tenant mismatch: user.tenant={} state.tenant={}", user.tenantId(), tenant.id());
+            throw new InvalidCredentialsException("이 학원의 계정이 아닙니다");
+        }
 
         enforceSessionLimitByCategory(tenantSlug, user.id(), metadata.category());
 

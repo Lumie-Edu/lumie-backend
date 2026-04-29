@@ -31,8 +31,18 @@ public class TenantPersistenceAdapter implements TenantPersistencePort {
     }
 
     @Override
+    public Optional<Tenant> findByCustomId(String customId) {
+        return tenantJpaRepository.findByCustomId(customId);
+    }
+
+    @Override
     public boolean existsBySlug(String slug) {
         return tenantJpaRepository.existsBySlug(slug);
+    }
+
+    @Override
+    public boolean existsByCustomId(String customId) {
+        return tenantJpaRepository.existsByCustomId(customId);
     }
 
     @Override

@@ -30,14 +30,14 @@ public class TenantInternalAdapter implements TenantServicePort {
     public Optional<TenantData> getTenantBySlug(String slug) {
         log.debug("Getting tenant by slug via internal API: {}", slug);
         return tenantInternalService.getTenantBySlug(slug)
-                .map(t -> new TenantData(t.id(), t.slug(), t.name(), t.schemaName(), t.status()));
+                .map(t -> new TenantData(t.id(), t.slug(), t.name(), t.schemaName(), t.status(), t.customId()));
     }
 
     @Override
     public Optional<TenantData> validateTenantById(Long tenantId) {
         log.debug("Validating tenant by ID via internal API: {}", tenantId);
         return tenantInternalService.getTenant(tenantId)
-                .map(t -> new TenantData(t.id(), t.slug(), t.name(), t.schemaName(), t.status()));
+                .map(t -> new TenantData(t.id(), t.slug(), t.name(), t.schemaName(), t.status(), t.customId()));
     }
 
     @Override

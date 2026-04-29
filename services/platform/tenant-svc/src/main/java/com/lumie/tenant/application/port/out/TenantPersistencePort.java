@@ -10,7 +10,9 @@ public interface TenantPersistencePort {
     Tenant save(Tenant tenant);
     Optional<Tenant> findById(Long id);
     Optional<Tenant> findBySlug(String slug);
+    Optional<Tenant> findByCustomId(String customId);
     boolean existsBySlug(String slug);
+    boolean existsByCustomId(String customId);
     List<Tenant> findAllByStatus(TenantStatus status);
     List<Tenant> findAll();
     void delete(Tenant tenant);

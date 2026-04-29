@@ -19,6 +19,7 @@ public interface TenantInternalService {
             String name,
             String status,
             String schemaName,
+            String customId,
             String createdAt,
             String updatedAt
     ) {}

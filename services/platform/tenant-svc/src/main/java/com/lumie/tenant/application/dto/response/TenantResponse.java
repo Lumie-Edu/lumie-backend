@@ -17,10 +17,18 @@ public record TenantResponse(
         TenantPlan plan,
         String schemaName,
         String ownerEmail,
+        String phone,
+        String address,
+        String instituteName,
+        String businessRegistrationNumber,
+        String logoUrl,
+        String customId,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
     public static TenantResponse from(Tenant tenant) {
+        boolean hasLogo = tenant.getLogoObjectKey() != null
+                && !tenant.getLogoObjectKey().isBlank();
         return TenantResponse.builder()
                 .id(tenant.getId())
                 .slug(tenant.getSlugValue())
@@ -30,6 +38,12 @@ public record TenantResponse(
                 .plan(tenant.getPlan())
                 .schemaName(tenant.getSchemaName())
                 .ownerEmail(tenant.getOwnerEmail())
+                .phone(tenant.getPhone())
+                .address(tenant.getAddress())
+                .instituteName(tenant.getInstituteName())
+                .businessRegistrationNumber(tenant.getBusinessRegistrationNumber())
+                .logoUrl(hasLogo ? "/api/tenant/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
+                .customId(tenant.getCustomId())
                 .createdAt(tenant.getCreatedAt())
                 .updatedAt(tenant.getUpdatedAt())
                 .build();

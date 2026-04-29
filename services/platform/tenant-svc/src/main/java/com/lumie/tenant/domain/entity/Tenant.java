@@ -50,8 +50,26 @@ public class Tenant extends BaseEntity {
     @Column(name = "business_registration_number", length = 12)
     private String businessRegistrationNumber;
 
-    @OneToOne(mappedBy = "tenant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private TenantSettings settings;
+    @Column(name = "phone", length = 30)
+    private String phone;
+
+    @Column(name = "address", length = 255)
+    private String address;
+
+    @Column(name = "logo_object_key", length = 255)
+    private String logoObjectKey;
+
+    @Column(name = "custom_id", length = 50)
+    private String customId;
+
+    private static final java.util.regex.Pattern CUSTOM_ID_PATTERN =
+            java.util.regex.Pattern.compile("^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$");
+
+    private static final java.util.Set<String> RESERVED_CUSTOM_IDS = java.util.Set.of(
+            "login", "admin", "signup", "register", "api", "auth", "app", "account",
+            "dashboard", "home", "oauth", "refresh", "logout", "settings", "public",
+            "static", "_next", "images", "favicon", "robots", "sitemap"
+    );
 
     @Builder
     private Tenant(TenantSlug slug, String name, String displayName, String ownerEmail, TenantPlan plan,
@@ -98,17 +116,28 @@ public class Tenant extends BaseEntity {
                 .build();
     }
 
-    public void initializeSettings() {
-        if (this.settings == null) {
-            this.settings = TenantSettings.createDefault(this);
-        }
+    public void updateLogoObjectKey(String objectKey) {
+        this.logoObjectKey = objectKey;
     }
 
-    public TenantSettings getOrCreateSettings() {
-        if (this.settings == null) {
-            this.settings = TenantSettings.createDefault(this);
+    public void updateCustomId(String customId) {
+        if (customId == null || customId.isBlank()) {
+            this.customId = null;
+            return;
         }
-        return this.settings;
+        String normalized = customId.toLowerCase(java.util.Locale.ROOT).trim();
+        if (!CUSTOM_ID_PATTERN.matcher(normalized).matches()) {
+            throw new IllegalArgumentException(
+                    "customId는 3-30자의 소문자 영숫자와 하이픈만 사용할 수 있고, 첫 글자와 끝 글자는 영숫자여야 합니다.");
+        }
+        if (RESERVED_CUSTOM_IDS.contains(normalized)) {
+            throw new IllegalArgumentException("사용할 수 없는 학원 ID입니다: " + normalized);
+        }
+        this.customId = normalized;
+    }
+
+    public static boolean isReservedCustomId(String customId) {
+        return customId != null && RESERVED_CUSTOM_IDS.contains(customId.toLowerCase(java.util.Locale.ROOT).trim());
     }
 
     public void startProvisioning() {
@@ -147,6 +176,15 @@ public class Tenant extends BaseEntity {
         }
         if (displayName != null) {
             this.displayName = displayName;
+        }
+    }
+
+    public void updateContact(String phone, String address) {
+        if (phone != null) {
+            this.phone = phone.isBlank() ? null : phone;
+        }
+        if (address != null) {
+            this.address = address.isBlank() ? null : address;
         }
     }
 

@@ -75,6 +75,7 @@ public class TenantInternalServiceAdapter implements TenantInternalService {
         return new TenantData(
                 tenant.id(), tenant.slug(), tenant.name(),
                 tenant.status().name(), tenant.schemaName(),
+                tenant.customId(),
                 tenant.createdAt().toString(), tenant.updatedAt().toString()
         );
     }
