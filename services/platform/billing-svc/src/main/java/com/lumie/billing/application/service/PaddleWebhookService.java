@@ -9,6 +9,7 @@ import com.lumie.billing.domain.entity.Invoice;
 import com.lumie.billing.domain.entity.Plan;
 import com.lumie.billing.domain.entity.Subscription;
 import com.lumie.billing.domain.vo.Money;
+import com.lumie.internal.tenant.TenantInternalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -29,6 +30,9 @@ public class PaddleWebhookService {
     private final InvoicePersistencePort invoicePersistencePort;
     private final PlanPersistencePort planPersistencePort;
     private final WebhookIdempotencyPort webhookIdempotencyPort;
+    private final TenantInternalService tenantInternalService;
+
+    private static final String FREE_PLAN_ID = "FREE";
 
     public void handleWebhook(PaddleWebhookPayload payload) {
         if (webhookIdempotencyPort.isProcessed(payload.eventId())) {
@@ -83,6 +87,7 @@ public class PaddleWebhookService {
                 });
 
         subscriptionPersistencePort.save(subscription);
+        tenantInternalService.updatePlan(tenantSlug, plan.getId());
         log.info("Subscription created/linked: tenant={}, plan={}, paddleSub={}",
                 tenantSlug, plan.getId(), paddleSubId);
     }
@@ -98,6 +103,7 @@ public class PaddleWebhookService {
         if (plan != null && !plan.getId().equals(subscription.getPlanId())) {
             subscription.changePlan(plan);
             subscriptionPersistencePort.save(subscription);
+            tenantInternalService.updatePlan(subscription.getTenantSlug(), plan.getId());
             log.info("Subscription plan updated: paddleSub={}, newPlan={}", paddleSubId, plan.getId());
         }
     }
@@ -109,6 +115,7 @@ public class PaddleWebhookService {
 
         subscription.cancel();
         subscriptionPersistencePort.save(subscription);
+        tenantInternalService.updatePlan(subscription.getTenantSlug(), FREE_PLAN_ID);
         log.info("Subscription cancelled: paddleSub={}, tenant={}", paddleSubId, subscription.getTenantSlug());
     }
 

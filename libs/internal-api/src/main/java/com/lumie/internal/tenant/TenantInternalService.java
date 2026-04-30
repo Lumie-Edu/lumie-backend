@@ -13,6 +13,8 @@ public interface TenantInternalService {
     CreateTenantResult createTenant(String instituteName, String businessRegistrationNumber,
                                     String ownerEmail, String ownerName);
 
+    void updatePlan(String tenantSlug, String planId);
+
     record TenantData(
             Long id,
             String slug,

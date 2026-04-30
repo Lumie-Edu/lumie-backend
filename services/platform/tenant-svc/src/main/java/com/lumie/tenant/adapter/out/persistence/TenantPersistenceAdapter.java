@@ -36,6 +36,11 @@ public class TenantPersistenceAdapter implements TenantPersistencePort {
     }
 
     @Override
+    public Optional<Tenant> findByCustomDomain(String customDomain) {
+        return tenantJpaRepository.findByCustomDomain(customDomain);
+    }
+
+    @Override
     public boolean existsBySlug(String slug) {
         return tenantJpaRepository.existsBySlug(slug);
     }
@@ -43,6 +48,11 @@ public class TenantPersistenceAdapter implements TenantPersistencePort {
     @Override
     public boolean existsByCustomId(String customId) {
         return tenantJpaRepository.existsByCustomId(customId);
+    }
+
+    @Override
+    public boolean existsByCustomDomain(String customDomain) {
+        return tenantJpaRepository.existsByCustomDomain(customDomain);
     }
 
     @Override

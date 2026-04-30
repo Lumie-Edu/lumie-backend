@@ -62,13 +62,21 @@ public class Tenant extends BaseEntity {
     @Column(name = "custom_id", length = 50)
     private String customId;
 
+    @Column(name = "custom_domain", length = 253)
+    private String customDomain;
+
     private static final java.util.regex.Pattern CUSTOM_ID_PATTERN =
             java.util.regex.Pattern.compile("^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$");
 
     private static final java.util.Set<String> RESERVED_CUSTOM_IDS = java.util.Set.of(
+            // App-level reserved
             "login", "admin", "signup", "register", "api", "auth", "app", "account",
             "dashboard", "home", "oauth", "refresh", "logout", "settings", "public",
-            "static", "_next", "images", "favicon", "robots", "sitemap"
+            "static", "_next", "images", "favicon", "robots", "sitemap",
+            // Subdomain reservations (prevent collision with operational hosts)
+            "www", "dev", "staging", "prod", "production", "qa", "test", "mail",
+            "cdn", "assets", "support", "help", "status", "blog", "shop", "m", "mobile",
+            "docs", "about"
     );
 
     @Builder
@@ -204,5 +212,16 @@ public class Tenant extends BaseEntity {
         if (plan != null) {
             this.plan = plan;
         }
+    }
+
+    public void setCustomDomain(String domain) {
+        if (domain == null || domain.isBlank()) {
+            this.customDomain = null;
+            return;
+        }
+        if (!supportsCustomDomains()) {
+            throw new IllegalStateException("Tenant plan does not support custom domains: plan=" + plan);
+        }
+        this.customDomain = domain.toLowerCase(java.util.Locale.ROOT).trim();
     }
 }

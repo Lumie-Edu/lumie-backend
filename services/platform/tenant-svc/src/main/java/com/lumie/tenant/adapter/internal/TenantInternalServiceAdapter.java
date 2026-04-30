@@ -4,11 +4,15 @@ import com.lumie.internal.tenant.TenantInternalService;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.port.in.GetTenantUseCase;
 import com.lumie.tenant.application.port.in.ValidateTenantUseCase;
+import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.application.service.TenantRegistrationService;
 import com.lumie.tenant.application.service.TenantRegistrationService.TenantRegistrationResult;
+import com.lumie.tenant.domain.entity.Tenant;
+import com.lumie.tenant.domain.vo.TenantPlan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -20,6 +24,7 @@ public class TenantInternalServiceAdapter implements TenantInternalService {
     private final GetTenantUseCase getTenantUseCase;
     private final ValidateTenantUseCase validateTenantUseCase;
     private final TenantRegistrationService tenantRegistrationService;
+    private final TenantPersistencePort tenantPersistencePort;
 
     @Override
     public Optional<TenantData> getTenant(Long tenantId) {
@@ -68,6 +73,34 @@ public class TenantInternalServiceAdapter implements TenantInternalService {
             log.error("Failed to create tenant: {}", instituteName, e);
             return new CreateTenantResult(false, "Failed to create tenant: " + e.getMessage(),
                     null, null, null);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void updatePlan(String tenantSlug, String planId) {
+        TenantPlan plan = parsePlan(planId);
+        if (plan == null) {
+            log.warn("Unknown planId={} for tenant={}, skipping plan update", planId, tenantSlug);
+            return;
+        }
+        Tenant tenant = tenantPersistencePort.findBySlug(tenantSlug)
+                .orElse(null);
+        if (tenant == null) {
+            log.warn("Tenant not found for plan update: slug={}", tenantSlug);
+            return;
+        }
+        tenant.updatePlan(plan);
+        tenantPersistencePort.save(tenant);
+        log.info("Tenant plan updated: slug={}, plan={}", tenantSlug, plan);
+    }
+
+    private TenantPlan parsePlan(String planId) {
+        if (planId == null) return null;
+        try {
+            return TenantPlan.valueOf(planId.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 
