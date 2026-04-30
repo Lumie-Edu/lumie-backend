@@ -64,13 +64,6 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
-# Cloudflare Registrar (custom domain availability check)
-cloudflare:
-  registrar:
-    enabled: ${CF_REGISTRAR_ENABLED:false}
-    account-id: ${CF_ACCOUNT_ID:}
-    api-token: ${CF_REGISTRAR_TOKEN:}
-
 # JWT (auth module)
 jwt:
   secret-key: ${JWT_SECRET_KEY:your-256-bit-secret-key-here-must-be-at-least-32-chars}
