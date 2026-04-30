@@ -4,7 +4,6 @@ import com.lumie.lecture.domain.entity.Lecture;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 public record LectureResponse(
         Long id,
@@ -13,12 +12,6 @@ public record LectureResponse(
         String title,
         String description,
         String youtubeUrl,
-        Integer videoDuration,
-        String transcript,
-        String aiSummary,
-        List<String> topicsExtracted,
-        String processingStatus,
-        String processingError,
         String visibility,
         String status,
         LocalDate lectureDate,
@@ -33,12 +26,6 @@ public record LectureResponse(
                 lecture.getTitle(),
                 lecture.getDescription(),
                 lecture.getYoutubeUrl(),
-                lecture.getVideoDuration(),
-                lecture.getTranscript(),
-                lecture.getAiSummary(),
-                lecture.getTopicsExtracted(),
-                lecture.getProcessingStatus().name(),
-                lecture.getProcessingError(),
                 lecture.getVisibility().name(),
                 lecture.getStatus().name(),
                 lecture.getLectureDate(),

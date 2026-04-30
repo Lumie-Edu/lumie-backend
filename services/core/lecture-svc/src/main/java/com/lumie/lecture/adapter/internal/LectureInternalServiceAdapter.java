@@ -29,7 +29,7 @@ public class LectureInternalServiceAdapter implements LectureInternalService {
     @Override
     public LectureListData getLecturesByClass(String tenantSlug, Long classId, int page, int size) {
         LectureSearchCriteria criteria = new LectureSearchCriteria(
-                classId, null, null, null, null, null, null
+                classId, null, null, null, null, null
         );
 
         Page<Lecture> lectures = lectureRepository.findAll(
@@ -50,7 +50,6 @@ public class LectureInternalServiceAdapter implements LectureInternalService {
                 lecture.getTeacherId(),
                 lecture.getTitle(),
                 lecture.getDescription(),
-                lecture.getProcessingStatus().name(),
                 lecture.getVisibility().name(),
                 lecture.getStatus().name(),
                 lecture.getCreatedAt().toString(),

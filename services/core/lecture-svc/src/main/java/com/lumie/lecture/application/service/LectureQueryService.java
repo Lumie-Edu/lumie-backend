@@ -7,7 +7,6 @@ import com.lumie.lecture.domain.exception.LectureNotFoundException;
 import com.lumie.lecture.domain.repository.LectureRepository;
 import com.lumie.lecture.domain.vo.LectureSearchCriteria;
 import com.lumie.lecture.domain.vo.LectureStatus;
-import com.lumie.lecture.domain.vo.ProcessingStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,13 +25,12 @@ public class LectureQueryService {
     private final LectureRepository lectureRepository;
 
     public Page<LectureResponse> findAll(Long classId, Long teacherId,
-                                          String status, String processingStatus,
+                                          String status,
                                           LocalDate startDate, LocalDate endDate,
                                           String search, Pageable pageable) {
         LectureSearchCriteria criteria = new LectureSearchCriteria(
                 classId, teacherId,
                 status != null ? LectureStatus.valueOf(status) : null,
-                processingStatus != null ? ProcessingStatus.valueOf(processingStatus) : null,
                 startDate, endDate, search
         );
 
@@ -60,10 +58,6 @@ public class LectureQueryService {
                 lecture.getTitle(),
                 lecture.getDescription(),
                 lecture.getYoutubeUrl(),
-                lecture.getTranscript(),
-                lecture.getAiSummary(),
-                lecture.getTopicsExtracted(),
-                lecture.getVideoDuration(),
                 lecture.getVisibility().name()
         );
     }

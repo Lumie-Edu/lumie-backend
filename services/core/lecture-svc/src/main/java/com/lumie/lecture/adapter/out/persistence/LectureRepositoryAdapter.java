@@ -99,9 +99,6 @@ public class LectureRepositoryAdapter implements LectureRepository {
         if (criteria.status() != null) {
             predicates.add(cb.equal(root.get("status"), criteria.status()));
         }
-        if (criteria.processingStatus() != null) {
-            predicates.add(cb.equal(root.get("processingStatus"), criteria.processingStatus()));
-        }
         if (criteria.startDate() != null) {
             predicates.add(cb.greaterThanOrEqualTo(root.get("lectureDate"), criteria.startDate()));
         }

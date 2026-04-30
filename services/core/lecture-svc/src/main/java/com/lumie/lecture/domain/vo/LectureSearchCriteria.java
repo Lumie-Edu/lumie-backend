@@ -6,7 +6,6 @@ public record LectureSearchCriteria(
         Long classId,
         Long teacherId,
         LectureStatus status,
-        ProcessingStatus processingStatus,
         LocalDate startDate,
         LocalDate endDate,
         String search

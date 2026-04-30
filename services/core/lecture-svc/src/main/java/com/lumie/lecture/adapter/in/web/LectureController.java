@@ -33,13 +33,12 @@ public class LectureController {
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Long teacherId,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String processingStatus,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(queryService.findAll(
-                classId, teacherId, status, processingStatus,
+                classId, teacherId, status,
                 startDate, endDate, search, pageable));
     }
 
@@ -58,10 +57,5 @@ public class LectureController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         commandService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/{id}/reprocess")
-    public ResponseEntity<LectureResponse> reprocess(@PathVariable Long id) {
-        return ResponseEntity.ok(commandService.reprocess(id));
     }
 }

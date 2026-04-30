@@ -15,7 +15,6 @@ public interface LectureInternalService {
             Long teacherId,
             String title,
             String description,
-            String processingStatus,
             String visibility,
             String status,
             String createdAt,

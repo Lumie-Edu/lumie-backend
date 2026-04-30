@@ -27,11 +27,4 @@ public final class RabbitMqConstants {
     public static final String REPORT_REQUEST_ROUTING_KEY = "report.generation.request";
     public static final String REPORT_DLQ_ROUTING_KEY = "report.#";
 
-    // Queues - Lecture Processing
-    public static final String LECTURE_PROCESS_QUEUE = "lecture.process-request";
-    public static final String LECTURE_PROCESS_DLQ = "lecture.process-request.dlq";
-
-    // Routing Keys - Lecture Processing
-    public static final String LECTURE_PROCESS_ROUTING_KEY = "lecture.process.request";
-    public static final String LECTURE_DLQ_ROUTING_KEY = "lecture.#";
 }
