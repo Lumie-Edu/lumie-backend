@@ -29,9 +29,9 @@ COMMON_ENV = {
     'REPORT_SVC_URL': 'http://report-svc.lumie-dev.svc:8000',
     # MinIO
     'MINIO_BUCKET_NAME': 'lumie-dev',
-    'MINIO_EXTERNAL_ENDPOINT': 'https://dev.lumie-edu.com',
+    'MINIO_EXTERNAL_ENDPOINT': 'https://dev.lumie-infra.com',
     # Frontend callback
-    'FRONTEND_CALLBACK_URL': 'https://dev.lumie-edu.com/auth/callback',
+    'FRONTEND_CALLBACK_URL': 'https://dev.lumie-infra.com/auth/callback',
 }
 
 def generate_env_yaml():
