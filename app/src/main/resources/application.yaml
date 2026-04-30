@@ -42,19 +42,6 @@ spring:
     password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: /
 
-  mail:
-    host: ${SMTP_HOST:smtp.mail.me.com}
-    port: ${SMTP_PORT:587}
-    username: ${SMTP_USERNAME:}
-    password: ${SMTP_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-
   servlet:
     multipart:
       max-file-size: 5MB
