@@ -68,15 +68,22 @@ public class Tenant extends BaseEntity {
     private static final java.util.regex.Pattern CUSTOM_ID_PATTERN =
             java.util.regex.Pattern.compile("^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$");
 
+    // Keep in sync with frontend `RESERVED_CUSTOM_IDS` in
+    // src/entities/tenant/model/schema.ts and `RESERVED_TOP_SEGMENTS`
+    // in middleware.ts. Path-based tenant landing means anything
+    // claimed by a real top-level route must be reserved.
     private static final java.util.Set<String> RESERVED_CUSTOM_IDS = java.util.Set.of(
-            // App-level reserved
-            "login", "admin", "signup", "register", "api", "auth", "app", "account",
-            "dashboard", "home", "oauth", "refresh", "logout", "settings", "public",
-            "static", "_next", "images", "favicon", "robots", "sitemap",
-            // Subdomain reservations (prevent collision with operational hosts)
-            "www", "dev", "staging", "prod", "production", "qa", "test", "mail",
-            "cdn", "assets", "support", "help", "status", "blog", "shop", "m", "mobile",
-            "docs", "about"
+            // App routes
+            "admin", "api", "auth", "dashboard",
+            "login", "register", "signup", "logout",
+            // Marketing routes
+            "about", "blog", "cases", "changelog", "features",
+            "help", "pricing", "security",
+            // Static assets / framework
+            "_next", "favicon.ico", "favicon", "images", "fonts",
+            "public", "static", "robots", "sitemap",
+            // Defensive reserves
+            "account", "settings", "oauth", "refresh", "home", "app"
     );
 
     @Builder
