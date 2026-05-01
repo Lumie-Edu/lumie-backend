@@ -28,4 +28,10 @@ public class StudentReadRepositoryAdapter implements StudentReadRepository {
     public List<StudentReadModel> findByIsActiveTrue() {
         return jpaRepository.findByIsActiveTrue();
     }
+
+    @Override
+    public List<StudentReadModel> findAllByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return jpaRepository.findAllById(ids);
+    }
 }

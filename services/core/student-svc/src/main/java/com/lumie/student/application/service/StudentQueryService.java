@@ -1,5 +1,6 @@
 package com.lumie.student.application.service;
 
+import com.lumie.common.csv.CsvWriter;
 import com.lumie.student.application.dto.EnrollmentTrendResponse;
 import com.lumie.student.application.dto.StudentResponse;
 import com.lumie.student.domain.entity.Student;
@@ -8,18 +9,23 @@ import com.lumie.student.domain.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -118,5 +124,46 @@ public class StudentQueryService {
 
     public boolean existsByUserLoginId(String userLoginId) {
         return studentRepository.existsByUserLoginId(userLoginId);
+    }
+
+    private static final List<String> EXPORT_HEADERS = List.of(
+        "이름", "휴대폰", "학부모 휴대폰", "학교", "출생연도", "메모", "상태", "등록일"
+    );
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
+
+    public void writeCsv(OutputStream out) {
+        try (CsvWriter csv = new CsvWriter(out)) {
+            csv.writeHeader(EXPORT_HEADERS);
+
+            int pageSize = 500;
+            int pageNumber = 0;
+            Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by("createdAt").descending());
+            Page<Student> page;
+            do {
+                page = studentRepository.findAll(pageable);
+                for (Student s : page.getContent()) {
+                    csv.writeRow(toRow(s));
+                }
+                csv.flush();
+                pageable = pageable.next();
+            } while (page.hasNext());
+        }
+    }
+
+    private List<String> toRow(Student s) {
+        return List.of(
+            nullToEmpty(s.getName()),
+            nullToEmpty(s.getPhone()),
+            nullToEmpty(s.getParentPhone()),
+            nullToEmpty(s.getStudentHighschool()),
+            s.getStudentBirthYear() == null ? "" : s.getStudentBirthYear().toString(),
+            nullToEmpty(s.getStudentMemo()),
+            s.isActive() ? "재원" : "휴원",
+            s.getCreatedAt() == null ? "" : s.getCreatedAt().toLocalDate().format(DATE_FMT)
+        );
+    }
+
+    private static String nullToEmpty(String v) {
+        return Objects.requireNonNullElse(v, "");
     }
 }

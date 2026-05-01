@@ -11,6 +11,9 @@ public enum CommonErrorCode implements ErrorCode {
     INVALID_INPUT("C001", "Invalid input value", 400),
     INVALID_TYPE("C002", "Invalid type value", 400),
 
+    // 403 Forbidden
+    FORBIDDEN("C006", "Forbidden", 403),
+
     // 404 Not Found
     RESOURCE_NOT_FOUND("C003", "Resource not found", 404),
 

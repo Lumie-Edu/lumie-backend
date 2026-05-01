@@ -1,5 +1,7 @@
 package com.lumie.student.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.student.application.dto.*;
 import com.lumie.student.application.service.StudentCommandService;
 import com.lumie.student.application.service.StudentQueryService;
@@ -9,12 +11,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 @RestController
@@ -119,5 +127,25 @@ public class StudentController {
             @RequestParam("file") MultipartFile file) {
         BulkImportResult result = studentCommandService.bulkImportStudents(file);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping(value = "/export.csv", produces = "text/csv;charset=UTF-8")
+    public ResponseEntity<byte[]> exportStudentsCsv() {
+        AuthorizationGuard.requireOwner();
+        String filename = "%s_students_%s.csv".formatted(
+            TenantContextHolder.getRequiredTenant(),
+            LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+        );
+
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        studentQueryService.writeCsv(buffer);
+        byte[] body = buffer.toByteArray();
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString())
+            .contentLength(body.length)
+            .body(body);
     }
 }

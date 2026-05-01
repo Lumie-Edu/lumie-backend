@@ -1,5 +1,7 @@
 package com.lumie.exam.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
 import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
@@ -8,17 +10,23 @@ import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
 import com.lumie.exam.application.dto.response.OmrPresignResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
+import com.lumie.exam.application.service.ExamExportService;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -28,6 +36,7 @@ public class ResultController {
 
     private final ResultCommandService resultCommandService;
     private final ResultQueryService resultQueryService;
+    private final ExamExportService examExportService;
 
     @PostMapping(value = "/exams/{examId}/results/omr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ExamResultResponse> processOmrGrading(
@@ -110,5 +119,25 @@ public class ResultController {
                 .contentType(MediaType.IMAGE_PNG)
                 .contentLength(imageData.length)
                 .body(imageData);
+    }
+
+    @GetMapping(value = "/exams/results/export.csv", produces = "text/csv;charset=UTF-8")
+    public ResponseEntity<byte[]> exportResultsCsv() {
+        AuthorizationGuard.requireOwner();
+        String filename = "%s_grades_%s.csv".formatted(
+            TenantContextHolder.getRequiredTenant(),
+            LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+        );
+
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        examExportService.writeCsv(buffer);
+        byte[] body = buffer.toByteArray();
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString())
+            .contentLength(body.length)
+            .body(body);
     }
 }
