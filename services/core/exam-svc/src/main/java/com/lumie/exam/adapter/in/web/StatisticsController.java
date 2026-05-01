@@ -47,6 +47,16 @@ public class StatisticsController {
         return ResponseEntity.ok(examStatisticsQueryService.getChoiceDistribution(examId));
     }
 
+    @GetMapping("/exams/{examId}/class-comparison")
+    public ResponseEntity<ClassComparisonResponse> getClassComparison(@PathVariable Long examId) {
+        return ResponseEntity.ok(examStatisticsQueryService.getClassComparison(examId));
+    }
+
+    @GetMapping("/exams/{examId}/item-analysis")
+    public ResponseEntity<ItemAnalysisResponse> getItemAnalysis(@PathVariable Long examId) {
+        return ResponseEntity.ok(examStatisticsQueryService.getItemAnalysis(examId));
+    }
+
     @GetMapping("/students/{studentId}/rank")
     public ResponseEntity<StudentRankResponse> getStudentRank(
             @PathVariable Long studentId,

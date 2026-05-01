@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +93,21 @@ public class ClassQueryService {
             .map(enrollment -> enrollment.getStudentId())
             .toList();
     }
+
+    public List<StudentClassRow> getEnrolledClassesForStudents(Collection<Long> studentIds) {
+        if (studentIds == null || studentIds.isEmpty()) {
+            return List.of();
+        }
+        return enrollmentRepository.findByStudentIdInAndStatus(studentIds, EnrollmentStatus.ENROLLED)
+            .stream()
+            .map(enrollment -> {
+                ClassEntity entity = enrollment.getClassEntity();
+                return new StudentClassRow(entity.getId(), entity.getName(), enrollment.getStudentId());
+            })
+            .toList();
+    }
+
+    public record StudentClassRow(Long classId, String className, Long studentId) {}
 
     public Page<ClassEnrollmentResponse> getEnrollments(Long classId, Pageable pageable) {
         return enrollmentRepository.findByClassEntityId(classId, pageable)

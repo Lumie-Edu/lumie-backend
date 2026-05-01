@@ -1,6 +1,7 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.exam.application.dto.response.statistics.*;
+import com.lumie.exam.application.port.out.ClassEnrollmentPort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
@@ -31,6 +32,10 @@ public class ExamStatisticsQueryService {
     private final ExamResultRepository resultRepository;
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
+    private final ClassEnrollmentPort classEnrollmentPort;
+
+    private static final Long UNASSIGNED_CLASS_ID = null;
+    private static final String UNASSIGNED_CLASS_NAME = "미배정";
 
     public ExamStatisticsResponse getExamStatistics(Long examId) {
         log.debug("Getting statistics for exam: {}", examId);
@@ -271,6 +276,194 @@ public class ExamStatisticsQueryService {
                 allExams.size(),
                 gradeDistribution
         );
+    }
+
+    public ClassComparisonResponse getClassComparison(Long examId) {
+        log.debug("Getting class comparison for exam: {}", examId);
+
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+
+        List<ExamResult> results = resultRepository.findByExamId(examId);
+        if (results.isEmpty()) {
+            return new ClassComparisonResponse(
+                    examId, exam.getName(), exam.getCategory(), 0, Collections.emptyList()
+            );
+        }
+
+        Set<Long> studentIds = results.stream()
+                .map(ExamResult::getStudentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, List<ClassEnrollmentPort.ClassParticipant>> classesByStudent = classEnrollmentPort
+                .findEnrolledClassesForStudents(studentIds).stream()
+                .collect(Collectors.groupingBy(ClassEnrollmentPort.ClassParticipant::studentId));
+
+        Map<Long, String> classNames = new HashMap<>();
+        Map<Long, List<ExamResult>> resultsByClass = new LinkedHashMap<>();
+        List<ExamResult> unassigned = new ArrayList<>();
+
+        for (ExamResult result : results) {
+            Long studentId = result.getStudentId();
+            List<ClassEnrollmentPort.ClassParticipant> memberships =
+                    studentId != null ? classesByStudent.get(studentId) : null;
+
+            if (memberships == null || memberships.isEmpty()) {
+                unassigned.add(result);
+                continue;
+            }
+            for (ClassEnrollmentPort.ClassParticipant membership : memberships) {
+                classNames.putIfAbsent(membership.classId(), membership.className());
+                resultsByClass.computeIfAbsent(membership.classId(), k -> new ArrayList<>()).add(result);
+            }
+        }
+
+        List<ClassComparisonResponse.ClassMetric> classes = new ArrayList<>();
+        resultsByClass.entrySet().stream()
+                .sorted(Comparator.comparing(e -> classNames.getOrDefault(e.getKey(), "")))
+                .forEach(e -> classes.add(buildClassMetric(
+                        e.getKey(), classNames.get(e.getKey()), e.getValue(), exam
+                )));
+        if (!unassigned.isEmpty()) {
+            classes.add(buildClassMetric(UNASSIGNED_CLASS_ID, UNASSIGNED_CLASS_NAME, unassigned, exam));
+        }
+
+        return new ClassComparisonResponse(
+                examId, exam.getName(), exam.getCategory(), results.size(), classes
+        );
+    }
+
+    public ItemAnalysisResponse getItemAnalysis(Long examId) {
+        log.debug("Getting item analysis for exam: {}", examId);
+
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+
+        List<ExamResult> results = resultRepository.findByExamId(examId);
+        int participantCount = results.size();
+
+        if (participantCount < 2) {
+            return new ItemAnalysisResponse(
+                    examId, exam.getName(), participantCount, 0, true, Collections.emptyList()
+            );
+        }
+
+        List<ExamResult> sorted = results.stream()
+                .sorted(Comparator.comparingInt(ExamResult::getTotalScore).reversed())
+                .toList();
+
+        int sampleSize = statisticsCalculator.kelleySampleSize(participantCount);
+        List<ExamResult> top = sorted.subList(0, sampleSize);
+        List<ExamResult> bottom = sorted.subList(participantCount - sampleSize, participantCount);
+        boolean reliabilityWarning = participantCount < 10;
+
+        List<ItemAnalysisResponse.ItemPoint> items = new ArrayList<>();
+        for (int qNum = 1; qNum <= exam.getTotalQuestions(); qNum++) {
+            int allCorrect = countCorrect(results, qNum);
+            int topCorrect = countCorrect(top, qNum);
+            int bottomCorrect = countCorrect(bottom, qNum);
+
+            double pValue = (double) allCorrect / participantCount;
+            double discrimination = statisticsCalculator.calculateDiscrimination(
+                    topCorrect, top.size(), bottomCorrect, bottom.size()
+            );
+            ItemAnalysisResponse.Quadrant quadrant = classifyQuadrant(pValue, discrimination);
+
+            items.add(new ItemAnalysisResponse.ItemPoint(
+                    qNum,
+                    exam.getQuestionType(qNum),
+                    Math.round(pValue * 1000) / 1000.0,
+                    Math.round(discrimination * 1000) / 1000.0,
+                    quadrant
+            ));
+        }
+
+        return new ItemAnalysisResponse(
+                examId, exam.getName(), participantCount, sampleSize, reliabilityWarning, items
+        );
+    }
+
+    private ClassComparisonResponse.ClassMetric buildClassMetric(
+            Long classId, String className, List<ExamResult> groupResults, Exam exam) {
+        List<Integer> scores = groupResults.stream().map(ExamResult::getTotalScore).toList();
+        double mean = statisticsCalculator.calculateMean(scores);
+        double stddev = statisticsCalculator.calculateStandardDeviation(scores);
+        int highest = scores.stream().max(Integer::compareTo).orElse(0);
+        int lowest = scores.stream().min(Integer::compareTo).orElse(0);
+
+        Double grade1Ratio = null;
+        Double passRate = null;
+        List<ClassComparisonResponse.GradeBucket> buckets = Collections.emptyList();
+
+        if (exam.getCategory() == ExamCategory.PASS_FAIL) {
+            long pass = groupResults.stream().filter(ExamResult::isPassed).count();
+            passRate = Math.round((double) pass / groupResults.size() * 1000) / 10.0;
+        } else {
+            buckets = computeGradeBuckets(exam, groupResults);
+            int grade1Count = buckets.stream().filter(b -> b.grade() == 1).mapToInt(ClassComparisonResponse.GradeBucket::count).sum();
+            grade1Ratio = Math.round((double) grade1Count / groupResults.size() * 1000) / 10.0;
+        }
+
+        return new ClassComparisonResponse.ClassMetric(
+                classId,
+                className,
+                groupResults.size(),
+                Math.round(mean * 10) / 10.0,
+                Math.round(stddev * 10) / 10.0,
+                highest,
+                lowest,
+                grade1Ratio,
+                passRate,
+                buckets
+        );
+    }
+
+    private List<ClassComparisonResponse.GradeBucket> computeGradeBuckets(Exam exam, List<ExamResult> groupResults) {
+        // 등급 산출은 시험 전체 기준(상대평가의 경우)이지만, 분포 자체는 그룹 인원 비중으로 계산
+        List<Integer> allScoresInExam = resultRepository.findByExamId(exam.getId()).stream()
+                .map(ExamResult::getTotalScore)
+                .toList();
+        GradingType gradingType = exam.getGradingType() != null ? exam.getGradingType() : GradingType.ABSOLUTE;
+        GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
+
+        Map<Integer, Long> gradeCounts = groupResults.stream()
+                .map(r -> {
+                    if (exam.getCategory() == ExamCategory.GRADED && gradingType == GradingType.RELATIVE) {
+                        return gradeCalculator.calculateRelativeGrade(r.getTotalScore(), allScoresInExam, gradeScale);
+                    }
+                    return r.getGrade();
+                })
+                .filter(g -> g != null && g > 0)
+                .collect(Collectors.groupingBy(g -> g, Collectors.counting()));
+
+        return gradeCounts.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> new ClassComparisonResponse.GradeBucket(
+                        e.getKey(), e.getValue().intValue(),
+                        Math.round((double) e.getValue() / groupResults.size() * 1000) / 10.0
+                ))
+                .toList();
+    }
+
+    private int countCorrect(List<ExamResult> results, int questionNumber) {
+        int correct = 0;
+        for (ExamResult result : results) {
+            for (QuestionResult qr : result.getQuestionResults()) {
+                if (qr.getQuestionNumber() == questionNumber && qr.isCorrect()) {
+                    correct++;
+                    break;
+                }
+            }
+        }
+        return correct;
+    }
+
+    private ItemAnalysisResponse.Quadrant classifyQuadrant(double pValue, double discrimination) {
+        if (pValue > 0.8) return ItemAnalysisResponse.Quadrant.TOO_EASY;
+        if (pValue < 0.3) return ItemAnalysisResponse.Quadrant.TOO_HARD;
+        if (discrimination >= 0.3) return ItemAnalysisResponse.Quadrant.GOOD;
+        return ItemAnalysisResponse.Quadrant.DISCARD;
     }
 
     private List<DashboardStatisticsResponse.GradeBucket> buildGradeBuckets(

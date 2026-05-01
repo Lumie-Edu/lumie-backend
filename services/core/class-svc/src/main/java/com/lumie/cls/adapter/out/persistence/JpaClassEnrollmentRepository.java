@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +17,8 @@ public interface JpaClassEnrollmentRepository extends JpaRepository<ClassEnrollm
     List<ClassEnrollment> findByStudentId(Long studentId);
 
     List<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status);
+
+    List<ClassEnrollment> findByStudentIdInAndStatus(Collection<Long> studentIds, EnrollmentStatus status);
 
     Page<ClassEnrollment> findByStudentId(Long studentId, Pageable pageable);
 

@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,6 +91,19 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
         try {
             TenantContextHolder.setTenant(tenantSlug);
             return classQueryService.getEnrolledStudentIds(classId);
+        } finally {
+            restoreTenant(previous);
+        }
+    }
+
+    @Override
+    public List<EnrolledClassData> getEnrolledClassesForStudents(String tenantSlug, Collection<Long> studentIds) {
+        String previous = TenantContextHolder.getTenant();
+        try {
+            TenantContextHolder.setTenant(tenantSlug);
+            return classQueryService.getEnrolledClassesForStudents(studentIds).stream()
+                    .map(row -> new EnrolledClassData(row.classId(), row.className(), row.studentId()))
+                    .toList();
         } finally {
             restoreTenant(previous);
         }

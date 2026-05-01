@@ -143,4 +143,28 @@ public class StatisticsCalculator {
         }
         return ((double) choiceCount / totalCount) * 100;
     }
+
+    /**
+     * Top/Bottom 27% 표본 크기 (Kelley)
+     * 최소 1, 전체 절반을 넘지 않도록 보정
+     */
+    public int kelleySampleSize(int total) {
+        if (total <= 0) return 0;
+        int size = (int) Math.ceil(total * 0.27);
+        return Math.max(1, Math.min(size, total / 2 == 0 ? total : total / 2));
+    }
+
+    /**
+     * 변별도 (Discrimination Index)
+     * = 상위군 정답률 - 하위군 정답률
+     * 범위: -1.0 ~ 1.0 (높을수록 변별력 큼)
+     */
+    public double calculateDiscrimination(int topCorrect, int topSize, int bottomCorrect, int bottomSize) {
+        if (topSize == 0 || bottomSize == 0) {
+            return 0.0;
+        }
+        double topRate = (double) topCorrect / topSize;
+        double bottomRate = (double) bottomCorrect / bottomSize;
+        return topRate - bottomRate;
+    }
 }

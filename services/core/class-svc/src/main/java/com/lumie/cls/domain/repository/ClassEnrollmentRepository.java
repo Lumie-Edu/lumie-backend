@@ -5,6 +5,7 @@ import com.lumie.cls.domain.vo.EnrollmentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +24,8 @@ public interface ClassEnrollmentRepository {
     List<ClassEnrollment> findByStudentId(Long studentId);
 
     List<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status);
+
+    List<ClassEnrollment> findByStudentIdInAndStatus(Collection<Long> studentIds, EnrollmentStatus status);
 
     Page<ClassEnrollment> findByStudentId(Long studentId, Pageable pageable);
 
