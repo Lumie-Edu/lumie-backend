@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public record AnnouncementResponse(
         Long id,
         Long authorId,
+        String authorName,
         String announcementTitle,
         String announcementContent,
         Boolean isItAssetAnnouncement,
@@ -15,9 +16,14 @@ public record AnnouncementResponse(
         LocalDateTime updatedAt
 ) {
     public static AnnouncementResponse from(Announcement announcement) {
+        return from(announcement, null);
+    }
+
+    public static AnnouncementResponse from(Announcement announcement, String authorName) {
         return new AnnouncementResponse(
                 announcement.getId(),
                 announcement.getAuthorId(),
+                authorName,
                 announcement.getAnnouncementTitle(),
                 announcement.getAnnouncementContent(),
                 announcement.getIsItAssetAnnouncement(),

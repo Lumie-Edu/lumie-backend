@@ -17,7 +17,7 @@ public class Announcement extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "author_id", nullable = false)
+    @Column(name = "author_id")
     private Long authorId;
 
     @Column(name = "announcement_title", nullable = false, length = 200)

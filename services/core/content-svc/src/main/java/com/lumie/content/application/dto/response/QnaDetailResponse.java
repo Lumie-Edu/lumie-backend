@@ -1,6 +1,7 @@
 package com.lumie.content.application.dto.response;
 
 import com.lumie.content.domain.entity.QnaBoard;
+import com.lumie.content.domain.entity.QnaComment;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,12 +18,11 @@ public record QnaDetailResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
+    private static final String DELETED_USER_NAME = "삭제된 유저";
+
     public static QnaDetailResponse from(QnaBoard qnaBoard, String qnaUserName, Map<Long, String> adminNames) {
         List<QnaCommentResponse> commentResponses = qnaBoard.getComments().stream()
-                .map(comment -> QnaCommentResponse.from(
-                        comment,
-                        comment.getUserId() != null ? adminNames.getOrDefault(comment.getUserId(), null) : null
-                ))
+                .map(comment -> QnaCommentResponse.from(comment, resolveAdminName(comment, adminNames)))
                 .toList();
 
         return new QnaDetailResponse(
@@ -36,5 +36,15 @@ public record QnaDetailResponse(
                 qnaBoard.getCreatedAt(),
                 qnaBoard.getUpdatedAt()
         );
+    }
+
+    private static String resolveAdminName(QnaComment comment, Map<Long, String> adminNames) {
+        if (comment.getStudentId() != null) {
+            return null;
+        }
+        if (comment.getUserId() == null) {
+            return DELETED_USER_NAME;
+        }
+        return adminNames.getOrDefault(comment.getUserId(), DELETED_USER_NAME);
     }
 }
