@@ -4,6 +4,7 @@ import com.lumie.admin.application.dto.AdminFilterRequest;
 import com.lumie.admin.application.dto.AdminPermissionResponse;
 import com.lumie.admin.application.dto.AdminRequest;
 import com.lumie.admin.application.dto.AdminResponse;
+import com.lumie.admin.application.dto.AdminUpdateRequest;
 import com.lumie.admin.application.service.AdminCommandService;
 import com.lumie.admin.application.service.AdminQueryService;
 import jakarta.validation.Valid;
@@ -52,7 +53,7 @@ public class AdminController {
     @PutMapping("/{id}")
     public ResponseEntity<AdminResponse> updateAdmin(
             @PathVariable Long id,
-            @Valid @RequestBody AdminRequest request) {
+            @Valid @RequestBody AdminUpdateRequest request) {
         AdminResponse response = adminCommandService.updateAdmin(id, request);
         return ResponseEntity.ok(response);
     }

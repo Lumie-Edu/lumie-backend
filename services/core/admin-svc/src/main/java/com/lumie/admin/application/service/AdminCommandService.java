@@ -2,6 +2,7 @@ package com.lumie.admin.application.service;
 
 import com.lumie.admin.application.dto.AdminRequest;
 import com.lumie.admin.application.dto.AdminResponse;
+import com.lumie.admin.application.dto.AdminUpdateRequest;
 import com.lumie.admin.application.port.out.AuthServicePort;
 import com.lumie.admin.application.port.out.BillingServicePort;
 import com.lumie.admin.domain.entity.Admin;
@@ -84,7 +85,7 @@ public class AdminCommandService {
         return AdminResponse.from(saved);
     }
 
-    public AdminResponse updateAdmin(Long id, AdminRequest request) {
+    public AdminResponse updateAdmin(Long id, AdminUpdateRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         Admin admin = adminRepository.findById(id)

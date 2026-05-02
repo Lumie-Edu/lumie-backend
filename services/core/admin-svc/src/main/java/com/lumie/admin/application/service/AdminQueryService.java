@@ -8,6 +8,7 @@ import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
 import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
+import com.lumie.internal.auth.AuthInternalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -25,26 +27,36 @@ public class AdminQueryService {
 
     private final AdminRepository adminRepository;
     private final AdminPermissionRepository adminPermissionRepository;
+    private final AuthInternalService authInternalService;
 
     public AdminResponse getAdmin(Long id) {
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new AdminNotFoundException(id));
-        return AdminResponse.from(admin);
+        return enrich(admin);
     }
 
     public AdminResponse getAdminByUserLoginId(String userLoginId) {
         Admin admin = adminRepository.findByUserLoginId(userLoginId)
                 .orElseThrow(() -> new AdminNotFoundException(userLoginId));
-        return AdminResponse.from(admin);
+        return enrich(admin);
     }
 
     public Page<AdminResponse> getAllAdmins(AdminFilterRequest filter, Pageable pageable) {
-        if (filter != null && hasAnyFilter(filter)) {
-            return adminRepository.findAll(AdminSpecification.withFilters(filter), pageable)
-                    .map(AdminResponse::from);
-        }
-        return adminRepository.findAll(pageable)
-                .map(AdminResponse::from);
+        Page<Admin> page = (filter != null && hasAnyFilter(filter))
+                ? adminRepository.findAll(AdminSpecification.withFilters(filter), pageable)
+                : adminRepository.findAll(pageable);
+        Map<Long, String> seeds = avatarSeedsFor(page.getContent());
+        return page.map(a -> AdminResponse.from(a, seeds.get(a.getUserId())));
+    }
+
+    private AdminResponse enrich(Admin admin) {
+        Map<Long, String> seeds = authInternalService.getAvatarSeeds(List.of(admin.getUserId()));
+        return AdminResponse.from(admin, seeds.get(admin.getUserId()));
+    }
+
+    private Map<Long, String> avatarSeedsFor(List<Admin> admins) {
+        if (admins.isEmpty()) return Map.of();
+        return authInternalService.getAvatarSeeds(admins.stream().map(Admin::getUserId).toList());
     }
 
     public List<AdminPermissionResponse> getAdminPermissions(Long adminId) {

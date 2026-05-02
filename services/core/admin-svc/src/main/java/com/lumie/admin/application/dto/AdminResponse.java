@@ -16,10 +16,15 @@ public record AdminResponse(
     String adminMemo,
     Boolean isActive,
     EmploymentStatus employmentStatus,
+    String avatarSeed,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
     public static AdminResponse from(Admin admin) {
+        return from(admin, null);
+    }
+
+    public static AdminResponse from(Admin admin, String avatarSeed) {
         return new AdminResponse(
             admin.getId(),
             admin.getUserId(),
@@ -31,6 +36,7 @@ public record AdminResponse(
             admin.getAdminMemo(),
             admin.isActive(),
             admin.getEmploymentStatus(),
+            avatarSeed,
             admin.getCreatedAt(),
             admin.getUpdatedAt()
         );
