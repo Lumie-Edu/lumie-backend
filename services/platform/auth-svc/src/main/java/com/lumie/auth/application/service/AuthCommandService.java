@@ -22,6 +22,7 @@ import com.lumie.auth.application.port.in.UpdateProfileUseCase;
 import com.lumie.auth.domain.vo.DeviceCategory;
 import com.lumie.auth.domain.vo.Role;
 import com.lumie.auth.domain.vo.SessionMetadata;
+import com.lumie.auth.application.port.out.AdminServicePort;
 import com.lumie.auth.application.port.out.TenantServicePort;
 import com.lumie.auth.application.port.out.TenantServicePort.TenantCreationResult;
 import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
@@ -54,6 +55,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
 
     private final TenantServicePort tenantServicePort;
     private final UserLookupPort userLookupPort;
+    private final AdminServicePort adminServicePort;
     private final TokenPersistencePort tokenPersistencePort;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
@@ -155,6 +157,15 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
                 passwordHash,
                 Role.OWNER,
                 tenantResult.tenantId()
+        );
+
+        adminServicePort.createOwnerAdmin(
+                tenantResult.tenantSlug(),
+                user.id(),
+                request.userLoginId(),
+                request.name(),
+                request.phone(),
+                null
         );
 
         IssuedTokens issued = issueTokensForLogin(user, tenantResult.tenantSlug(), tenantResult.tenantId(), metadata);

@@ -88,6 +88,21 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
     }
 
     @Override
+    public AdminData createOwnerAdmin(String tenantSlug, Long userId, String userLoginId,
+                                      String name, String phone, String email) {
+        String previous = TenantContextHolder.getTenant();
+        try {
+            TenantContextHolder.setTenant(tenantSlug);
+            Admin admin = Admin.create(userId, userLoginId, name, phone, email, null);
+            Admin saved = adminRepository.save(admin);
+            log.info("OWNER admin row created: userId={}, tenant={}", userId, tenantSlug);
+            return toAdminDataFromEntity(saved);
+        } finally {
+            restoreTenant(previous);
+        }
+    }
+
+    @Override
     public AdminListData getAllAdmins(String tenantSlug, int page, int size) {
         String previous = TenantContextHolder.getTenant();
         try {

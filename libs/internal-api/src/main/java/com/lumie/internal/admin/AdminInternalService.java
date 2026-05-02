@@ -15,6 +15,8 @@ public interface AdminInternalService {
 
     AdminListData getAllAdmins(String tenantSlug, int page, int size);
 
+    AdminData createOwnerAdmin(String tenantSlug, Long userId, String userLoginId, String name, String phone, String email);
+
     record AdminData(
             Long id,
             Long userId,
