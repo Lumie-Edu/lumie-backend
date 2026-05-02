@@ -1,5 +1,7 @@
 package com.lumie.internal.auth;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 
 public interface AuthInternalService {
@@ -15,6 +17,12 @@ public interface AuthInternalService {
     ResetPasswordResult resetPassword(Long userId);
 
     ChangeLoginIdResult changeLoginId(Long userId, String newLoginId);
+
+    /**
+     * Batch lookup of avatar seeds keyed by user ID. Users without an
+     * avatar seed are simply omitted from the returned map.
+     */
+    Map<Long, String> getAvatarSeeds(Collection<Long> userIds);
 
     record TokenValidationResult(
             boolean valid,

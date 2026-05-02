@@ -15,10 +15,15 @@ public record StudentResponse(
     String parentPhone,
     String studentMemo,
     Boolean isActive,
+    String avatarSeed,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
     public static StudentResponse from(Student student) {
+        return from(student, null);
+    }
+
+    public static StudentResponse from(Student student, String avatarSeed) {
         return new StudentResponse(
             student.getId(),
             student.getUserId(),
@@ -30,6 +35,7 @@ public record StudentResponse(
             student.getParentPhone(),
             student.getStudentMemo(),
             student.isActive(),
+            avatarSeed,
             student.getCreatedAt(),
             student.getUpdatedAt()
         );

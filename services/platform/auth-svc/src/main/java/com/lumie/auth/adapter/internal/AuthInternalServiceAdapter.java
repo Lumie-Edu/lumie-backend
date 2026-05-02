@@ -1,5 +1,6 @@
 package com.lumie.auth.adapter.internal;
 
+import com.lumie.auth.adapter.out.persistence.UserJpaRepository;
 import com.lumie.auth.application.port.in.ValidateTokenUseCase;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.domain.vo.Role;
@@ -10,7 +11,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -23,7 +28,20 @@ public class AuthInternalServiceAdapter implements AuthInternalService {
 
     private final ValidateTokenUseCase validateTokenUseCase;
     private final UserLookupPort userLookupPort;
+    private final UserJpaRepository userJpaRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public Map<Long, String> getAvatarSeeds(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return userJpaRepository.findAvatarSeedsByIds(userIds).stream()
+                .collect(Collectors.toMap(
+                        UserJpaRepository.UserAvatarRow::getId,
+                        UserJpaRepository.UserAvatarRow::getAvatarSeed,
+                        (a, b) -> a));
+    }
 
     @Override
     public TokenValidationResult validateToken(String token) {

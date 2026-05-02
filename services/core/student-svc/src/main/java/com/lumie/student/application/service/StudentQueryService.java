@@ -1,6 +1,7 @@
 package com.lumie.student.application.service;
 
 import com.lumie.common.csv.CsvWriter;
+import com.lumie.internal.auth.AuthInternalService;
 import com.lumie.student.application.dto.EnrollmentTrendResponse;
 import com.lumie.student.application.dto.StudentResponse;
 import com.lumie.student.domain.entity.Student;
@@ -22,6 +23,7 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,54 +37,48 @@ import java.util.Optional;
 public class StudentQueryService {
 
     private final StudentRepository studentRepository;
+    private final AuthInternalService authInternalService;
 
     public StudentResponse getStudent(Long id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new StudentNotFoundException(id));
-        return StudentResponse.from(student);
+        return enrich(student);
     }
 
     public List<StudentResponse> getStudentsByIds(List<Long> ids) {
-        return studentRepository.findAllByIds(ids).stream()
-                .map(StudentResponse::from)
-                .toList();
+        return enrichList(studentRepository.findAllByIds(ids));
     }
 
     public List<StudentResponse> getStudentsByUserIds(List<Long> userIds) {
-        return studentRepository.findAllByUserIds(userIds).stream()
-                .map(StudentResponse::from)
-                .toList();
+        return enrichList(studentRepository.findAllByUserIds(userIds));
     }
 
     public StudentResponse getStudentByUserLoginId(String userLoginId) {
         Student student = studentRepository.findByUserLoginId(userLoginId)
                 .orElseThrow(() -> new StudentNotFoundException(userLoginId));
-        return StudentResponse.from(student);
+        return enrich(student);
     }
 
     public StudentResponse getStudentByPhone(String phone) {
         Student student = studentRepository.findByPhone(phone)
                 .orElseThrow(() -> new StudentNotFoundException("phone: " + phone));
-        return StudentResponse.from(student);
+        return enrich(student);
     }
 
     public Optional<StudentResponse> findStudentByPhone(String phone) {
         return studentRepository.findByPhone(phone)
-                .map(StudentResponse::from);
+                .map(this::enrich);
     }
 
     public Page<StudentResponse> getAllActiveStudents(Pageable pageable) {
-        return studentRepository.findAllByIsActive(true, pageable)
-                .map(StudentResponse::from);
+        return enrichPage(studentRepository.findAllByIsActive(true, pageable));
     }
 
     public Page<StudentResponse> getAllStudents(Boolean isActive, Pageable pageable) {
         if (isActive == null) {
-            return studentRepository.findAll(pageable)
-                    .map(StudentResponse::from);
+            return enrichPage(studentRepository.findAll(pageable));
         }
-        return studentRepository.findAllByIsActive(isActive, pageable)
-                .map(StudentResponse::from);
+        return enrichPage(studentRepository.findAllByIsActive(isActive, pageable));
     }
 
     public Page<StudentResponse> getStudents(Boolean isActive, Pageable pageable) {
@@ -90,8 +86,32 @@ public class StudentQueryService {
     }
 
     public Page<StudentResponse> searchStudents(Boolean isActive, String search, Pageable pageable) {
-        return studentRepository.search(isActive, search, pageable)
-                .map(StudentResponse::from);
+        return enrichPage(studentRepository.search(isActive, search, pageable));
+    }
+
+    private StudentResponse enrich(Student student) {
+        Map<Long, String> seeds = authInternalService.getAvatarSeeds(List.of(student.getUserId()));
+        return StudentResponse.from(student, seeds.get(student.getUserId()));
+    }
+
+    private List<StudentResponse> enrichList(List<Student> students) {
+        Map<Long, String> seeds = avatarSeedsFor(students);
+        return students.stream()
+                .map(s -> StudentResponse.from(s, seeds.get(s.getUserId())))
+                .toList();
+    }
+
+    private Page<StudentResponse> enrichPage(Page<Student> page) {
+        Map<Long, String> seeds = avatarSeedsFor(page.getContent());
+        return page.map(s -> StudentResponse.from(s, seeds.get(s.getUserId())));
+    }
+
+    private Map<Long, String> avatarSeedsFor(Collection<Student> students) {
+        if (students.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> userIds = students.stream().map(Student::getUserId).toList();
+        return authInternalService.getAvatarSeeds(userIds);
     }
 
     public long countActiveStudents() {
