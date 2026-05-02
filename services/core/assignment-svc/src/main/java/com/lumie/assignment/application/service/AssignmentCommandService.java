@@ -6,7 +6,6 @@ import com.lumie.assignment.application.dto.CreateSubmissionRequest;
 import com.lumie.assignment.application.dto.SubmissionResponse;
 import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
-import com.lumie.assignment.application.port.out.AdminServicePort;
 import com.lumie.assignment.application.port.out.ClassServicePort;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
@@ -20,7 +19,6 @@ import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentType;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.common.tenant.UserContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,14 +33,11 @@ public class AssignmentCommandService {
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
     private final ClassServicePort classServicePort;
-    private final AdminServicePort adminServicePort;
 
     public AssignmentResponse createAssignment(CreateAssignmentRequest request) {
         classServicePort.getClass(request.classId())
             .orElseThrow(() -> new BusinessException(AssignmentErrorCode.CLASS_NOT_FOUND,
                 "Class not found with id: " + request.classId()));
-
-        Long createdBy = request.createdBy() != null ? request.createdBy() : UserContextHolder.getUserId();
 
         AssignmentType type = parseAssignmentType(request.type());
 
@@ -53,8 +48,7 @@ public class AssignmentCommandService {
             type,
             request.dueDate(),
             request.maxScore(),
-            request.attachments(),
-            createdBy
+            request.attachments()
         );
 
         Assignment saved = assignmentRepository.save(entity);

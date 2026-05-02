@@ -16,7 +16,6 @@ public record AssignmentResponse(
     LocalDateTime dueDate,
     Integer maxScore,
     List<Long> attachments,
-    Long createdBy,
     AssignmentStatus status,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
@@ -31,7 +30,6 @@ public record AssignmentResponse(
             entity.getDueDate(),
             entity.getMaxScore(),
             entity.getAttachments(),
-            entity.getCreatedBy(),
             entity.getStatus(),
             entity.getCreatedAt(),
             entity.getUpdatedAt()

@@ -51,9 +51,6 @@ public class Assignment extends BaseEntity {
     @Column(name = "attachments", columnDefinition = "jsonb")
     private List<Long> attachments;
 
-    @Column(name = "created_by", nullable = false)
-    private Long createdBy;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private AssignmentStatus status;
@@ -61,7 +58,7 @@ public class Assignment extends BaseEntity {
     @Builder
     private Assignment(Long classId, String title, String description,
                        AssignmentType type, LocalDateTime dueDate, Integer maxScore,
-                       List<Long> attachments, Long createdBy, AssignmentStatus status) {
+                       List<Long> attachments, AssignmentStatus status) {
         this.classId = classId;
         this.title = title;
         this.description = description;
@@ -69,13 +66,12 @@ public class Assignment extends BaseEntity {
         this.dueDate = dueDate;
         this.maxScore = maxScore;
         this.attachments = attachments;
-        this.createdBy = createdBy;
         this.status = status != null ? status : AssignmentStatus.ACTIVE;
     }
 
     public static Assignment create(Long classId, String title, String description,
                                     AssignmentType type, LocalDateTime dueDate, Integer maxScore,
-                                    List<Long> attachments, Long createdBy) {
+                                    List<Long> attachments) {
         return Assignment.builder()
                 .classId(classId)
                 .title(title)
@@ -84,7 +80,6 @@ public class Assignment extends BaseEntity {
                 .dueDate(dueDate)
                 .maxScore(maxScore)
                 .attachments(attachments)
-                .createdBy(createdBy)
                 .status(AssignmentStatus.ACTIVE)
                 .build();
     }

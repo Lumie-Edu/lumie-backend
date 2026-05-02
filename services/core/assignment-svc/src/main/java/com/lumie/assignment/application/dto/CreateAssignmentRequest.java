@@ -17,8 +17,6 @@ public record CreateAssignmentRequest(
     String type,
     LocalDateTime dueDate,
     Integer maxScore,
-    List<Long> attachments,
-
-    Long createdBy
+    List<Long> attachments
 ) {
 }

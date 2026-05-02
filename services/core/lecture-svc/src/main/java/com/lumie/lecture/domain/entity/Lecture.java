@@ -24,7 +24,7 @@ public class Lecture extends BaseEntity {
     @Column(name = "class_id")
     private Long classId;
 
-    @Column(name = "teacher_id", nullable = false)
+    @Column(name = "teacher_id")
     private Long teacherId;
 
     @Column(name = "title", nullable = false, length = 300)
