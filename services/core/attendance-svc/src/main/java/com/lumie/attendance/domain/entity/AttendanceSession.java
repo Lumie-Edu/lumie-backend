@@ -44,16 +44,13 @@ public class AttendanceSession extends BaseEntity {
     @Column(name = "late_threshold_minutes", nullable = false)
     private Integer lateThresholdMinutes;
 
-    @Column(name = "created_by")
-    private Long createdBy;
-
     @OneToMany(mappedBy = "session", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<AttendanceRecord> records = new ArrayList<>();
 
     @Builder
     private AttendanceSession(String name, LocalDate sessionDate, Long classId,
                               String className, String attendanceCode, LocalDateTime codeExpiresAt,
-                              Integer lateThresholdMinutes, Long createdBy) {
+                              Integer lateThresholdMinutes) {
         this.name = name;
         this.sessionDate = sessionDate;
         this.classId = classId;
@@ -61,12 +58,11 @@ public class AttendanceSession extends BaseEntity {
         this.attendanceCode = attendanceCode;
         this.codeExpiresAt = codeExpiresAt;
         this.lateThresholdMinutes = lateThresholdMinutes != null ? lateThresholdMinutes : 10;
-        this.createdBy = createdBy;
     }
 
     public static AttendanceSession create(String name, LocalDate sessionDate,
                                            Long classId, String className,
-                                           Integer lateThresholdMinutes, Long createdBy) {
+                                           Integer lateThresholdMinutes) {
         return AttendanceSession.builder()
                 .name(name)
                 .sessionDate(sessionDate)
@@ -74,7 +70,6 @@ public class AttendanceSession extends BaseEntity {
                 .className(className)
                 .attendanceCode(generateCode())
                 .lateThresholdMinutes(lateThresholdMinutes)
-                .createdBy(createdBy)
                 .build();
     }
 

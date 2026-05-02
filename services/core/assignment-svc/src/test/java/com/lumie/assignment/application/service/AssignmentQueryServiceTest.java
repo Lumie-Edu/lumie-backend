@@ -145,7 +145,7 @@ class AssignmentQueryServiceTest {
         Assignment entity = Assignment.create(
                 1L, "수학 숙제", "1장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
-                100, null, 5L);
+                100, null);
         setField(entity, "id", id);
         return entity;
     }

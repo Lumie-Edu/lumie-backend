@@ -19,7 +19,7 @@ class AssignmentEntityTest {
         Assignment entity = Assignment.create(
                 1L, "수학 숙제", "1장~3장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
-                100, List.of(1L, 2L), 5L);
+                100, List.of(1L, 2L));
 
         assertThat(entity.getStatus()).isEqualTo(AssignmentStatus.ACTIVE);
         assertThat(entity.getTitle()).isEqualTo("수학 숙제");
@@ -27,7 +27,6 @@ class AssignmentEntityTest {
         assertThat(entity.getClassId()).isEqualTo(1L);
         assertThat(entity.getType()).isEqualTo(AssignmentType.HOMEWORK);
         assertThat(entity.getMaxScore()).isEqualTo(100);
-        assertThat(entity.getCreatedBy()).isEqualTo(5L);
         assertThat(entity.getAttachments()).containsExactly(1L, 2L);
     }
 
@@ -86,7 +85,7 @@ class AssignmentEntityTest {
     void create_nullType_defaultsToHomework() {
         Assignment entity = Assignment.create(
                 1L, "과제", null, null,
-                null, null, null, 5L);
+                null, null, null);
 
         assertThat(entity.getType()).isEqualTo(AssignmentType.HOMEWORK);
         assertThat(entity.getDescription()).isNull();
@@ -97,6 +96,6 @@ class AssignmentEntityTest {
         return Assignment.create(
                 1L, "수학 숙제", "1장~3장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
-                100, null, 5L);
+                100, null);
     }
 }

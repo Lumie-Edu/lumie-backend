@@ -53,7 +53,7 @@ class AttendanceSessionCommandServiceTest {
     }
 
     private AttendanceSession buildSavedSession(Long id) throws Exception {
-        AttendanceSession session = AttendanceSession.create("수학 수업", LocalDate.now(), null, null, 10, null);
+        AttendanceSession session = AttendanceSession.create("수학 수업", LocalDate.now(), null, null, 10);
         setField(session, "id", id);
         return session;
     }

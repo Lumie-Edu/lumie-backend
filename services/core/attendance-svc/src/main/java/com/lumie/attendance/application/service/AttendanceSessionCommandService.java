@@ -44,8 +44,7 @@ public class AttendanceSessionCommandService {
             request.sessionDate(),
             request.classId(),
             className,
-            request.lateThresholdMinutes(),
-            null
+            request.lateThresholdMinutes()
         );
 
         AttendanceSession saved = sessionRepository.save(session);
@@ -80,7 +79,7 @@ public class AttendanceSessionCommandService {
 
         AttendanceSession session = AttendanceSession.create(
             className, date, classId, className,
-            lateThresholdMinutes, null
+            lateThresholdMinutes
         );
 
         AttendanceSession saved = sessionRepository.save(session);

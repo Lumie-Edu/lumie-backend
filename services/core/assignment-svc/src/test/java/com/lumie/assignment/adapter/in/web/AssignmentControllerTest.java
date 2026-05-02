@@ -64,7 +64,7 @@ class AssignmentControllerTest {
 
         CreateAssignmentRequest request = new CreateAssignmentRequest(
                 1L, "수학 숙제", "1장 풀기", "HOMEWORK",
-                LocalDateTime.of(2026, 4, 15, 23, 59), 100, null, 5L);
+                LocalDateTime.of(2026, 4, 15, 23, 59), 100, null);
 
         mockMvc.perform(post("/v1/assignments")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -161,7 +161,7 @@ class AssignmentControllerTest {
         return new AssignmentResponse(
                 id, 1L, "수학 숙제", "1장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
-                100, null, 5L, AssignmentStatus.ACTIVE,
+                100, null, AssignmentStatus.ACTIVE,
                 LocalDateTime.now(), LocalDateTime.now());
     }
 }

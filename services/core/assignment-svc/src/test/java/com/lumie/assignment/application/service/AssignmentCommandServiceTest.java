@@ -6,7 +6,6 @@ import com.lumie.assignment.application.dto.CreateSubmissionRequest;
 import com.lumie.assignment.application.dto.SubmissionResponse;
 import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
-import com.lumie.assignment.application.port.out.AdminServicePort;
 import com.lumie.assignment.application.port.out.ClassServicePort;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
@@ -45,7 +44,6 @@ class AssignmentCommandServiceTest {
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private AssignmentSubmissionRepository submissionRepository;
     @Mock private ClassServicePort classServicePort;
-    @Mock private AdminServicePort adminServicePort;
     @InjectMocks private AssignmentCommandService commandService;
 
     @Nested
@@ -57,7 +55,7 @@ class AssignmentCommandServiceTest {
         void createAssignment_success() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
                     1L, "수학 숙제", "1장 풀기", "HOMEWORK",
-                    LocalDateTime.of(2026, 4, 15, 23, 59), 100, null, 5L);
+                    LocalDateTime.of(2026, 4, 15, 23, 59), 100, null);
 
             given(classServicePort.getClass(1L))
                     .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반")));
@@ -79,7 +77,7 @@ class AssignmentCommandServiceTest {
         @DisplayName("존재하지 않는 수업으로 생성 시 BusinessException이 발생한다")
         void createAssignment_classNotFound_throwsException() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    999L, "과제", null, null, null, null, null, 5L);
+                    999L, "과제", null, null, null, null, null);
 
             given(classServicePort.getClass(999L)).willReturn(Optional.empty());
 
@@ -233,7 +231,7 @@ class AssignmentCommandServiceTest {
         Assignment entity = Assignment.create(
                 1L, "수학 숙제", "1장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
-                100, null, 5L);
+                100, null);
         setField(entity, "id", id);
         return entity;
     }

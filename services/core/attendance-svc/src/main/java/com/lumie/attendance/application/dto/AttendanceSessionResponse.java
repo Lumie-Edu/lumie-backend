@@ -16,7 +16,6 @@ public record AttendanceSessionResponse(
     String attendanceCode,
     LocalDateTime codeExpiresAt,
     Integer lateThresholdMinutes,
-    Long createdBy,
     LocalDateTime createdAt,
     LocalDateTime updatedAt,
     int presentCount,
@@ -54,7 +53,6 @@ public record AttendanceSessionResponse(
             session.getAttendanceCode(),
             session.getCodeExpiresAt(),
             session.getLateThresholdMinutes(),
-            session.getCreatedBy(),
             session.getCreatedAt(),
             session.getUpdatedAt(),
             presentCount,
@@ -75,7 +73,6 @@ public record AttendanceSessionResponse(
             session.getAttendanceCode(),
             session.getCodeExpiresAt(),
             session.getLateThresholdMinutes(),
-            session.getCreatedBy(),
             session.getCreatedAt(),
             session.getUpdatedAt(),
             0, 0, 0, 0, 0

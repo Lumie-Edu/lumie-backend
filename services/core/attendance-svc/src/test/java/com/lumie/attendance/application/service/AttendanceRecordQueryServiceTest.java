@@ -61,7 +61,7 @@ class AttendanceRecordQueryServiceTest {
     }
 
     private AttendanceRecord buildRecord(Long studentId, AttendanceStatus status) throws Exception {
-        AttendanceSession session = AttendanceSession.create("수업", LocalDate.now(), null, null, 10, null);
+        AttendanceSession session = AttendanceSession.create("수업", LocalDate.now(), null, null, 10);
         setField(session, "id", 1L);
         AttendanceRecord record = AttendanceRecord.create(session, studentId);
         setField(record, "id", studentId * 10L);

@@ -14,7 +14,7 @@ class AttendanceSessionTest {
     @DisplayName("create() 호출 시 6자리 코드가 생성된다")
     void create_codeIsGenerated() {
         AttendanceSession session = AttendanceSession.create(
-            "수업", LocalDate.now(), null, null, 10, null);
+            "수업", LocalDate.now(), null, null, 10);
 
         assertThat(session.getAttendanceCode()).matches("\\d{6}");
         assertThat(session.getLateThresholdMinutes()).isEqualTo(10);
@@ -24,7 +24,7 @@ class AttendanceSessionTest {
     @DisplayName("create() 호출 시 lateThresholdMinutes가 null이면 기본값 10이 적용된다")
     void create_nullLateThreshold_defaultsToTen() {
         AttendanceSession session = AttendanceSession.create(
-            "수업", LocalDate.now(), null, null, null, null);
+            "수업", LocalDate.now(), null, null, null);
 
         assertThat(session.getLateThresholdMinutes()).isEqualTo(10);
     }
@@ -33,7 +33,7 @@ class AttendanceSessionTest {
     @DisplayName("regenerateCode() 호출 시 새 6자리 코드로 교체된다")
     void regenerateCode_producesNewSixDigitCode() {
         AttendanceSession session = AttendanceSession.create(
-            "수업", LocalDate.now(), 10L, "국어", 5, null);
+            "수업", LocalDate.now(), 10L, "국어", 5);
         String originalCode = session.getAttendanceCode();
 
         session.regenerateCode();
@@ -48,7 +48,7 @@ class AttendanceSessionTest {
     @DisplayName("codeExpiresAt이 null이면 isExpired()는 false이다")
     void isExpired_whenExpiresAtIsNull_returnsFalse() {
         AttendanceSession session = AttendanceSession.create(
-            "수업", LocalDate.now(), null, null, 10, null);
+            "수업", LocalDate.now(), null, null, 10);
 
         assertThat(session.isExpired()).isFalse();
     }

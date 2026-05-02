@@ -65,7 +65,7 @@ class AttendanceRecordCommandServiceTest {
     }
 
     private AttendanceSession buildOpenSession(String code) {
-        return AttendanceSession.create("수업", LocalDate.now(), null, null, 10, null);
+        return AttendanceSession.create("수업", LocalDate.now(), null, null, 10);
     }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {
@@ -98,7 +98,7 @@ class AttendanceRecordCommandServiceTest {
         // PRESENT: lateThresholdMinutes=10, sessionDate=today, so minutes since start of today
         // is large (>> 10 minutes) — set sessionDate to future to ensure PRESENT branch
         // Instead, set lateThresholdMinutes to a very large value via a session with big threshold
-        AttendanceSession earlySession = AttendanceSession.create("수업", LocalDate.now(), null, null, 99999, null);
+        AttendanceSession earlySession = AttendanceSession.create("수업", LocalDate.now(), null, null, 99999);
         AttendanceRecord record = AttendanceRecord.create(earlySession, student.getId());
 
         given(studentReadRepository.findByUserId(userId)).willReturn(Optional.of(student));
@@ -122,7 +122,7 @@ class AttendanceRecordCommandServiceTest {
         Long userId = 10L;
         StudentReadModel student = buildStudent(5L, userId);
         // lateThresholdMinutes=0 → always LATE when checking in during the day
-        AttendanceSession lateSession = AttendanceSession.create("수업", LocalDate.now(), null, null, 0, null);
+        AttendanceSession lateSession = AttendanceSession.create("수업", LocalDate.now(), null, null, 0);
         AttendanceRecord record = AttendanceRecord.create(lateSession, student.getId());
 
         given(studentReadRepository.findByUserId(userId)).willReturn(Optional.of(student));
@@ -172,7 +172,7 @@ class AttendanceRecordCommandServiceTest {
         // given
         Long userId = 10L;
         StudentReadModel student = buildStudent(5L, userId);
-        AttendanceSession session = AttendanceSession.create("수업", LocalDate.now(), null, null, 10, null);
+        AttendanceSession session = AttendanceSession.create("수업", LocalDate.now(), null, null, 10);
 
         given(studentReadRepository.findByUserId(userId)).willReturn(Optional.of(student));
         given(sessionRepository.findByAttendanceCode("123456")).willReturn(Optional.of(session));
