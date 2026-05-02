@@ -90,6 +90,8 @@ public class AdminCommandService {
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new AdminNotFoundException(id));
 
+        validateActorAuthority(admin, "update");
+
         if (request.phone() != null && adminRepository.existsByPhoneAndIdNot(request.phone(), id)) {
             throw new DuplicatePhoneException(request.phone());
         }
@@ -105,8 +107,10 @@ public class AdminCommandService {
     }
 
     public void setAdminPermissions(Long adminId, Map<String, String> permissions) {
-        adminRepository.findById(adminId)
+        Admin admin = adminRepository.findById(adminId)
                 .orElseThrow(() -> new AdminNotFoundException(adminId));
+
+        validateActorAuthority(admin, "modify permissions of");
 
         adminPermissionRepository.deleteByAdminId(adminId);
 
@@ -159,6 +163,8 @@ public class AdminCommandService {
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new AdminNotFoundException(id));
 
+        validateActorAuthority(admin, "reset password for");
+
         AuthServicePort.ResetPasswordResult result = authServicePort.resetPassword(admin.getUserId());
         if (!result.success()) {
             throw new RuntimeException("Failed to reset password: " + result.message());
@@ -173,6 +179,8 @@ public class AdminCommandService {
 
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new AdminNotFoundException(id));
+
+        validateActorAuthority(admin, "change login id for");
 
         AuthServicePort.ChangeLoginIdResult result = authServicePort.changeLoginId(admin.getUserId(), newLoginId);
         if (!result.success()) {
