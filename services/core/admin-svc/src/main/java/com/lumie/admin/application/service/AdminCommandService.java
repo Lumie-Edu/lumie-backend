@@ -12,6 +12,8 @@ import com.lumie.admin.domain.exception.QuotaExceededException;
 import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
 import com.lumie.admin.domain.vo.AccessLevel;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.internal.activitylog.ActivityLogInternalService;
@@ -31,6 +33,7 @@ import java.util.Set;
 public class AdminCommandService {
 
     private static final Set<String> ALLOWED_ROLES = Set.of("MANAGER", "INSTRUCTOR");
+    private static final List<String> ROLE_HIERARCHY = List.of("OWNER", "MANAGER", "INSTRUCTOR");
 
     private final AdminRepository adminRepository;
     private final AdminPermissionRepository adminPermissionRepository;
@@ -120,6 +123,7 @@ public class AdminCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new AdminNotFoundException(id));
+        validateActorAuthority(admin, "deactivate");
         admin.deactivate();
         adminRepository.save(admin);
         log.info("Admin deactivated: {} in tenant: {}", id, tenantSlug);
@@ -131,6 +135,7 @@ public class AdminCommandService {
         checkAdminQuota(tenantSlug);
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new AdminNotFoundException(id));
+        validateActorAuthority(admin, "reactivate");
         admin.activate();
         adminRepository.save(admin);
         log.info("Admin reactivated: {} in tenant: {}", id, tenantSlug);
@@ -141,6 +146,7 @@ public class AdminCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new AdminNotFoundException(id));
+        validateActorAuthority(admin, "terminate");
         admin.terminate();
         adminRepository.save(admin);
         log.info("Admin terminated: {} in tenant: {}", id, tenantSlug);
@@ -185,6 +191,7 @@ public class AdminCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new AdminNotFoundException(id));
+        validateActorAuthority(admin, "delete");
         if (admin.isActive()) {
             throw new IllegalStateException("Cannot delete active admin. Deactivate first.");
         }
@@ -210,6 +217,22 @@ public class AdminCommandService {
             );
         } catch (Exception e) {
             log.warn("Failed to log activity: {}", e.getMessage());
+        }
+    }
+
+    private void validateActorAuthority(Admin target, String action) {
+        Long actorUserId = UserContextHolder.getRequiredUserId();
+        if (target.getUserId().equals(actorUserId)) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN,
+                    "Cannot " + action + " yourself");
+        }
+        String actorRole = UserContextHolder.getUserRole();
+        String targetRole = target.getRole();
+        int actorLevel = ROLE_HIERARCHY.indexOf(actorRole);
+        int targetLevel = ROLE_HIERARCHY.indexOf(targetRole);
+        if (actorLevel < 0 || targetLevel < 0 || actorLevel >= targetLevel) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN,
+                    actorRole + " cannot " + action + " " + targetRole);
         }
     }
 
