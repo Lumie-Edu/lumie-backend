@@ -26,6 +26,7 @@ public class StudentSpecification {
                     cb.like(cb.lower(root.get("name")), pattern),
                     cb.like(cb.lower(root.get("studentHighschool")), pattern),
                     cb.like(root.get("phone"), "%" + search + "%"),
+                    cb.like(root.get("parentPhone"), "%" + search + "%"),
                     cb.like(cb.toString(root.get("studentBirthYear")), "%" + search + "%")
             );
         };
