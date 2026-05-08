@@ -9,7 +9,7 @@ import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
-import com.lumie.auth.application.service.AuthCommandService.InvalidCredentialsException;
+import com.lumie.auth.application.exception.AuthErrors.InvalidCredentialsException;
 import com.lumie.auth.domain.entity.AuthToken;
 import com.lumie.auth.domain.vo.DeviceCategory;
 import com.lumie.auth.domain.vo.SessionMetadata;
