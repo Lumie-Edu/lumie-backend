@@ -20,7 +20,7 @@ import com.lumie.auth.application.port.in.RegisterUseCase;
 import com.lumie.auth.application.port.in.RevokeSessionUseCase;
 import com.lumie.auth.application.port.in.UpdateProfileUseCase;
 import com.lumie.auth.domain.vo.DeviceCategory;
-import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.auth.Role;
 import com.lumie.auth.domain.vo.SessionMetadata;
 import com.lumie.auth.application.port.out.AdminServicePort;
 import com.lumie.auth.application.port.out.TenantServicePort;

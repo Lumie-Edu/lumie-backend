@@ -1,8 +1,10 @@
 package com.lumie.exam.adapter.out.persistence;
 
 import com.lumie.exam.domain.entity.ExamResult;
+import com.lumie.exam.domain.exception.DuplicateExamResultException;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,12 +18,20 @@ public class ExamResultRepositoryAdapter implements ExamResultRepository {
 
     @Override
     public ExamResult save(ExamResult result) {
-        return jpaRepository.save(result);
+        try {
+            return jpaRepository.save(result);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateExamResultException(e);
+        }
     }
 
     @Override
     public List<ExamResult> saveAll(List<ExamResult> results) {
-        return jpaRepository.saveAll(results);
+        try {
+            return jpaRepository.saveAll(results);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateExamResultException(e);
+        }
     }
 
     @Override
@@ -42,6 +52,12 @@ public class ExamResultRepositoryAdapter implements ExamResultRepository {
     @Override
     public List<ExamResult> findByExamId(Long examId) {
         return jpaRepository.findByExamId(examId);
+    }
+
+    @Override
+    public List<ExamResult> findByExamIdIn(java.util.Collection<Long> examIds) {
+        if (examIds == null || examIds.isEmpty()) return List.of();
+        return jpaRepository.findByExamIdIn(examIds);
     }
 
     @Override

@@ -1,6 +1,6 @@
 package com.lumie.auth.infrastructure.security;
 
-import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.auth.Role;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.infrastructure.config.JwtConfig;
 import io.jsonwebtoken.Claims;

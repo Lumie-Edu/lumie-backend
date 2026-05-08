@@ -2,6 +2,7 @@ package com.lumie.exam.domain.repository;
 
 import com.lumie.exam.domain.entity.ExamResult;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,12 @@ public interface ExamResultRepository {
     Optional<ExamResult> findByExamIdAndPhoneNumber(Long examId, String phoneNumber);
 
     List<ExamResult> findByExamId(Long examId);
+
+    /**
+     * Batch-fetch all results across multiple exams. Used to avoid N+1 queries
+     * when computing per-exam statistics for a student's history.
+     */
+    List<ExamResult> findByExamIdIn(Collection<Long> examIds);
 
     List<ExamResult> findByExamIdAndStudentIdIsNotNull(Long examId);
 

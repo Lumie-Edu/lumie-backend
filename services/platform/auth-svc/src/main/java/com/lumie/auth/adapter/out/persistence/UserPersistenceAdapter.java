@@ -2,7 +2,7 @@ package com.lumie.auth.adapter.out.persistence;
 
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.domain.entity.User;
-import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

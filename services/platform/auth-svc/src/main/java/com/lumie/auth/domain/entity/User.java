@@ -1,6 +1,6 @@
 package com.lumie.auth.domain.entity;
 
-import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.auth.Role;
 import com.lumie.auth.domain.vo.UserStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

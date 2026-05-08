@@ -25,7 +25,10 @@ public enum AdminErrorCode implements ErrorCode {
     // 403 Forbidden
     QUOTA_EXCEEDED("A530", "Plan quota exceeded", 403),
     TENANT_INVALID("A531", "Invalid tenant", 403),
-    INSUFFICIENT_PERMISSION("A532", "Insufficient permission", 403);
+    INSUFFICIENT_PERMISSION("A532", "Insufficient permission", 403),
+
+    // 502 Bad Gateway — auth-svc returned a failure result for an admin op
+    AUTH_OP_FAILED("A540", "Auth service operation failed", 502);
 
     private final String code;
     private final String message;

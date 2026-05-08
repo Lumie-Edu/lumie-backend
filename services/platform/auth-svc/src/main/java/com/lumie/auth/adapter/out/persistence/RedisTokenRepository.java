@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.domain.entity.AuthToken;
 import com.lumie.auth.domain.repository.TokenRepository;
-import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.auth.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;

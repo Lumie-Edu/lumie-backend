@@ -22,7 +22,13 @@ public enum StudentErrorCode implements ErrorCode {
 
     // 403 Forbidden
     QUOTA_EXCEEDED("S301", "Plan quota exceeded", 403),
-    TENANT_INVALID("S302", "Invalid tenant", 403);
+    TENANT_INVALID("S302", "Invalid tenant", 403),
+
+    // 500 Internal — Excel parse failure on student bulk import
+    EXCEL_PARSE_FAILED("S401", "Failed to read Excel file", 500),
+
+    // 502 Bad Gateway — auth-svc returned a failure result for a student op
+    AUTH_OP_FAILED("S402", "Auth service operation failed", 502);
 
     private final String code;
     private final String message;

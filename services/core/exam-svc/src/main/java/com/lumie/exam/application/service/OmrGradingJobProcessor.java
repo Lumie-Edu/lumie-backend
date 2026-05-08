@@ -15,8 +15,8 @@ import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
+import com.lumie.exam.domain.exception.DuplicateExamResultException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,7 +102,7 @@ public class OmrGradingJobProcessor {
         ExamResult savedResult;
         try {
             savedResult = resultRepository.save(examResult);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateExamResultException e) {
             log.warn("Duplicate result detected, retrying with existing record: jobId={}", request.jobId());
             if (studentOpt.isPresent()) {
                 examResult = resultCommandService.resolveResult(exam, studentOpt.get().id(), omrResult);

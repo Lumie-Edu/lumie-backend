@@ -12,7 +12,6 @@ dependencyManagement {
 dependencies {
     implementation(project(":libs:common"))
     implementation(project(":libs:internal-api"))
-    implementation(project(":services:platform:tenant-svc"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")

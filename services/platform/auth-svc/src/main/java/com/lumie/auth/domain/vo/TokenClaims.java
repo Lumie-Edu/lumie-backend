@@ -1,5 +1,7 @@
 package com.lumie.auth.domain.vo;
 
+import com.lumie.common.auth.Role;
+
 import java.time.Instant;
 
 /**

@@ -3,7 +3,7 @@ package com.lumie.auth.adapter.internal;
 import com.lumie.auth.adapter.out.persistence.UserJpaRepository;
 import com.lumie.auth.application.port.in.ValidateTokenUseCase;
 import com.lumie.auth.application.port.out.UserLookupPort;
-import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.auth.Role;
 import com.lumie.internal.auth.AuthInternalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -110,7 +110,7 @@ public class AuthInternalServiceAdapter implements AuthInternalService {
                 return loginId;
             }
         }
-        throw new RuntimeException("Failed to generate unique login ID after " + MAX_LOGIN_ID_ATTEMPTS + " attempts");
+        throw new IllegalStateException("Failed to generate unique login ID after " + MAX_LOGIN_ID_ATTEMPTS + " attempts");
     }
 
     @Override

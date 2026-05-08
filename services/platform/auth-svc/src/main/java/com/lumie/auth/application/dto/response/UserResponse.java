@@ -1,6 +1,6 @@
 package com.lumie.auth.application.dto.response;
 
-import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.auth.Role;
 import lombok.Builder;
 
 @Builder

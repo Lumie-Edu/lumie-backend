@@ -1,8 +1,7 @@
 package com.lumie.homepage.adapter.out.internal;
 
 import com.lumie.homepage.application.port.out.TenantLookupPort;
-import com.lumie.tenant.application.port.out.TenantPersistencePort;
-import com.lumie.tenant.domain.entity.Tenant;
+import com.lumie.internal.tenant.TenantInternalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -10,20 +9,21 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 /**
- * Resolves a tenant by its customId using the tenant module's persistence port directly.
- * This is an in-process call — valid in the monolith since both modules share the classpath.
+ * Resolves a tenant by its customId via the tenant module's published
+ * internal-api boundary. This stays on the proper hexagonal coupling path —
+ * homepage-svc consumes a public {@link TenantInternalService} contract
+ * instead of reaching into tenant-svc's persistence port + domain entity.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class TenantLookupAdapter implements TenantLookupPort {
 
-    private final TenantPersistencePort tenantPersistencePort;
+    private final TenantInternalService tenantInternalService;
 
     @Override
     public Optional<TenantInfo> findByCustomId(String customId) {
-        return tenantPersistencePort.findByCustomId(customId)
-                .filter(Tenant::isActive)
-                .map(tenant -> new TenantInfo(tenant.getSlugValue(), tenant.getSchemaName()));
+        return tenantInternalService.getTenantByCustomId(customId)
+                .map(t -> new TenantInfo(t.slug(), t.schemaName()));
     }
 }

@@ -13,6 +13,7 @@ import com.lumie.admin.domain.exception.QuotaExceededException;
 import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
 import com.lumie.admin.domain.vo.AccessLevel;
+import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -23,9 +24,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Slf4j
 @Service
@@ -33,8 +34,8 @@ import java.util.Set;
 @Transactional
 public class AdminCommandService {
 
-    private static final Set<String> ALLOWED_ROLES = Set.of("MANAGER", "INSTRUCTOR");
-    private static final List<String> ROLE_HIERARCHY = List.of("OWNER", "MANAGER", "INSTRUCTOR");
+    /** Roles an admin can be created with via the admin module (OWNER is system-managed). */
+    private static final EnumSet<Role> CREATABLE_ROLES = EnumSet.of(Role.MANAGER, Role.INSTRUCTOR);
 
     private final AdminRepository adminRepository;
     private final AdminPermissionRepository adminPermissionRepository;
@@ -235,27 +236,23 @@ public class AdminCommandService {
             throw new BusinessException(CommonErrorCode.FORBIDDEN,
                     "Cannot " + action + " yourself");
         }
-        String actorRole = UserContextHolder.getUserRole();
-        String targetRole = target.getRole();
-        int actorLevel = ROLE_HIERARCHY.indexOf(actorRole);
-        int targetLevel = ROLE_HIERARCHY.indexOf(targetRole);
-        if (actorLevel < 0 || targetLevel < 0 || actorLevel >= targetLevel) {
+        Role actor = Role.fromString(UserContextHolder.getUserRole());
+        Role targetRole = Role.fromString(target.getRole());
+        if (!actor.canManage(targetRole)) {
             throw new BusinessException(CommonErrorCode.FORBIDDEN,
-                    actorRole + " cannot " + action + " " + targetRole);
+                    actor + " cannot " + action + " " + targetRole);
         }
     }
 
     private void validateRolePermission(String creatorRole, String requestedRole) {
-        if (!ALLOWED_ROLES.contains(requestedRole)) {
+        Role requested = Role.fromString(requestedRole);
+        if (!CREATABLE_ROLES.contains(requested)) {
             throw new IllegalArgumentException("Invalid role: " + requestedRole + ". Allowed: MANAGER, INSTRUCTOR");
         }
-        if ("OWNER".equals(creatorRole)) {
-            return;
+        Role creator = Role.fromString(creatorRole);
+        if (!creator.canManage(requested)) {
+            throw new IllegalStateException("Insufficient permission to create " + requested);
         }
-        if ("MANAGER".equals(creatorRole) && "INSTRUCTOR".equals(requestedRole)) {
-            return;
-        }
-        throw new IllegalStateException("Insufficient permission to create " + requestedRole);
     }
 
     private void checkAdminQuota(String tenantSlug) {

@@ -13,7 +13,7 @@ import com.lumie.auth.application.port.in.RegisterUseCase;
 import com.lumie.auth.application.port.in.RevokeSessionUseCase;
 import com.lumie.auth.application.port.in.UpdateAvatarUseCase;
 import com.lumie.auth.application.port.in.UpdateProfileUseCase;
-import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.auth.Role;
 import com.lumie.auth.infrastructure.config.CookieConfig;
 import com.lumie.auth.infrastructure.util.CookieUtils;
 import com.lumie.common.exception.GlobalExceptionHandler;

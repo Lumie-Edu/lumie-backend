@@ -12,8 +12,10 @@ import com.lumie.student.application.port.out.ExamServicePort;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.DuplicatePhoneException;
 import com.lumie.student.domain.exception.QuotaExceededException;
+import com.lumie.student.domain.exception.StudentErrorCode;
 import com.lumie.student.domain.exception.StudentNotFoundException;
 import com.lumie.student.domain.repository.StudentRepository;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +59,7 @@ public class StudentCommandService {
         );
 
         if (!userResult.success()) {
-            throw new RuntimeException("Failed to create user: " + userResult.message());
+            throw new BusinessException(StudentErrorCode.AUTH_OP_FAILED, "Failed to create user: " + userResult.message());
         }
 
         Student student = Student.create(
@@ -172,7 +174,7 @@ public class StudentCommandService {
 
         AuthServicePort.ResetPasswordResult result = authServicePort.resetPassword(student.getUserId());
         if (!result.success()) {
-            throw new RuntimeException("Failed to reset password: " + result.message());
+            throw new BusinessException(StudentErrorCode.AUTH_OP_FAILED, "Failed to reset password: " + result.message());
         }
 
         log.info("Password reset for student: {} in tenant: {}", id, tenantSlug);
@@ -186,7 +188,7 @@ public class StudentCommandService {
 
         AuthServicePort.ChangeLoginIdResult result = authServicePort.changeLoginId(student.getUserId(), newLoginId);
         if (!result.success()) {
-            throw new RuntimeException("Failed to change login ID: " + result.message());
+            throw new BusinessException(StudentErrorCode.AUTH_OP_FAILED, "Failed to change login ID: " + result.message());
         }
 
         student.updateLoginId(result.newLoginId());
@@ -361,7 +363,7 @@ public class StudentCommandService {
             }
         } catch (IOException e) {
             log.error("Failed to read Excel file", e);
-            throw new RuntimeException("Failed to read Excel file", e);
+            throw new BusinessException(StudentErrorCode.EXCEL_PARSE_FAILED, "Failed to read Excel file: " + e.getMessage());
         }
 
         log.info("Bulk import completed: {} success, {} failures in tenant: {}",

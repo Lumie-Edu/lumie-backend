@@ -49,6 +49,19 @@ public class TenantInternalServiceAdapter implements TenantInternalService {
     }
 
     @Override
+    public Optional<TenantData> getTenantByCustomId(String customId) {
+        return tenantPersistencePort.findByCustomId(customId)
+                .filter(Tenant::isActive)
+                .map(t -> new TenantData(
+                        t.getId(), t.getSlugValue(), t.getName(),
+                        t.getStatus().name(), t.getSchemaName(),
+                        t.getCustomId(),
+                        t.getCreatedAt() != null ? t.getCreatedAt().toString() : "",
+                        t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : ""
+                ));
+    }
+
+    @Override
     public ValidateTenantResult validateTenant(String slug) {
         boolean isValid = validateTenantUseCase.isValidAndActive(slug);
         long tenantId = validateTenantUseCase.getTenantIdBySlug(slug).orElse(0L);

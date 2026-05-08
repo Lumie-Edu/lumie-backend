@@ -234,7 +234,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     }
 
     private void saveRefreshToken(Long userId, String tenantSlug, Long tenantId,
-                                   com.lumie.auth.domain.vo.Role role, TokenClaims refreshClaims) {
+                                   com.lumie.common.auth.Role role, TokenClaims refreshClaims) {
         AuthToken authToken = AuthToken.create(
                 refreshClaims.jti(),
                 userId,

@@ -1,6 +1,6 @@
 package com.lumie.auth.domain.entity;
 
-import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.auth.Role;
 import lombok.Builder;
 import lombok.Getter;
 

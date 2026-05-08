@@ -167,12 +167,20 @@ public class StudentAnalyticsQueryService {
 
         List<ExamResult> studentResults = resultRepository.findByStudentId(studentId);
 
+        // Batch-fetch all peer results across the student's exams in one query
+        // (was N+1 before — one findByExamId call per exam in the student's history).
+        java.util.Set<Long> examIds = studentResults.stream()
+                .map(r -> r.getExam().getId())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        java.util.Map<Long, List<Integer>> scoresByExamId = resultRepository.findByExamIdIn(examIds).stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        r -> r.getExam().getId(),
+                        java.util.stream.Collectors.mapping(ExamResult::getTotalScore, java.util.stream.Collectors.toList())
+                ));
+
         List<NormalizedScoreResponse.NormalizedExamScore> normalizedScores = studentResults.stream()
                 .map(result -> {
-                    List<ExamResult> allResults = resultRepository.findByExamId(result.getExam().getId());
-                    List<Integer> allScores = allResults.stream()
-                            .map(ExamResult::getTotalScore)
-                            .toList();
+                    List<Integer> allScores = scoresByExamId.getOrDefault(result.getExam().getId(), List.of());
 
                     double mean = statisticsCalculator.calculateMean(allScores);
                     double stdDev = statisticsCalculator.calculateStandardDeviation(allScores);

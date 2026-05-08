@@ -1,7 +1,7 @@
 package com.lumie.auth.application.port.out;
 
 import com.lumie.auth.application.dto.response.UserResponse;
-import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.auth.Role;
 
 import java.util.Optional;
 
