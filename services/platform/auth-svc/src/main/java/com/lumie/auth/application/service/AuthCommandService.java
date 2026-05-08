@@ -27,8 +27,10 @@ import com.lumie.auth.application.port.out.TenantServicePort;
 import com.lumie.auth.application.port.out.TenantServicePort.TenantCreationResult;
 import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
+import com.lumie.auth.application.port.out.UserDirectoryPort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.auth.domain.entity.AuthToken;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.domain.vo.TokenPair;
@@ -55,6 +57,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
 
     private final TenantServicePort tenantServicePort;
     private final UserLookupPort userLookupPort;
+    private final UserDirectoryPort userDirectoryPort;
     private final AdminServicePort adminServicePort;
     private final TokenPersistencePort tokenPersistencePort;
     private final JwtTokenProvider jwtTokenProvider;
@@ -72,67 +75,90 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
             throw new IllegalStateException("Tenant is not active: " + request.tenantSlug());
         }
 
-        if (userLookupPort.existsByUserLoginId(request.userLoginId())) {
-            throw new UserLoginIdAlreadyExistsException("User login ID already registered: " + request.userLoginId());
-        }
+        return withinTenantContext(tenant.slug(), tenant.id(), () -> {
+            if (userLookupPort.existsByUserLoginId(request.userLoginId())) {
+                throw new UserLoginIdAlreadyExistsException("User login ID already registered: " + request.userLoginId());
+            }
 
-        String passwordHash = passwordEncoder.encode(request.password());
-        UserData user = userLookupPort.createUser(
-                request.userLoginId(),
-                request.name(),
-                request.phone(),
-                passwordHash,
-                Role.STUDENT,
-                tenant.id()
-        );
+            String passwordHash = passwordEncoder.encode(request.password());
+            UserData user = userLookupPort.createUser(
+                    request.userLoginId(),
+                    request.name(),
+                    request.phone(),
+                    passwordHash,
+                    Role.STUDENT
+            );
 
-        IssuedTokens issued = issueTokensForLogin(user, request.tenantSlug(), tenant.id(), metadata);
+            IssuedTokens issued = issueTokensForLogin(user, request.tenantSlug(), tenant.id(), metadata);
 
-        log.info("Registration successful for user: {} on tenant: {}", user.id(), request.tenantSlug());
+            log.info("Registration successful for user: {} on tenant: {}", user.id(), request.tenantSlug());
 
-        return LoginResponse.of(issued.tokenPair(), user.toUserResponse(request.tenantSlug()));
+            return LoginResponse.of(issued.tokenPair(), user.toUserResponse(request.tenantSlug()));
+        });
     }
 
     @Override
     public LoginResponse login(LoginRequest request, SessionMetadata metadata) {
         log.info("Login attempt for userLoginId: {}", request.userLoginId());
 
-        UserData user = userLookupPort.findByUserLoginId(request.userLoginId())
+        // Resolve which tenant this login targets:
+        //   - Portal entry (lumie-edu.com/{customId}): RequestContextFilter has
+        //     already set TenantContextHolder from the X-Tenant-Slug header.
+        //   - Root entry (lumie-edu.com): no header, must look up the OWNER
+        //     directory in public.users to discover the tenant.
+        TenantData tenant = resolveLoginTenant(request);
+
+        return withinTenantContext(tenant.slug(), tenant.id(), () -> {
+            UserData user = userLookupPort.findByUserLoginId(request.userLoginId())
+                    .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
+
+            if (!user.enabled()) {
+                throw new IllegalStateException("User account is disabled");
+            }
+
+            if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
+                throw new InvalidCredentialsException("Invalid user login ID or password");
+            }
+
+            IssuedTokens issued = issueTokensForLogin(user, tenant.slug(), tenant.id(), metadata);
+
+            log.info("Login successful for user: {} on tenant: {}", user.id(), tenant.slug());
+
+            return LoginResponse.of(issued.tokenPair(), user.toUserResponse(tenant.slug()));
+        });
+    }
+
+    private TenantData resolveLoginTenant(LoginRequest request) {
+        String headerSlug = TenantContextHolder.getTenant();
+        if (headerSlug != null && !headerSlug.isBlank()) {
+            // Portal entry — header provides the tenant.
+            TenantData tenant = tenantServicePort.validateTenant(headerSlug)
+                    .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
+            if (!tenant.isActive()) {
+                throw new IllegalStateException("Tenant is not active");
+            }
+            return tenant;
+        }
+
+        // Root entry — directory lookup. Must be an OWNER (only OWNERs are in
+        // public.users); otherwise the login is rejected with the standard
+        // generic error so we don't leak which login_ids exist.
+        UserDirectoryPort.DirectoryEntry entry = userDirectoryPort.findByUserLoginId(request.userLoginId())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
 
-        if (!user.enabled()) {
-            throw new IllegalStateException("User account is disabled");
-        }
-
-        if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
-            throw new InvalidCredentialsException("Invalid user login ID or password");
-        }
-
-        TenantData tenant = tenantServicePort.validateTenantById(user.tenantId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", user.tenantId().toString()));
-
+        TenantData tenant = tenantServicePort.validateTenantById(entry.tenantId())
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
         if (!tenant.isActive()) {
             throw new IllegalStateException("Tenant is not active");
         }
-
-        if (request.customId() != null && !request.customId().isBlank()
-                && !request.customId().equalsIgnoreCase(tenant.customId())) {
-            log.info("CustomId mismatch on login: requested={}, tenant={}", request.customId(), tenant.customId());
-            throw new InvalidCredentialsException("Invalid user login ID or password");
-        }
-
-        IssuedTokens issued = issueTokensForLogin(user, tenant.slug(), tenant.id(), metadata);
-
-        log.info("Login successful for user: {} on tenant: {}", user.id(), tenant.slug());
-
-        return LoginResponse.of(issued.tokenPair(), user.toUserResponse(tenant.slug()));
+        return tenant;
     }
 
     @Override
     public LoginResponse registerOwner(OwnerRegisterRequest request, SessionMetadata metadata) {
         log.info("Owner registration attempt for userLoginId: {}, institute: {}", request.userLoginId(), request.instituteName());
 
-        if (userLookupPort.existsByUserLoginId(request.userLoginId())) {
+        if (userDirectoryPort.findByUserLoginId(request.userLoginId()).isPresent()) {
             throw new UserLoginIdAlreadyExistsException("User login ID already registered: " + request.userLoginId());
         }
 
@@ -150,13 +176,26 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         log.info("Tenant created: slug={}, tenantId={}", tenantResult.tenantSlug(), tenantResult.tenantId());
 
         String passwordHash = passwordEncoder.encode(request.password());
-        UserData user = userLookupPort.createUser(
+
+        // Create the OWNER user inside the new tenant schema (full identity).
+        UserData user = withinTenantContext(tenantResult.tenantSlug(), tenantResult.tenantId(), () ->
+                userLookupPort.createUser(
+                        request.userLoginId(),
+                        request.name(),
+                        request.phone(),
+                        passwordHash,
+                        Role.OWNER
+                )
+        );
+
+        // Mirror a slim row into the public.users directory so root-entry login
+        // (lumie-edu.com) can resolve this owner's tenant. Email is null for now;
+        // future password-recovery flows will populate it.
+        userDirectoryPort.createDirectoryEntry(
+                user.id(),
                 request.userLoginId(),
-                request.name(),
-                request.phone(),
-                passwordHash,
-                Role.OWNER,
-                tenantResult.tenantId()
+                tenantResult.tenantId(),
+                null
         );
 
         adminServicePort.createOwnerAdmin(
@@ -224,24 +263,27 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         tokenPersistencePort.findRefreshToken(claims.getUserId(), claims.jti())
                 .orElseThrow(() -> new InvalidTokenException("Refresh token not found"));
 
-        UserData user = userLookupPort.findById(claims.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User", claims.sub()));
-
-        if (!user.enabled()) {
-            throw new IllegalStateException("User account is disabled");
-        }
-
-        TenantData tenant = tenantServicePort.validateTenantById(user.tenantId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", user.tenantId().toString()));
+        // Refresh tokens carry tenantSlug/tenantId in their claims, so we can
+        // restore tenant context directly without re-querying the directory.
+        TenantData tenant = tenantServicePort.validateTenant(claims.tenantSlug())
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", claims.tenantSlug()));
 
         if (!tenant.isActive()) {
             throw new IllegalStateException("Tenant is not active");
         }
 
+        UserData user = withinTenantContext(tenant.slug(), tenant.id(),
+                () -> userLookupPort.findById(claims.getUserId())
+                        .orElseThrow(() -> new ResourceNotFoundException("User", claims.sub())));
+
+        if (!user.enabled()) {
+            throw new IllegalStateException("User account is disabled");
+        }
+
         tokenPersistencePort.deleteRefreshToken(claims.getUserId(), claims.jti());
 
         String sid = claims.sid();
-        TokenPair newTokenPair = generateTokenPair(user, tenant.slug(), sid);
+        TokenPair newTokenPair = generateTokenPair(user, tenant.slug(), tenant.id(), sid);
         TokenClaims newRefreshClaims = jwtTokenProvider.parseToken(newTokenPair.refreshToken())
                 .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
         TokenClaims newAccessClaims = jwtTokenProvider.parseToken(newTokenPair.accessToken())
@@ -342,7 +384,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         enforceSessionLimitByCategory(tenantSlug, user.id(), metadata.category());
 
         String sid = UUID.randomUUID().toString();
-        TokenPair tokenPair = generateTokenPair(user, tenantSlug, sid);
+        TokenPair tokenPair = generateTokenPair(user, tenantSlug, tenantId, sid);
 
         TokenClaims refreshClaims = jwtTokenProvider.parseToken(tokenPair.refreshToken())
                 .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
@@ -391,14 +433,14 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         }
     }
 
-    private TokenPair generateTokenPair(UserData user, String tenantSlug, String sid) {
+    private TokenPair generateTokenPair(UserData user, String tenantSlug, Long tenantId, String sid) {
         String accessJti = UUID.randomUUID().toString();
         String refreshJti = UUID.randomUUID().toString();
 
         String accessToken = jwtTokenProvider.generateAccessToken(
-                user.id(), tenantSlug, user.tenantId(), user.role(), accessJti, sid);
+                user.id(), tenantSlug, tenantId, user.role(), accessJti, sid);
         String refreshToken = jwtTokenProvider.generateRefreshToken(
-                user.id(), tenantSlug, user.tenantId(), user.role(), refreshJti, sid);
+                user.id(), tenantSlug, tenantId, user.role(), refreshJti, sid);
 
         return TokenPair.of(
                 accessToken,
@@ -406,6 +448,33 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
                 jwtTokenProvider.getAccessTokenExpiration(),
                 jwtTokenProvider.getRefreshTokenExpiration()
         );
+    }
+
+    /**
+     * Run an action with {@code TenantContextHolder} set to the given tenant,
+     * restoring the previous tenant (or clearing it) on completion. Used during
+     * login/register/refresh flows where the tenant must be resolved BEFORE
+     * Hibernate opens its session for the user lookup.
+     */
+    private <T> T withinTenantContext(String tenantSlug, Long tenantId, java.util.function.Supplier<T> action) {
+        String previousSlug = TenantContextHolder.getTenant();
+        Long previousId = TenantContextHolder.getTenantId();
+        try {
+            TenantContextHolder.setTenant(tenantSlug);
+            if (tenantId != null) {
+                TenantContextHolder.setTenantId(tenantId);
+            }
+            return action.get();
+        } finally {
+            if (previousSlug != null) {
+                TenantContextHolder.setTenant(previousSlug);
+                if (previousId != null) {
+                    TenantContextHolder.setTenantId(previousId);
+                }
+            } else {
+                TenantContextHolder.clear();
+            }
+        }
     }
 
     private void saveRefreshToken(Long userId, String tenantSlug, Long tenantId,
@@ -485,15 +554,15 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
     private record IssuedTokens(TokenPair tokenPair, String sid, String accessJti, String refreshJti) {
     }
 
-    public static class InvalidCredentialsException extends RuntimeException {
+    public static class InvalidCredentialsException extends com.lumie.common.exception.BusinessException {
         public InvalidCredentialsException(String message) {
-            super(message);
+            super(com.lumie.common.exception.CommonErrorCode.UNAUTHORIZED, message);
         }
     }
 
-    public static class InvalidTokenException extends RuntimeException {
+    public static class InvalidTokenException extends com.lumie.common.exception.BusinessException {
         public InvalidTokenException(String message) {
-            super(message);
+            super(com.lumie.common.exception.CommonErrorCode.UNAUTHORIZED, message);
         }
     }
 

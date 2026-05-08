@@ -3,6 +3,7 @@ package com.lumie.auth.adapter.out.persistence;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.domain.entity.User;
 import com.lumie.auth.domain.vo.Role;
+import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
@@ -12,8 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 /**
- * JPA-based implementation of UserLookupPort.
- * Queries the public.users table directly (no multi-tenancy schema switching needed).
+ * Tenant-scoped JPA implementation of {@link UserLookupPort}. All operations
+ * require {@code TenantContextHolder} to be set; Hibernate multi-tenancy
+ * routes queries to the correct {@code tenant_*.users} table.
  */
 @Slf4j
 @Component
@@ -41,30 +43,30 @@ public class UserPersistenceAdapter implements UserLookupPort {
 
     @Override
     @Transactional
-    public UserData findOrCreateOAuth2User(String userLoginId, String name, Long tenantId, String provider) {
+    public UserData findOrCreateOAuth2User(String userLoginId, String name, String provider) {
         log.debug("Finding or creating OAuth2 user: {} provider: {}", userLoginId, provider);
 
         return userRepository.findByUserLoginId(userLoginId)
                 .map(this::toUserData)
                 .orElseGet(() -> {
-                    User newUser = User.createOAuth2User(userLoginId, name, tenantId);
+                    User newUser = User.createOAuth2User(userLoginId, name, Role.STUDENT);
                     User savedUser = userRepository.save(newUser);
-                    log.info("Created new OAuth2 user: {} via {} for tenant: {}", userLoginId, provider, tenantId);
-                    // TODO: persist federated_identities row (provider, provider_user_id, user_id)
-                    //       once Connected Accounts feature lands.
+                    log.info("Created new OAuth2 user: {} via {} in tenant: {}",
+                            userLoginId, provider, TenantContextHolder.getTenant());
                     return toUserData(savedUser);
                 });
     }
 
     @Override
     @Transactional
-    public UserData createUser(String userLoginId, String name, String phone, String passwordHash, Role role, Long tenantId) {
-        log.debug("Creating new user: {} for tenant: {}", userLoginId, tenantId);
+    public UserData createUser(String userLoginId, String name, String phone, String passwordHash, Role role) {
+        log.debug("Creating new user: {} in tenant: {}", userLoginId, TenantContextHolder.getTenant());
 
-        User user = User.create(userLoginId, name, phone, passwordHash, role, tenantId);
+        User user = User.create(userLoginId, name, phone, passwordHash, role);
         User savedUser = userRepository.save(user);
 
-        log.info("Created new user: {} for tenant: {}", userLoginId, tenantId);
+        log.info("Created new user: {} (id={}) in tenant: {}",
+                userLoginId, savedUser.getId(), TenantContextHolder.getTenant());
 
         return toUserData(savedUser);
     }
@@ -148,6 +150,7 @@ public class UserPersistenceAdapter implements UserLookupPort {
     }
 
     private UserData toUserData(User user) {
+        Long tenantId = TenantContextHolder.getTenantId();
         return new UserData(
                 user.getId(),
                 user.getUserLoginId(),
@@ -156,7 +159,7 @@ public class UserPersistenceAdapter implements UserLookupPort {
                 user.getEmail(),
                 user.getPasswordHash(),
                 user.getRole(),
-                user.getTenantId(),
+                tenantId,
                 user.isEnabled(),
                 user.getAvatarSeed()
         );

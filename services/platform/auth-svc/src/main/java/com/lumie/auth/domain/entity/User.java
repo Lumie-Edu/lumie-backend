@@ -14,11 +14,20 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * User entity stored in public.users table.
- * All users across all tenants are stored here with tenant_id for identification.
+ * User entity stored in the per-tenant {@code users} table.
+ *
+ * <p>Hibernate multi-tenancy resolves the actual schema at session acquisition
+ * via {@link com.lumie.common.tenant.TenantConnectionProvider}. Callers MUST
+ * have {@code TenantContextHolder} set to the desired tenant before invoking
+ * any JPA operation against this entity.
+ *
+ * <p>The legacy {@code public.users} table (which once held all users globally)
+ * has been slimmed down to an OWNER-only directory; access it via
+ * {@link com.lumie.auth.application.port.out.UserDirectoryPort}, NOT via this
+ * entity.
  */
 @Entity
-@Table(name = "users", schema = "public")
+@Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
@@ -52,31 +61,26 @@ public class User {
     @Column(nullable = false)
     private String status;
 
-    @Column(name = "tenant_id", nullable = false)
-    private Long tenantId;
-
     @Column(name = "avatar_seed", length = 50)
     private String avatarSeed;
 
-    private User(String userLoginId, String passwordHash, String name, String phone,
-                 Role role, String status, Long tenantId) {
+    private User(String userLoginId, String passwordHash, String name, String phone, Role role, String status) {
         this.userLoginId = userLoginId;
         this.passwordHash = passwordHash;
         this.name = name;
         this.phone = phone;
         this.role = role;
         this.status = status;
-        this.tenantId = tenantId;
         this.avatarSeed = com.lumie.auth.domain.vo.AvatarSeeds.randomSeed();
     }
 
     public static User create(String userLoginId, String name, String phone,
-                              String passwordHash, Role role, Long tenantId) {
-        return new User(userLoginId, passwordHash, name, phone, role, STATUS_ACTIVE, tenantId);
+                              String passwordHash, Role role) {
+        return new User(userLoginId, passwordHash, name, phone, role, STATUS_ACTIVE);
     }
 
-    public static User createOAuth2User(String userLoginId, String name, Long tenantId) {
-        return new User(userLoginId, "", name, null, Role.STUDENT, STATUS_ACTIVE, tenantId);
+    public static User createOAuth2User(String userLoginId, String name, Role role) {
+        return new User(userLoginId, "", name, null, role, STATUS_ACTIVE);
     }
 
     public boolean isEnabled() {

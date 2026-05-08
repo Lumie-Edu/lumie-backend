@@ -82,12 +82,21 @@ public class AuthInternalServiceAdapter implements AuthInternalService {
 
     @Override
     public CreateUserResult createUser(String name, String phone, String role, Long tenantId) {
+        // The caller (admin-svc / student-svc) is already running in the right
+        // tenant context. Validate that the explicit tenantId argument matches
+        // it — mismatch would route the new user into the wrong schema.
+        Long contextTenantId = com.lumie.common.tenant.TenantContextHolder.getTenantId();
+        if (contextTenantId == null || !contextTenantId.equals(tenantId)) {
+            return new CreateUserResult(false,
+                    "Tenant context mismatch (context=" + contextTenantId + ", request=" + tenantId + ")",
+                    null, null);
+        }
         try {
             Role userRole = Role.valueOf(role);
             String userLoginId = generateUniqueLoginId();
             String passwordHash = passwordEncoder.encode(DEFAULT_PASSWORD);
             UserLookupPort.UserData user = userLookupPort.createUser(
-                    userLoginId, name, phone, passwordHash, userRole, tenantId);
+                    userLoginId, name, phone, passwordHash, userRole);
             return new CreateUserResult(true, "User created successfully", user.id(), user.userLoginId());
         } catch (IllegalArgumentException e) {
             return new CreateUserResult(false, "Invalid role: " + role, null, null);

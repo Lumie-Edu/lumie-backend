@@ -104,22 +104,34 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
 
         String userLoginId = provider.toLowerCase() + "_" + userInfo.providerId();
 
-        UserData user = userLookupPort.findOrCreateOAuth2User(
-                userLoginId,
-                userInfo.name(),
-                tenant.id(),
-                provider
-        );
-
-        if (!user.tenantId().equals(tenant.id())) {
-            log.info("OAuth2 tenant mismatch: user.tenant={} state.tenant={}", user.tenantId(), tenant.id());
-            throw new InvalidCredentialsException("이 학원의 계정이 아닙니다");
+        // Set tenant context for the user lookup/create — Hibernate routes
+        // findOrCreateOAuth2User to tenant_*.users via the resolver.
+        String previousSlug = com.lumie.common.tenant.TenantContextHolder.getTenant();
+        Long previousId = com.lumie.common.tenant.TenantContextHolder.getTenantId();
+        UserData user;
+        try {
+            com.lumie.common.tenant.TenantContextHolder.setTenant(tenantSlug);
+            com.lumie.common.tenant.TenantContextHolder.setTenantId(tenant.id());
+            user = userLookupPort.findOrCreateOAuth2User(
+                    userLoginId,
+                    userInfo.name(),
+                    provider
+            );
+        } finally {
+            if (previousSlug != null) {
+                com.lumie.common.tenant.TenantContextHolder.setTenant(previousSlug);
+                if (previousId != null) {
+                    com.lumie.common.tenant.TenantContextHolder.setTenantId(previousId);
+                }
+            } else {
+                com.lumie.common.tenant.TenantContextHolder.clear();
+            }
         }
 
         enforceSessionLimitByCategory(tenantSlug, user.id(), metadata.category());
 
         String sid = UUID.randomUUID().toString();
-        TokenPair tokenPair = generateTokenPair(user, tenantSlug, sid);
+        TokenPair tokenPair = generateTokenPair(user, tenantSlug, tenant.id(), sid);
 
         TokenClaims refreshClaims = jwtTokenProvider.parseToken(tokenPair.refreshToken())
                 .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
@@ -221,14 +233,14 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         };
     }
 
-    private TokenPair generateTokenPair(UserData user, String tenantSlug, String sid) {
+    private TokenPair generateTokenPair(UserData user, String tenantSlug, Long tenantId, String sid) {
         String accessJti = UUID.randomUUID().toString();
         String refreshJti = UUID.randomUUID().toString();
 
         String accessToken = jwtTokenProvider.generateAccessToken(
-                user.id(), tenantSlug, user.tenantId(), user.role(), accessJti, sid);
+                user.id(), tenantSlug, tenantId, user.role(), accessJti, sid);
         String refreshToken = jwtTokenProvider.generateRefreshToken(
-                user.id(), tenantSlug, user.tenantId(), user.role(), refreshJti, sid);
+                user.id(), tenantSlug, tenantId, user.role(), refreshJti, sid);
 
         return TokenPair.of(
                 accessToken,

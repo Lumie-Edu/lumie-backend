@@ -6,110 +6,48 @@ import com.lumie.auth.domain.vo.Role;
 import java.util.Optional;
 
 /**
- * Output port for user lookup operations from public.users table.
- * All users are stored in a single global table with tenant_id for identification.
+ * Tenant-scoped user lookup port.
+ *
+ * <p>All operations require {@code TenantContextHolder} to be set to the
+ * target tenant before invocation. The persistence adapter routes queries to
+ * {@code tenant_*.users} via Hibernate multi-tenancy.
+ *
+ * <p>For OWNER directory routing (the {@code lumie-edu.com} root entry point),
+ * use {@link UserDirectoryPort} which queries {@code public.users} explicitly.
  */
 public interface UserLookupPort {
 
-    /**
-     * Finds a user by login ID.
-     *
-     * @param userLoginId the user's login ID
-     * @return optional containing user data if found
-     */
     Optional<UserData> findByUserLoginId(String userLoginId);
 
-    /**
-     * Finds a user by ID.
-     *
-     * @param userId the user's ID
-     * @return optional containing user data if found
-     */
     Optional<UserData> findById(Long userId);
 
     /**
-     * Finds or creates a user for OAuth2 login.
-     *
-     * @param userLoginId the user's login ID (derived from OAuth provider)
-     * @param name the user's name
-     * @param tenantId the tenant ID
-     * @param provider the OAuth2 provider (google, kakao)
-     * @return the user data
+     * Find an OAuth2 user by login ID, or create a new row in the current
+     * tenant context if none exists. Defaults to {@code STUDENT} role for
+     * backward compatibility (only students self-register via OAuth today).
      */
-    UserData findOrCreateOAuth2User(String userLoginId, String name, Long tenantId, String provider);
+    UserData findOrCreateOAuth2User(String userLoginId, String name, String provider);
 
     /**
-     * Creates a new user with login ID/password credentials.
-     *
-     * @param userLoginId the user's login ID
-     * @param name the user's name
-     * @param phone the user's phone number
-     * @param passwordHash the hashed password
-     * @param role the user's role
-     * @param tenantId the tenant ID
-     * @return the created user data
+     * Create a new user in the current tenant's {@code users} table. The
+     * tenant is resolved implicitly from {@code TenantContextHolder}.
      */
-    UserData createUser(String userLoginId, String name, String phone, String passwordHash, Role role, Long tenantId);
+    UserData createUser(String userLoginId, String name, String phone, String passwordHash, Role role);
 
-    /**
-     * Checks if a user with the given login ID exists.
-     *
-     * @param userLoginId the user's login ID
-     * @return true if the user exists
-     */
     boolean existsByUserLoginId(String userLoginId);
 
-    /**
-     * Deletes a user by ID.
-     *
-     * @param userId the user's ID
-     * @return true if the user was deleted
-     */
     boolean deleteUser(Long userId);
 
-    /**
-     * Resets a user's password to the given hash.
-     *
-     * @param userId the user's ID
-     * @param newPasswordHash the new BCrypt-hashed password
-     * @return true if the user was found and updated
-     */
     boolean resetPassword(Long userId, String newPasswordHash);
 
-    /**
-     * Changes a user's login ID.
-     *
-     * @param userId the user's ID
-     * @param newLoginId the new login ID
-     * @return result containing success status and message
-     */
     ChangeLoginIdResult changeLoginId(Long userId, String newLoginId);
 
     record ChangeLoginIdResult(boolean success, String message, String newLoginId) {}
 
-    /**
-     * Updates the avatar seed for the given user.
-     *
-     * @param userId the user's ID
-     * @param avatarSeed the new avatar seed (one of the curated picker values)
-     * @return true if the user was found and updated
-     */
     boolean updateAvatarSeed(Long userId, String avatarSeed);
 
-    /**
-     * Updates name, phone, and email for the given user.
-     *
-     * @param userId the user's ID
-     * @param name the new display name
-     * @param phone the new phone (nullable)
-     * @param email the new email (nullable)
-     * @return true if the user was found and updated
-     */
     boolean updateProfile(Long userId, String name, String phone, String email);
 
-    /**
-     * User data record from public.users table.
-     */
     record UserData(
             Long id,
             String userLoginId,
