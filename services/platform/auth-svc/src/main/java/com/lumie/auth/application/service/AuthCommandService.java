@@ -34,7 +34,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.auth.domain.entity.AuthToken;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.domain.vo.TokenPair;
-import com.lumie.auth.infrastructure.security.JwtTokenProvider;
+import com.lumie.auth.application.port.out.TokenProviderPort;
 import com.lumie.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +60,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
     private final UserDirectoryPort userDirectoryPort;
     private final AdminServicePort adminServicePort;
     private final TokenPersistencePort tokenPersistencePort;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final TokenProviderPort tokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
 
@@ -218,7 +218,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
     public void logout(String token) {
         log.info("Logout request received");
 
-        TokenClaims claims = jwtTokenProvider.parseToken(token)
+        TokenClaims claims = tokenProvider.parseToken(token)
                 .orElseThrow(() -> new InvalidTokenException("Invalid token"));
 
         long ttl = claims.exp().getEpochSecond() - Instant.now().getEpochSecond();
@@ -235,7 +235,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
     public void logoutAll(String token) {
         log.info("Logout all sessions request received");
 
-        TokenClaims claims = jwtTokenProvider.parseToken(token)
+        TokenClaims claims = tokenProvider.parseToken(token)
                 .orElseThrow(() -> new InvalidTokenException("Invalid token"));
 
         long ttl = claims.exp().getEpochSecond() - Instant.now().getEpochSecond();
@@ -253,7 +253,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
     public TokenResponse refresh(RefreshTokenRequest request) {
         log.info("Token refresh request received");
 
-        TokenClaims claims = jwtTokenProvider.parseToken(request.refreshToken())
+        TokenClaims claims = tokenProvider.parseToken(request.refreshToken())
                 .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
 
         if (tokenPersistencePort.isBlacklisted(claims.jti())) {
@@ -284,9 +284,9 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
 
         String sid = claims.sid();
         TokenPair newTokenPair = generateTokenPair(user, tenant.slug(), tenant.id(), sid);
-        TokenClaims newRefreshClaims = jwtTokenProvider.parseToken(newTokenPair.refreshToken())
+        TokenClaims newRefreshClaims = tokenProvider.parseToken(newTokenPair.refreshToken())
                 .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
-        TokenClaims newAccessClaims = jwtTokenProvider.parseToken(newTokenPair.accessToken())
+        TokenClaims newAccessClaims = tokenProvider.parseToken(newTokenPair.accessToken())
                 .orElseThrow(() -> new IllegalStateException("Failed to parse generated access token"));
 
         saveRefreshToken(user.id(), tenant.slug(), tenant.id(), user.role(), newRefreshClaims);
@@ -351,7 +351,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
             String accessJti = (String) data.get("accessJti");
             String refreshJti = (String) data.get("refreshJti");
             if (accessJti != null) {
-                tokenPersistencePort.blacklistToken(accessJti, jwtTokenProvider.getAccessTokenExpiration());
+                tokenPersistencePort.blacklistToken(accessJti, tokenProvider.getAccessTokenExpiration());
             }
             if (refreshJti != null) {
                 tokenPersistencePort.deleteRefreshToken(userId, refreshJti);
@@ -386,9 +386,9 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         String sid = UUID.randomUUID().toString();
         TokenPair tokenPair = generateTokenPair(user, tenantSlug, tenantId, sid);
 
-        TokenClaims refreshClaims = jwtTokenProvider.parseToken(tokenPair.refreshToken())
+        TokenClaims refreshClaims = tokenProvider.parseToken(tokenPair.refreshToken())
                 .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
-        TokenClaims accessClaims = jwtTokenProvider.parseToken(tokenPair.accessToken())
+        TokenClaims accessClaims = tokenProvider.parseToken(tokenPair.accessToken())
                 .orElseThrow(() -> new IllegalStateException("Failed to parse generated access token"));
 
         saveRefreshToken(user.id(), tenantSlug, tenantId, user.role(), refreshClaims);
@@ -419,7 +419,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
                 String accessJti = (String) data.get("accessJti");
                 String refreshJti = (String) data.get("refreshJti");
                 if (accessJti != null) {
-                    tokenPersistencePort.blacklistToken(accessJti, jwtTokenProvider.getAccessTokenExpiration());
+                    tokenPersistencePort.blacklistToken(accessJti, tokenProvider.getAccessTokenExpiration());
                 }
                 if (refreshJti != null) {
                     tokenPersistencePort.deleteRefreshToken(userId, refreshJti);
@@ -437,16 +437,16 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         String accessJti = UUID.randomUUID().toString();
         String refreshJti = UUID.randomUUID().toString();
 
-        String accessToken = jwtTokenProvider.generateAccessToken(
+        String accessToken = tokenProvider.generateAccessToken(
                 user.id(), tenantSlug, tenantId, user.role(), accessJti, sid);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(
+        String refreshToken = tokenProvider.generateRefreshToken(
                 user.id(), tenantSlug, tenantId, user.role(), refreshJti, sid);
 
         return TokenPair.of(
                 accessToken,
                 refreshToken,
-                jwtTokenProvider.getAccessTokenExpiration(),
-                jwtTokenProvider.getRefreshTokenExpiration()
+                tokenProvider.getAccessTokenExpiration(),
+                tokenProvider.getRefreshTokenExpiration()
         );
     }
 
@@ -480,7 +480,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
 
         try {
             String json = objectMapper.writeValueAsString(sessionData);
-            long ttl = jwtTokenProvider.getRefreshTokenExpiration();
+            long ttl = tokenProvider.getRefreshTokenExpiration();
             tokenPersistencePort.saveSession(tenantSlug, sid, json, ttl);
             tokenPersistencePort.addSessionToIndex(tenantSlug, userId, sid);
         } catch (JsonProcessingException e) {
@@ -500,7 +500,7 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
             data.put("accessJti", newAccessJti);
             data.put("refreshJti", newRefreshJti);
             String json = objectMapper.writeValueAsString(data);
-            long ttl = jwtTokenProvider.getRefreshTokenExpiration();
+            long ttl = tokenProvider.getRefreshTokenExpiration();
             tokenPersistencePort.saveSession(tenantSlug, sid, json, ttl);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to update session metadata for sid: " + sid, e);

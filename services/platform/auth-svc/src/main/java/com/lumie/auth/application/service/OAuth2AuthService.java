@@ -16,7 +16,7 @@ import com.lumie.auth.domain.vo.SessionMetadata;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.domain.vo.TokenPair;
 import com.lumie.auth.infrastructure.config.OAuth2Config;
-import com.lumie.auth.infrastructure.security.JwtTokenProvider;
+import com.lumie.auth.application.port.out.TokenProviderPort;
 import com.lumie.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     private final TenantServicePort tenantServicePort;
     private final UserLookupPort userLookupPort;
     private final TokenPersistencePort tokenPersistencePort;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final TokenProviderPort tokenProvider;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
@@ -116,9 +116,9 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         String sid = UUID.randomUUID().toString();
         TokenPair tokenPair = generateTokenPair(user, tenantSlug, tenant.id(), sid);
 
-        TokenClaims refreshClaims = jwtTokenProvider.parseToken(tokenPair.refreshToken())
+        TokenClaims refreshClaims = tokenProvider.parseToken(tokenPair.refreshToken())
                 .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
-        TokenClaims accessClaims = jwtTokenProvider.parseToken(tokenPair.accessToken())
+        TokenClaims accessClaims = tokenProvider.parseToken(tokenPair.accessToken())
                 .orElseThrow(() -> new IllegalStateException("Failed to parse generated access token"));
 
         saveRefreshToken(user.id(), tenantSlug, tenant.id(), user.role(), refreshClaims);
@@ -220,16 +220,16 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         String accessJti = UUID.randomUUID().toString();
         String refreshJti = UUID.randomUUID().toString();
 
-        String accessToken = jwtTokenProvider.generateAccessToken(
+        String accessToken = tokenProvider.generateAccessToken(
                 user.id(), tenantSlug, tenantId, user.role(), accessJti, sid);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(
+        String refreshToken = tokenProvider.generateRefreshToken(
                 user.id(), tenantSlug, tenantId, user.role(), refreshJti, sid);
 
         return TokenPair.of(
                 accessToken,
                 refreshToken,
-                jwtTokenProvider.getAccessTokenExpiration(),
-                jwtTokenProvider.getRefreshTokenExpiration()
+                tokenProvider.getAccessTokenExpiration(),
+                tokenProvider.getRefreshTokenExpiration()
         );
     }
 
@@ -259,7 +259,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
 
         try {
             String json = objectMapper.writeValueAsString(sessionData);
-            long ttl = jwtTokenProvider.getRefreshTokenExpiration();
+            long ttl = tokenProvider.getRefreshTokenExpiration();
             tokenPersistencePort.saveSession(tenantSlug, sid, json, ttl);
             tokenPersistencePort.addSessionToIndex(tenantSlug, userId, sid);
         } catch (JsonProcessingException e) {
@@ -289,7 +289,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
                 String accessJti = (String) data.get("accessJti");
                 String refreshJti = (String) data.get("refreshJti");
                 if (accessJti != null) {
-                    tokenPersistencePort.blacklistToken(accessJti, jwtTokenProvider.getAccessTokenExpiration());
+                    tokenPersistencePort.blacklistToken(accessJti, tokenProvider.getAccessTokenExpiration());
                 }
                 if (refreshJti != null) {
                     tokenPersistencePort.deleteRefreshToken(userId, refreshJti);
