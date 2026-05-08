@@ -2,7 +2,10 @@ package com.lumie.exam.adapter.in.web;
 
 import com.lumie.exam.application.dto.request.GoalSimulationRequest;
 import com.lumie.exam.application.dto.response.statistics.*;
-import com.lumie.exam.application.service.ExamStatisticsQueryService;
+import com.lumie.exam.application.service.ChoiceDistributionQueryService;
+import com.lumie.exam.application.service.ClassComparisonQueryService;
+import com.lumie.exam.application.service.ExamSummaryStatisticsService;
+import com.lumie.exam.application.service.ItemAnalysisQueryService;
 import com.lumie.exam.application.service.StudentAnalyticsQueryService;
 import com.lumie.exam.application.service.StudentGradeQueryService;
 import jakarta.validation.Valid;
@@ -20,13 +23,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StatisticsController {
 
-    private final ExamStatisticsQueryService examStatisticsQueryService;
+    private final ExamSummaryStatisticsService examSummaryStatisticsService;
+    private final ChoiceDistributionQueryService choiceDistributionQueryService;
+    private final ClassComparisonQueryService classComparisonQueryService;
+    private final ItemAnalysisQueryService itemAnalysisQueryService;
     private final StudentAnalyticsQueryService studentAnalyticsQueryService;
     private final StudentGradeQueryService studentGradeQueryService;
 
     @GetMapping("/exams/{examId}")
     public ResponseEntity<ExamStatisticsResponse> getExamStatistics(@PathVariable Long examId) {
-        return ResponseEntity.ok(examStatisticsQueryService.getExamStatistics(examId));
+        return ResponseEntity.ok(examSummaryStatisticsService.getExamStatistics(examId));
     }
 
     @GetMapping("/exams/{examId}/grades")
@@ -44,17 +50,17 @@ public class StatisticsController {
 
     @GetMapping("/exams/{examId}/choices")
     public ResponseEntity<ChoiceDistributionResponse> getChoiceDistribution(@PathVariable Long examId) {
-        return ResponseEntity.ok(examStatisticsQueryService.getChoiceDistribution(examId));
+        return ResponseEntity.ok(choiceDistributionQueryService.getChoiceDistribution(examId));
     }
 
     @GetMapping("/exams/{examId}/class-comparison")
     public ResponseEntity<ClassComparisonResponse> getClassComparison(@PathVariable Long examId) {
-        return ResponseEntity.ok(examStatisticsQueryService.getClassComparison(examId));
+        return ResponseEntity.ok(classComparisonQueryService.getClassComparison(examId));
     }
 
     @GetMapping("/exams/{examId}/item-analysis")
     public ResponseEntity<ItemAnalysisResponse> getItemAnalysis(@PathVariable Long examId) {
-        return ResponseEntity.ok(examStatisticsQueryService.getItemAnalysis(examId));
+        return ResponseEntity.ok(itemAnalysisQueryService.getItemAnalysis(examId));
     }
 
     @GetMapping("/students/{studentId}/rank")
@@ -88,6 +94,6 @@ public class StatisticsController {
 
     @GetMapping("/dashboard")
     public ResponseEntity<DashboardStatisticsResponse> getDashboardStatistics() {
-        return ResponseEntity.ok(examStatisticsQueryService.getDashboardStatistics());
+        return ResponseEntity.ok(examSummaryStatisticsService.getDashboardStatistics());
     }
 }

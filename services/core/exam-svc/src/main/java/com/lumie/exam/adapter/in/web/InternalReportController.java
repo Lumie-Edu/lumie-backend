@@ -24,7 +24,7 @@ public class InternalReportController {
 
     private final ReportJobService reportJobService;
     private final ExamQueryService examQueryService;
-    private final ExamStatisticsQueryService examStatisticsQueryService;
+    private final ExamSummaryStatisticsService examSummaryStatisticsService;
     private final StudentAnalyticsQueryService studentAnalyticsQueryService;
     private final ResultQueryService resultQueryService;
     private final StudentServicePort studentService;
@@ -42,7 +42,7 @@ public class InternalReportController {
 
     @GetMapping("/exams/{examId}/statistics")
     public ResponseEntity<ExamStatisticsResponse> getExamStatistics(@PathVariable Long examId) {
-        return ResponseEntity.ok(examStatisticsQueryService.getExamStatistics(examId));
+        return ResponseEntity.ok(examSummaryStatisticsService.getExamStatistics(examId));
     }
 
     @GetMapping("/students/{studentId}/stability")
