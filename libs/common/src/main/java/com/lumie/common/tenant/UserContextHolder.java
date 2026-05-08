@@ -2,9 +2,9 @@ package com.lumie.common.tenant;
 
 /**
  * Holds the current user context for the request thread.
- * User information is extracted from headers set by Kong JWT plugin:
- * - X-User-Id: User ID from JWT sub claim
- * - X-User-Role: User role from JWT role claim
+ * Populated by {@code JwtAuthenticationFilter} from the validated access
+ * token (cookie or {@code Authorization: Bearer ...}): user id from the
+ * JWT {@code sub} claim, role from the {@code role} claim.
  */
 public final class UserContextHolder {
 

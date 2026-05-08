@@ -2,7 +2,8 @@ package com.lumie.common.tenant;
 
 /**
  * Holds the current tenant context for the request thread.
- * Tenant slug is extracted from X-Tenant-Slug header set by Kong JWT plugin.
+ * Tenant slug is read from the X-Tenant-Slug header (set by the frontend
+ * from session state) by {@code RequestContextFilter}.
  */
 public final class TenantContextHolder {
 

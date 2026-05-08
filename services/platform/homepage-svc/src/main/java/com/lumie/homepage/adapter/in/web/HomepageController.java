@@ -24,7 +24,8 @@ public class HomepageController {
     /**
      * GET /v1/homepage — returns the current tenant's homepage config.
      * Returns 200 with null body if no config exists yet.
-     * Requires authenticated user (tenant context set by Kong via X-Tenant-Slug header).
+     * Requires authenticated user (tenant context populated from the
+     * X-Tenant-Slug request header by RequestContextFilter).
      */
     @GetMapping
     public ResponseEntity<HomepageConfigResponse> getCurrent() {
