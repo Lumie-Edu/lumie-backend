@@ -18,6 +18,7 @@ dependencies {
     implementation(project(":services:platform:tenant-svc"))
     implementation(project(":services:platform:auth-svc"))
     implementation(project(":services:platform:billing-svc"))
+    implementation(project(":services:platform:homepage-svc"))
 
     // Core modules
     implementation(project(":services:core:student-svc"))

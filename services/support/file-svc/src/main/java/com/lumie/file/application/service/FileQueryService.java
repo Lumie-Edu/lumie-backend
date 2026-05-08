@@ -49,6 +49,32 @@ public class FileQueryService {
         );
     }
 
+    /**
+     * Anonymous-accessible download for entity types that are intentionally
+     * public (e.g. assets embedded in a published landing page). The caller
+     * (controller) must guard which entity types are allowed here.
+     */
+    @Transactional(readOnly = true)
+    public FileDownloadResult downloadPublicFile(UUID fileId, java.util.Set<EntityType> allowedTypes) {
+        FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
+                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
+
+        if (!allowedTypes.contains(fileMetadata.getEntityType())) {
+            throw new FileException(FileErrorCode.FILE_NOT_FOUND);
+        }
+        if (!fileMetadata.isUploadCompleted()) {
+            throw new FileException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
+        }
+
+        InputStream stream = storagePort.getObject(fileMetadata.getObjectKey());
+        return new FileDownloadResult(
+                stream,
+                fileMetadata.getOriginalFilename(),
+                fileMetadata.getContentType(),
+                fileMetadata.getFileSize()
+        );
+    }
+
     @Transactional(readOnly = true)
     public PresignedDownloadResponse generatePresignedDownloadUrl(PresignedDownloadRequest request) {
         FileMetadata fileMetadata = fileMetadataRepository.findById(request.fileId())

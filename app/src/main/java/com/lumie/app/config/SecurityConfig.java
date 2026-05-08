@@ -41,6 +41,8 @@ public class SecurityConfig {
                         .requestMatchers("/internal/**").permitAll()
                         .requestMatchers("/v1/payments/paddle/webhook").permitAll()
                         .requestMatchers("/v1/tenants/public/**").permitAll()
+                        .requestMatchers("/v1/homepage/public/**").permitAll()
+                        .requestMatchers("/v1/files/public/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
