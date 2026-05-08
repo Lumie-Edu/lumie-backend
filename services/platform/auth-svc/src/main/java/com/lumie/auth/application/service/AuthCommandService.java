@@ -450,31 +450,8 @@ public class AuthCommandService implements LoginUseCase, LogoutUseCase, RefreshT
         );
     }
 
-    /**
-     * Run an action with {@code TenantContextHolder} set to the given tenant,
-     * restoring the previous tenant (or clearing it) on completion. Used during
-     * login/register/refresh flows where the tenant must be resolved BEFORE
-     * Hibernate opens its session for the user lookup.
-     */
     private <T> T withinTenantContext(String tenantSlug, Long tenantId, java.util.function.Supplier<T> action) {
-        String previousSlug = TenantContextHolder.getTenant();
-        Long previousId = TenantContextHolder.getTenantId();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
-            if (tenantId != null) {
-                TenantContextHolder.setTenantId(tenantId);
-            }
-            return action.get();
-        } finally {
-            if (previousSlug != null) {
-                TenantContextHolder.setTenant(previousSlug);
-                if (previousId != null) {
-                    TenantContextHolder.setTenantId(previousId);
-                }
-            } else {
-                TenantContextHolder.clear();
-            }
-        }
+        return TenantContextHolder.withinContext(tenantSlug, tenantId, action);
     }
 
     private void saveRefreshToken(Long userId, String tenantSlug, Long tenantId,

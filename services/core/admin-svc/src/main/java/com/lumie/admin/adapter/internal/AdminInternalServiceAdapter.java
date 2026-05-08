@@ -28,51 +28,38 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
 
     @Override
     public Optional<AdminData> getAdmin(String tenantSlug, Long adminId) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
-            AdminResponse admin = adminQueryService.getAdmin(adminId);
-            return Optional.of(toAdminData(admin));
-        } catch (AdminNotFoundException e) {
-            return Optional.empty();
-        } finally {
-            restoreTenant(previous);
-        }
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
+            try {
+                AdminResponse admin = adminQueryService.getAdmin(adminId);
+                return Optional.of(toAdminData(admin));
+            } catch (AdminNotFoundException e) {
+                return Optional.<AdminData>empty();
+            }
+        });
     }
 
     @Override
     public Optional<AdminData> getAdminByUserId(String tenantSlug, Long userId) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
-            Admin admin = adminRepository.findByUserId(userId)
-                    .orElse(null);
-            if (admin == null) return Optional.empty();
-            return Optional.of(toAdminDataFromEntity(admin));
-        } finally {
-            restoreTenant(previous);
-        }
+        return TenantContextHolder.withinContext(tenantSlug, () ->
+                adminRepository.findByUserId(userId).map(this::toAdminDataFromEntity)
+        );
     }
 
     @Override
     public ValidateAdminResult validateAdmin(String tenantSlug, Long adminId) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
-            adminQueryService.getAdmin(adminId);
-            return new ValidateAdminResult(true, "Admin is valid", adminId);
-        } catch (AdminNotFoundException e) {
-            return new ValidateAdminResult(false, "Admin not found", adminId);
-        } finally {
-            restoreTenant(previous);
-        }
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
+            try {
+                adminQueryService.getAdmin(adminId);
+                return new ValidateAdminResult(true, "Admin is valid", adminId);
+            } catch (AdminNotFoundException e) {
+                return new ValidateAdminResult(false, "Admin not found", adminId);
+            }
+        });
     }
 
     @Override
     public AdminPermissionsData getAdminPermissions(String tenantSlug, Long adminId) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
             Admin admin = adminRepository.findById(adminId)
                     .orElseThrow(() -> new AdminNotFoundException(adminId));
 
@@ -82,31 +69,23 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
                     .toList();
 
             return new AdminPermissionsData(admin.getId(), permissions);
-        } finally {
-            restoreTenant(previous);
-        }
+        });
     }
 
     @Override
     public AdminData createOwnerAdmin(String tenantSlug, Long userId, String userLoginId,
                                       String name, String phone, String email) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
             Admin admin = Admin.create(userId, userLoginId, name, phone, email, null);
             Admin saved = adminRepository.save(admin);
             log.info("OWNER admin row created: userId={}, tenant={}", userId, tenantSlug);
             return toAdminDataFromEntity(saved);
-        } finally {
-            restoreTenant(previous);
-        }
+        });
     }
 
     @Override
     public AdminListData getAllAdmins(String tenantSlug, int page, int size) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
             var filter = new AdminFilterRequest(true, null);
             var pageable = PageRequest.of(page, size);
             var admins = adminQueryService.getAllAdmins(filter, pageable);
@@ -115,17 +94,7 @@ public class AdminInternalServiceAdapter implements AdminInternalService {
                     admins.getContent().stream().map(this::toAdminData).toList(),
                     admins.getTotalElements(), page, size
             );
-        } finally {
-            restoreTenant(previous);
-        }
-    }
-
-    private static void restoreTenant(String previous) {
-        if (previous != null) {
-            TenantContextHolder.setTenant(previous);
-        } else {
-            TenantContextHolder.clear();
-        }
+        });
     }
 
     private AdminData toAdminData(AdminResponse dto) {

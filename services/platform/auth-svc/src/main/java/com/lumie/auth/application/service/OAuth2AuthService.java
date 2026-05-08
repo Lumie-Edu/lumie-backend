@@ -106,27 +106,10 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
 
         // Set tenant context for the user lookup/create — Hibernate routes
         // findOrCreateOAuth2User to tenant_*.users via the resolver.
-        String previousSlug = com.lumie.common.tenant.TenantContextHolder.getTenant();
-        Long previousId = com.lumie.common.tenant.TenantContextHolder.getTenantId();
-        UserData user;
-        try {
-            com.lumie.common.tenant.TenantContextHolder.setTenant(tenantSlug);
-            com.lumie.common.tenant.TenantContextHolder.setTenantId(tenant.id());
-            user = userLookupPort.findOrCreateOAuth2User(
-                    userLoginId,
-                    userInfo.name(),
-                    provider
-            );
-        } finally {
-            if (previousSlug != null) {
-                com.lumie.common.tenant.TenantContextHolder.setTenant(previousSlug);
-                if (previousId != null) {
-                    com.lumie.common.tenant.TenantContextHolder.setTenantId(previousId);
-                }
-            } else {
-                com.lumie.common.tenant.TenantContextHolder.clear();
-            }
-        }
+        UserData user = com.lumie.common.tenant.TenantContextHolder.withinContext(
+                tenantSlug, tenant.id(),
+                () -> userLookupPort.findOrCreateOAuth2User(userLoginId, userInfo.name(), provider)
+        );
 
         enforceSessionLimitByCategory(tenantSlug, user.id(), metadata.category());
 

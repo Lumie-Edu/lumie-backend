@@ -22,40 +22,26 @@ public class AssignmentInternalServiceAdapter implements AssignmentInternalServi
 
     @Override
     public Optional<AssignmentData> getAssignment(String tenantSlug, Long assignmentId) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
-            AssignmentResponse response = assignmentQueryService.getAssignment(assignmentId);
-            return Optional.of(toAssignmentData(response));
-        } catch (AssignmentNotFoundException e) {
-            return Optional.empty();
-        } finally {
-            restoreTenant(previous);
-        }
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
+            try {
+                AssignmentResponse response = assignmentQueryService.getAssignment(assignmentId);
+                return Optional.of(toAssignmentData(response));
+            } catch (AssignmentNotFoundException e) {
+                return Optional.<AssignmentData>empty();
+            }
+        });
     }
 
     @Override
     public AssignmentListData getAssignmentsByClass(String tenantSlug, Long classId, int page, int size) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
             Page<AssignmentResponse> assignments = assignmentQueryService.getAssignmentsByClass(classId,
                     PageRequest.of(page, size));
             return new AssignmentListData(
                     assignments.getContent().stream().map(this::toAssignmentData).toList(),
                     assignments.getTotalElements(), page, size
             );
-        } finally {
-            restoreTenant(previous);
-        }
-    }
-
-    private static void restoreTenant(String previous) {
-        if (previous != null) {
-            TenantContextHolder.setTenant(previous);
-        } else {
-            TenantContextHolder.clear();
-        }
+        });
     }
 
     private AssignmentData toAssignmentData(AssignmentResponse response) {

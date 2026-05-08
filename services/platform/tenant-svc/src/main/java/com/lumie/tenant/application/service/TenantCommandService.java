@@ -2,7 +2,6 @@ package com.lumie.tenant.application.service;
 
 import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
-import com.lumie.tenant.adapter.out.internal.BillingInternalAdapter;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
@@ -10,6 +9,7 @@ import com.lumie.tenant.application.port.in.CreateTenantUseCase;
 import com.lumie.tenant.application.port.in.DeleteTenantUseCase;
 import com.lumie.tenant.application.port.in.SuspendTenantUseCase;
 import com.lumie.tenant.application.port.in.UpdateTenantUseCase;
+import com.lumie.tenant.application.port.out.BillingServicePort;
 import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
@@ -30,7 +30,7 @@ public class TenantCommandService implements
 
     private final TenantPersistencePort tenantPersistencePort;
     private final SchemaProvisioningPort schemaProvisioningPort;
-    private final BillingInternalAdapter billingServiceClient;
+    private final BillingServicePort billingServicePort;
 
     @Override
     public TenantResponse createTenant(CreateTenantRequest request) {
@@ -64,7 +64,7 @@ public class TenantCommandService implements
         savedTenant.activate();
         tenantPersistencePort.save(savedTenant);
 
-        billingServiceClient.createFreeSubscription(savedTenant.getId(), savedTenant.getSlugValue());
+        billingServicePort.createFreeSubscription(savedTenant.getId(), savedTenant.getSlugValue());
 
         return TenantResponse.from(savedTenant);
     }

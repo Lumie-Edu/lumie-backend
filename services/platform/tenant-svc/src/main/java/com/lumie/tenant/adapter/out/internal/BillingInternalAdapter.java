@@ -1,6 +1,7 @@
 package com.lumie.tenant.adapter.out.internal;
 
 import com.lumie.internal.billing.BillingInternalService;
+import com.lumie.tenant.application.port.out.BillingServicePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -8,10 +9,11 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component("tenantBillingInternalAdapter")
 @RequiredArgsConstructor
-public class BillingInternalAdapter {
+public class BillingInternalAdapter implements BillingServicePort {
 
     private final BillingInternalService billingInternalService;
 
+    @Override
     public void createFreeSubscription(Long tenantId, String tenantSlug) {
         log.debug("Creating free subscription via internal API for tenant: {}", tenantSlug);
         billingInternalService.createFreeSubscription(tenantId, tenantSlug);

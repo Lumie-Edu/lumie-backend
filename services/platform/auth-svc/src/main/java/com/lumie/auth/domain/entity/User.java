@@ -1,6 +1,7 @@
 package com.lumie.auth.domain.entity;
 
 import com.lumie.auth.domain.vo.Role;
+import com.lumie.auth.domain.vo.UserStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -32,9 +33,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
-    private static final String STATUS_ACTIVE = "ACTIVE";
-    private static final String STATUS_INACTIVE = "INACTIVE";
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -58,13 +56,14 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
-    @Column(nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserStatus status;
 
     @Column(name = "avatar_seed", length = 50)
     private String avatarSeed;
 
-    private User(String userLoginId, String passwordHash, String name, String phone, Role role, String status) {
+    private User(String userLoginId, String passwordHash, String name, String phone, Role role, UserStatus status) {
         this.userLoginId = userLoginId;
         this.passwordHash = passwordHash;
         this.name = name;
@@ -76,15 +75,15 @@ public class User {
 
     public static User create(String userLoginId, String name, String phone,
                               String passwordHash, Role role) {
-        return new User(userLoginId, passwordHash, name, phone, role, STATUS_ACTIVE);
+        return new User(userLoginId, passwordHash, name, phone, role, UserStatus.ACTIVE);
     }
 
     public static User createOAuth2User(String userLoginId, String name, Role role) {
-        return new User(userLoginId, "", name, null, role, STATUS_ACTIVE);
+        return new User(userLoginId, "", name, null, role, UserStatus.ACTIVE);
     }
 
     public boolean isEnabled() {
-        return STATUS_ACTIVE.equals(status);
+        return status != null && status.isEnabled();
     }
 
     public void resetPassword(String newPasswordHash) {

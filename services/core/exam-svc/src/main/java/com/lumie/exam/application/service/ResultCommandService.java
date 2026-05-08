@@ -92,7 +92,7 @@ public class ResultCommandService {
                 .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
-        String tenantId = extractTenantId(tenantSlug);
+        String tenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
         String batchKey = java.util.UUID.randomUUID().toString().substring(0, 8);
 
         List<OmrPresignResponse.PresignedUpload> uploads = request.fileNames().stream()
@@ -116,7 +116,7 @@ public class ResultCommandService {
                 .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
-        String tenantId = extractTenantId(tenantSlug);
+        String tenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
 
         // Validate object keys
         for (String key : request.objectKeys()) {
@@ -255,10 +255,4 @@ public class ResultCommandService {
         return fileName.replaceAll("[^a-zA-Z0-9가-힣._-]", "_");
     }
 
-    private String extractTenantId(String tenantSlug) {
-        if (tenantSlug.startsWith("inst-")) {
-            return tenantSlug.substring(5);
-        }
-        return tenantSlug;
-    }
 }

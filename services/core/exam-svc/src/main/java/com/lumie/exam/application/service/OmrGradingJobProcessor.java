@@ -13,6 +13,7 @@ import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -87,7 +88,7 @@ public class OmrGradingJobProcessor {
             examResult = resultCommandService.resolveResultForUnregistered(exam, fullPhone, omrResult);
         }
 
-        String tenantId = extractTenantId(request.tenantSlug());
+        String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
         String imageId = studentOpt.map(s -> String.valueOf(s.id())).orElse(fullPhone);
         String permanentKey = tenantId + "/omr/" + request.examId() + "/" + imageId;
         try {
@@ -140,13 +141,6 @@ public class OmrGradingJobProcessor {
         } catch (Exception e) {
             log.warn("Failed to cleanup MinIO images for job: {}", jobId, e);
         }
-    }
-
-    private String extractTenantId(String tenantSlug) {
-        if (tenantSlug.startsWith("inst-")) {
-            return tenantSlug.substring(5);
-        }
-        return tenantSlug;
     }
 
     private String extractFileName(String objectKey) {

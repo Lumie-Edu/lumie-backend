@@ -15,15 +15,7 @@ public record FilePath(
 
     public String toObjectKey() {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
-        String tenantId = extractTenantId(tenantSlug);
+        String tenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
         return tenantId + "/" + entityType.getPathSegment() + "/" + filename;
-    }
-
-    private String extractTenantId(String tenantSlug) {
-        // inst-c704d223 -> c704d223
-        if (tenantSlug.startsWith("inst-")) {
-            return tenantSlug.substring(5);
-        }
-        return tenantSlug;
     }
 }

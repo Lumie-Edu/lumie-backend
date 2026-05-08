@@ -24,55 +24,45 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
 
     @Override
     public Optional<ClassData> getClass(String tenantSlug, Long classId) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
-            ClassResponse response = classQueryService.getClass(classId);
-            return Optional.of(toClassData(response, TenantContextHolder.getTenantId()));
-        } catch (ClassNotFoundException e) {
-            return Optional.empty();
-        } finally {
-            restoreTenant(previous);
-        }
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
+            try {
+                ClassResponse response = classQueryService.getClass(classId);
+                return Optional.of(toClassData(response, TenantContextHolder.getTenantId()));
+            } catch (ClassNotFoundException e) {
+                return Optional.<ClassData>empty();
+            }
+        });
     }
 
     @Override
     public ClassListData getClassesByTeacher(String tenantSlug, Long teacherId, int page, int size) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
             Page<ClassResponse> classes = classQueryService.getClassesByTeacher(teacherId,
                     PageRequest.of(page, size));
+            Long tenantId = TenantContextHolder.getTenantId();
             return new ClassListData(
-                    classes.getContent().stream().map(r -> toClassData(r, TenantContextHolder.getTenantId())).toList(),
+                    classes.getContent().stream().map(r -> toClassData(r, tenantId)).toList(),
                     classes.getTotalElements(), page, size
             );
-        } finally {
-            restoreTenant(previous);
-        }
+        });
     }
 
     @Override
     public ClassListData getClassesByStudent(String tenantSlug, Long studentId, int page, int size) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
             Page<ClassResponse> classes = classQueryService.getClassesByStudent(studentId,
                     PageRequest.of(page, size));
+            Long tenantId = TenantContextHolder.getTenantId();
             return new ClassListData(
-                    classes.getContent().stream().map(r -> toClassData(r, TenantContextHolder.getTenantId())).toList(),
+                    classes.getContent().stream().map(r -> toClassData(r, tenantId)).toList(),
                     classes.getTotalElements(), page, size
             );
-        } finally {
-            restoreTenant(previous);
-        }
+        });
     }
 
     @Override
     public ClassListData getAllClasses(String tenantSlug, int page, int size) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
+        return TenantContextHolder.withinContext(tenantSlug, () -> {
             Page<ClassResponse> classes = classQueryService.listClasses(null, null,
                     PageRequest.of(page, size));
             Long tenantId = TenantContextHolder.getTenantId();
@@ -80,41 +70,23 @@ public class ClassInternalServiceAdapter implements ClassInternalService {
                     classes.getContent().stream().map(r -> toClassData(r, tenantId)).toList(),
                     classes.getTotalElements(), page, size
             );
-        } finally {
-            restoreTenant(previous);
-        }
+        });
     }
 
     @Override
     public List<Long> getEnrolledStudentIds(String tenantSlug, Long classId) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
-            return classQueryService.getEnrolledStudentIds(classId);
-        } finally {
-            restoreTenant(previous);
-        }
+        return TenantContextHolder.withinContext(tenantSlug, () ->
+                classQueryService.getEnrolledStudentIds(classId)
+        );
     }
 
     @Override
     public List<EnrolledClassData> getEnrolledClassesForStudents(String tenantSlug, Collection<Long> studentIds) {
-        String previous = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantSlug);
-            return classQueryService.getEnrolledClassesForStudents(studentIds).stream()
-                    .map(row -> new EnrolledClassData(row.classId(), row.className(), row.studentId()))
-                    .toList();
-        } finally {
-            restoreTenant(previous);
-        }
-    }
-
-    private static void restoreTenant(String previous) {
-        if (previous != null) {
-            TenantContextHolder.setTenant(previous);
-        } else {
-            TenantContextHolder.clear();
-        }
+        return TenantContextHolder.withinContext(tenantSlug, () ->
+                classQueryService.getEnrolledClassesForStudents(studentIds).stream()
+                        .map(row -> new EnrolledClassData(row.classId(), row.className(), row.studentId()))
+                        .toList()
+        );
     }
 
     private ClassData toClassData(ClassResponse response, Long tenantId) {
