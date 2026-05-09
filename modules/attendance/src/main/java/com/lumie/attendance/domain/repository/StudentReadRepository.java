@@ -1,17 +1,14 @@
 package com.lumie.attendance.domain.repository;
 
 import com.lumie.attendance.domain.entity.StudentReadModel;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface StudentReadRepository {
-
-    Optional<StudentReadModel> findById(Long id);
+public interface StudentReadRepository extends JpaRepository<StudentReadModel, Long> {
 
     Optional<StudentReadModel> findByUserId(Long userId);
 
     List<StudentReadModel> findByIsActiveTrue();
-
-    List<StudentReadModel> findAllByIds(List<Long> ids);
 }

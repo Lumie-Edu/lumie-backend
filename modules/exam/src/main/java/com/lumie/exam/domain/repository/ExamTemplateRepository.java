@@ -1,20 +1,7 @@
 package com.lumie.exam.domain.repository;
 
 import com.lumie.exam.domain.entity.ExamTemplate;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Optional;
-
-public interface ExamTemplateRepository {
-
-    ExamTemplate save(ExamTemplate template);
-
-    Optional<ExamTemplate> findById(Long id);
-
-    Page<ExamTemplate> findAll(Pageable pageable);
-
-    void deleteById(Long id);
-
-    boolean existsById(Long id);
+public interface ExamTemplateRepository extends JpaRepository<ExamTemplate, Long> {
 }

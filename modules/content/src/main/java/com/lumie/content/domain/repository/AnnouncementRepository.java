@@ -3,25 +3,18 @@ package com.lumie.content.domain.repository;
 import com.lumie.content.domain.entity.Announcement;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
-import java.util.Optional;
 
-public interface AnnouncementRepository {
+public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {
 
-    Announcement save(Announcement announcement);
-
-    Optional<Announcement> findById(Long id);
-
-    Page<Announcement> findAll(Pageable pageable);
-
+    @Query("SELECT a FROM Announcement a ORDER BY a.isItImportantAnnouncement DESC, a.createdAt DESC")
     Page<Announcement> findAllOrderByImportantDescCreatedAtDesc(Pageable pageable);
 
+    @Query("SELECT a FROM Announcement a WHERE a.isItAssetAnnouncement = :isAsset ORDER BY a.isItImportantAnnouncement DESC, a.createdAt DESC")
     Page<Announcement> findByIsItAssetAnnouncementOrderByImportantDescCreatedAtDesc(Boolean isAsset, Pageable pageable);
 
     List<Announcement> findByIsItImportantAnnouncementTrue();
-
-    void deleteById(Long id);
-
-    boolean existsById(Long id);
 }

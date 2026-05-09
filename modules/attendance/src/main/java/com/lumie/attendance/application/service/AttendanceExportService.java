@@ -70,7 +70,7 @@ public class AttendanceExportService {
             for (AttendanceRecord r : records) studentIds.add(r.getStudentId());
         }
 
-        Map<Long, String> studentNames = studentReadRepository.findAllByIds(List.copyOf(studentIds))
+        Map<Long, String> studentNames = studentReadRepository.findAllById(List.copyOf(studentIds))
             .stream()
             .collect(Collectors.toMap(StudentReadModel::getId, StudentReadModel::getName));
 
