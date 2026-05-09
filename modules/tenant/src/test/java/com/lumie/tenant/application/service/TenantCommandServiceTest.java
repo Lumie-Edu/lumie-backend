@@ -5,7 +5,7 @@ import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
-import com.lumie.tenant.application.port.out.BillingServicePort;
+import com.lumie.internal.billing.BillingService;
 import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
@@ -37,7 +37,7 @@ class TenantCommandServiceTest {
     private SchemaProvisioningPort schemaProvisioningPort;
 
     @Mock
-    private BillingServicePort billingServicePort;
+    private BillingService billingService;
 
     @InjectMocks
     private TenantCommandService tenantCommandService;
@@ -69,7 +69,7 @@ class TenantCommandServiceTest {
 
         verify(schemaProvisioningPort).createSchema(anyString());
         verify(schemaProvisioningPort).migrateSchema(anyString());
-        verify(billingServicePort).createFreeSubscription(any(), eq("test-academy"));
+        verify(billingService).createFreeSubscription(any(), eq("test-academy"));
     }
 
     @Test
@@ -82,7 +82,7 @@ class TenantCommandServiceTest {
 
         verify(tenantPersistencePort, never()).save(any());
         verify(schemaProvisioningPort, never()).createSchema(anyString());
-        verify(billingServicePort, never()).createFreeSubscription(any(), anyString());
+        verify(billingService, never()).createFreeSubscription(any(), anyString());
     }
 
     @Test

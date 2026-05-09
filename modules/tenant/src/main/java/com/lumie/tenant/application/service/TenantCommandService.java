@@ -9,7 +9,7 @@ import com.lumie.tenant.application.port.in.CreateTenantUseCase;
 import com.lumie.tenant.application.port.in.DeleteTenantUseCase;
 import com.lumie.tenant.application.port.in.SuspendTenantUseCase;
 import com.lumie.tenant.application.port.in.UpdateTenantUseCase;
-import com.lumie.tenant.application.port.out.BillingServicePort;
+import com.lumie.internal.billing.BillingService;
 import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
@@ -30,7 +30,7 @@ public class TenantCommandService implements
 
     private final TenantPersistencePort tenantPersistencePort;
     private final SchemaProvisioningPort schemaProvisioningPort;
-    private final BillingServicePort billingServicePort;
+    private final BillingService billingService;
 
     @Override
     public TenantResponse createTenant(CreateTenantRequest request) {
@@ -64,7 +64,7 @@ public class TenantCommandService implements
         savedTenant.activate();
         tenantPersistencePort.save(savedTenant);
 
-        billingServicePort.createFreeSubscription(savedTenant.getId(), savedTenant.getSlugValue());
+        billingService.createFreeSubscription(savedTenant.getId(), savedTenant.getSlugValue());
 
         return TenantResponse.from(savedTenant);
     }
