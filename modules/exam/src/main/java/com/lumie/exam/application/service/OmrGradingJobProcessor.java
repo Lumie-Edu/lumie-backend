@@ -1,5 +1,7 @@
 package com.lumie.exam.application.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.BillingServicePort;
 import com.lumie.exam.application.port.out.OmrServicePort;
@@ -34,6 +36,7 @@ public class OmrGradingJobProcessor {
     private final StudentServicePort studentService;
     private final BillingServicePort billingService;
     private final OmrGradingJobRepository jobRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public void processGradingCallback(OmrGradingCallbackRequest request) {
@@ -58,7 +61,10 @@ public class OmrGradingJobProcessor {
         }
 
         try {
-            jobRepository.appendResult(request.jobId(), resultMap);
+            String json = objectMapper.writeValueAsString(List.of(resultMap));
+            jobRepository.appendResult(request.jobId(), json);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize result JSON for jobId={}: {}", request.jobId(), e.getMessage());
         } catch (Exception e) {
             log.warn("Failed to append result for jobId={}: {}", request.jobId(), e.getMessage());
         }
