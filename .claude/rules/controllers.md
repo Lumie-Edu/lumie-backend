@@ -24,4 +24,3 @@ Auto-loaded when editing files in `**/adapter/in/web/**`. See `.claude/knowledge
 ## References
 
 - `.claude/knowledge/BACKEND_RULES.md`
-- `.claude/audits/README.md` (API_DESIGN_AUDIT)

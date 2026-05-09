@@ -20,4 +20,3 @@ Auto-loaded when editing files in `**/application/service/**`. See `.claude/know
 ## References
 
 - `.claude/knowledge/BACKEND_RULES.md`
-- CONCURRENCY_AUDIT §B (transactional + external HTTP issues)

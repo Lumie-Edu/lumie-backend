@@ -28,16 +28,14 @@ if [ -x "$SWEEP" ]; then
   fi
 fi
 
-# === Path-aware: block creation of NEW *-svc directories (legacy MSA naming) ===
-# Existing *-svc dirs are tolerated; only block if the parent doesn't exist yet
-# AND the service is not registered in settings.gradle.kts.
+# === Path-aware: block creation of NEW *-svc directories ===
 if echo "$FILE_PATH" | grep -qE "/services/[^/]+/[^/]+-svc/"; then
   PARENT=$(echo "$FILE_PATH" | grep -oE "/services/[^/]+/[^/]+-svc/" | head -1)
   PARENT_DIR="${FILE_PATH%%${PARENT}*}${PARENT}"
   if [ ! -d "$PARENT_DIR" ]; then
     SVC_NAME=$(echo "$PARENT" | grep -oE "[^/]+-svc")
     if ! grep -q "$SVC_NAME" "${FILE_PATH%/lumie-backend/*}/lumie-backend/settings.gradle.kts" 2>/dev/null; then
-      echo "차단: 새 *-svc 디렉토리 생성 금지 (legacy MSA naming)." >&2
+      echo "차단: 새 *-svc 디렉토리 생성 금지." >&2
       echo "  → 새 모듈은 -svc 접미사 없이 생성하세요. 참고: ARCHITECTURE_INTENT.md" >&2
       exit 2
     fi

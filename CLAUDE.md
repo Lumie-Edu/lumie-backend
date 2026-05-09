@@ -9,14 +9,14 @@ Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot
 ## Module layout
 
 ```
-services/{tier}/{module}-svc/   ⚠️ legacy -svc; do NOT add to NEW modules
+services/{tier}/{module}/
 └── src/main/java/com/lumie/{module}/
     ├── domain/{entity,vo,repository,exception}/
     ├── application/{service,port/in,port/out,dto/{request,response}}/
     └── adapter/{in/web,in/messaging,out/persistence,out/external,internal}/
 ```
 
-Tiers: `core` (domain), `platform` (cross-tenant), `support` (utilities). `journal-svc` exists but unregistered — dead code.
+Tiers: `core` (domain), `platform` (cross-tenant), `support` (utilities).
 
 ## Multi-tenancy
 
@@ -25,7 +25,7 @@ Schema-per-tenant via Hibernate `MultiTenantConnectionProvider`. Tenant slug fro
 ## Inter-module / external
 
 - Internal: only via `libs/internal-api` interfaces. Implementations in `adapter/internal/`.
-- External (worker): `adapter/out/external/<Name>Client.java`. `RestTemplate` (migration to `RestClient` planned). Always forward `X-Tenant-Slug`.
+- External (worker): `adapter/out/external/<Name>Client.java`. Always forward `X-Tenant-Slug`.
 
 ## Commands
 
@@ -40,8 +40,7 @@ Schema-per-tenant via Hibernate `MultiTenantConnectionProvider`. Tenant slug fro
 
 - Architecture intent: `.claude/knowledge/ARCHITECTURE_INTENT.md`
 - Path-scoped rules: `.claude/rules/{controllers,entities,services,migrations}.md`
-- Audits: `.claude/audits/README.md`
 
 ## Agents
 
-`backend-scaffolder` · `backend-reviewer` · `migration` (Flyway scaffold) · `migration-reviewer` (read-only Flyway diff review).
+`backend-scaffolder` · `backend-reviewer` · `migration` (Flyway scaffold) · `migration-reviewer` (read-only Flyway diff review) · `backend-test-orchestrator` (per-module Gradle test + JaCoCo coverage gate) · `backend-performance-monitor` (static N+1 / tx-scope-HTTP / missing-index analysis).

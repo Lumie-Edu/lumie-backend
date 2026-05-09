@@ -21,4 +21,3 @@ Auto-loaded when editing files in `**/domain/entity/**`. See `.claude/knowledge/
 ## References
 
 - `.claude/knowledge/BACKEND_RULES.md`
-- CODE_QUALITY_AUDIT §D (database patterns)

@@ -27,4 +27,3 @@ Auto-loaded when editing files in `**/db/migration/**`. SQL-only rules — Java-
 ## References
 
 - `.claude/knowledge/BACKEND_RULES.md`
-- CODE_QUALITY_AUDIT §D, CONCURRENCY_AUDIT §C (multi-schema migration ordering)

@@ -29,7 +29,7 @@ Behavioral invariants. Java-specific. Read with `.claude/knowledge/HARD_RULES_CR
 ## Module structure (hexagonal)
 
 ```
-services/{tier}/{module}-svc/   # ⚠️ DO NOT add -svc to NEW modules; existing are legacy
+services/{tier}/{module}/
 └── src/main/java/com/lumie/{module}/
     ├── domain/{entity,vo,repository,exception}/
     ├── application/{service,port/in,port/out,dto/{request,response}}/
@@ -42,5 +42,4 @@ Tier `core` for domain modules; `platform` for cross-tenant; `support` for utili
 
 - Cross-cutting rules: `../../../.claude/knowledge/HARD_RULES_CROSS.md`
 - Architecture intent: `../../../.claude/knowledge/ARCHITECTURE_INTENT.md`
-- Audits: `../../../.claude/audits/README.md`
 - Path-scoped rules: `.claude/rules/{controllers,entities,services,migrations}.md`
