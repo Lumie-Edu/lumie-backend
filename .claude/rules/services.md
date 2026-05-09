@@ -4,20 +4,15 @@ paths: ["lumie-backend/**/application/service/**/*.java"]
 
 # Application Services (path-scoped rules)
 
-Auto-loaded when editing files in `**/application/service/**`.
+Auto-loaded when editing files in `**/application/service/**`. See `.claude/knowledge/BACKEND_RULES.md` for blanket rules (`@Transactional`+external HTTP, raw `RuntimeException`, `@Autowired` field).
 
-## NEVER
+## NEVER (service-specific)
 
-- ❌ `@Transactional` wrapping `restTemplate.exchange` / `httpClient.send` / external HTTP. Connection pool will exhaust.
 - ❌ `@Transactional` wrapping `RabbitTemplate.send` for synchronous flow. Publish AFTER commit (`afterCommit` callback) or via Outbox pattern.
 - ❌ Direct adapter import (`adapter.out.persistence.SomeAdapter`). Use port interface.
-- ❌ Throw raw `RuntimeException`. Use module's `BusinessException(ErrorCode)`.
-- ❌ Field injection (`@Autowired` on field). Use `@RequiredArgsConstructor`.
 
-## ALWAYS
+## ALWAYS (service-specific)
 
-- ✅ `@RequiredArgsConstructor` for constructor injection.
-- ✅ `@Transactional(readOnly = true)` on Query services / methods that don't write.
 - ✅ Tenant context awareness: assume `TenantContextHolder.getRequiredTenant()` exists; failing-fast on missing tenant is correct.
 - ✅ Use `internal-api` interface for cross-module calls; never reach into other module's services directly.
 - ✅ Idempotency check on retry-capable handlers (e.g., `/internal/*/callback` consumers).

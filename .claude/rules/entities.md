@@ -4,21 +4,15 @@ paths: ["lumie-backend/**/domain/entity/**/*.java"]
 
 # JPA Entities (path-scoped rules)
 
-Auto-loaded when editing files in `**/domain/entity/**`.
+Auto-loaded when editing files in `**/domain/entity/**`. See `.claude/knowledge/BACKEND_RULES.md` for blanket rules (`@Setter`, Spring-in-domain, Instant, cross-module entity import, `@Version`, `BaseEntity`).
 
-## NEVER
+## NEVER (entity-specific)
 
-- ❌ `@Setter` on entities. Use builder + domain methods.
-- ❌ Spring annotations (`@Service`, `@Component`, etc.). Domain stays pure.
-- ❌ `LocalDateTime` for timestamps. Use `Instant`.
 - ❌ Lombok `@Data` (generates `equals`/`hashCode` that break with JPA proxies).
 - ❌ Public mutable fields.
-- ❌ Cross-module entity import (`com.lumie.OTHER_MODULE.domain.entity.*`). Use `libs/internal-api`.
 
-## ALWAYS
+## ALWAYS (entity-specific)
 
-- ✅ Extend `BaseEntity` for audit timestamps (`createdAt`, `updatedAt`).
-- ✅ `@Version Long version` on user-mutable entities (optimistic locking).
 - ✅ `@Getter` only (Lombok). Mutators are explicit domain methods.
 - ✅ `@Builder` for entities with >4 constructor args.
 - ✅ `equals`/`hashCode` by ID for managed entities (not by content).

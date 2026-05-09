@@ -4,7 +4,7 @@ paths: ["lumie-backend/**/db/migration/**/*.sql"]
 
 # Flyway Migrations (path-scoped rules)
 
-Auto-loaded when editing files in `**/db/migration/**`.
+Auto-loaded when editing files in `**/db/migration/**`. SQL-only rules — Java-side timestamp rules (`Instant` in DTOs) live in `.claude/knowledge/BACKEND_RULES.md`.
 
 ## NEVER
 
