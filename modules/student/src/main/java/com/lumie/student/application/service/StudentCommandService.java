@@ -6,9 +6,9 @@ import com.lumie.student.application.dto.BulkImportResult;
 import com.lumie.student.application.dto.StudentRequest;
 import com.lumie.student.application.dto.StudentResponse;
 import com.lumie.student.application.dto.StudentUpdateRequest;
+import com.lumie.internal.exam.ExamInternalService;
 import com.lumie.student.application.port.out.AuthServicePort;
 import com.lumie.student.application.port.out.BillingServicePort;
-import com.lumie.student.application.port.out.ExamServicePort;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.DuplicatePhoneException;
 import com.lumie.student.domain.exception.QuotaExceededException;
@@ -40,7 +40,7 @@ public class StudentCommandService {
     private final StudentRepository studentRepository;
     private final AuthServicePort authServicePort;
     private final BillingServicePort billingServicePort;
-    private final ExamServicePort examServicePort;
+    private final ExamInternalService examInternalService;
     private final EntityManager entityManager;
 
     public StudentResponse registerStudent(StudentRequest request) {
@@ -81,7 +81,7 @@ public class StudentCommandService {
         // to the newly created student.
         if (saved.getPhone() != null && !saved.getPhone().isBlank()) {
             try {
-                int linked = examServicePort.linkUnregisteredResultsByPhone(saved.getPhone(), saved.getId());
+                int linked = examInternalService.linkUnregisteredResultsByPhone(saved.getPhone(), saved.getId());
                 if (linked > 0) {
                     log.info("Backfilled {} exam results for student {} (phone={})",
                             linked, saved.getId(), saved.getPhone());
