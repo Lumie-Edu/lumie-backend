@@ -53,7 +53,7 @@ spring:
 
 # JWT (auth module)
 jwt:
-  secret-key: ${JWT_SECRET_KEY:your-256-bit-secret-key-here-must-be-at-least-32-chars}
+  secret-key: ${JWT_SECRET_KEY:?JWT_SECRET_KEY env var required (Vault → VSO → K8s Secret)}
   access-expiration: ${JWT_ACCESS_EXPIRATION:3600}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800}
   issuer: lumie-auth-svc
@@ -146,13 +146,20 @@ spring.ai:
 telegram:
   bot-token: ${TELEGRAM_BOT_TOKEN:}
 
-# External Python services (exam module)
+# External Python services (exam module) + CORS
 lumie:
   services:
     grading:
       url: ${GRADING_SVC_URL:http://localhost:8001}
     report:
       url: ${REPORT_SVC_URL:http://localhost:8002}
+  cors:
+    allowed-origins:
+      - https://lumie-edu.com
+      - https://dev.lumie-edu.com
+      - http://localhost:3000
+  internal:
+    hmac-secret: ${LUMIE_INTERNAL_HMAC_SECRET:?LUMIE_INTERNAL_HMAC_SECRET env var required (Vault → VSO → K8s Secret)}
 
 server:
   port: 8080

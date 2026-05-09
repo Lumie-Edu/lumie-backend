@@ -1,5 +1,6 @@
 package com.lumie.app.config;
 
+import com.lumie.app.config.internal.InternalHmacAuthFilter;
 import com.lumie.auth.infrastructure.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +23,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final InternalHmacAuthFilter internalHmacAuthFilter;
     private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
@@ -38,7 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/v1/refresh").permitAll()
                         .requestMatchers("/v1/oauth2/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/internal/**").permitAll()
+                        .requestMatchers("/internal/**").hasRole("INTERNAL")
                         .requestMatchers("/v1/payments/paddle/webhook").permitAll()
                         .requestMatchers("/v1/tenants/public/**").permitAll()
                         .requestMatchers("/v1/homepage/public/**").permitAll()
@@ -48,7 +50,8 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(internalHmacAuthFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
