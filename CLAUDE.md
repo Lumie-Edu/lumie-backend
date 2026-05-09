@@ -4,27 +4,7 @@ Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot
 
 > Workspace rules apply (`/Users/bluemayne/Projects/Lumie/.claude/CLAUDE.md`).
 
-## NEVER (Backend)
-
-- ❌ `LocalDateTime` in DTOs. Use `Instant` (UTC).
-- ❌ Raw `RuntimeException`. Throw `BusinessException(ErrorCode)`.
-- ❌ `@Transactional` wrapping external HTTP calls.
-- ❌ `@Scheduled` without `@SchedulerLock` (ShedLock).
-- ❌ `Map<String, Object>` request/response in controllers. Use records.
-- ❌ `@Setter` on JPA entities.
-- ❌ Field injection (`@Autowired` field). Use `@RequiredArgsConstructor`.
-- ❌ Cross-module `*.domain.entity` import. Use `libs/internal-api`.
-- ❌ HTTP/gRPC between monolith modules. Direct bean injection only.
-- ❌ New deployable module. This repo is monolith-first.
-
-## ALWAYS (Backend)
-
-- ✅ `@Version` on user-mutable entities.
-- ✅ `@JoinFetch` / `@EntityGraph` on list queries with associations.
-- ✅ `BaseEntity` extension for audit timestamps.
-- ✅ Controllers wrap pagination as `PageResponse<T>` (not raw `Page<T>`).
-- ✅ `@RequestMapping("/v1/...")` versioning.
-- ✅ Forward `X-Tenant-Slug` to worker HTTP calls.
+@.claude/knowledge/BACKEND_RULES.md
 
 ## Module layout
 
@@ -58,8 +38,6 @@ Schema-per-tenant via Hibernate `MultiTenantConnectionProvider`. Tenant slug fro
 
 ## References
 
-- Full backend rules: `.claude/knowledge/BACKEND_RULES.md`
-- Workspace: `/Users/bluemayne/Projects/Lumie/.claude/knowledge/HARD_RULES_CROSS.md`
 - Architecture intent: `/Users/bluemayne/Projects/Lumie/.claude/knowledge/ARCHITECTURE_INTENT.md`
 - Path-scoped rules: `.claude/rules/{controllers,entities,services,migrations}.md`
 - Audits: `/Users/bluemayne/Projects/Lumie/.claude/audits/README.md`
