@@ -1,9 +1,10 @@
 package com.lumie.notification.application.service;
 
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.internal.admin.AdminService;
+import com.lumie.internal.cls.ClassService;
+import com.lumie.internal.student.StudentService;
 import com.lumie.notification.application.dto.*;
-import com.lumie.notification.application.port.out.AdminServicePort;
-import com.lumie.notification.application.port.out.ClassServicePort;
-import com.lumie.notification.application.port.out.StudentServicePort;
 import com.lumie.notification.domain.entity.SmsMessage;
 import com.lumie.notification.domain.entity.SmsTemplate;
 import com.lumie.notification.domain.exception.SmsTemplateNotFoundException;
@@ -30,6 +31,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -39,10 +42,20 @@ class SmsCommandServiceTest {
 
     @Mock private SmsMessageRepository messageRepository;
     @Mock private SmsTemplateRepository templateRepository;
-    @Mock private StudentServicePort studentServicePort;
-    @Mock private AdminServicePort adminServicePort;
-    @Mock private ClassServicePort classServicePort;
+    @Mock private StudentService studentService;
+    @Mock private AdminService adminService;
+    @Mock private ClassService classService;
     @InjectMocks private SmsCommandService commandService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setupTenant() {
+        TenantContextHolder.setTenant("test-tenant");
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void clearTenant() {
+        TenantContextHolder.clear();
+    }
 
     @Nested
     @DisplayName("sendSms")
@@ -56,8 +69,9 @@ class SmsCommandServiceTest {
                     List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                     "제목", "내용", null);
 
-            given(adminServicePort.getAdmin(10L))
-                    .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "관리자")));
+            given(adminService.getAdmin(anyString(), eq(10L)))
+                    .willReturn(Optional.of(new AdminService.AdminData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(messageRepository.save(any(SmsMessage.class)))
                     .willAnswer(inv -> {
                         SmsMessage msg = inv.getArgument(0);
@@ -79,8 +93,9 @@ class SmsCommandServiceTest {
                     10L, RecipientType.STUDENT,
                     List.of(), "제목", "내용", null);
 
-            given(adminServicePort.getAdmin(10L))
-                    .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "관리자")));
+            given(adminService.getAdmin(anyString(), eq(10L)))
+                    .willReturn(Optional.of(new AdminService.AdminData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
 
             assertThatThrownBy(() -> commandService.sendSms(request))
                     .isInstanceOf(BusinessException.class);
@@ -94,7 +109,7 @@ class SmsCommandServiceTest {
                     List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                     "제목", "내용", null);
 
-            given(adminServicePort.getAdmin(999L)).willReturn(Optional.empty());
+            given(adminService.getAdmin(anyString(), eq(999L))).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.sendSms(request))
                     .isInstanceOf(BusinessException.class);
@@ -110,17 +125,20 @@ class SmsCommandServiceTest {
         void sendToClass_success() {
             SendToClassRequest request = new SendToClassRequest(10L, "제목", "내용", null);
 
-            given(adminServicePort.getAdmin(10L))
-                    .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "관리자")));
-            given(classServicePort.getClass(5L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(5L, "수학반")));
-            given(classServicePort.getStudentIdsByClassId(5L))
+            given(adminService.getAdmin(anyString(), eq(10L)))
+                    .willReturn(Optional.of(new AdminService.AdminData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(classService.getClass(anyString(), eq(5L)))
+                    .willReturn(Optional.of(new ClassService.ClassData(
+                            5L, "수학반", null, null, null, null, null, null, null)));
+            given(classService.getEnrolledStudentIds(anyString(), eq(5L)))
                     .willReturn(List.of(100L, 200L));
-            given(studentServicePort.getStudentsByIds(List.of(100L, 200L)))
-                    .willReturn(Map.of(
-                        100L, new StudentServicePort.StudentInfo(100L, "홍길동", "010-1111-1111", true),
-                        200L, new StudentServicePort.StudentInfo(200L, "김철수", "010-2222-2222", true)
-                    ));
+            given(studentService.getStudentsByIds(anyString(), eq(List.of(100L, 200L))))
+                    .willReturn(new StudentService.StudentListData(
+                            List.of(
+                                    new StudentService.StudentData(100L, 1000L, "홍길동", "010-1111-1111", true, null, null),
+                                    new StudentService.StudentData(200L, 2000L, "김철수", "010-2222-2222", true, null, null)
+                            ), 2L, 0, 2));
             given(messageRepository.save(any(SmsMessage.class)))
                     .willAnswer(inv -> {
                         SmsMessage msg = inv.getArgument(0);
@@ -140,11 +158,13 @@ class SmsCommandServiceTest {
         void sendToClass_noStudents_throwsException() {
             SendToClassRequest request = new SendToClassRequest(10L, "제목", "내용", null);
 
-            given(adminServicePort.getAdmin(10L))
-                    .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "관리자")));
-            given(classServicePort.getClass(5L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(5L, "수학반")));
-            given(classServicePort.getStudentIdsByClassId(5L))
+            given(adminService.getAdmin(anyString(), eq(10L)))
+                    .willReturn(Optional.of(new AdminService.AdminData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(classService.getClass(anyString(), eq(5L)))
+                    .willReturn(Optional.of(new ClassService.ClassData(
+                            5L, "수학반", null, null, null, null, null, null, null)));
+            given(classService.getEnrolledStudentIds(anyString(), eq(5L)))
                     .willReturn(List.of());
 
             assertThatThrownBy(() -> commandService.sendToClass(5L, request))

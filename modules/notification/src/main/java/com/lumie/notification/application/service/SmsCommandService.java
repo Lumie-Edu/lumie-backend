@@ -1,9 +1,10 @@
 package com.lumie.notification.application.service;
 
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.internal.admin.AdminService;
+import com.lumie.internal.cls.ClassService;
+import com.lumie.internal.student.StudentService;
 import com.lumie.notification.application.dto.*;
-import com.lumie.notification.application.port.out.AdminServicePort;
-import com.lumie.notification.application.port.out.ClassServicePort;
-import com.lumie.notification.application.port.out.StudentServicePort;
 import com.lumie.notification.domain.entity.SmsMessage;
 import com.lumie.notification.domain.entity.SmsTemplate;
 import com.lumie.notification.domain.exception.SmsErrorCode;
@@ -29,12 +30,13 @@ public class SmsCommandService {
 
     private final SmsMessageRepository messageRepository;
     private final SmsTemplateRepository templateRepository;
-    private final StudentServicePort studentServicePort;
-    private final AdminServicePort adminServicePort;
-    private final ClassServicePort classServicePort;
+    private final StudentService studentService;
+    private final AdminService adminService;
+    private final ClassService classService;
 
     public SmsMessageResponse sendSms(SendSmsRequest request) {
-        adminServicePort.getAdmin(request.senderId())
+        String slug = TenantContextHolder.getRequiredTenant();
+        adminService.getAdmin(slug, request.senderId())
             .orElseThrow(() -> new BusinessException(SmsErrorCode.SENDER_NOT_FOUND,
                 "Sender not found with id: " + request.senderId()));
 
@@ -61,23 +63,25 @@ public class SmsCommandService {
     }
 
     public SmsMessageResponse sendToClass(Long classId, SendToClassRequest request) {
-        adminServicePort.getAdmin(request.senderId())
+        String slug = TenantContextHolder.getRequiredTenant();
+        adminService.getAdmin(slug, request.senderId())
             .orElseThrow(() -> new BusinessException(SmsErrorCode.SENDER_NOT_FOUND,
                 "Sender not found with id: " + request.senderId()));
 
-        ClassServicePort.ClassInfo classInfo = classServicePort.getClass(classId)
+        classService.getClass(slug, classId)
             .orElseThrow(() -> new BusinessException(SmsErrorCode.CLASS_NOT_FOUND,
                 "Class not found with id: " + classId));
 
-        List<Long> studentIds = classServicePort.getStudentIdsByClassId(classId);
+        List<Long> studentIds = classService.getEnrolledStudentIds(slug, classId);
         if (studentIds.isEmpty()) {
             throw new BusinessException(SmsErrorCode.EMPTY_RECIPIENTS, "No students enrolled in class: " + classId);
         }
 
-        Map<Long, StudentServicePort.StudentInfo> students = studentServicePort.getStudentsByIds(studentIds);
+        List<StudentService.StudentData> students =
+                studentService.getStudentsByIds(slug, studentIds).students();
 
-        List<Recipient> recipients = students.values().stream()
-            .map(s -> new Recipient(s.phone(), s.name(), s.id()))
+        List<Recipient> recipients = students.stream()
+            .map(s -> new Recipient(s.studentPhone(), s.studentName(), s.id()))
             .toList();
 
         if (recipients.isEmpty()) {
