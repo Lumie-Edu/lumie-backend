@@ -6,9 +6,9 @@ import com.lumie.student.application.dto.BulkImportResult;
 import com.lumie.student.application.dto.StudentRequest;
 import com.lumie.student.application.dto.StudentResponse;
 import com.lumie.student.application.dto.StudentUpdateRequest;
+import com.lumie.internal.auth.AuthInternalService;
+import com.lumie.internal.billing.BillingInternalService;
 import com.lumie.internal.exam.ExamInternalService;
-import com.lumie.student.application.port.out.AuthServicePort;
-import com.lumie.student.application.port.out.BillingServicePort;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.DuplicatePhoneException;
 import com.lumie.student.domain.exception.QuotaExceededException;
@@ -38,8 +38,8 @@ import java.util.Map;
 public class StudentCommandService {
 
     private final StudentRepository studentRepository;
-    private final AuthServicePort authServicePort;
-    private final BillingServicePort billingServicePort;
+    private final AuthInternalService authInternalService;
+    private final BillingInternalService billingInternalService;
     private final ExamInternalService examInternalService;
     private final EntityManager entityManager;
 
@@ -51,13 +51,11 @@ public class StudentCommandService {
 
         validatePhoneUniqueness(request.phone(), request.parentPhone(), null);
 
-        AuthServicePort.CreateUserResult userResult = authServicePort.createUser(
-                new AuthServicePort.CreateUserRequest(
-                        request.name(),
-                        request.phone(),
-                        "STUDENT",
-                        tenantId
-                )
+        AuthInternalService.CreateUserResult userResult = authInternalService.createUser(
+                request.name(),
+                request.phone(),
+                "STUDENT",
+                tenantId
         );
 
         if (!userResult.success()) {
@@ -161,7 +159,7 @@ public class StudentCommandService {
         entityManager.detach(student);
 
         // Delete user from auth-svc (FK CASCADE automatically deletes student)
-        AuthServicePort.DeleteUserResult deleteResult = authServicePort.deleteUser(userId);
+        AuthInternalService.DeleteUserResult deleteResult = authInternalService.deleteUser(userId);
         if (!deleteResult.success()) {
             log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
         }
@@ -175,7 +173,7 @@ public class StudentCommandService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new StudentNotFoundException(id));
 
-        AuthServicePort.ResetPasswordResult result = authServicePort.resetPassword(student.getUserId());
+        AuthInternalService.ResetPasswordResult result = authInternalService.resetPassword(student.getUserId());
         if (!result.success()) {
             throw new BusinessException(StudentErrorCode.AUTH_OP_FAILED, "Failed to reset password: " + result.message());
         }
@@ -189,7 +187,7 @@ public class StudentCommandService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new StudentNotFoundException(id));
 
-        AuthServicePort.ChangeLoginIdResult result = authServicePort.changeLoginId(student.getUserId(), newLoginId);
+        AuthInternalService.ChangeLoginIdResult result = authInternalService.changeLoginId(student.getUserId(), newLoginId);
         if (!result.success()) {
             throw new BusinessException(StudentErrorCode.AUTH_OP_FAILED, "Failed to change login ID: " + result.message());
         }
@@ -286,7 +284,7 @@ public class StudentCommandService {
 
         // Delete users from auth-svc (FK CASCADE automatically deletes students)
         for (Student student : toDelete) {
-            AuthServicePort.DeleteUserResult deleteResult = authServicePort.deleteUser(student.getUserId());
+            AuthInternalService.DeleteUserResult deleteResult = authInternalService.deleteUser(student.getUserId());
             if (!deleteResult.success()) {
                 log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
             }
@@ -330,13 +328,11 @@ public class StudentCommandService {
 
                     checkStudentQuota(tenantSlug);
 
-                    AuthServicePort.CreateUserResult userResult = authServicePort.createUser(
-                            new AuthServicePort.CreateUserRequest(
-                                    name,
-                                    phone,
-                                    "STUDENT",
-                                    tenantId
-                            )
+                    AuthInternalService.CreateUserResult userResult = authInternalService.createUser(
+                            name,
+                            phone,
+                            "STUDENT",
+                            tenantId
                     );
 
                     if (!userResult.success()) {
@@ -397,7 +393,7 @@ public class StudentCommandService {
     }
 
     private void checkStudentQuota(String tenantSlug) {
-        var result = billingServicePort.checkQuota(tenantSlug, "MAX_STUDENTS");
+        var result = billingInternalService.checkQuota(tenantSlug, "MAX_STUDENTS");
         if (!result.allowed()) {
             throw new QuotaExceededException("MAX_STUDENTS", result.currentUsage(), result.limit());
         }

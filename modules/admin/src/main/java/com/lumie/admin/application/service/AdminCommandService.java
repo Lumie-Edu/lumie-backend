@@ -3,8 +3,8 @@ package com.lumie.admin.application.service;
 import com.lumie.admin.application.dto.AdminRequest;
 import com.lumie.admin.application.dto.AdminResponse;
 import com.lumie.admin.application.dto.AdminUpdateRequest;
-import com.lumie.admin.application.port.out.AuthServicePort;
-import com.lumie.admin.application.port.out.BillingServicePort;
+import com.lumie.internal.auth.AuthInternalService;
+import com.lumie.internal.billing.BillingInternalService;
 import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.entity.AdminPermission;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
@@ -39,8 +39,8 @@ public class AdminCommandService {
 
     private final AdminRepository adminRepository;
     private final AdminPermissionRepository adminPermissionRepository;
-    private final AuthServicePort authServicePort;
-    private final BillingServicePort billingServicePort;
+    private final AuthInternalService authInternalService;
+    private final BillingInternalService billingInternalService;
     private final ActivityLogInternalService activityLogInternalService;
 
     public AdminResponse registerAdmin(AdminRequest request) {
@@ -57,13 +57,11 @@ public class AdminCommandService {
             throw new DuplicatePhoneException(request.phone());
         }
 
-        AuthServicePort.CreateUserResult userResult = authServicePort.createUser(
-                new AuthServicePort.CreateUserRequest(
-                        request.name(),
-                        request.phone(),
-                        requestedRole,
-                        tenantId
-                )
+        AuthInternalService.CreateUserResult userResult = authInternalService.createUser(
+                request.name(),
+                request.phone(),
+                requestedRole,
+                tenantId
         );
 
         if (!userResult.success()) {
@@ -167,7 +165,7 @@ public class AdminCommandService {
 
         validateActorAuthority(admin, "reset password for");
 
-        AuthServicePort.ResetPasswordResult result = authServicePort.resetPassword(admin.getUserId());
+        AuthInternalService.ResetPasswordResult result = authInternalService.resetPassword(admin.getUserId());
         if (!result.success()) {
             throw new RuntimeException("Failed to reset password: " + result.message());
         }
@@ -184,7 +182,7 @@ public class AdminCommandService {
 
         validateActorAuthority(admin, "change login id for");
 
-        AuthServicePort.ChangeLoginIdResult result = authServicePort.changeLoginId(admin.getUserId(), newLoginId);
+        AuthInternalService.ChangeLoginIdResult result = authInternalService.changeLoginId(admin.getUserId(), newLoginId);
         if (!result.success()) {
             throw new RuntimeException("Failed to change login ID: " + result.message());
         }
@@ -208,7 +206,7 @@ public class AdminCommandService {
         Long userId = admin.getUserId();
         String adminName = admin.getName();
         adminRepository.delete(admin);
-        AuthServicePort.DeleteUserResult deleteResult = authServicePort.deleteUser(userId);
+        AuthInternalService.DeleteUserResult deleteResult = authInternalService.deleteUser(userId);
         if (!deleteResult.success()) {
             log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
         }
@@ -256,7 +254,7 @@ public class AdminCommandService {
     }
 
     private void checkAdminQuota(String tenantSlug) {
-        var result = billingServicePort.checkQuota(tenantSlug, "MAX_ADMINS");
+        var result = billingInternalService.checkQuota(tenantSlug, "MAX_ADMINS");
         if (!result.allowed()) {
             throw new QuotaExceededException("MAX_ADMINS", result.currentUsage(), result.limit());
         }
