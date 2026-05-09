@@ -8,7 +8,7 @@ import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
 import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
-import com.lumie.internal.auth.AuthInternalService;
+import com.lumie.internal.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,7 +27,7 @@ public class AdminQueryService {
 
     private final AdminRepository adminRepository;
     private final AdminPermissionRepository adminPermissionRepository;
-    private final AuthInternalService authInternalService;
+    private final AuthService authService;
 
     public AdminResponse getAdmin(Long id) {
         Admin admin = adminRepository.findById(id)
@@ -50,13 +50,13 @@ public class AdminQueryService {
     }
 
     private AdminResponse enrich(Admin admin) {
-        Map<Long, String> seeds = authInternalService.getAvatarSeeds(List.of(admin.getUserId()));
+        Map<Long, String> seeds = authService.getAvatarSeeds(List.of(admin.getUserId()));
         return AdminResponse.from(admin, seeds.get(admin.getUserId()));
     }
 
     private Map<Long, String> avatarSeedsFor(List<Admin> admins) {
         if (admins.isEmpty()) return Map.of();
-        return authInternalService.getAvatarSeeds(admins.stream().map(Admin::getUserId).toList());
+        return authService.getAvatarSeeds(admins.stream().map(Admin::getUserId).toList());
     }
 
     public List<AdminPermissionResponse> getAdminPermissions(Long adminId) {

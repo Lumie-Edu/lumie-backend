@@ -13,7 +13,7 @@ import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.QnaBoardRepository;
 import com.lumie.content.domain.repository.QnaCommentRepository;
-import com.lumie.internal.file.FileInternalService;
+import com.lumie.internal.file.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ public class QnaCommandService {
 
     private final QnaBoardRepository qnaBoardRepository;
     private final QnaCommentRepository qnaCommentRepository;
-    private final FileInternalService fileInternalService;
+    private final FileService fileService;
 
     @Transactional
     public QnaBoardResponse createQna(CreateQnaRequest request) {
@@ -54,7 +54,7 @@ public class QnaCommandService {
         qnaBoard.update(request.qnaTitle(), request.qnaContent());
 
         if (request.fileIdsToDelete() != null && !request.fileIdsToDelete().isEmpty()) {
-            fileInternalService.deleteFilesByIds(request.fileIdsToDelete());
+            fileService.deleteFilesByIds(request.fileIdsToDelete());
         }
 
         QnaBoard updated = qnaBoardRepository.save(qnaBoard);
@@ -71,7 +71,7 @@ public class QnaCommandService {
             throw new ContentException(ContentErrorCode.QNA_NOT_FOUND);
         }
 
-        fileInternalService.deleteFilesByEntity("qna", id);
+        fileService.deleteFilesByEntity("qna", id);
         qnaBoardRepository.deleteById(id);
         log.info("Q&A deleted: {}", id);
     }

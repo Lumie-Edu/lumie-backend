@@ -19,7 +19,7 @@ import com.lumie.cls.domain.vo.EnrollmentStatus;
 import com.lumie.cls.domain.vo.SchedulePattern;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.internal.activitylog.ActivityLogInternalService;
+import com.lumie.internal.activitylog.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,7 +36,7 @@ public class ClassCommandService {
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
     private final AdminServicePort adminServicePort;
-    private final ActivityLogInternalService activityLogInternalService;
+    private final ActivityLogService activityLogService;
 
     public ClassResponse createClass(CreateClassRequest request) {
         if (request.teacherId() != null) {
@@ -234,7 +234,7 @@ public class ClassCommandService {
             Long userId = UserContextHolder.getRequiredUserId();
             String role = UserContextHolder.getUserRole();
             adminServicePort.getAdminByUserId(userId).ifPresent(actor ->
-                activityLogInternalService.log(actor.id(), actor.name(), role,
+                activityLogService.log(actor.id(), actor.name(), role,
                     action, entityType, entityId, entityName, description)
             );
         } catch (Exception e) {

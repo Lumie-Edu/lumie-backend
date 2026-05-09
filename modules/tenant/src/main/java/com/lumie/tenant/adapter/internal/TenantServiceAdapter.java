@@ -1,6 +1,6 @@
 package com.lumie.tenant.adapter.internal;
 
-import com.lumie.internal.tenant.TenantInternalService;
+import com.lumie.internal.tenant.TenantService;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.port.in.GetTenantUseCase;
 import com.lumie.tenant.application.port.in.ValidateTenantUseCase;
@@ -19,7 +19,7 @@ import java.util.Optional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TenantInternalServiceAdapter implements TenantInternalService {
+public class TenantServiceAdapter implements TenantService {
 
     private final GetTenantUseCase getTenantUseCase;
     private final ValidateTenantUseCase validateTenantUseCase;

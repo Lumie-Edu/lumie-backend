@@ -3,8 +3,8 @@ package com.lumie.admin.application.service;
 import com.lumie.admin.application.dto.AdminRequest;
 import com.lumie.admin.application.dto.AdminResponse;
 import com.lumie.admin.application.dto.AdminUpdateRequest;
-import com.lumie.internal.auth.AuthInternalService;
-import com.lumie.internal.billing.BillingInternalService;
+import com.lumie.internal.auth.AuthService;
+import com.lumie.internal.billing.BillingService;
 import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.entity.AdminPermission;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
@@ -18,7 +18,7 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.internal.activitylog.ActivityLogInternalService;
+import com.lumie.internal.activitylog.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,9 +39,9 @@ public class AdminCommandService {
 
     private final AdminRepository adminRepository;
     private final AdminPermissionRepository adminPermissionRepository;
-    private final AuthInternalService authInternalService;
-    private final BillingInternalService billingInternalService;
-    private final ActivityLogInternalService activityLogInternalService;
+    private final AuthService authService;
+    private final BillingService billingService;
+    private final ActivityLogService activityLogService;
 
     public AdminResponse registerAdmin(AdminRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -57,7 +57,7 @@ public class AdminCommandService {
             throw new DuplicatePhoneException(request.phone());
         }
 
-        AuthInternalService.CreateUserResult userResult = authInternalService.createUser(
+        AuthService.CreateUserResult userResult = authService.createUser(
                 request.name(),
                 request.phone(),
                 requestedRole,
@@ -165,7 +165,7 @@ public class AdminCommandService {
 
         validateActorAuthority(admin, "reset password for");
 
-        AuthInternalService.ResetPasswordResult result = authInternalService.resetPassword(admin.getUserId());
+        AuthService.ResetPasswordResult result = authService.resetPassword(admin.getUserId());
         if (!result.success()) {
             throw new RuntimeException("Failed to reset password: " + result.message());
         }
@@ -182,7 +182,7 @@ public class AdminCommandService {
 
         validateActorAuthority(admin, "change login id for");
 
-        AuthInternalService.ChangeLoginIdResult result = authInternalService.changeLoginId(admin.getUserId(), newLoginId);
+        AuthService.ChangeLoginIdResult result = authService.changeLoginId(admin.getUserId(), newLoginId);
         if (!result.success()) {
             throw new RuntimeException("Failed to change login ID: " + result.message());
         }
@@ -206,7 +206,7 @@ public class AdminCommandService {
         Long userId = admin.getUserId();
         String adminName = admin.getName();
         adminRepository.delete(admin);
-        AuthInternalService.DeleteUserResult deleteResult = authInternalService.deleteUser(userId);
+        AuthService.DeleteUserResult deleteResult = authService.deleteUser(userId);
         if (!deleteResult.success()) {
             log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
         }
@@ -220,7 +220,7 @@ public class AdminCommandService {
             Long userId = UserContextHolder.getRequiredUserId();
             String role = UserContextHolder.getUserRole();
             adminRepository.findByUserId(userId).ifPresent(actor ->
-                activityLogInternalService.log(actor.getId(), actor.getName(), role,
+                activityLogService.log(actor.getId(), actor.getName(), role,
                     action, entityType, entityId, entityName, description)
             );
         } catch (Exception e) {
@@ -254,7 +254,7 @@ public class AdminCommandService {
     }
 
     private void checkAdminQuota(String tenantSlug) {
-        var result = billingInternalService.checkQuota(tenantSlug, "MAX_ADMINS");
+        var result = billingService.checkQuota(tenantSlug, "MAX_ADMINS");
         if (!result.allowed()) {
             throw new QuotaExceededException("MAX_ADMINS", result.currentUsage(), result.limit());
         }

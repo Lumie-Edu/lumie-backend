@@ -3,7 +3,7 @@ package com.lumie.internal.admin;
 import java.util.List;
 import java.util.Optional;
 
-public interface AdminInternalService {
+public interface AdminService {
 
     Optional<AdminData> getAdmin(String tenantSlug, Long adminId);
 

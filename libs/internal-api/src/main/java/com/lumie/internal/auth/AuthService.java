@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
-public interface AuthInternalService {
+public interface AuthService {
 
     TokenValidationResult validateToken(String token);
 

@@ -1,7 +1,7 @@
 package com.lumie.exam.adapter.in.internal;
 
 import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.internal.exam.ExamInternalService;
+import com.lumie.internal.exam.ExamService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ExamInternalServiceAdapter implements ExamInternalService {
+public class ExamServiceAdapter implements ExamService {
 
     private final ExamResultRepository examResultRepository;
 

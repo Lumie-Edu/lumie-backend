@@ -1,9 +1,9 @@
 package com.lumie.attendance.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.cls.ClassInternalService;
-import com.lumie.internal.cls.ClassInternalService.ClassData;
-import com.lumie.internal.cls.ClassInternalService.ClassListData;
+import com.lumie.internal.cls.ClassService;
+import com.lumie.internal.cls.ClassService.ClassData;
+import com.lumie.internal.cls.ClassService.ClassListData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,7 +25,7 @@ import java.util.Map;
 public class AttendanceSessionScheduler {
 
     private final AttendanceSessionCommandService commandService;
-    private final ClassInternalService classInternalService;
+    private final ClassService classService;
     private final DataSource dataSource;
 
     private static final Map<DayOfWeek, String> DAY_OF_WEEK_MAP = Map.of(
@@ -69,7 +69,7 @@ public class AttendanceSessionScheduler {
         int size = 100;
 
         while (true) {
-            ClassListData classListData = classInternalService.getAllClasses(tenantSlug, page, size);
+            ClassListData classListData = classService.getAllClasses(tenantSlug, page, size);
             List<ClassData> classes = classListData.classes();
 
             if (classes.isEmpty()) break;

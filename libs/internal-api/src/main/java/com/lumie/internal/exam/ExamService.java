@@ -3,7 +3,7 @@ package com.lumie.internal.exam;
 /**
  * In-process internal API exposed by exam-svc and consumed by other services.
  */
-public interface ExamInternalService {
+public interface ExamService {
 
     /**
      * Links previously unregistered exam results (student_id IS NULL, matching phone_number)

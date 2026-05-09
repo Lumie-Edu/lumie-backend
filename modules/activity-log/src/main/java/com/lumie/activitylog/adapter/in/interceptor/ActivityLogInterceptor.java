@@ -3,8 +3,8 @@ package com.lumie.activitylog.adapter.in.interceptor;
 import com.lumie.activitylog.application.service.ActivityLogContext;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.internal.activitylog.ActivityLogInternalService;
-import com.lumie.internal.admin.AdminInternalService;
+import com.lumie.internal.activitylog.ActivityLogService;
+import com.lumie.internal.admin.AdminService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +23,8 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class ActivityLogInterceptor implements HandlerInterceptor {
 
-    private final ActivityLogInternalService activityLogService;
-    private final AdminInternalService adminInternalService;
+    private final ActivityLogService activityLogService;
+    private final AdminService adminService;
 
     private static final Pattern ENTITY_ID_PATTERN = Pattern.compile("/v1/[^/]+/(\\d+)");
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
@@ -93,7 +93,7 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
                 return;
             }
 
-            adminInternalService.getAdminByUserId(tenantSlug, userId).ifPresent(actor ->
+            adminService.getAdminByUserId(tenantSlug, userId).ifPresent(actor ->
                     activityLogService.log(
                             actor.id(), actor.name(), role,
                             action, entityType, entityId, null, null

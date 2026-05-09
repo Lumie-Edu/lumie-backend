@@ -7,7 +7,7 @@ import com.lumie.content.domain.entity.Announcement;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.AnnouncementRepository;
-import com.lumie.internal.file.FileInternalService;
+import com.lumie.internal.file.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AnnouncementCommandService {
 
     private final AnnouncementRepository announcementRepository;
-    private final FileInternalService fileInternalService;
+    private final FileService fileService;
 
     @Transactional
     public AnnouncementResponse createAnnouncement(CreateAnnouncementRequest request) {
@@ -54,7 +54,7 @@ public class AnnouncementCommandService {
         );
 
         if (request.fileIdsToDelete() != null && !request.fileIdsToDelete().isEmpty()) {
-            fileInternalService.deleteFilesByIds(request.fileIdsToDelete());
+            fileService.deleteFilesByIds(request.fileIdsToDelete());
         }
 
         Announcement updated = announcementRepository.save(announcement);
@@ -71,7 +71,7 @@ public class AnnouncementCommandService {
             throw new ContentException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND);
         }
 
-        fileInternalService.deleteFilesByEntity("announcement", id);
+        fileService.deleteFilesByEntity("announcement", id);
         announcementRepository.deleteById(id);
         log.info("Announcement deleted: {}", id);
     }

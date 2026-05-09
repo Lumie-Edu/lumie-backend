@@ -1,6 +1,6 @@
 package com.lumie.lecture.adapter.internal;
 
-import com.lumie.internal.lecture.LectureInternalService;
+import com.lumie.internal.lecture.LectureService;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.repository.LectureRepository;
 import com.lumie.lecture.domain.vo.LectureSearchCriteria;
@@ -16,7 +16,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class LectureInternalServiceAdapter implements LectureInternalService {
+public class LectureServiceAdapter implements LectureService {
 
     private final LectureRepository lectureRepository;
 

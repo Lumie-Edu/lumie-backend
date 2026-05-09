@@ -2,7 +2,7 @@ package com.lumie.internal.tenant;
 
 import java.util.Optional;
 
-public interface TenantInternalService {
+public interface TenantService {
 
     Optional<TenantData> getTenant(Long tenantId);
 

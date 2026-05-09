@@ -1,7 +1,7 @@
 package com.lumie.student.application.service;
 
 import com.lumie.common.csv.CsvWriter;
-import com.lumie.internal.auth.AuthInternalService;
+import com.lumie.internal.auth.AuthService;
 import com.lumie.student.application.dto.EnrollmentTrendResponse;
 import com.lumie.student.application.dto.StudentResponse;
 import com.lumie.student.domain.entity.Student;
@@ -37,7 +37,7 @@ import java.util.Optional;
 public class StudentQueryService {
 
     private final StudentRepository studentRepository;
-    private final AuthInternalService authInternalService;
+    private final AuthService authService;
 
     public StudentResponse getStudent(Long id) {
         Student student = studentRepository.findById(id)
@@ -90,7 +90,7 @@ public class StudentQueryService {
     }
 
     private StudentResponse enrich(Student student) {
-        Map<Long, String> seeds = authInternalService.getAvatarSeeds(List.of(student.getUserId()));
+        Map<Long, String> seeds = authService.getAvatarSeeds(List.of(student.getUserId()));
         return StudentResponse.from(student, seeds.get(student.getUserId()));
     }
 
@@ -111,7 +111,7 @@ public class StudentQueryService {
             return Map.of();
         }
         List<Long> userIds = students.stream().map(Student::getUserId).toList();
-        return authInternalService.getAvatarSeeds(userIds);
+        return authService.getAvatarSeeds(userIds);
     }
 
     public long countActiveStudents() {

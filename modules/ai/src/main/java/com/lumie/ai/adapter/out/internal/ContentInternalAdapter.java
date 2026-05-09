@@ -2,7 +2,7 @@ package com.lumie.ai.adapter.out.internal;
 
 import com.lumie.ai.application.port.out.ContentServicePort;
 import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.internal.content.ContentInternalService;
+import com.lumie.internal.content.ContentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -14,7 +14,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ContentInternalAdapter implements ContentServicePort {
 
-    private final ContentInternalService contentInternalService;
+    private final ContentService contentService;
 
     @Override
     public String createAnnouncement(Map<String, Object> arguments) {
@@ -25,6 +25,6 @@ public class ContentInternalAdapter implements ContentServicePort {
         boolean isAsset = (boolean) arguments.getOrDefault("isAsset", false);
 
         log.debug("Creating announcement via internal API: title={}, authorId={}", title, authorId);
-        return contentInternalService.createAnnouncement(authorId, title, content, isImportant, isAsset);
+        return contentService.createAnnouncement(authorId, title, content, isImportant, isAsset);
     }
 }

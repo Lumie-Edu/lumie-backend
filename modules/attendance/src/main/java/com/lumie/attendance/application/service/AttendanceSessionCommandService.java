@@ -10,7 +10,7 @@ import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.cls.ClassInternalService;
+import com.lumie.internal.cls.ClassService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,14 +28,14 @@ public class AttendanceSessionCommandService {
     private final AttendanceSessionRepository sessionRepository;
     private final AttendanceRecordRepository recordRepository;
     private final StudentReadRepository studentReadRepository;
-    private final ClassInternalService classInternalService;
+    private final ClassService classService;
 
     public AttendanceSessionResponse createSession(AttendanceSessionRequest request) {
         String className = null;
         if (request.classId() != null) {
             String tenantSlug = TenantContextHolder.getRequiredTenant();
-            className = classInternalService.getClass(tenantSlug, request.classId())
-                .map(ClassInternalService.ClassData::name)
+            className = classService.getClass(tenantSlug, request.classId())
+                .map(ClassService.ClassData::name)
                 .orElse(null);
         }
 
@@ -52,7 +52,7 @@ public class AttendanceSessionCommandService {
         List<Long> studentIds;
         if (request.classId() != null) {
             String tenantSlug = TenantContextHolder.getRequiredTenant();
-            studentIds = classInternalService.getEnrolledStudentIds(tenantSlug, request.classId());
+            studentIds = classService.getEnrolledStudentIds(tenantSlug, request.classId());
         } else {
             studentIds = studentReadRepository.findByIsActiveTrue()
                 .stream()
@@ -85,7 +85,7 @@ public class AttendanceSessionCommandService {
         AttendanceSession saved = sessionRepository.save(session);
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
-        List<Long> studentIds = classInternalService.getEnrolledStudentIds(tenantSlug, classId);
+        List<Long> studentIds = classService.getEnrolledStudentIds(tenantSlug, classId);
 
         List<AttendanceRecord> records = studentIds.stream()
             .map(studentId -> AttendanceRecord.create(saved, studentId))

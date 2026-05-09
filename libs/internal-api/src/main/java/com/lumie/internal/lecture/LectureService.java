@@ -3,7 +3,7 @@ package com.lumie.internal.lecture;
 import java.util.List;
 import java.util.Optional;
 
-public interface LectureInternalService {
+public interface LectureService {
 
     Optional<LectureData> getLecture(String tenantSlug, Long lectureId);
 

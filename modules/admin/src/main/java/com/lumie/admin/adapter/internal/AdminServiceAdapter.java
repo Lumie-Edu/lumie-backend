@@ -8,7 +8,7 @@ import com.lumie.admin.domain.exception.AdminNotFoundException;
 import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.admin.AdminInternalService;
+import com.lumie.internal.admin.AdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -20,7 +20,7 @@ import java.util.Optional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AdminInternalServiceAdapter implements AdminInternalService {
+public class AdminServiceAdapter implements AdminService {
 
     private final AdminQueryService adminQueryService;
     private final AdminRepository adminRepository;

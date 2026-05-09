@@ -2,7 +2,7 @@ package com.lumie.cls.adapter.out.internal;
 
 import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.admin.AdminInternalService;
+import com.lumie.internal.admin.AdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -14,20 +14,20 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AdminInternalAdapter implements AdminServicePort {
 
-    private final AdminInternalService adminInternalService;
+    private final AdminService adminService;
 
     @Override
     public Optional<AdminInfo> getAdmin(Long adminId) {
         String slug = TenantContextHolder.getRequiredTenant();
         log.debug("Getting admin via internal API: {} in tenant: {}", adminId, slug);
-        return adminInternalService.getAdmin(slug, adminId)
+        return adminService.getAdmin(slug, adminId)
                 .map(a -> new AdminInfo(a.id(), a.name()));
     }
 
     @Override
     public Optional<AdminInfo> getAdminByUserId(Long userId) {
         String slug = TenantContextHolder.getRequiredTenant();
-        return adminInternalService.getAdminByUserId(slug, userId)
+        return adminService.getAdminByUserId(slug, userId)
                 .map(a -> new AdminInfo(a.id(), a.name()));
     }
 }

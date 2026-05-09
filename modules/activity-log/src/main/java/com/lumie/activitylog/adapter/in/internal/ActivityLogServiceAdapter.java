@@ -2,13 +2,13 @@ package com.lumie.activitylog.adapter.in.internal;
 
 import com.lumie.activitylog.application.service.ActivityLogCommandService;
 import com.lumie.activitylog.application.service.ActivityLogContext;
-import com.lumie.internal.activitylog.ActivityLogInternalService;
+import com.lumie.internal.activitylog.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class ActivityLogInternalServiceAdapter implements ActivityLogInternalService {
+public class ActivityLogServiceAdapter implements ActivityLogService {
 
     private final ActivityLogCommandService activityLogCommandService;
 

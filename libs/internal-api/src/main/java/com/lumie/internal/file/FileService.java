@@ -6,7 +6,7 @@ import java.util.UUID;
 /**
  * In-process internal API exposed by file-svc and consumed by other services.
  */
-public interface FileInternalService {
+public interface FileService {
 
     /**
      * Deletes all files (MinIO objects + metadata) associated with the given entity.

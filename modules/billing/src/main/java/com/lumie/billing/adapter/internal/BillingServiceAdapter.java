@@ -5,7 +5,7 @@ import com.lumie.billing.application.dto.response.SubscriptionResponse;
 import com.lumie.billing.application.port.in.CreateSubscriptionUseCase;
 import com.lumie.billing.application.port.in.GetPlansUseCase;
 import com.lumie.billing.application.port.in.GetSubscriptionUseCase;
-import com.lumie.internal.billing.BillingInternalService;
+import com.lumie.internal.billing.BillingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -17,7 +17,7 @@ import java.util.Optional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class BillingInternalServiceAdapter implements BillingInternalService {
+public class BillingServiceAdapter implements BillingService {
 
     private final GetSubscriptionUseCase getSubscriptionUseCase;
     private final CreateSubscriptionUseCase createSubscriptionUseCase;

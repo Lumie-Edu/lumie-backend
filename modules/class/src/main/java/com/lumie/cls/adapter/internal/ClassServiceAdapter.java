@@ -4,7 +4,7 @@ import com.lumie.cls.application.dto.ClassResponse;
 import com.lumie.cls.application.service.ClassQueryService;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.cls.ClassInternalService;
+import com.lumie.internal.cls.ClassService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -18,7 +18,7 @@ import java.util.Optional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ClassInternalServiceAdapter implements ClassInternalService {
+public class ClassServiceAdapter implements ClassService {
 
     private final ClassQueryService classQueryService;
 

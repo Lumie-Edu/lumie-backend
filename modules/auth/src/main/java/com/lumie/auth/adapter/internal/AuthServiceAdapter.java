@@ -4,7 +4,7 @@ import com.lumie.auth.adapter.out.persistence.UserJpaRepository;
 import com.lumie.auth.application.port.in.ValidateTokenUseCase;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.common.auth.Role;
-import com.lumie.internal.auth.AuthInternalService;
+import com.lumie.internal.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AuthInternalServiceAdapter implements AuthInternalService {
+public class AuthServiceAdapter implements AuthService {
 
     private static final String DEFAULT_PASSWORD = "0000!Lumie";
     private static final int MAX_LOGIN_ID_ATTEMPTS = 10;

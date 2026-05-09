@@ -1,6 +1,6 @@
 package com.lumie.student.adapter.internal;
 
-import com.lumie.internal.student.StudentInternalService;
+import com.lumie.internal.student.StudentService;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * In-process implementation of {@link StudentInternalService} exposed by
+ * In-process implementation of {@link StudentService} exposed by
  * student-svc. Other modules in the monolith inject this Spring bean to look
  * up Student data without going through the public REST API.
  *
@@ -25,7 +25,7 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class StudentInternalServiceAdapter implements StudentInternalService {
+public class StudentServiceAdapter implements StudentService {
 
     private final StudentRepository studentRepository;
 

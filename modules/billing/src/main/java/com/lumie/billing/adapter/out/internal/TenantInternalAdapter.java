@@ -1,7 +1,7 @@
 package com.lumie.billing.adapter.out.internal;
 
 import com.lumie.billing.application.port.out.TenantServicePort;
-import com.lumie.internal.tenant.TenantInternalService;
+import com.lumie.internal.tenant.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -13,25 +13,25 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TenantInternalAdapter implements TenantServicePort {
 
-    private final TenantInternalService tenantInternalService;
+    private final TenantService tenantService;
 
     @Override
     public Optional<TenantData> getTenantBySlug(String slug) {
         log.debug("Getting tenant by slug via internal API: {}", slug);
-        return tenantInternalService.getTenantBySlug(slug)
+        return tenantService.getTenantBySlug(slug)
                 .map(t -> new TenantData(t.id(), t.slug(), t.name(), t.status()));
     }
 
     @Override
     public Optional<TenantData> getTenantById(Long id) {
         log.debug("Getting tenant by ID via internal API: {}", id);
-        return tenantInternalService.getTenant(id)
+        return tenantService.getTenant(id)
                 .map(t -> new TenantData(t.id(), t.slug(), t.name(), t.status()));
     }
 
     @Override
     public boolean validateTenant(String slug) {
         log.debug("Validating tenant via internal API: {}", slug);
-        return tenantInternalService.validateTenant(slug).valid();
+        return tenantService.validateTenant(slug).valid();
     }
 }

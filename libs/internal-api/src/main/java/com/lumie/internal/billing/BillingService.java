@@ -3,7 +3,7 @@ package com.lumie.internal.billing;
 import java.util.List;
 import java.util.Optional;
 
-public interface BillingInternalService {
+public interface BillingService {
 
     Optional<SubscriptionData> getSubscription(String tenantSlug);
 

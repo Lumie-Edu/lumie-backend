@@ -6,9 +6,9 @@ import com.lumie.student.application.dto.BulkImportResult;
 import com.lumie.student.application.dto.StudentRequest;
 import com.lumie.student.application.dto.StudentResponse;
 import com.lumie.student.application.dto.StudentUpdateRequest;
-import com.lumie.internal.auth.AuthInternalService;
-import com.lumie.internal.billing.BillingInternalService;
-import com.lumie.internal.exam.ExamInternalService;
+import com.lumie.internal.auth.AuthService;
+import com.lumie.internal.billing.BillingService;
+import com.lumie.internal.exam.ExamService;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.DuplicatePhoneException;
 import com.lumie.student.domain.exception.QuotaExceededException;
@@ -38,9 +38,9 @@ import java.util.Map;
 public class StudentCommandService {
 
     private final StudentRepository studentRepository;
-    private final AuthInternalService authInternalService;
-    private final BillingInternalService billingInternalService;
-    private final ExamInternalService examInternalService;
+    private final AuthService authService;
+    private final BillingService billingService;
+    private final ExamService examService;
     private final EntityManager entityManager;
 
     public StudentResponse registerStudent(StudentRequest request) {
@@ -51,7 +51,7 @@ public class StudentCommandService {
 
         validatePhoneUniqueness(request.phone(), request.parentPhone(), null);
 
-        AuthInternalService.CreateUserResult userResult = authInternalService.createUser(
+        AuthService.CreateUserResult userResult = authService.createUser(
                 request.name(),
                 request.phone(),
                 "STUDENT",
@@ -79,7 +79,7 @@ public class StudentCommandService {
         // to the newly created student.
         if (saved.getPhone() != null && !saved.getPhone().isBlank()) {
             try {
-                int linked = examInternalService.linkUnregisteredResultsByPhone(saved.getPhone(), saved.getId());
+                int linked = examService.linkUnregisteredResultsByPhone(saved.getPhone(), saved.getId());
                 if (linked > 0) {
                     log.info("Backfilled {} exam results for student {} (phone={})",
                             linked, saved.getId(), saved.getPhone());
@@ -159,7 +159,7 @@ public class StudentCommandService {
         entityManager.detach(student);
 
         // Delete user from auth-svc (FK CASCADE automatically deletes student)
-        AuthInternalService.DeleteUserResult deleteResult = authInternalService.deleteUser(userId);
+        AuthService.DeleteUserResult deleteResult = authService.deleteUser(userId);
         if (!deleteResult.success()) {
             log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
         }
@@ -173,7 +173,7 @@ public class StudentCommandService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new StudentNotFoundException(id));
 
-        AuthInternalService.ResetPasswordResult result = authInternalService.resetPassword(student.getUserId());
+        AuthService.ResetPasswordResult result = authService.resetPassword(student.getUserId());
         if (!result.success()) {
             throw new BusinessException(StudentErrorCode.AUTH_OP_FAILED, "Failed to reset password: " + result.message());
         }
@@ -187,7 +187,7 @@ public class StudentCommandService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new StudentNotFoundException(id));
 
-        AuthInternalService.ChangeLoginIdResult result = authInternalService.changeLoginId(student.getUserId(), newLoginId);
+        AuthService.ChangeLoginIdResult result = authService.changeLoginId(student.getUserId(), newLoginId);
         if (!result.success()) {
             throw new BusinessException(StudentErrorCode.AUTH_OP_FAILED, "Failed to change login ID: " + result.message());
         }
@@ -284,7 +284,7 @@ public class StudentCommandService {
 
         // Delete users from auth-svc (FK CASCADE automatically deletes students)
         for (Student student : toDelete) {
-            AuthInternalService.DeleteUserResult deleteResult = authInternalService.deleteUser(student.getUserId());
+            AuthService.DeleteUserResult deleteResult = authService.deleteUser(student.getUserId());
             if (!deleteResult.success()) {
                 log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
             }
@@ -328,7 +328,7 @@ public class StudentCommandService {
 
                     checkStudentQuota(tenantSlug);
 
-                    AuthInternalService.CreateUserResult userResult = authInternalService.createUser(
+                    AuthService.CreateUserResult userResult = authService.createUser(
                             name,
                             phone,
                             "STUDENT",
@@ -393,7 +393,7 @@ public class StudentCommandService {
     }
 
     private void checkStudentQuota(String tenantSlug) {
-        var result = billingInternalService.checkQuota(tenantSlug, "MAX_STUDENTS");
+        var result = billingService.checkQuota(tenantSlug, "MAX_STUDENTS");
         if (!result.allowed()) {
             throw new QuotaExceededException("MAX_STUDENTS", result.currentUsage(), result.limit());
         }

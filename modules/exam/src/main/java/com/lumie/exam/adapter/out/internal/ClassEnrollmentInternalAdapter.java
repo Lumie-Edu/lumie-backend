@@ -2,7 +2,7 @@ package com.lumie.exam.adapter.out.internal;
 
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.port.out.ClassEnrollmentPort;
-import com.lumie.internal.cls.ClassInternalService;
+import com.lumie.internal.cls.ClassService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,7 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClassEnrollmentInternalAdapter implements ClassEnrollmentPort {
 
-    private final ClassInternalService classInternalService;
+    private final ClassService classService;
 
     @Override
     public List<ClassParticipant> findEnrolledClassesForStudents(Collection<Long> studentIds) {
@@ -24,7 +24,7 @@ public class ClassEnrollmentInternalAdapter implements ClassEnrollmentPort {
         }
         String slug = TenantContextHolder.getRequiredTenant();
         log.debug("Fetching enrolled classes for {} students in tenant: {}", studentIds.size(), slug);
-        return classInternalService.getEnrolledClassesForStudents(slug, studentIds).stream()
+        return classService.getEnrolledClassesForStudents(slug, studentIds).stream()
                 .map(d -> new ClassParticipant(d.classId(), d.className(), d.studentId()))
                 .toList();
     }
