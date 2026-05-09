@@ -46,3 +46,6 @@ test-output/
 
 # Tilt generated files
 .tilt/
+
+# Claude Code: ignore agent memory cache only (track config in .claude/)
+.claude/agent-memory/

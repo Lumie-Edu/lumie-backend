@@ -1,70 +1,68 @@
 # lumie-backend
 
-Spring Boot **monolith**. `app/` is the single `@SpringBootApplication`; `services/*` are Gradle multi-module domain modules (logical, not network). Java 21 + Spring Boot 3.4. Hexagonal architecture per module.
+Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot 3.4. `app/` is the single `@SpringBootApplication`; `services/*` are domain modules (logical, not deployables).
 
-> Cross-repo policies live in workspace root `CLAUDE.md`. This file owns rules **specific to lumie-backend**.
+> Workspace rules apply (`/Users/bluemayne/Projects/Lumie/.claude/CLAUDE.md`).
 
-## Module layout (`settings.gradle.kts`)
+## NEVER (Backend)
 
-- `services/core/*` — domain modules (`student-svc`, `exam-svc`, `class-svc`, `lecture-svc`, `assignment-svc`, `attendance-svc`, `content-svc`, `ai-svc`, `notification-svc`, `admin-svc`, `activity-log-svc`).
-- `services/platform/*` — cross-tenant (`tenant-svc`, `auth-svc`, `billing-svc`, `homepage-svc`).
-- `services/support/*` — `file-svc` (single module).
+- ❌ `LocalDateTime` in DTOs. Use `Instant` (UTC).
+- ❌ Raw `RuntimeException`. Throw `BusinessException(ErrorCode)`.
+- ❌ `@Transactional` wrapping external HTTP calls.
+- ❌ `@Scheduled` without `@SchedulerLock` (ShedLock).
+- ❌ `Map<String, Object>` request/response in controllers. Use records.
+- ❌ `@Setter` on JPA entities.
+- ❌ Field injection (`@Autowired` field). Use `@RequiredArgsConstructor`.
+- ❌ Cross-module `*.domain.entity` import. Use `libs/internal-api`.
+- ❌ HTTP/gRPC between monolith modules. Direct bean injection only.
+- ❌ New deployable module. This repo is monolith-first.
 
-> `services/core/journal-svc/` exists on disk but is **not** registered in `settings.gradle.kts` — treat as WIP / not part of the build.
-- `libs/common` — `TenantContextHolder`, `UserContextHolder`, `AuthorizationGuard`, `BaseEntity`, `BusinessException`, `DomainEvent`, CSV utils.
-- `libs/internal-api` — **interface-only** module. Sealed records / interfaces that modules expose to each other.
-- `libs/messaging` — RabbitMQ constants.
+## ALWAYS (Backend)
 
-The `*-svc` naming is leftover from prior MSA. They are **not** deployables.
+- ✅ `@Version` on user-mutable entities.
+- ✅ `@JoinFetch` / `@EntityGraph` on list queries with associations.
+- ✅ `BaseEntity` extension for audit timestamps.
+- ✅ Controllers wrap pagination as `PageResponse<T>` (not raw `Page<T>`).
+- ✅ `@RequestMapping("/v1/...")` versioning.
+- ✅ Forward `X-Tenant-Slug` to worker HTTP calls.
 
-## Hexagonal layout (per module)
+## Module layout
 
 ```
-domain/        entity, vo, repository (port), exception
-application/   service (use-cases), port/out, dto
-adapter/in/    web/* (REST controllers)
-adapter/out/   persistence/* (JPA), internal/* (calls into other modules), external/* (worker HTTP clients)
+services/{tier}/{module}-svc/   ⚠️ legacy -svc; do NOT add to NEW modules
+└── src/main/java/com/lumie/{module}/
+    ├── domain/{entity,vo,repository,exception}/
+    ├── application/{service,port/in,port/out,dto/{request,response}}/
+    └── adapter/{in/web,in/messaging,out/persistence,out/external,internal}/
 ```
-Imports flow strictly: `adapter → application → domain`. Never the reverse.
 
-## Inter-module rule
-
-- Modules talk **only via `libs/internal-api` interfaces** (e.g., `LectureInternalService`). Each module implements its own contract under `adapter/internal/`.
-- Consumers inject the interface as a Spring bean and call it from `adapter/out/internal/`.
-- **No HTTP, no gRPC inside the monolith.** Never import another module's `domain.entity` directly.
-
-## External calls (lumie-worker)
-
-Pattern: `adapter/out/external/<Name>Client.java` (e.g., `ReportServiceClient`, `OmrServiceClient`). `RestTemplate` + `@Value("${lumie.services.<svc>.url}")`. Always forward `X-Tenant-Slug`. Wrap failures in module's `BusinessException` subtype.
+Tiers: `core` (domain), `platform` (cross-tenant), `support` (utilities). `journal-svc` exists but unregistered — dead code.
 
 ## Multi-tenancy
 
-- **Schema-per-tenant** (Flyway). Migrations in `app/src/main/resources/db/migration/{public,tenant_*}`. Use `migration` agent for new migrations.
-- `TenantContextHolder` (ThreadLocal) populated by `RequestContextFilter` from `X-Tenant-Slug`. Use `TenantContextHolder.withinContext(slug, action)` when crossing tenants in internal adapters.
+Schema-per-tenant via Hibernate `MultiTenantConnectionProvider`. Tenant slug from `X-Tenant-Slug` header → `RequestContextFilter` → `TenantContextHolder` ThreadLocal. Use `TenantContextHolder.withinContext(slug, action)` when crossing tenants in adapters.
 
-## Conventions
+## Inter-module / external
 
-- REST routes versioned: `@RequestMapping("/v1/...")`.
-- Each module has its own `ErrorCode` enum extending `BusinessException`.
-- MapStruct + Lombok — annotation-processor order matters in `build.gradle.kts`.
-- Tests: JUnit 5, Mockito, MockMvc; integration via TestContainers (Postgres). Mirror source package in `src/test/java`.
-
-## Anti-patterns
-
-- ❌ Importing `*.domain.entity` from another module → use `libs/internal-api` interface.
-- ❌ Calling another module via HTTP/gRPC → direct bean injection only.
-- ❌ Outbound work without tenant context populated.
-- ❌ Adding logic in `adapter/in/web/*` controllers (controllers thin → service).
-- ❌ New deployable module / standalone Spring Boot app — this repo is a monolith.
+- Internal: only via `libs/internal-api` interfaces. Implementations in `adapter/internal/`.
+- External (worker): `adapter/out/external/<Name>Client.java`. `RestTemplate` (migration to `RestClient` planned). Always forward `X-Tenant-Slug`.
 
 ## Commands
 
 ```
 ./gradlew build          # compile + test
-./gradlew test           # all tests
+./gradlew test
 ./gradlew :services:core:student-svc:test
-./gradlew bootRun        # run app/
+./gradlew bootRun
 ```
+
+## References
+
+- Full backend rules: `.claude/knowledge/BACKEND_RULES.md`
+- Workspace: `/Users/bluemayne/Projects/Lumie/.claude/knowledge/HARD_RULES_CROSS.md`
+- Architecture intent: `/Users/bluemayne/Projects/Lumie/.claude/knowledge/ARCHITECTURE_INTENT.md`
+- Path-scoped rules: `.claude/rules/{controllers,entities,services,migrations}.md`
+- Audits: `/Users/bluemayne/Projects/Lumie/.claude/audits/README.md`
 
 ## Agents
 
