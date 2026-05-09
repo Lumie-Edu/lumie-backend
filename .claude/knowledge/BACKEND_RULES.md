@@ -29,14 +29,12 @@ Behavioral invariants. Java-specific. Read with `.claude/knowledge/HARD_RULES_CR
 ## Module structure (hexagonal)
 
 ```
-services/{tier}/{module}/
+modules/{module}/
 └── src/main/java/com/lumie/{module}/
     ├── domain/{entity,vo,repository,exception}/
     ├── application/{service,port/in,port/out,dto/{request,response}}/
     └── adapter/{in/web,in/messaging,out/persistence,out/external,internal}/
 ```
-
-Tier `core` for domain modules; `platform` for cross-tenant; `support` for utilities.
 
 ## References
 

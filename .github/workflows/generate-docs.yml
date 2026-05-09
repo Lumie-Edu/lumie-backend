@@ -32,16 +32,10 @@ jobs:
           if [ -n "${{ inputs.section }}" ]; then
             MOD="${{ inputs.section }}"
             case "$MOD" in
-              tenant)       INCLUDE="services/platform/tenant-svc/**,$COMMON_LIBS" ;;
-              auth)         INCLUDE="services/platform/auth-svc/**,$COMMON_LIBS" ;;
-              billing)      INCLUDE="services/platform/billing-svc/**,$COMMON_LIBS" ;;
-              exam)         INCLUDE="services/core/exam-svc/**,$COMMON_LIBS" ;;
-              content)      INCLUDE="services/core/content-svc/**,$COMMON_LIBS" ;;
-              admin)        INCLUDE="services/core/admin-svc/**,$COMMON_LIBS" ;;
-              attendance)   INCLUDE="services/core/attendance-svc/**,$COMMON_LIBS" ;;
-              file)         INCLUDE="services/support/file-svc/**,$COMMON_LIBS" ;;
+              tenant|auth|billing|homepage|exam|content|admin|attendance|ai|student|class|lecture|assignment|activity-log|notification|file)
+                INCLUDE="modules/$MOD/**,$COMMON_LIBS" ;;
               app)          INCLUDE="app/**,$COMMON_LIBS" ;;
-              architecture) INCLUDE="app/**,services/**,$COMMON_LIBS" ;;
+              architecture) INCLUDE="app/**,modules/**,$COMMON_LIBS" ;;
               *) echo "Unknown module: $MOD"; exit 1 ;;
             esac
             echo "matrix=[{\"section\":\"backend/$MOD\",\"include\":\"$INCLUDE\"}]" >> "$GITHUB_OUTPUT"
@@ -57,30 +51,39 @@ jobs:
 
           SECTIONS=""
           add_section() {
-            local mod="$1" path="$2"
-            if [[ "$SECTIONS" != *"$mod"* ]]; then
+            local mod="$1"
+            if [[ "$SECTIONS" != *"\"backend/$mod\""* ]]; then
               if [ -n "$SECTIONS" ]; then SECTIONS="$SECTIONS,"; fi
-              SECTIONS="${SECTIONS}{\"section\":\"backend/$mod\",\"include\":\"$path,$COMMON_LIBS\"}"
+              SECTIONS="${SECTIONS}{\"section\":\"backend/$mod\",\"include\":\"modules/$mod/**,$COMMON_LIBS\"}"
             fi
           }
 
           LIBS_CHANGED=false
           while IFS= read -r file; do
             case "$file" in
-              services/platform/tenant-svc/*)     add_section "tenant" "services/platform/tenant-svc/**" ;;
-              services/platform/auth-svc/*)       add_section "auth" "services/platform/auth-svc/**" ;;
-              services/platform/billing-svc/*)    add_section "billing" "services/platform/billing-svc/**" ;;
-              services/core/exam-svc/*)           add_section "exam" "services/core/exam-svc/**" ;;
-              services/core/content-svc/*)        add_section "content" "services/core/content-svc/**" ;;
-              services/core/admin-svc/*)          add_section "admin" "services/core/admin-svc/**" ;;
-              services/core/attendance-svc/*)     add_section "attendance" "services/core/attendance-svc/**" ;;
-              services/core/ai-svc/*)             add_section "ai-svc" "services/core/ai-svc/**" ;;
-              services/support/file-svc/*)        add_section "file" "services/support/file-svc/**" ;;
-              app/*)                              add_section "app" "app/**" ;;
-              libs/*)
-                LIBS_CHANGED=true
+              modules/tenant/*)        add_section "tenant" ;;
+              modules/auth/*)          add_section "auth" ;;
+              modules/billing/*)       add_section "billing" ;;
+              modules/homepage/*)      add_section "homepage" ;;
+              modules/exam/*)          add_section "exam" ;;
+              modules/content/*)       add_section "content" ;;
+              modules/admin/*)         add_section "admin" ;;
+              modules/attendance/*)    add_section "attendance" ;;
+              modules/ai/*)            add_section "ai" ;;
+              modules/student/*)       add_section "student" ;;
+              modules/class/*)         add_section "class" ;;
+              modules/lecture/*)       add_section "lecture" ;;
+              modules/assignment/*)    add_section "assignment" ;;
+              modules/activity-log/*)  add_section "activity-log" ;;
+              modules/notification/*)  add_section "notification" ;;
+              modules/file/*)          add_section "file" ;;
+              app/*)
+                if [[ "$SECTIONS" != *"\"backend/app\""* ]]; then
+                  if [ -n "$SECTIONS" ]; then SECTIONS="$SECTIONS,"; fi
+                  SECTIONS="${SECTIONS}{\"section\":\"backend/app\",\"include\":\"app/**\"}"
+                fi
                 ;;
-              build.gradle.kts|settings.gradle.kts)
+              libs/*|build.gradle.kts|settings.gradle.kts)
                 LIBS_CHANGED=true
                 ;;
             esac
@@ -88,16 +91,12 @@ jobs:
 
           # If only libs changed, regenerate all modules
           if [ "$LIBS_CHANGED" = true ] && [ -z "$SECTIONS" ]; then
-            add_section "tenant" "services/platform/tenant-svc/**"
-            add_section "auth" "services/platform/auth-svc/**"
-            add_section "billing" "services/platform/billing-svc/**"
-            add_section "exam" "services/core/exam-svc/**"
-            add_section "content" "services/core/content-svc/**"
-            add_section "admin" "services/core/admin-svc/**"
-            add_section "attendance" "services/core/attendance-svc/**"
-            add_section "ai-svc" "services/core/ai-svc/**"
-            add_section "file" "services/support/file-svc/**"
-            add_section "app" "app/**"
+            for mod in tenant auth billing homepage exam content admin attendance ai student class lecture assignment activity-log notification file; do
+              add_section "$mod"
+            done
+            if [[ "$SECTIONS" != *"\"backend/app\""* ]]; then
+              SECTIONS="${SECTIONS},{\"section\":\"backend/app\",\"include\":\"app/**\"}"
+            fi
           fi
 
           if [ -z "$SECTIONS" ]; then

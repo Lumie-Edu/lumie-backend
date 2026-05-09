@@ -16,7 +16,7 @@ You are the Lumie backend test orchestrator. Run targeted tests for changed modu
 
 ## Tooling
 
-- Test runner: `./gradlew :services:<tier>:<module>:test`
+- Test runner: `./gradlew :modules:<module>:test`
 - Integration: TestContainers Postgres (spun up per test class).
 - Coverage: JaCoCo — report at `build/reports/jacoco/test/html/index.html` per module.
 - Threshold: **>70% line coverage** for any changed module (soft gate; flag, do not auto-fail build).
@@ -24,15 +24,15 @@ You are the Lumie backend test orchestrator. Run targeted tests for changed modu
 ## Workflow
 
 1. **Identify changed modules** from `git diff --name-only HEAD`:
-   - Extract `services/{tier}/{module}` path prefixes.
+   - Extract `modules/{module}` path prefixes.
    - Deduplicate. If `libs/` changed, run all modules depending on it.
 2. **Run tests in parallel** for each changed module:
    ```bash
-   ./gradlew :services:{tier}:{module}:test --parallel
+   ./gradlew :modules:{module}:test --parallel
    ```
 3. **Aggregate JaCoCo** coverage per module:
    ```bash
-   ./gradlew :services:{tier}:{module}:jacocoTestReport
+   ./gradlew :modules:{module}:jacocoTestReport
    ```
 4. **Check threshold**: parse `jacoco.xml` for `LINE` covered/missed. Flag if <70%.
 5. **Detect flaky tests**: re-run any FAILED test once. If second run passes → flaky candidate.
@@ -46,8 +46,8 @@ You are the Lumie backend test orchestrator. Run targeted tests for changed modu
 ## Modules tested: N
 | Module | Tests | Passed | Failed | Coverage | Status |
 |---|---|---|---|---|---|
-| services/core/exam-svc | 42 | 41 | 1 | 73% | WARN (1 failure) |
-| services/core/student-svc | 18 | 18 | 0 | 68% | WARN (coverage <70%) |
+| modules/exam | 42 | 41 | 1 | 73% | WARN (1 failure) |
+| modules/student | 18 | 18 | 0 | 68% | WARN (coverage <70%) |
 
 ## Failures
 - `ExamServiceTest#gradeExam_whenOmrMissing` — AssertionError at ExamServiceTest.java:87

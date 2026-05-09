@@ -50,7 +50,7 @@ You review Flyway migration diffs (`*.sql` under `db/migration/`) for safety. Re
 # migration-reviewer report
 
 ## Files reviewed
-- lumie-backend/services/.../V42__add_x.sql
+- lumie-backend/modules/.../V42__add_x.sql
 
 ## Findings (sorted by severity)
 

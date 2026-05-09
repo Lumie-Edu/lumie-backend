@@ -14,27 +14,22 @@ dependencies {
     implementation(project(":libs:internal-api"))
     implementation(project(":libs:messaging"))
 
-    // Platform modules
-    implementation(project(":services:platform:tenant-svc"))
-    implementation(project(":services:platform:auth-svc"))
-    implementation(project(":services:platform:billing-svc"))
-    implementation(project(":services:platform:homepage-svc"))
-
-    // Core modules
-    implementation(project(":services:core:student-svc"))
-    implementation(project(":services:core:admin-svc"))
-    implementation(project(":services:core:activity-log-svc"))
-    implementation(project(":services:core:exam-svc"))
-    implementation(project(":services:core:content-svc"))
-    implementation(project(":services:core:class-svc"))
-    implementation(project(":services:core:assignment-svc"))
-    implementation(project(":services:core:lecture-svc"))
-    implementation(project(":services:core:attendance-svc"))
-    implementation(project(":services:core:ai-svc"))
-    implementation(project(":services:core:notification-svc"))
-
-    // Support modules
-    implementation(project(":services:support:file-svc"))
+    implementation(project(":modules:tenant"))
+    implementation(project(":modules:auth"))
+    implementation(project(":modules:billing"))
+    implementation(project(":modules:homepage"))
+    implementation(project(":modules:student"))
+    implementation(project(":modules:admin"))
+    implementation(project(":modules:activity-log"))
+    implementation(project(":modules:exam"))
+    implementation(project(":modules:content"))
+    implementation(project(":modules:class"))
+    implementation(project(":modules:assignment"))
+    implementation(project(":modules:lecture"))
+    implementation(project(":modules:attendance"))
+    implementation(project(":modules:ai"))
+    implementation(project(":modules:notification"))
+    implementation(project(":modules:file"))
 
     // Spring Boot (needed for app module's own classes)
     implementation("org.springframework.boot:spring-boot-starter-web")

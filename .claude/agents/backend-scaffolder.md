@@ -12,7 +12,7 @@ You are a backend scaffolding specialist for Lumie (Spring Boot 3.4, Java 21, He
 1. `.claude/knowledge/HARD_RULES_CROSS.md`.
 2. `lumie-backend/.claude/knowledge/BACKEND_RULES.md`.
 3. `lumie-backend/CLAUDE.md` (module layout).
-4. Closest analog module (e.g., `services/core/student-svc/` for typical domain).
+4. Closest analog module (e.g., `modules/student/` for typical domain).
 
 ## Hard rules I check before claiming done
 
@@ -23,7 +23,7 @@ Behavioral invariants are owned by `.claude/knowledge/HARD_RULES_CROSS.md` and `
 
 ## New Module Structure
 
-Generate in `services/<layer>/<name>/`:
+Generate in `modules/<name>/`:
 
 ```
 src/main/java/com/lumie/<name>/
@@ -49,8 +49,8 @@ build.gradle.kts
 ```
 
 ## Also Generate
-- Register in `settings.gradle.kts`
-- Add `build.gradle.kts` matching existing services (check `tenant-svc` as reference)
+- Register in `settings.gradle.kts` as `include(":modules:<name>")`
+- Add `build.gradle.kts` matching existing modules (check `modules/tenant/` as reference)
 
 ## Conventions
 - Read existing modules first to match patterns exactly
@@ -63,9 +63,9 @@ build.gradle.kts
 
 After scaffolding, run these checks and paste output inline:
 - [ ] HARD_RULES sweep on new files (delegates to SSOT — patterns in `.claude/lint/patterns/backend.yaml`):
-      `bash .claude/lint/sweep.sh backend --paths 'services/<tier>/<module>/**/*.java'`
+      `bash .claude/lint/sweep.sh backend --paths 'modules/<module>/**/*.java'`
 - [ ] Confirm module registered: `grep '<new-module>' lumie-backend/settings.gradle.kts`
-- [ ] Compile check: `cd lumie-backend && ./gradlew :services:<tier>:<module>:compileJava 2>&1 | tail -10`
+- [ ] Compile check: `cd lumie-backend && ./gradlew :modules:<module>:compileJava 2>&1 | tail -10`
 - [ ] Listing: `ls -la <new-files>`
 
 Output checklist with `[x]` only on verified items. Refuse to claim done without all four passing (sweep must exit 0).

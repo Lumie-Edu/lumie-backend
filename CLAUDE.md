@@ -1,6 +1,6 @@
 # lumie-backend
 
-Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot 3.4. `app/` is the single `@SpringBootApplication`; `services/*` are domain modules (logical, not deployables).
+Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot 3.4. `app/` is the single `@SpringBootApplication`; `modules/*` are domain modules (logical, not deployables).
 
 > Workspace rules apply (`.claude/CLAUDE.md`).
 
@@ -9,14 +9,12 @@ Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot
 ## Module layout
 
 ```
-services/{tier}/{module}/
+modules/{module}/
 └── src/main/java/com/lumie/{module}/
     ├── domain/{entity,vo,repository,exception}/
     ├── application/{service,port/in,port/out,dto/{request,response}}/
     └── adapter/{in/web,in/messaging,out/persistence,out/external,internal}/
 ```
-
-Tiers: `core` (domain), `platform` (cross-tenant), `support` (utilities).
 
 ## Multi-tenancy
 
@@ -32,7 +30,7 @@ Schema-per-tenant via Hibernate `MultiTenantConnectionProvider`. Tenant slug fro
 ```
 ./gradlew build          # compile + test
 ./gradlew test
-./gradlew :services:core:student-svc:test
+./gradlew :modules:student:test
 ./gradlew bootRun
 ```
 

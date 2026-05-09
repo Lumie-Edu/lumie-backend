@@ -28,18 +28,14 @@ if [ -x "$SWEEP" ]; then
   fi
 fi
 
-# === Path-aware: block creation of NEW *-svc directories ===
-if echo "$FILE_PATH" | grep -qE "/services/[^/]+/[^/]+-svc/"; then
-  PARENT=$(echo "$FILE_PATH" | grep -oE "/services/[^/]+/[^/]+-svc/" | head -1)
-  PARENT_DIR="${FILE_PATH%%${PARENT}*}${PARENT}"
-  if [ ! -d "$PARENT_DIR" ]; then
-    SVC_NAME=$(echo "$PARENT" | grep -oE "[^/]+-svc")
-    if ! grep -q "$SVC_NAME" "${FILE_PATH%/lumie-backend/*}/lumie-backend/settings.gradle.kts" 2>/dev/null; then
-      echo "차단: 새 *-svc 디렉토리 생성 금지." >&2
-      echo "  → 새 모듈은 -svc 접미사 없이 생성하세요. 참고: ARCHITECTURE_INTENT.md" >&2
-      exit 2
-    fi
-  fi
+# === Path-aware: block creation of files under legacy services/{tier}/<name>-svc/ paths ===
+# After Tier 1 flattening, all backend modules live under modules/<name>/.
+# Any write into services/* or under a *-svc directory is a relapse to the old layout.
+if echo "$FILE_PATH" | grep -qE "/lumie-backend/services/|/lumie-backend/modules/[^/]+-svc/"; then
+  echo "차단: 레거시 백엔드 모듈 경로 (services/ 또는 *-svc) 사용 금지." >&2
+  echo "  → 모든 모듈은 modules/<name>/ 평탄 구조." >&2
+  echo "  참고: lumie-backend/CLAUDE.md, BACKEND_RULES.md" >&2
+  exit 2
 fi
 
 exit 0

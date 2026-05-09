@@ -232,7 +232,7 @@ local_resource(
     'gradle-build',
     cmd='./gradlew :app:bootJar -x test --parallel',
     deps=[
-        'services/',
+        'modules/',
         'libs/',
         'app/',
         'build.gradle.kts',
