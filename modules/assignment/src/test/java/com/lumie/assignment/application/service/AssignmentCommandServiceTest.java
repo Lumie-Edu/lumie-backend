@@ -6,8 +6,9 @@ import com.lumie.assignment.application.dto.CreateSubmissionRequest;
 import com.lumie.assignment.application.dto.SubmissionResponse;
 import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
-import com.lumie.assignment.application.port.out.ClassServicePort;
 import com.lumie.assignment.domain.entity.Assignment;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.internal.cls.ClassService;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
 import com.lumie.assignment.domain.exception.DuplicateSubmissionException;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -43,8 +45,18 @@ class AssignmentCommandServiceTest {
 
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private AssignmentSubmissionRepository submissionRepository;
-    @Mock private ClassServicePort classServicePort;
+    @Mock private ClassService classService;
     @InjectMocks private AssignmentCommandService commandService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setupTenant() {
+        TenantContextHolder.setTenant("test-tenant");
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void clearTenant() {
+        TenantContextHolder.clear();
+    }
 
     @Nested
     @DisplayName("createAssignment")
@@ -57,8 +69,9 @@ class AssignmentCommandServiceTest {
                     1L, "수학 숙제", "1장 풀기", "HOMEWORK",
                     LocalDateTime.of(2026, 4, 15, 23, 59), 100, null);
 
-            given(classServicePort.getClass(1L))
-                    .willReturn(Optional.of(new ClassServicePort.ClassInfo(1L, "수학반")));
+            given(classService.getClass(any(), eq(1L)))
+                    .willReturn(Optional.of(new ClassService.ClassData(
+                            1L, "수학반", null, null, null, null, null, null, null)));
             given(assignmentRepository.save(any(Assignment.class)))
                     .willAnswer(inv -> {
                         Assignment entity = inv.getArgument(0);
@@ -79,7 +92,7 @@ class AssignmentCommandServiceTest {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
                     999L, "과제", null, null, null, null, null);
 
-            given(classServicePort.getClass(999L)).willReturn(Optional.empty());
+            given(classService.getClass(any(), eq(999L))).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.createAssignment(request))
                     .isInstanceOf(BusinessException.class);

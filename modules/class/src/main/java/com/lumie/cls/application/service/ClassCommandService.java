@@ -6,8 +6,9 @@ import com.lumie.cls.application.dto.CreateClassRequest;
 import com.lumie.cls.application.dto.EnrollStudentsRequest;
 import com.lumie.cls.application.dto.UpdateClassRequest;
 import com.lumie.cls.application.dto.UpdateEnrollmentRequest;
-import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.cls.domain.entity.ClassEnrollment;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.internal.admin.AdminService;
 import com.lumie.cls.domain.entity.ClassEntity;
 import com.lumie.cls.domain.exception.ClassErrorCode;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
@@ -35,12 +36,12 @@ public class ClassCommandService {
 
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
-    private final AdminServicePort adminServicePort;
+    private final AdminService adminService;
     private final ActivityLogService activityLogService;
 
     public ClassResponse createClass(CreateClassRequest request) {
         if (request.teacherId() != null) {
-            adminServicePort.getAdmin(request.teacherId())
+            adminService.getAdmin(TenantContextHolder.getRequiredTenant(), request.teacherId())
                 .orElseThrow(() -> new BusinessException(ClassErrorCode.TEACHER_NOT_FOUND,
                     "Teacher not found with id: " + request.teacherId()));
         }
@@ -59,7 +60,7 @@ public class ClassCommandService {
         log.info("Class created: {}", saved.getId());
         logActivity("CREATE", "CLASS", saved.getId(), saved.getName(), null);
         String teacherName = saved.getTeacherId() != null
-            ? adminServicePort.getAdmin(saved.getTeacherId()).map(AdminServicePort.AdminInfo::name).orElse(null)
+            ? adminService.getAdmin(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(AdminService.AdminData::name).orElse(null)
             : null;
         return ClassResponse.from(saved, teacherName);
     }
@@ -82,7 +83,7 @@ public class ClassCommandService {
         log.info("Class updated: {}", saved.getId());
         logActivity("UPDATE", "CLASS", saved.getId(), saved.getName(), null);
         String updatedTeacherName = saved.getTeacherId() != null
-            ? adminServicePort.getAdmin(saved.getTeacherId()).map(AdminServicePort.AdminInfo::name).orElse(null)
+            ? adminService.getAdmin(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(AdminService.AdminData::name).orElse(null)
             : null;
         return ClassResponse.from(saved, updatedTeacherName);
     }
@@ -233,7 +234,7 @@ public class ClassCommandService {
         try {
             Long userId = UserContextHolder.getRequiredUserId();
             String role = UserContextHolder.getUserRole();
-            adminServicePort.getAdminByUserId(userId).ifPresent(actor ->
+            adminService.getAdminByUserId(TenantContextHolder.getRequiredTenant(), userId).ifPresent(actor ->
                 activityLogService.log(actor.id(), actor.name(), role,
                     action, entityType, entityId, entityName, description)
             );

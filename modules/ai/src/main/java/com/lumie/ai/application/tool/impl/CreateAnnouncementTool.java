@@ -1,7 +1,8 @@
 package com.lumie.ai.application.tool.impl;
 
-import com.lumie.ai.application.port.out.ContentServicePort;
 import com.lumie.ai.application.tool.*;
+import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.internal.content.ContentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -14,7 +15,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CreateAnnouncementTool implements Tool {
 
-    private final ContentServicePort contentServicePort;
+    private final ContentService contentService;
 
     @Override
     public String getName() {
@@ -64,7 +65,12 @@ public class CreateAnnouncementTool implements Tool {
     @Override
     public ToolResult execute(String tenantSlug, Map<String, Object> arguments) {
         try {
-            String result = contentServicePort.createAnnouncement(arguments);
+            Long authorId = UserContextHolder.getRequiredUserId();
+            String title = (String) arguments.get("title");
+            String content = (String) arguments.get("content");
+            boolean isImportant = (boolean) arguments.getOrDefault("isImportant", false);
+            boolean isAsset = (boolean) arguments.getOrDefault("isAsset", false);
+            String result = contentService.createAnnouncement(authorId, title, content, isImportant, isAsset);
             return ToolResult.success(result);
         } catch (Exception e) {
             log.error("Failed to create announcement for tenant {}: {}", tenantSlug, e.getMessage());

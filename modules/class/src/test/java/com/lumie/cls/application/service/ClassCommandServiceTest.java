@@ -6,8 +6,8 @@ import com.lumie.cls.application.dto.CreateClassRequest;
 import com.lumie.cls.application.dto.EnrollStudentsRequest;
 import com.lumie.cls.application.dto.UpdateClassRequest;
 import com.lumie.cls.application.dto.UpdateEnrollmentRequest;
-import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.cls.domain.entity.ClassEnrollment;
+import com.lumie.internal.admin.AdminService;
 import com.lumie.cls.domain.entity.ClassEntity;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.cls.domain.exception.DuplicateEnrollmentException;
@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -44,12 +45,13 @@ class ClassCommandServiceTest {
 
     @Mock private ClassRepository classRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
-    @Mock private AdminServicePort adminServicePort;
+    @Mock private AdminService adminService;
     @InjectMocks private ClassCommandService commandService;
 
     @BeforeEach
     void setUpTenant() {
         TenantContextHolder.setTenantId(1L);
+        TenantContextHolder.setTenant("test-tenant");
     }
 
     @AfterEach
@@ -68,8 +70,9 @@ class ClassCommandServiceTest {
             CreateClassRequest request = new CreateClassRequest(
                     "수학 기초반", 10L, null, "설명");
 
-            given(adminServicePort.getAdmin(10L))
-                    .willReturn(Optional.of(new AdminServicePort.AdminInfo(10L, "김선생")));
+            given(adminService.getAdmin(any(), eq(10L)))
+                    .willReturn(Optional.of(new AdminService.AdminData(
+                            10L, 100L, "kim", "김선생", null, null, true, "ACTIVE", null, null)));
             given(classRepository.save(any(ClassEntity.class)))
                     .willAnswer(inv -> {
                         ClassEntity entity = inv.getArgument(0);
@@ -90,7 +93,7 @@ class ClassCommandServiceTest {
             CreateClassRequest request = new CreateClassRequest(
                     "수학반", 999L, null, null);
 
-            given(adminServicePort.getAdmin(999L)).willReturn(Optional.empty());
+            given(adminService.getAdmin(any(), eq(999L))).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.createClass(request))
                     .isInstanceOf(BusinessException.class);

@@ -2,8 +2,9 @@ package com.lumie.cls.application.service;
 
 import com.lumie.cls.application.dto.ClassEnrollmentResponse;
 import com.lumie.cls.application.dto.ClassResponse;
-import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.cls.domain.entity.ClassEntity;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.internal.admin.AdminService;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;
@@ -31,7 +32,7 @@ public class ClassQueryService {
 
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
-    private final AdminServicePort adminServicePort;
+    private final AdminService adminService;
 
     public ClassResponse getClass(Long id) {
         ClassEntity entity = classRepository.findById(id)
@@ -72,8 +73,9 @@ public class ClassQueryService {
 
     private String resolveTeacherName(Long teacherId) {
         if (teacherId == null) return null;
-        return adminServicePort.getAdmin(teacherId)
-            .map(AdminServicePort.AdminInfo::name)
+        String slug = TenantContextHolder.getRequiredTenant();
+        return adminService.getAdmin(slug, teacherId)
+            .map(AdminService.AdminData::name)
             .orElse(null);
     }
 

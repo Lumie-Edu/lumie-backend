@@ -6,8 +6,9 @@ import com.lumie.assignment.application.dto.CreateSubmissionRequest;
 import com.lumie.assignment.application.dto.SubmissionResponse;
 import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
-import com.lumie.assignment.application.port.out.ClassServicePort;
 import com.lumie.assignment.domain.entity.Assignment;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.internal.cls.ClassService;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
@@ -32,10 +33,11 @@ public class AssignmentCommandService {
 
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
-    private final ClassServicePort classServicePort;
+    private final ClassService classService;
 
     public AssignmentResponse createAssignment(CreateAssignmentRequest request) {
-        classServicePort.getClass(request.classId())
+        String slug = TenantContextHolder.getRequiredTenant();
+        classService.getClass(slug, request.classId())
             .orElseThrow(() -> new BusinessException(AssignmentErrorCode.CLASS_NOT_FOUND,
                 "Class not found with id: " + request.classId()));
 

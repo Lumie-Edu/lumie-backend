@@ -5,8 +5,8 @@ import com.lumie.cls.application.dto.ClassResponse;
 import com.lumie.cls.domain.entity.ClassEnrollment;
 import com.lumie.cls.domain.entity.ClassEntity;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
-import com.lumie.cls.application.port.out.AdminServicePort;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
+import com.lumie.internal.admin.AdminService;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.ClassSearchCriteria;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
@@ -41,12 +41,13 @@ class ClassQueryServiceTest {
 
     @Mock private ClassRepository classRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
-    @Mock private AdminServicePort adminServicePort;
+    @Mock private AdminService adminService;
     @InjectMocks private ClassQueryService queryService;
 
     @BeforeEach
     void setUpTenantContext() {
         TenantContextHolder.setTenantId(1L);
+        TenantContextHolder.setTenant("test-tenant");
     }
 
     @AfterEach
