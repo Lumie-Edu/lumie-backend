@@ -2,21 +2,17 @@ package com.lumie.content.domain.repository;
 
 import com.lumie.content.domain.entity.Reservation;
 import com.lumie.content.domain.vo.ReservationStatus;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface ReservationRepository {
+public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
-    Reservation save(Reservation reservation);
-
-    Optional<Reservation> findById(Long id);
-
-    Optional<Reservation> findByIdWithSchedule(Long id);
-
-    Page<Reservation> findAll(Pageable pageable);
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.schedule WHERE r.id = :id")
+    Optional<Reservation> findByIdWithSchedule(@Param("id") Long id);
 
     List<Reservation> findByStudentId(Long studentId);
 
@@ -25,8 +21,4 @@ public interface ReservationRepository {
     List<Reservation> findByStudentIdAndStatus(Long studentId, ReservationStatus status);
 
     boolean existsByScheduleIdAndStudentIdAndStatusNot(Long scheduleId, Long studentId, ReservationStatus status);
-
-    void deleteById(Long id);
-
-    boolean existsById(Long id);
 }

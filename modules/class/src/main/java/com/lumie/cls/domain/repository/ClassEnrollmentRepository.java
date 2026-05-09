@@ -4,22 +4,15 @@ import com.lumie.cls.domain.entity.ClassEnrollment;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface ClassEnrollmentRepository {
+public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment, Long> {
 
-    ClassEnrollment save(ClassEnrollment enrollment);
-
-    List<ClassEnrollment> saveAll(List<ClassEnrollment> enrollments);
-
-    void delete(ClassEnrollment enrollment);
-
-    Optional<ClassEnrollment> findById(Long id);
-
-    Page<ClassEnrollment> findByClassEntityId(Long classId, Pageable pageable);
+    Page<ClassEnrollment> findByClassEntityId(Long classEntityId, Pageable pageable);
 
     List<ClassEnrollment> findByStudentId(Long studentId);
 
@@ -31,11 +24,11 @@ public interface ClassEnrollmentRepository {
 
     Page<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status, Pageable pageable);
 
-    List<ClassEnrollment> findByClassEntityIdAndStatus(Long classId, EnrollmentStatus status);
+    List<ClassEnrollment> findByClassEntityIdAndStatus(Long classEntityId, EnrollmentStatus status);
 
-    long countByClassEntityIdAndStatus(Long classId, EnrollmentStatus status);
+    long countByClassEntityIdAndStatus(Long classEntityId, EnrollmentStatus status);
 
-    boolean existsByClassEntityIdAndStudentId(Long classId, Long studentId);
+    boolean existsByClassEntityIdAndStudentId(Long classEntityId, Long studentId);
 
-    Optional<ClassEnrollment> findByClassEntityIdAndStudentId(Long classId, Long studentId);
+    Optional<ClassEnrollment> findByClassEntityIdAndStudentId(Long classEntityId, Long studentId);
 }

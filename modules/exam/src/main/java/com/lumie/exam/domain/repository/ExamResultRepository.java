@@ -1,18 +1,16 @@
 package com.lumie.exam.domain.repository;
 
 import com.lumie.exam.domain.entity.ExamResult;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface ExamResultRepository {
-
-    ExamResult save(ExamResult result);
-
-    List<ExamResult> saveAll(List<ExamResult> results);
-
-    Optional<ExamResult> findById(Long id);
+public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
 
@@ -30,9 +28,15 @@ public interface ExamResultRepository {
 
     List<ExamResult> findByStudentId(Long studentId);
 
-    void deleteById(Long id);
-
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);
 
-    int linkUnregisteredByPhone(String phoneNumber, Long studentId);
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        UPDATE ExamResult r
+           SET r.studentId = :studentId
+         WHERE r.phoneNumber = :phoneNumber
+           AND r.studentId IS NULL
+        """)
+    int linkUnregisteredByPhone(@Param("phoneNumber") String phoneNumber,
+                                @Param("studentId") Long studentId);
 }
