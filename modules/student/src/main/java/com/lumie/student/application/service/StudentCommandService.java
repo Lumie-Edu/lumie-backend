@@ -17,6 +17,7 @@ import com.lumie.student.domain.exception.StudentNotFoundException;
 import com.lumie.student.domain.repository.StudentRepository;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -40,6 +41,7 @@ public class StudentCommandService {
     private final AuthServicePort authServicePort;
     private final BillingServicePort billingServicePort;
     private final ExamServicePort examServicePort;
+    private final EntityManager entityManager;
 
     public StudentResponse registerStudent(StudentRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -155,7 +157,8 @@ public class StudentCommandService {
         }
 
         Long userId = student.getUserId();
-        studentRepository.detach(student);
+        // Detach so the FK CASCADE from auth-svc deletion does not race the JPA dirty-check.
+        entityManager.detach(student);
 
         // Delete user from auth-svc (FK CASCADE automatically deletes student)
         AuthServicePort.DeleteUserResult deleteResult = authServicePort.deleteUser(userId);
@@ -202,7 +205,7 @@ public class StudentCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         List<BatchOperationResult.FailedItem> failures = new ArrayList<>();
 
-        List<Student> students = studentRepository.findAllByIds(ids);
+        List<Student> students = studentRepository.findAllById(ids);
         Map<Long, Student> studentMap = students.stream()
                 .collect(java.util.stream.Collectors.toMap(Student::getId, s -> s));
 
@@ -232,7 +235,7 @@ public class StudentCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         List<BatchOperationResult.FailedItem> failures = new ArrayList<>();
 
-        List<Student> students = studentRepository.findAllByIds(ids);
+        List<Student> students = studentRepository.findAllById(ids);
         Map<Long, Student> studentMap = students.stream()
                 .collect(java.util.stream.Collectors.toMap(Student::getId, s -> s));
 
@@ -262,7 +265,7 @@ public class StudentCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         List<BatchOperationResult.FailedItem> failures = new ArrayList<>();
 
-        List<Student> students = studentRepository.findAllByIds(ids);
+        List<Student> students = studentRepository.findAllById(ids);
         Map<Long, Student> studentMap = students.stream()
                 .collect(java.util.stream.Collectors.toMap(Student::getId, s -> s));
 
@@ -279,7 +282,7 @@ public class StudentCommandService {
         }
 
         // Detach students from persistence context before user deletion
-        toDelete.forEach(studentRepository::detach);
+        toDelete.forEach(entityManager::detach);
 
         // Delete users from auth-svc (FK CASCADE automatically deletes students)
         for (Student student : toDelete) {

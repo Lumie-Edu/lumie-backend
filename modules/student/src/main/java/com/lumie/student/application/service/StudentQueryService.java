@@ -46,11 +46,11 @@ public class StudentQueryService {
     }
 
     public List<StudentResponse> getStudentsByIds(List<Long> ids) {
-        return enrichList(studentRepository.findAllByIds(ids));
+        return enrichList(studentRepository.findAllById(ids));
     }
 
     public List<StudentResponse> getStudentsByUserIds(List<Long> userIds) {
-        return enrichList(studentRepository.findAllByUserIds(userIds));
+        return enrichList(studentRepository.findByUserIdIn(userIds));
     }
 
     public StudentResponse getStudentByUserLoginId(String userLoginId) {
@@ -71,14 +71,14 @@ public class StudentQueryService {
     }
 
     public Page<StudentResponse> getAllActiveStudents(Pageable pageable) {
-        return enrichPage(studentRepository.findAllByIsActive(true, pageable));
+        return enrichPage(studentRepository.findByIsActive(true, pageable));
     }
 
     public Page<StudentResponse> getAllStudents(Boolean isActive, Pageable pageable) {
         if (isActive == null) {
             return enrichPage(studentRepository.findAll(pageable));
         }
-        return enrichPage(studentRepository.findAllByIsActive(isActive, pageable));
+        return enrichPage(studentRepository.findByIsActive(isActive, pageable));
     }
 
     public Page<StudentResponse> getStudents(Boolean isActive, Pageable pageable) {

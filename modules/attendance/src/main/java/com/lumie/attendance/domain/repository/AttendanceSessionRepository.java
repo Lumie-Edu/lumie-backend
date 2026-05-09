@@ -1,30 +1,52 @@
 package com.lumie.attendance.domain.repository;
 
 import com.lumie.attendance.domain.entity.AttendanceSession;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+public interface AttendanceSessionRepository extends JpaRepository<AttendanceSession, Long>,
+        JpaSpecificationExecutor<AttendanceSession> {
 
-public interface AttendanceSessionRepository {
-
-    AttendanceSession save(AttendanceSession session);
-
-    Optional<AttendanceSession> findById(Long id);
-
-    Optional<AttendanceSession> findByAttendanceCode(String code);
-
-    Page<AttendanceSession> search(Long classId, LocalDate dateFrom,
-                                   LocalDate dateTo, Pageable pageable);
+    Optional<AttendanceSession> findByAttendanceCodeAndSessionDate(String attendanceCode, LocalDate sessionDate);
 
     boolean existsByClassIdAndSessionDate(Long classId, LocalDate sessionDate);
 
     List<AttendanceSession> findByClassIdAndSessionDateBetween(Long classId, LocalDate from, LocalDate to);
 
-    void deleteById(Long id);
-
     long countBySessionDateBetween(LocalDate from, LocalDate to);
+
+    /**
+     * Finds today's session whose attendance code matches. The session_date guard
+     * prevents stale codes from yesterday from matching.
+     */
+    default Optional<AttendanceSession> findByAttendanceCode(String code) {
+        return findByAttendanceCodeAndSessionDate(code, LocalDate.now());
+    }
+
+    default Page<AttendanceSession> search(Long classId, LocalDate dateFrom,
+                                           LocalDate dateTo, Pageable pageable) {
+        Specification<AttendanceSession> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (classId != null) {
+                predicates.add(cb.equal(root.get("classId"), classId));
+            }
+            if (dateFrom != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("sessionDate"), dateFrom));
+            }
+            if (dateTo != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("sessionDate"), dateTo));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return findAll(spec, pageable);
+    }
 }

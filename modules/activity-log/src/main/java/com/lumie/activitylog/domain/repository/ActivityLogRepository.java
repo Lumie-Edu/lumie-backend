@@ -1,11 +1,8 @@
 package com.lumie.activitylog.domain.repository;
 
 import com.lumie.activitylog.domain.entity.ActivityLog;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface ActivityLogRepository {
-    ActivityLog save(ActivityLog log);
-    Page<ActivityLog> findAll(Specification<ActivityLog> spec, Pageable pageable);
+public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long>, JpaSpecificationExecutor<ActivityLog> {
 }

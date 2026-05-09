@@ -42,7 +42,7 @@ public class StudentInternalServiceAdapter implements StudentInternalService {
         if (studentIds == null || studentIds.isEmpty()) {
             return new StudentListData(List.of(), 0L, 0, 0);
         }
-        List<StudentData> students = studentRepository.findAllByIds(studentIds).stream()
+        List<StudentData> students = studentRepository.findAllById(studentIds).stream()
                 .map(this::toData)
                 .toList();
         return new StudentListData(students, students.size(), 0, students.size());
@@ -61,7 +61,7 @@ public class StudentInternalServiceAdapter implements StudentInternalService {
         if (userIds == null || userIds.isEmpty()) {
             return new StudentListData(List.of(), 0L, 0, 0);
         }
-        List<StudentData> students = studentRepository.findAllByUserIds(userIds).stream()
+        List<StudentData> students = studentRepository.findByUserIdIn(userIds).stream()
                 .map(this::toData)
                 .toList();
         return new StudentListData(students, students.size(), 0, students.size());
