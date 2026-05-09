@@ -12,7 +12,7 @@ COPY gradle.properties .
 
 # Copy all modules
 COPY libs libs
-COPY services services
+COPY modules modules
 COPY app app
 
 # Build
