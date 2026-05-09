@@ -24,4 +24,4 @@ Auto-loaded when editing files in `**/adapter/in/web/**`. See `.claude/knowledge
 ## References
 
 - `.claude/knowledge/BACKEND_RULES.md`
-- `/Users/bluemayne/Projects/Lumie/.claude/audits/README.md` (API_DESIGN_AUDIT)
+- `.claude/audits/README.md` (API_DESIGN_AUDIT)
