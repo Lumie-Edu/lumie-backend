@@ -2,7 +2,7 @@
 
 Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot 3.4. `app/` is the single `@SpringBootApplication`; `services/*` are domain modules (logical, not deployables).
 
-> Workspace rules apply (`/Users/bluemayne/Projects/Lumie/.claude/CLAUDE.md`).
+> Workspace rules apply (`.claude/CLAUDE.md`).
 
 @.claude/knowledge/BACKEND_RULES.md
 
@@ -38,10 +38,10 @@ Schema-per-tenant via Hibernate `MultiTenantConnectionProvider`. Tenant slug fro
 
 ## References
 
-- Architecture intent: `/Users/bluemayne/Projects/Lumie/.claude/knowledge/ARCHITECTURE_INTENT.md`
+- Architecture intent: `.claude/knowledge/ARCHITECTURE_INTENT.md`
 - Path-scoped rules: `.claude/rules/{controllers,entities,services,migrations}.md`
-- Audits: `/Users/bluemayne/Projects/Lumie/.claude/audits/README.md`
+- Audits: `.claude/audits/README.md`
 
 ## Agents
 
-`backend-scaffolder` · `backend-reviewer` · `backend-test-runner` · `migration` (Flyway).
+`backend-scaffolder` · `backend-reviewer` · `migration` (Flyway scaffold) · `migration-reviewer` (read-only Flyway diff review).
