@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       section:
-        description: 'Specific module to generate (e.g., tenant, exam, academy, app, architecture)'
+        description: 'Specific module to generate (e.g., tenant, exam, app, architecture)'
         required: false
         type: string
 
@@ -35,7 +35,6 @@ jobs:
               tenant)       INCLUDE="services/platform/tenant-svc/**,$COMMON_LIBS" ;;
               auth)         INCLUDE="services/platform/auth-svc/**,$COMMON_LIBS" ;;
               billing)      INCLUDE="services/platform/billing-svc/**,$COMMON_LIBS" ;;
-              academy)      INCLUDE="services/core/academy-svc/**,$COMMON_LIBS" ;;
               exam)         INCLUDE="services/core/exam-svc/**,$COMMON_LIBS" ;;
               content)      INCLUDE="services/core/content-svc/**,$COMMON_LIBS" ;;
               admin)        INCLUDE="services/core/admin-svc/**,$COMMON_LIBS" ;;
@@ -71,7 +70,6 @@ jobs:
               services/platform/tenant-svc/*)     add_section "tenant" "services/platform/tenant-svc/**" ;;
               services/platform/auth-svc/*)       add_section "auth" "services/platform/auth-svc/**" ;;
               services/platform/billing-svc/*)    add_section "billing" "services/platform/billing-svc/**" ;;
-              services/core/academy-svc/*)        add_section "academy" "services/core/academy-svc/**" ;;
               services/core/exam-svc/*)           add_section "exam" "services/core/exam-svc/**" ;;
               services/core/content-svc/*)        add_section "content" "services/core/content-svc/**" ;;
               services/core/admin-svc/*)          add_section "admin" "services/core/admin-svc/**" ;;
@@ -93,7 +91,6 @@ jobs:
             add_section "tenant" "services/platform/tenant-svc/**"
             add_section "auth" "services/platform/auth-svc/**"
             add_section "billing" "services/platform/billing-svc/**"
-            add_section "academy" "services/core/academy-svc/**"
             add_section "exam" "services/core/exam-svc/**"
             add_section "content" "services/core/content-svc/**"
             add_section "admin" "services/core/admin-svc/**"
