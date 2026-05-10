@@ -51,6 +51,11 @@ dependencies {
     implementation("net.javacrumbs.shedlock:shedlock-spring:5.16.0")
     implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0")
 
+    // springdoc-openapi — exposes /v3/api-docs (OpenAPI 3.1 JSON) and
+    // /swagger-ui. The JSON spec is the contract source of truth that
+    // lumie-frontend consumes via openapi-typescript codegen.
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
+
     // Runtime
     runtimeOnly("org.postgresql:postgresql")
 

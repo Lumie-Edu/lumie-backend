@@ -176,6 +176,19 @@ server:
   port: 8080
   shutdown: graceful
 
+# springdoc — OpenAPI 3.1 spec at /v3/api-docs, Swagger UI at /swagger-ui.html.
+# Disable in prod via SPRINGDOC_API_DOCS_ENABLED=false (the spec endpoint can
+# leak controller surface; CI pulls it during build, prod traffic should not).
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+
 management:
   endpoints:
     web:

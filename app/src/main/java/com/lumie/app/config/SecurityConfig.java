@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/v1/refresh").permitAll()
                         .requestMatchers("/v1/oauth2/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/internal/**").hasRole("INTERNAL")
                         .requestMatchers("/v1/payments/paddle/webhook").permitAll()
                         .requestMatchers("/v1/tenants/public/**").permitAll()
