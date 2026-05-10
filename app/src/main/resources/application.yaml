@@ -191,7 +191,7 @@ lumie:
       - path-pattern: /v1/admins/*/reset-password
         capacity: 10
         window: 1h
-      - path-pattern: /v1/students/bulk-import
+      - path-pattern: /v1/students/bulk
         capacity: 30
         window: 1h
       - path-pattern: /v1/exams/*/results/omr/batch/confirm

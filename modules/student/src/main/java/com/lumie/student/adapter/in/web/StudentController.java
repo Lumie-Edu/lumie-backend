@@ -122,7 +122,7 @@ public class StudentController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping(value = "/bulk-import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/bulk", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BulkImportResult> bulkImportStudents(
             @RequestParam("file") MultipartFile file) {
         BulkImportResult result = studentCommandService.bulkImportStudents(file);
