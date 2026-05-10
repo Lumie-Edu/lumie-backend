@@ -9,8 +9,10 @@ import com.lumie.admin.domain.exception.AdminNotFoundException;
 import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
 import com.lumie.auth.api.AuthService;
+import com.lumie.common.cache.CacheConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -59,6 +61,7 @@ public class AdminQueryService {
         return authService.getAvatarSeeds(admins.stream().map(Admin::getUserId).toList());
     }
 
+    @Cacheable(value = CacheConfig.CACHE_ADMIN_PERMISSIONS, key = "#adminId")
     public List<AdminPermissionResponse> getAdminPermissions(Long adminId) {
         adminRepository.findById(adminId)
                 .orElseThrow(() -> new AdminNotFoundException(adminId));

@@ -1,5 +1,6 @@
 package com.lumie.tenant.adapter.internal;
 
+import com.lumie.common.cache.CacheConfig;
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
@@ -11,6 +12,8 @@ import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +41,8 @@ public class TenantServiceAdapter implements TenantService {
     }
 
     @Override
+    @Cacheable(value = CacheConfig.CACHE_TENANTS_BY_SLUG, key = "#slug",
+               unless = "#result == null || #result.isEmpty()")
     public Optional<TenantData> getTenantBySlug(String slug) {
         try {
             TenantResponse tenant = tenantQueryService.getTenantBySlug(slug);
@@ -99,6 +104,7 @@ public class TenantServiceAdapter implements TenantService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_TENANTS_BY_SLUG, key = "#tenantSlug")
     public void updatePlan(String tenantSlug, String planId) {
         TenantPlan plan = parsePlan(planId);
         if (plan == null) {

@@ -22,6 +22,11 @@ dependencies {
     // ShedLock — exposes @SchedulerLock to module schedulers (multi-pod safety).
     // The LockProvider bean lives in app/ alongside the shared DataSource.
     api("net.javacrumbs.shedlock:shedlock-spring:5.16.0")
+
+    // Spring Cache + Caffeine — shared in-process cache for hot read-only
+    // lookups (tenant, permission, plan). See CacheConfig.
+    api("org.springframework.boot:spring-boot-starter-cache")
+    api("com.github.ben-manes.caffeine:caffeine")
     compileOnly("org.springframework.boot:spring-boot-starter-web")
     compileOnly("org.springframework.boot:spring-boot-starter-security")
     api("org.springframework.boot:spring-boot-autoconfigure")
