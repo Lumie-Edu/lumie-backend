@@ -1,9 +1,9 @@
 package com.lumie.attendance.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.cls.api.ClassService;
-import com.lumie.cls.api.ClassService.ClassData;
-import com.lumie.cls.api.ClassService.ClassListData;
+import com.lumie.classroom.api.ClassService;
+import com.lumie.classroom.api.ClassService.ClassData;
+import com.lumie.classroom.api.ClassService.ClassListData;
 import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

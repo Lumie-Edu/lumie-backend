@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -50,7 +50,7 @@ public class SmsMessage extends BaseEntity {
     private Long templateId;
 
     @Column(name = "sent_at")
-    private LocalDateTime sentAt;
+    private Instant sentAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -93,21 +93,21 @@ public class SmsMessage extends BaseEntity {
 
     public void markAsSent() {
         this.status = SmsStatus.SENT;
-        this.sentAt = LocalDateTime.now();
+        this.sentAt = Instant.now();
         this.successCount = this.recipients.size();
         this.failCount = 0;
     }
 
     public void markAsFailed() {
         this.status = SmsStatus.FAILED;
-        this.sentAt = LocalDateTime.now();
+        this.sentAt = Instant.now();
         this.successCount = 0;
         this.failCount = this.recipients.size();
     }
 
     public void markAsPartial(int successCount, int failCount) {
         this.status = SmsStatus.PARTIAL;
-        this.sentAt = LocalDateTime.now();
+        this.sentAt = Instant.now();
         this.successCount = successCount;
         this.failCount = failCount;
     }

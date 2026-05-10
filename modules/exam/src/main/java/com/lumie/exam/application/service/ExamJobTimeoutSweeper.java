@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -43,7 +43,7 @@ public class ExamJobTimeoutSweeper {
     @SchedulerLock(name = "examJobTimeoutSweeper",
             lockAtMostFor = "PT5M", lockAtLeastFor = "PT1M")
     public void sweepStaleJobs() {
-        LocalDateTime cutoff = LocalDateTime.now().minus(STALE_THRESHOLD);
+        Instant cutoff = Instant.now().minus(STALE_THRESHOLD);
         List<String> tenantSlugs = tenantService.listActiveTenantSlugs();
 
         int totalOmr = 0;
@@ -67,12 +67,12 @@ public class ExamJobTimeoutSweeper {
     }
 
     @Transactional
-    protected int sweepOmrJobs(LocalDateTime cutoff) {
+    protected int sweepOmrJobs(Instant cutoff) {
         return omrGradingJobRepository.markStaleAsFailed(cutoff);
     }
 
     @Transactional
-    protected int sweepReportJobs(LocalDateTime cutoff) {
+    protected int sweepReportJobs(Instant cutoff) {
         return reportGenerationJobRepository.markStaleAsFailed(cutoff);
     }
 }

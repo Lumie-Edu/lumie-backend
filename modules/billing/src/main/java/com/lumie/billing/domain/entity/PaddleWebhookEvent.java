@@ -5,7 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "paddle_webhook_events")
@@ -21,11 +21,11 @@ public class PaddleWebhookEvent {
     private String eventType;
 
     @Column(name = "processed_at", nullable = false)
-    private LocalDateTime processedAt;
+    private Instant processedAt;
 
     public PaddleWebhookEvent(String eventId, String eventType) {
         this.eventId = eventId;
         this.eventType = eventType;
-        this.processedAt = LocalDateTime.now();
+        this.processedAt = Instant.now();
     }
 }

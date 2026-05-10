@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -88,7 +88,7 @@ public class StudentServiceAdapter implements StudentService {
         );
     }
 
-    private static String formatTs(LocalDateTime ts) {
+    private static String formatTs(Instant ts) {
         return ts == null ? null : ts.toString();
     }
 }

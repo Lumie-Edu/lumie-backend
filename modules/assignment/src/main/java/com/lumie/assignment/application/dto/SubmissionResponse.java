@@ -4,7 +4,6 @@ import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 import java.util.List;
 
 public record SubmissionResponse(
@@ -30,11 +29,11 @@ public record SubmissionResponse(
             entity.getAttachments(),
             entity.getScore(),
             entity.getFeedback(),
-            Timestamps.utcInstant(entity.getSubmittedAt()),
-            Timestamps.utcInstant(entity.getGradedAt()),
+            entity.getSubmittedAt(),
+            entity.getGradedAt(),
             entity.getStatus(),
-            Timestamps.utcInstant(entity.getCreatedAt()),
-            Timestamps.utcInstant(entity.getUpdatedAt())
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 }

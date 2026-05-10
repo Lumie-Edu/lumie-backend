@@ -4,7 +4,6 @@ import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 import java.util.List;
 import java.util.Map;
 
@@ -34,8 +33,8 @@ public record QnaDetailResponse(
                 qnaBoard.getQnaContent(),
                 qnaBoard.getIsItAnswered(),
                 commentResponses,
-                Timestamps.utcInstant(qnaBoard.getCreatedAt()),
-                Timestamps.utcInstant(qnaBoard.getUpdatedAt())
+                qnaBoard.getCreatedAt(),
+                qnaBoard.getUpdatedAt()
         );
     }
 

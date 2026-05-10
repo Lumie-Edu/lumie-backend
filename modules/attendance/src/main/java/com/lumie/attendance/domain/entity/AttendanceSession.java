@@ -7,8 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -39,7 +39,7 @@ public class AttendanceSession extends BaseEntity {
     private String attendanceCode;
 
     @Column(name = "code_expires_at")
-    private LocalDateTime codeExpiresAt;
+    private Instant codeExpiresAt;
 
     @Column(name = "late_threshold_minutes", nullable = false)
     private Integer lateThresholdMinutes;
@@ -49,7 +49,7 @@ public class AttendanceSession extends BaseEntity {
 
     @Builder
     private AttendanceSession(String name, LocalDate sessionDate, Long classId,
-                              String className, String attendanceCode, LocalDateTime codeExpiresAt,
+                              String className, String attendanceCode, Instant codeExpiresAt,
                               Integer lateThresholdMinutes) {
         this.name = name;
         this.sessionDate = sessionDate;
@@ -78,7 +78,7 @@ public class AttendanceSession extends BaseEntity {
     }
 
     public boolean isExpired() {
-        return codeExpiresAt != null && LocalDateTime.now().isAfter(codeExpiresAt);
+        return codeExpiresAt != null && Instant.now().isAfter(codeExpiresAt);
     }
 
     private static String generateCode() {

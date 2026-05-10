@@ -4,7 +4,7 @@ import com.lumie.ai.domain.entity.ScheduledTask;
 import com.lumie.ai.domain.vo.TaskStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,5 +14,5 @@ public interface ScheduledTaskRepository extends JpaRepository<ScheduledTask, Lo
 
     List<ScheduledTask> findByUserId(Long userId);
 
-    List<ScheduledTask> findByStatusAndNextExecutionAtBefore(TaskStatus status, LocalDateTime time);
+    List<ScheduledTask> findByStatusAndNextExecutionAtBefore(TaskStatus status, Instant time);
 }

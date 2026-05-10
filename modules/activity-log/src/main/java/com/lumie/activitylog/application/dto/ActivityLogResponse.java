@@ -3,7 +3,6 @@ package com.lumie.activitylog.application.dto;
 import com.lumie.activitylog.domain.entity.ActivityLog;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record ActivityLogResponse(
         Long id,
@@ -28,7 +27,7 @@ public record ActivityLogResponse(
                 entity.getEntityId(),
                 entity.getEntityName(),
                 entity.getDescription(),
-                Timestamps.utcInstant(entity.getCreatedAt())
+                entity.getCreatedAt()
         );
     }
 }

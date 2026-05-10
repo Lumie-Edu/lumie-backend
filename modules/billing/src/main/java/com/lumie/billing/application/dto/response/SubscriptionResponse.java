@@ -6,7 +6,6 @@ import com.lumie.billing.domain.vo.SubscriptionStatus;
 import lombok.Builder;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 @Builder
 public record SubscriptionResponse(
@@ -30,11 +29,11 @@ public record SubscriptionResponse(
                 .planId(subscription.getPlanId())
                 .planName(subscription.getPlanName())
                 .status(subscription.getStatus())
-                .startedAt(Timestamps.utcInstant(subscription.getStartedAt()))
-                .expiresAt(Timestamps.utcInstant(subscription.getExpiresAt()))
+                .startedAt(subscription.getStartedAt())
+                .expiresAt(subscription.getExpiresAt())
                 .limits(subscription.getLimits())
-                .createdAt(Timestamps.utcInstant(subscription.getCreatedAt()))
-                .updatedAt(Timestamps.utcInstant(subscription.getUpdatedAt()))
+                .createdAt(subscription.getCreatedAt())
+                .updatedAt(subscription.getUpdatedAt())
                 .build();
     }
 }

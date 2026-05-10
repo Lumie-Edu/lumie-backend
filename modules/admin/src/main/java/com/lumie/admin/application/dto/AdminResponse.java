@@ -4,7 +4,6 @@ import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.vo.EmploymentStatus;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record AdminResponse(
     Long id,
@@ -38,8 +37,8 @@ public record AdminResponse(
             admin.isActive(),
             admin.getEmploymentStatus(),
             avatarSeed,
-            Timestamps.utcInstant(admin.getCreatedAt()),
-            Timestamps.utcInstant(admin.getUpdatedAt())
+            admin.getCreatedAt(),
+            admin.getUpdatedAt()
         );
     }
 }

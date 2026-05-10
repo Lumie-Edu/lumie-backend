@@ -3,7 +3,6 @@ package com.lumie.content.application.dto.response;
 import com.lumie.content.domain.entity.QnaBoard;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record QnaBoardResponse(
         Long id,
@@ -23,8 +22,8 @@ public record QnaBoardResponse(
                 qnaBoard.getQnaTitle(),
                 qnaBoard.getIsItAnswered(),
                 qnaBoard.getComments() != null ? qnaBoard.getComments().size() : 0,
-                Timestamps.utcInstant(qnaBoard.getCreatedAt()),
-                Timestamps.utcInstant(qnaBoard.getUpdatedAt())
+                qnaBoard.getCreatedAt(),
+                qnaBoard.getUpdatedAt()
         );
     }
 }

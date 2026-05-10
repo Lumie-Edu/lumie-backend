@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.OutputStream;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -82,7 +84,8 @@ public class AttendanceExportService {
                     nullToEmpty(session.getClassName()),
                     studentNames.getOrDefault(record.getStudentId(), "학생 " + record.getStudentId()),
                     statusLabel(record.getStatus()),
-                    record.getCheckedAt() == null ? "" : record.getCheckedAt().toLocalTime().format(TIME_FMT),
+                    record.getCheckedAt() == null ? ""
+                        : LocalTime.ofInstant(record.getCheckedAt(), ZoneId.systemDefault()).format(TIME_FMT),
                     nullToEmpty(record.getMemo())
                 ));
             }

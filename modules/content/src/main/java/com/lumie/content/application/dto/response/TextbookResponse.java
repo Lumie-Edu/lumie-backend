@@ -5,7 +5,6 @@ import com.lumie.content.domain.vo.TextbookStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record TextbookResponse(
         Long id,
@@ -35,8 +34,8 @@ public record TextbookResponse(
                 textbook.getPrice(),
                 textbook.getCoverImagePath(),
                 textbook.getStatus(),
-                Timestamps.utcInstant(textbook.getCreatedAt()),
-                Timestamps.utcInstant(textbook.getUpdatedAt())
+                textbook.getCreatedAt(),
+                textbook.getUpdatedAt()
         );
     }
 }

@@ -17,8 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.OutputStream;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -123,7 +123,7 @@ public class StudentQueryService {
         ZoneId zone = ZoneId.systemDefault();
         YearMonth currentMonth = YearMonth.now(zone);
         YearMonth firstMonth = currentMonth.minusMonths(window - 1L);
-        LocalDateTime windowStart = firstMonth.atDay(1).atStartOfDay();
+        Instant windowStart = firstMonth.atDay(1).atStartOfDay(zone).toInstant();
 
         Map<String, Long> bucketed = new HashMap<>();
         for (Object[] row : studentRepository.countMonthlyEnrollmentsSince(windowStart)) {
@@ -179,7 +179,7 @@ public class StudentQueryService {
             s.getStudentBirthYear() == null ? "" : s.getStudentBirthYear().toString(),
             nullToEmpty(s.getStudentMemo()),
             s.isActive() ? "재원" : "휴원",
-            s.getCreatedAt() == null ? "" : s.getCreatedAt().toLocalDate().format(DATE_FMT)
+            s.getCreatedAt() == null ? "" : LocalDate.ofInstant(s.getCreatedAt(), ZoneId.systemDefault()).format(DATE_FMT)
         );
     }
 

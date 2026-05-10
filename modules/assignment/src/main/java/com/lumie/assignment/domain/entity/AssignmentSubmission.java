@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -48,10 +48,10 @@ public class AssignmentSubmission extends BaseEntity {
     private String feedback;
 
     @Column(name = "submitted_at")
-    private LocalDateTime submittedAt;
+    private Instant submittedAt;
 
     @Column(name = "graded_at")
-    private LocalDateTime gradedAt;
+    private Instant gradedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -60,7 +60,7 @@ public class AssignmentSubmission extends BaseEntity {
     @Builder
     private AssignmentSubmission(Long assignmentId, Long studentId, String content,
                                 List<Long> attachments, Integer score, String feedback,
-                                LocalDateTime submittedAt, LocalDateTime gradedAt,
+                                Instant submittedAt, Instant gradedAt,
                                 SubmissionStatus status) {
         this.assignmentId = assignmentId;
         this.studentId = studentId;
@@ -84,14 +84,14 @@ public class AssignmentSubmission extends BaseEntity {
     public void submit(String content, List<Long> attachments) {
         this.content = content;
         this.attachments = attachments;
-        this.submittedAt = LocalDateTime.now();
+        this.submittedAt = Instant.now();
         this.status = SubmissionStatus.SUBMITTED;
     }
 
     public void grade(Integer score, String feedback) {
         this.score = score;
         this.feedback = feedback;
-        this.gradedAt = LocalDateTime.now();
+        this.gradedAt = Instant.now();
         this.status = SubmissionStatus.GRADED;
     }
 

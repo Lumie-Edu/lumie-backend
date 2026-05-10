@@ -146,7 +146,7 @@ class AssignmentQueryServiceTest {
     private Assignment buildAssignment(Long id) throws Exception {
         Assignment entity = Assignment.create(
                 1L, "수학 숙제", "1장 풀기",
-                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
+                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(java.time.ZoneOffset.UTC),
                 100, null);
         setField(entity, "id", id);
         return entity;

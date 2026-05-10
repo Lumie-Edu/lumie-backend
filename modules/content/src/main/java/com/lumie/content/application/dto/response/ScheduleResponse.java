@@ -5,7 +5,6 @@ import com.lumie.content.domain.entity.Schedule;
 
 import java.time.LocalDate;
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 import java.time.LocalTime;
 
 public record ScheduleResponse(
@@ -32,8 +31,8 @@ public record ScheduleResponse(
                 schedule.getIsAvailable(),
                 schedule.hasReservation(),
                 schedule.getConfirmedCount(),
-                Timestamps.utcInstant(schedule.getCreatedAt()),
-                Timestamps.utcInstant(schedule.getUpdatedAt())
+                schedule.getCreatedAt(),
+                schedule.getUpdatedAt()
         );
     }
 }

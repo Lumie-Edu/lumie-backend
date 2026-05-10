@@ -3,7 +3,6 @@ package com.lumie.content.application.dto.response;
 import com.lumie.content.domain.entity.Announcement;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record AnnouncementResponse(
         Long id,
@@ -29,8 +28,8 @@ public record AnnouncementResponse(
                 announcement.getAnnouncementContent(),
                 announcement.getIsItAssetAnnouncement(),
                 announcement.getIsItImportantAnnouncement(),
-                Timestamps.utcInstant(announcement.getCreatedAt()),
-                Timestamps.utcInstant(announcement.getUpdatedAt())
+                announcement.getCreatedAt(),
+                announcement.getUpdatedAt()
         );
     }
 }

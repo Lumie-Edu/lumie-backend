@@ -1,6 +1,5 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.common.util.Timestamps;
 import com.lumie.exam.application.dto.request.GoalSimulationRequest;
 import com.lumie.exam.application.dto.response.statistics.*;
 import com.lumie.exam.domain.entity.Exam;
@@ -89,7 +88,7 @@ public class StudentAnalyticsQueryService {
                 .map(r -> new StabilityIndexResponse.ScoreHistory(
                         r.getExam().getId(), r.getExam().getName(),
                         r.getTotalScore(), r.getGrade() != null ? r.getGrade() : 0,
-                        Timestamps.utcInstant(r.getCreatedAt())
+                        r.getCreatedAt()
                 ))
                 .toList();
 
@@ -133,7 +132,7 @@ public class StudentAnalyticsQueryService {
                 double accuracy = total > 0 ? (double) correct / total * 100 : 0;
 
                 TypeGrowthTrendResponse.TrendPoint point = new TypeGrowthTrendResponse.TrendPoint(
-                        exam.getId(), exam.getName(), Timestamps.utcInstant(result.getCreatedAt()),
+                        exam.getId(), exam.getName(), result.getCreatedAt(),
                         correct, total, Math.round(accuracy * 10) / 10.0
                 );
 
@@ -190,7 +189,7 @@ public class StudentAnalyticsQueryService {
 
                     return new NormalizedScoreResponse.NormalizedExamScore(
                             result.getExam().getId(), result.getExam().getName(),
-                            Timestamps.utcInstant(result.getCreatedAt()), result.getTotalScore(),
+                            result.getCreatedAt(), result.getTotalScore(),
                             Math.round(mean * 10) / 10.0,
                             Math.round(stdDev * 10) / 10.0,
                             Math.round(zScore * 100) / 100.0,

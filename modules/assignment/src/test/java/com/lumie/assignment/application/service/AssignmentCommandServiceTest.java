@@ -8,7 +8,7 @@ import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.cls.api.ClassService;
+import com.lumie.classroom.api.ClassService;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
 import com.lumie.assignment.domain.exception.DuplicateSubmissionException;
@@ -245,7 +245,7 @@ class AssignmentCommandServiceTest {
     private Assignment buildAssignment(Long id) throws Exception {
         Assignment entity = Assignment.create(
                 1L, "수학 숙제", "1장 풀기",
-                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
+                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(java.time.ZoneOffset.UTC),
                 100, null);
         setField(entity, "id", id);
         return entity;

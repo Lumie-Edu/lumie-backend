@@ -3,7 +3,6 @@ package com.lumie.file.application.dto.response;
 import com.lumie.file.domain.entity.TextbookFolder;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 import java.util.UUID;
 
 public record TextbookFolderResponse(
@@ -19,7 +18,7 @@ public record TextbookFolderResponse(
                 folder.getName(),
                 folder.getParentId(),
                 folder.getDepth(),
-                Timestamps.utcInstant(folder.getCreatedAt())
+                folder.getCreatedAt()
         );
     }
 }

@@ -3,7 +3,6 @@ package com.lumie.content.application.dto.response;
 import com.lumie.content.domain.entity.ReviewPopupSetting;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record ReviewPopupSettingResponse(
         Long id,
@@ -15,8 +14,8 @@ public record ReviewPopupSettingResponse(
         return new ReviewPopupSettingResponse(
                 setting.getId(),
                 setting.getIsReviewPopupOn(),
-                Timestamps.utcInstant(setting.getCreatedAt()),
-                Timestamps.utcInstant(setting.getUpdatedAt())
+                setting.getCreatedAt(),
+                setting.getUpdatedAt()
         );
     }
 }

@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -31,9 +31,9 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
 
     long countByIsActive(Boolean isActive);
 
-    long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
+    long countByCreatedAtBetween(Instant from, Instant to);
 
-    long countByCreatedAtBefore(LocalDateTime cutoff);
+    long countByCreatedAtBefore(Instant cutoff);
 
     @Query(value = """
             SELECT to_char(date_trunc('month', s.created_at), 'YYYY-MM') AS month,
@@ -43,7 +43,7 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
             GROUP BY date_trunc('month', s.created_at)
             ORDER BY date_trunc('month', s.created_at)
             """, nativeQuery = true)
-    List<Object[]> countMonthlyEnrollmentsSince(@Param("from") LocalDateTime from);
+    List<Object[]> countMonthlyEnrollmentsSince(@Param("from") Instant from);
 
     boolean existsByUserLoginId(String userLoginId);
 

@@ -4,7 +4,6 @@ import com.lumie.notification.domain.entity.SmsTemplate;
 import com.lumie.notification.domain.vo.TemplateCategory;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record SmsTemplateResponse(
     Long id,
@@ -20,8 +19,8 @@ public record SmsTemplateResponse(
             entity.getName(),
             entity.getContent(),
             entity.getCategory(),
-            Timestamps.utcInstant(entity.getCreatedAt()),
-            Timestamps.utcInstant(entity.getUpdatedAt())
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 }

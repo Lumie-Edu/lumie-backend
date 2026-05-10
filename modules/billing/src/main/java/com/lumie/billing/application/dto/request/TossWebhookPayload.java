@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Builder;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)

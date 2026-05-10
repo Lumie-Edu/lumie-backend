@@ -5,7 +5,6 @@ import com.lumie.attendance.domain.entity.AttendanceSession;
 
 import java.time.LocalDate;
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 import java.util.List;
 
 public record AttendanceSessionResponse(
@@ -52,10 +51,10 @@ public record AttendanceSessionResponse(
             session.getClassId(),
             session.getClassName(),
             session.getAttendanceCode(),
-            Timestamps.utcInstant(session.getCodeExpiresAt()),
+            session.getCodeExpiresAt(),
             session.getLateThresholdMinutes(),
-            Timestamps.utcInstant(session.getCreatedAt()),
-            Timestamps.utcInstant(session.getUpdatedAt()),
+            session.getCreatedAt(),
+            session.getUpdatedAt(),
             presentCount,
             absentCount,
             lateCount,
@@ -72,10 +71,10 @@ public record AttendanceSessionResponse(
             session.getClassId(),
             session.getClassName(),
             session.getAttendanceCode(),
-            Timestamps.utcInstant(session.getCodeExpiresAt()),
+            session.getCodeExpiresAt(),
             session.getLateThresholdMinutes(),
-            Timestamps.utcInstant(session.getCreatedAt()),
-            Timestamps.utcInstant(session.getUpdatedAt()),
+            session.getCreatedAt(),
+            session.getUpdatedAt(),
             0, 0, 0, 0, 0
         );
     }

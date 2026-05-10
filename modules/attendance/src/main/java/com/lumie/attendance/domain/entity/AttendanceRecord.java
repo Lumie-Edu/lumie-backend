@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "attendance_records",
@@ -33,7 +33,7 @@ public class AttendanceRecord extends BaseEntity {
     private AttendanceStatus status;
 
     @Column(name = "checked_at")
-    private LocalDateTime checkedAt;
+    private Instant checkedAt;
 
     @Column(name = "checked_by")
     private Long checkedBy;
@@ -43,7 +43,7 @@ public class AttendanceRecord extends BaseEntity {
 
     @Builder
     private AttendanceRecord(AttendanceSession session, Long studentId, AttendanceStatus status,
-                             LocalDateTime checkedAt, Long checkedBy, String memo) {
+                             Instant checkedAt, Long checkedBy, String memo) {
         this.session = session;
         this.studentId = studentId;
         this.status = status != null ? status : AttendanceStatus.ABSENT;
@@ -67,7 +67,7 @@ public class AttendanceRecord extends BaseEntity {
 
     public void checkIn(AttendanceStatus status, Long checkedBy) {
         this.status = status;
-        this.checkedAt = LocalDateTime.now();
+        this.checkedAt = Instant.now();
         this.checkedBy = checkedBy;
     }
 }

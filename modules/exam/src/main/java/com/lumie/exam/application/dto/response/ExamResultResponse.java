@@ -3,7 +3,6 @@ package com.lumie.exam.application.dto.response;
 import com.lumie.exam.domain.entity.ExamResult;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record ExamResultResponse(
         Long id,
@@ -32,7 +31,7 @@ public record ExamResultResponse(
                 result.getCorrectCount(),
                 result.getIncorrectCount(),
                 result.getOmrImageKey() != null,
-                Timestamps.utcInstant(result.getCreatedAt())
+                result.getCreatedAt()
         );
     }
 }

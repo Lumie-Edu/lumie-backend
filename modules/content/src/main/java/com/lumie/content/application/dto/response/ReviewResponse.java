@@ -3,7 +3,6 @@ package com.lumie.content.application.dto.response;
 import com.lumie.content.domain.entity.Review;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record ReviewResponse(
         Long id,
@@ -19,8 +18,8 @@ public record ReviewResponse(
                 review.getReviewerName(),
                 review.getReviewTitle(),
                 review.getReviewContent(),
-                Timestamps.utcInstant(review.getCreatedAt()),
-                Timestamps.utcInstant(review.getUpdatedAt())
+                review.getCreatedAt(),
+                review.getUpdatedAt()
         );
     }
 }

@@ -10,7 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "invoices", indexes = {
@@ -48,16 +48,16 @@ public class Invoice extends BaseEntity {
     private String description;
 
     @Column(name = "billing_period_start")
-    private LocalDateTime billingPeriodStart;
+    private Instant billingPeriodStart;
 
     @Column(name = "billing_period_end")
-    private LocalDateTime billingPeriodEnd;
+    private Instant billingPeriodEnd;
 
     @Column(name = "due_date")
-    private LocalDateTime dueDate;
+    private Instant dueDate;
 
     @Column(name = "paid_at")
-    private LocalDateTime paidAt;
+    private Instant paidAt;
 
     @Column(name = "payment_key", length = 200)
     private String paymentKey;
@@ -76,8 +76,8 @@ public class Invoice extends BaseEntity {
 
     @Builder
     private Invoice(String invoiceNumber, Subscription subscription, String tenantSlug,
-                    Money amount, String description, LocalDateTime billingPeriodStart,
-                    LocalDateTime billingPeriodEnd, LocalDateTime dueDate, String orderId) {
+                    Money amount, String description, Instant billingPeriodStart,
+                    Instant billingPeriodEnd, Instant dueDate, String orderId) {
         this.invoiceNumber = invoiceNumber;
         this.subscription = subscription;
         this.tenantSlug = tenantSlug;
@@ -91,8 +91,8 @@ public class Invoice extends BaseEntity {
     }
 
     public static Invoice create(String invoiceNumber, Subscription subscription, Money amount,
-                                  String description, LocalDateTime billingPeriodStart,
-                                  LocalDateTime billingPeriodEnd, LocalDateTime dueDate, String orderId) {
+                                  String description, Instant billingPeriodStart,
+                                  Instant billingPeriodEnd, Instant dueDate, String orderId) {
         return Invoice.builder()
                 .invoiceNumber(invoiceNumber)
                 .subscription(subscription)
@@ -111,7 +111,7 @@ public class Invoice extends BaseEntity {
             throw new PaymentFailedException("Invoice is not in pending status");
         }
         this.status = InvoiceStatus.PAID;
-        this.paidAt = LocalDateTime.now();
+        this.paidAt = Instant.now();
         this.paymentKey = paymentKey;
     }
 
@@ -141,6 +141,6 @@ public class Invoice extends BaseEntity {
     public boolean isOverdue() {
         return this.status == InvoiceStatus.PENDING
                 && this.dueDate != null
-                && LocalDateTime.now().isAfter(this.dueDate);
+                && Instant.now().isAfter(this.dueDate);
     }
 }

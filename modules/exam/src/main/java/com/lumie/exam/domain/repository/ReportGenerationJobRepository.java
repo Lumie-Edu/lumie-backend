@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public interface ReportGenerationJobRepository extends JpaRepository<ReportGenerationJob, Long> {
@@ -55,5 +55,5 @@ public interface ReportGenerationJobRepository extends JpaRepository<ReportGener
     @Query(value = "UPDATE report_generation_jobs " +
             "SET status = 'FAILED', updated_at = NOW() " +
             "WHERE status = 'PROCESSING' AND created_at < :cutoff", nativeQuery = true)
-    int markStaleAsFailed(@Param("cutoff") LocalDateTime cutoff);
+    int markStaleAsFailed(@Param("cutoff") Instant cutoff);
 }

@@ -3,7 +3,6 @@ package com.lumie.exam.application.dto.response;
 import com.lumie.exam.domain.entity.OmrGradingJob;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +29,7 @@ public record OmrJobStatusResponse(
                 job.getFailCount(),
                 job.getSavedCount(),
                 job.getResults(),
-                Timestamps.utcInstant(job.getCreatedAt())
+                job.getCreatedAt()
         );
     }
 }

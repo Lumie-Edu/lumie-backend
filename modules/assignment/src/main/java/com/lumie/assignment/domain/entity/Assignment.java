@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -41,7 +41,7 @@ public class Assignment extends BaseEntity {
     private AssignmentType type;
 
     @Column(name = "due_date")
-    private LocalDateTime dueDate;
+    private Instant dueDate;
 
     @Column(name = "max_score")
     private Integer maxScore;
@@ -57,7 +57,7 @@ public class Assignment extends BaseEntity {
 
     @Builder
     private Assignment(Long classId, String title, String description,
-                       AssignmentType type, LocalDateTime dueDate, Integer maxScore,
+                       AssignmentType type, Instant dueDate, Integer maxScore,
                        List<Long> attachments, AssignmentStatus status) {
         this.classId = classId;
         this.title = title;
@@ -70,7 +70,7 @@ public class Assignment extends BaseEntity {
     }
 
     public static Assignment create(Long classId, String title, String description,
-                                    AssignmentType type, LocalDateTime dueDate, Integer maxScore,
+                                    AssignmentType type, Instant dueDate, Integer maxScore,
                                     List<Long> attachments) {
         return Assignment.builder()
                 .classId(classId)
@@ -85,7 +85,7 @@ public class Assignment extends BaseEntity {
     }
 
     public void updateInfo(String title, String description, AssignmentType type,
-                           LocalDateTime dueDate, Integer maxScore, List<Long> attachments) {
+                           Instant dueDate, Integer maxScore, List<Long> attachments) {
         this.title = title;
         this.description = description;
         this.type = type;

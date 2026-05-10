@@ -5,7 +5,6 @@ import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentType;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 import java.util.List;
 
 public record AssignmentResponse(
@@ -28,12 +27,12 @@ public record AssignmentResponse(
             entity.getTitle(),
             entity.getDescription(),
             entity.getType(),
-            Timestamps.utcInstant(entity.getDueDate()),
+            entity.getDueDate(),
             entity.getMaxScore(),
             entity.getAttachments(),
             entity.getStatus(),
-            Timestamps.utcInstant(entity.getCreatedAt()),
-            Timestamps.utcInstant(entity.getUpdatedAt())
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 }

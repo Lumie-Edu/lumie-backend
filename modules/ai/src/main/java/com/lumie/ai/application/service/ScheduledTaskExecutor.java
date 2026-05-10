@@ -19,7 +19,8 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -53,7 +54,7 @@ public class ScheduledTaskExecutor {
 
     private void executeTasksForTenant(String tenantSlug) {
         List<ScheduledTask> dueTasks = scheduledTaskRepository
-                .findByStatusAndNextExecutionAtBefore(TaskStatus.ACTIVE, LocalDateTime.now());
+                .findByStatusAndNextExecutionAtBefore(TaskStatus.ACTIVE, Instant.now());
 
         for (ScheduledTask task : dueTasks) {
             try {
@@ -82,7 +83,7 @@ public class ScheduledTaskExecutor {
 
         ToolResult result = tool.execute(task.getTenantSlug(), arguments);
 
-        LocalDateTime nextExecution = calculateNextExecution(task.getFrequency());
+        Instant nextExecution = calculateNextExecution(task.getFrequency());
 
         if (task.getFrequency() == TaskFrequency.ONCE) {
             task.recordExecution(result.success() ? result.data() : result.error(), null);
@@ -96,13 +97,13 @@ public class ScheduledTaskExecutor {
         log.info("Scheduled task {} executed. Success: {}", task.getId(), result.success());
     }
 
-    private LocalDateTime calculateNextExecution(TaskFrequency frequency) {
-        LocalDateTime now = LocalDateTime.now();
+    private Instant calculateNextExecution(TaskFrequency frequency) {
+        var now = Instant.now().atZone(ZoneOffset.UTC);
         return switch (frequency) {
             case ONCE -> null;
-            case DAILY -> now.plusDays(1);
-            case WEEKLY -> now.plusWeeks(1);
-            case MONTHLY -> now.plusMonths(1);
+            case DAILY -> now.plusDays(1).toInstant();
+            case WEEKLY -> now.plusWeeks(1).toInstant();
+            case MONTHLY -> now.plusMonths(1).toInstant();
         };
     }
 }

@@ -6,7 +6,6 @@ import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record ExamResponse(
         Long id,
@@ -30,8 +29,8 @@ public record ExamResponse(
                 exam.getTotalQuestions(),
                 exam.calculateTotalPossibleScore(),
                 exam.getPassScore(),
-                Timestamps.utcInstant(exam.getCreatedAt()),
-                Timestamps.utcInstant(exam.getUpdatedAt())
+                exam.getCreatedAt(),
+                exam.getUpdatedAt()
         );
     }
 }

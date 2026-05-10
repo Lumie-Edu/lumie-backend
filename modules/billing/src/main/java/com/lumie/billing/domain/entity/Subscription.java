@@ -11,7 +11,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 @Entity
 @Table(name = "subscriptions", indexes = {
@@ -41,13 +42,13 @@ public class Subscription extends BaseEntity {
     private SubscriptionStatus status;
 
     @Column(name = "started_at", nullable = false)
-    private LocalDateTime startedAt;
+    private Instant startedAt;
 
     @Column(name = "expires_at")
-    private LocalDateTime expiresAt;
+    private Instant expiresAt;
 
     @Column(name = "cancelled_at")
-    private LocalDateTime cancelledAt;
+    private Instant cancelledAt;
 
     @Column(name = "billing_cycle_day")
     private Integer billingCycleDay;
@@ -62,15 +63,16 @@ public class Subscription extends BaseEntity {
     private String billingCycle;
 
     @Builder
-    private Subscription(Long tenantId, String tenantSlug, Plan plan, LocalDateTime startedAt,
-                         LocalDateTime expiresAt, Integer billingCycleDay) {
+    private Subscription(Long tenantId, String tenantSlug, Plan plan, Instant startedAt,
+                         Instant expiresAt, Integer billingCycleDay) {
         this.tenantId = tenantId;
         this.tenantSlug = tenantSlug;
         this.plan = plan;
         this.status = SubscriptionStatus.ACTIVE;
-        this.startedAt = startedAt != null ? startedAt : LocalDateTime.now();
+        this.startedAt = startedAt != null ? startedAt : Instant.now();
         this.expiresAt = expiresAt;
-        this.billingCycleDay = billingCycleDay != null ? billingCycleDay : this.startedAt.getDayOfMonth();
+        this.billingCycleDay = billingCycleDay != null ? billingCycleDay
+                : this.startedAt.atZone(ZoneOffset.UTC).getDayOfMonth();
     }
 
     public static Subscription createFree(Long tenantId, String tenantSlug, Plan freePlan) {
@@ -78,18 +80,18 @@ public class Subscription extends BaseEntity {
                 .tenantId(tenantId)
                 .tenantSlug(tenantSlug)
                 .plan(freePlan)
-                .startedAt(LocalDateTime.now())
+                .startedAt(Instant.now())
                 .expiresAt(null)
                 .build();
     }
 
     public static Subscription create(Long tenantId, String tenantSlug, Plan plan,
-                                       LocalDateTime expiresAt) {
+                                       Instant expiresAt) {
         return Subscription.builder()
                 .tenantId(tenantId)
                 .tenantSlug(tenantSlug)
                 .plan(plan)
-                .startedAt(LocalDateTime.now())
+                .startedAt(Instant.now())
                 .expiresAt(expiresAt)
                 .build();
     }
@@ -105,7 +107,7 @@ public class Subscription extends BaseEntity {
                     "Can only cancel active or past_due subscriptions. Current status: " + this.status);
         }
         this.status = SubscriptionStatus.CANCELLED;
-        this.cancelledAt = LocalDateTime.now();
+        this.cancelledAt = Instant.now();
     }
 
     public void markPastDue() {
@@ -133,19 +135,19 @@ public class Subscription extends BaseEntity {
         this.status = SubscriptionStatus.EXPIRED;
     }
 
-    public void reactivate(Plan plan, LocalDateTime newExpiresAt) {
+    public void reactivate(Plan plan, Instant newExpiresAt) {
         if (this.status != SubscriptionStatus.CANCELLED && this.status != SubscriptionStatus.EXPIRED) {
             throw new InvalidSubscriptionStateException(
                     "Can only reactivate cancelled or expired subscriptions");
         }
         this.plan = plan;
         this.status = SubscriptionStatus.ACTIVE;
-        this.startedAt = LocalDateTime.now();
+        this.startedAt = Instant.now();
         this.expiresAt = newExpiresAt;
         this.cancelledAt = null;
     }
 
-    public void extendExpiration(LocalDateTime newExpiresAt) {
+    public void extendExpiration(Instant newExpiresAt) {
         validateActive();
         if (newExpiresAt != null && (this.expiresAt == null || newExpiresAt.isAfter(this.expiresAt))) {
             this.expiresAt = newExpiresAt;
@@ -167,7 +169,7 @@ public class Subscription extends BaseEntity {
         if (this.status == SubscriptionStatus.EXPIRED) {
             return true;
         }
-        return this.expiresAt != null && LocalDateTime.now().isAfter(this.expiresAt);
+        return this.expiresAt != null && Instant.now().isAfter(this.expiresAt);
     }
 
     public PlanLimits getLimits() {

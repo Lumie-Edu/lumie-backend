@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.OutputStream;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
@@ -83,7 +85,8 @@ public class ExamExportService {
                 Objects.requireNonNullElse(student.studentName(), ""),
                 Objects.requireNonNullElse(student.studentPhone() != null ? student.studentPhone() : result.getPhoneNumber(), ""),
                 exam.getName(),
-                result.getCreatedAt() == null ? "" : result.getCreatedAt().toLocalDate().format(DATE_FMT),
+                result.getCreatedAt() == null ? ""
+                    : LocalDate.ofInstant(result.getCreatedAt(), ZoneId.systemDefault()).format(DATE_FMT),
                 Integer.toString(result.getTotalScore()),
                 Integer.toString(totalPossible),
                 Integer.toString(result.getCorrectCount()),

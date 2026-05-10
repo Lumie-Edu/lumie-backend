@@ -10,7 +10,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -109,13 +111,14 @@ public class ScheduleTaskTool implements Tool {
         }
     }
 
-    private LocalDateTime calculateNextExecution(TaskFrequency frequency) {
-        LocalDateTime now = LocalDateTime.now();
-        return switch (frequency) {
+    private Instant calculateNextExecution(TaskFrequency frequency) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime next = switch (frequency) {
             case ONCE -> now.plusMinutes(1);
-            case DAILY -> now.plusDays(1).withHour(9).withMinute(0).withSecond(0);
-            case WEEKLY -> now.plusWeeks(1).withHour(9).withMinute(0).withSecond(0);
-            case MONTHLY -> now.plusMonths(1).withDayOfMonth(1).withHour(9).withMinute(0).withSecond(0);
+            case DAILY -> now.plusDays(1).withHour(9).withMinute(0).withSecond(0).withNano(0);
+            case WEEKLY -> now.plusWeeks(1).withHour(9).withMinute(0).withSecond(0).withNano(0);
+            case MONTHLY -> now.plusMonths(1).withDayOfMonth(1).withHour(9).withMinute(0).withSecond(0).withNano(0);
         };
+        return next.toInstant(ZoneOffset.UTC);
     }
 }

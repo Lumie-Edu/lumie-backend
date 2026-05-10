@@ -6,7 +6,6 @@ import com.lumie.tenant.api.TenantStatus;
 import lombok.Builder;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 @Builder
 public record TenantResponse(
@@ -45,8 +44,8 @@ public record TenantResponse(
                 .businessRegistrationNumber(tenant.getBusinessRegistrationNumber())
                 .logoUrl(hasLogo ? "/api/tenant/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
                 .customId(tenant.getCustomId())
-                .createdAt(Timestamps.utcInstant(tenant.getCreatedAt()))
-                .updatedAt(Timestamps.utcInstant(tenant.getUpdatedAt()))
+                .createdAt(tenant.getCreatedAt())
+                .updatedAt(tenant.getUpdatedAt())
                 .build();
     }
 }

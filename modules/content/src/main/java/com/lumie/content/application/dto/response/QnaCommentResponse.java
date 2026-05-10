@@ -3,7 +3,6 @@ package com.lumie.content.application.dto.response;
 import com.lumie.content.domain.entity.QnaComment;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record QnaCommentResponse(
         Long id,
@@ -23,8 +22,8 @@ public record QnaCommentResponse(
                 comment.getUserId(),
                 adminName,
                 comment.getCommentContent(),
-                Timestamps.utcInstant(comment.getCreatedAt()),
-                Timestamps.utcInstant(comment.getUpdatedAt())
+                comment.getCreatedAt(),
+                comment.getUpdatedAt()
         );
     }
 }

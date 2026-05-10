@@ -8,8 +8,7 @@ import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.common.util.Timestamps;
-import com.lumie.cls.api.ClassService;
+import com.lumie.classroom.api.ClassService;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
@@ -49,7 +48,7 @@ public class AssignmentCommandService {
             request.title(),
             request.description(),
             type,
-            Timestamps.utcLocal(request.dueDate()),
+            request.dueDate(),
             request.maxScore(),
             request.attachments()
         );
@@ -67,7 +66,7 @@ public class AssignmentCommandService {
         String title = request.title() != null ? request.title() : entity.getTitle();
         String description = request.description() != null ? request.description() : entity.getDescription();
         AssignmentType type = request.type() != null ? parseAssignmentType(request.type()) : entity.getType();
-        var dueDate = request.dueDate() != null ? Timestamps.utcLocal(request.dueDate()) : entity.getDueDate();
+        var dueDate = request.dueDate() != null ? request.dueDate() : entity.getDueDate();
         Integer maxScore = request.maxScore() != null ? request.maxScore() : entity.getMaxScore();
         var attachments = request.attachments() != null ? request.attachments() : entity.getAttachments();
 

@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "ai_scheduled_tasks")
@@ -50,10 +50,10 @@ public class ScheduledTask extends BaseEntity {
     private String cronExpression;
 
     @Column(name = "next_execution_at")
-    private LocalDateTime nextExecutionAt;
+    private Instant nextExecutionAt;
 
     @Column(name = "last_executed_at")
-    private LocalDateTime lastExecutedAt;
+    private Instant lastExecutedAt;
 
     @Column(name = "last_result", columnDefinition = "TEXT")
     private String lastResult;
@@ -65,7 +65,7 @@ public class ScheduledTask extends BaseEntity {
     @Builder
     public ScheduledTask(Long userId, String tenantSlug, String name, String description,
                          String toolName, String toolArguments, TaskFrequency frequency,
-                         String cronExpression, LocalDateTime nextExecutionAt) {
+                         String cronExpression, Instant nextExecutionAt) {
         this.userId = userId;
         this.tenantSlug = tenantSlug;
         this.name = name;
@@ -94,8 +94,8 @@ public class ScheduledTask extends BaseEntity {
         this.status = TaskStatus.FAILED;
     }
 
-    public void recordExecution(String result, LocalDateTime nextExecution) {
-        this.lastExecutedAt = LocalDateTime.now();
+    public void recordExecution(String result, Instant nextExecution) {
+        this.lastExecutedAt = Instant.now();
         this.lastResult = result;
         this.nextExecutionAt = nextExecution;
     }

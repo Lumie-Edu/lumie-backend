@@ -20,7 +20,7 @@ class AssignmentEntityTest {
     void create_defaultStatusIsActive() {
         Assignment entity = Assignment.create(
                 1L, "수학 숙제", "1장~3장 풀기",
-                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
+                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
                 100, List.of(1L, 2L));
 
         assertThat(entity.getStatus()).isEqualTo(AssignmentStatus.ACTIVE);
@@ -38,7 +38,7 @@ class AssignmentEntityTest {
         Assignment entity = buildEntity();
 
         entity.updateInfo("영어 에세이", "자유 주제 에세이 작성",
-                AssignmentType.ESSAY, LocalDateTime.of(2026, 5, 1, 23, 59),
+                AssignmentType.ESSAY, LocalDateTime.of(2026, 5, 1, 23, 59).toInstant(ZoneOffset.UTC),
                 50, List.of(3L));
 
         assertThat(entity.getTitle()).isEqualTo("영어 에세이");
@@ -97,7 +97,7 @@ class AssignmentEntityTest {
     private Assignment buildEntity() {
         return Assignment.create(
                 1L, "수학 숙제", "1장~3장 풀기",
-                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
+                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
                 100, null);
     }
 }

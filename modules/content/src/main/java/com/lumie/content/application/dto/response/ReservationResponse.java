@@ -6,7 +6,6 @@ import com.lumie.content.domain.vo.ReservationStatus;
 
 import java.time.LocalDate;
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 import java.time.LocalTime;
 
 public record ReservationResponse(
@@ -33,8 +32,8 @@ public record ReservationResponse(
                 reservation.getUserId(),
                 reservation.getConsultationContent(),
                 reservation.getStatus(),
-                Timestamps.utcInstant(reservation.getCreatedAt()),
-                Timestamps.utcInstant(reservation.getUpdatedAt())
+                reservation.getCreatedAt(),
+                reservation.getUpdatedAt()
         );
     }
 }

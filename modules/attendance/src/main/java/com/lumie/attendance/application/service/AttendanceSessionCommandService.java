@@ -10,7 +10,7 @@ import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.cls.api.ClassService;
+import com.lumie.classroom.api.ClassService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

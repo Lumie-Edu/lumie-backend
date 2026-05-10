@@ -4,7 +4,6 @@ import com.lumie.exam.domain.entity.ExamTemplate;
 import com.lumie.exam.domain.vo.ExamCategory;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 import java.util.Map;
 
 public record ExamTemplateResponse(
@@ -29,8 +28,8 @@ public record ExamTemplateResponse(
                 template.getQuestionScores(),
                 template.getQuestionTypes(),
                 template.getPassScore(),
-                Timestamps.utcInstant(template.getCreatedAt()),
-                Timestamps.utcInstant(template.getUpdatedAt())
+                template.getCreatedAt(),
+                template.getUpdatedAt()
         );
     }
 }

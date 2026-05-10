@@ -6,7 +6,6 @@ import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 import java.util.List;
 
 public record SmsMessageResponse(
@@ -33,12 +32,12 @@ public record SmsMessageResponse(
             entity.getTitle(),
             entity.getContent(),
             entity.getTemplateId(),
-            Timestamps.utcInstant(entity.getSentAt()),
+            entity.getSentAt(),
             entity.getStatus(),
             entity.getSuccessCount(),
             entity.getFailCount(),
-            Timestamps.utcInstant(entity.getCreatedAt()),
-            Timestamps.utcInstant(entity.getUpdatedAt())
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 }

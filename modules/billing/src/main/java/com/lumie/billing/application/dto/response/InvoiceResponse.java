@@ -5,7 +5,6 @@ import com.lumie.billing.domain.vo.InvoiceStatus;
 import lombok.Builder;
 
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 @Builder
 public record InvoiceResponse(
@@ -30,12 +29,12 @@ public record InvoiceResponse(
                 .amount(invoice.getAmount().toLong())
                 .status(invoice.getStatus())
                 .description(invoice.getDescription())
-                .billingPeriodStart(Timestamps.utcInstant(invoice.getBillingPeriodStart()))
-                .billingPeriodEnd(Timestamps.utcInstant(invoice.getBillingPeriodEnd()))
-                .dueDate(Timestamps.utcInstant(invoice.getDueDate()))
-                .paidAt(Timestamps.utcInstant(invoice.getPaidAt()))
+                .billingPeriodStart(invoice.getBillingPeriodStart())
+                .billingPeriodEnd(invoice.getBillingPeriodEnd())
+                .dueDate(invoice.getDueDate())
+                .paidAt(invoice.getPaidAt())
                 .paymentKey(invoice.getPaymentKey())
-                .createdAt(Timestamps.utcInstant(invoice.getCreatedAt()))
+                .createdAt(invoice.getCreatedAt())
                 .build();
     }
 }
