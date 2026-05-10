@@ -53,6 +53,13 @@ spring:
       password: ${REDIS_PASSWORD:}
       host: ${REDIS_HOST:}
       port: ${REDIS_PORT:6379}
+    web:
+      pageable:
+        # Stable JSON shape for Page<T> responses:
+        #   { content, page, size, totalElements, totalPages }
+        # Spring's default PageImpl serialization is unstable across boot
+        # versions ("PageImpl" warning since 3.3+); via-dto pins it.
+        serialization-mode: via-dto
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
