@@ -15,9 +15,12 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     @Query("SELECT s FROM Schedule s WHERE s.id = :id")
     Optional<Schedule> findByIdWithReservations(Long id);
 
+    @EntityGraph(attributePaths = {"reservations"})
     List<Schedule> findByDateBetween(LocalDate startDate, LocalDate endDate);
 
+    @EntityGraph(attributePaths = {"reservations"})
     List<Schedule> findByDateBetweenAndIsAvailableTrue(LocalDate startDate, LocalDate endDate);
 
+    @EntityGraph(attributePaths = {"reservations"})
     List<Schedule> findByUserIdAndDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
 }

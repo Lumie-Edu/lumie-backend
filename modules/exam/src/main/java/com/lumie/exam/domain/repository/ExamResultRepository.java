@@ -1,6 +1,7 @@
 package com.lumie.exam.domain.repository;
 
 import com.lumie.exam.domain.entity.ExamResult;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     Optional<ExamResult> findByExamIdAndPhoneNumber(Long examId, String phoneNumber);
 
+    @EntityGraph(attributePaths = {"exam"})
     List<ExamResult> findByExamId(Long examId);
 
     /**
@@ -26,6 +28,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     List<ExamResult> findByExamIdAndStudentIdIsNotNull(Long examId);
 
+    @EntityGraph(attributePaths = {"exam"})
     List<ExamResult> findByStudentId(Long studentId);
 
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);
