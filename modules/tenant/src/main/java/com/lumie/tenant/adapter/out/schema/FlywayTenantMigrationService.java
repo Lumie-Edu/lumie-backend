@@ -41,9 +41,25 @@ public class FlywayTenantMigrationService {
                 .createSchemas(false)  // Schema is already created by TenantSchemaManager
                 .load();
 
-        flyway.repair();
         flyway.migrate();
         log.info("Flyway migrations completed for schema: {}", schemaName);
+    }
+
+    /**
+     * Operator-only escape hatch — run Flyway repair on a tenant schema.
+     * Use only after manually pruning a failed migration row from
+     * {@code flyway_schema_history}; do not wire into normal request paths.
+     */
+    public void repairSchema(String schemaName) {
+        log.warn("Running Flyway REPAIR for schema: {} — operator action", schemaName);
+        Flyway flyway = Flyway.configure()
+                .dataSource(dataSource)
+                .schemas(schemaName)
+                .locations(TENANT_MIGRATION_LOCATION)
+                .table("flyway_schema_history")
+                .createSchemas(false)
+                .load();
+        flyway.repair();
     }
 
     /**
@@ -63,7 +79,6 @@ public class FlywayTenantMigrationService {
                 .createSchemas(false)
                 .load();
 
-        flyway.repair();
         flyway.migrate();
         log.info("Flyway migrations completed for public schema");
     }

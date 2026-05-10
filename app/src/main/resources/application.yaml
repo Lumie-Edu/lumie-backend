@@ -22,6 +22,14 @@ spring:
       hibernate:
         format_sql: true
         multiTenancy: SCHEMA
+        # JDBC batching — bulk inserts/updates go in 50-row batches
+        # instead of one round-trip per row. Required for student bulk
+        # import and OMR result writes to scale.
+        jdbc:
+          batch_size: 50
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
 
   flyway:
     enabled: true
