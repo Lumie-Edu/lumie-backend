@@ -8,23 +8,23 @@ import lombok.RequiredArgsConstructor;
 public enum CommonErrorCode implements ErrorCode {
 
     // 400 Bad Request
-    INVALID_INPUT("C001", "Invalid input value", 400),
-    INVALID_TYPE("C002", "Invalid type value", 400),
+    INVALID_INPUT("COMMON_001", "Invalid input value", 400),
+    INVALID_TYPE("COMMON_002", "Invalid type value", 400),
 
     // 401 Unauthorized
-    UNAUTHORIZED("C007", "Unauthorized", 401),
+    UNAUTHORIZED("COMMON_007", "Unauthorized", 401),
 
     // 403 Forbidden
-    FORBIDDEN("C006", "Forbidden", 403),
+    FORBIDDEN("COMMON_006", "Forbidden", 403),
 
     // 404 Not Found
-    RESOURCE_NOT_FOUND("C003", "Resource not found", 404),
+    RESOURCE_NOT_FOUND("COMMON_003", "Resource not found", 404),
 
     // 409 Conflict
-    DUPLICATE_RESOURCE("C004", "Resource already exists", 409),
+    DUPLICATE_RESOURCE("COMMON_004", "Resource already exists", 409),
 
     // 500 Internal Server Error
-    INTERNAL_ERROR("C005", "Internal server error", 500);
+    INTERNAL_ERROR("COMMON_005", "Internal server error", 500);
 
     private final String code;
     private final String message;

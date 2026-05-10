@@ -9,18 +9,18 @@ import lombok.RequiredArgsConstructor;
 public enum TenantErrorCode implements ErrorCode {
 
     // 400 Bad Request
-    INVALID_SLUG("T001", "Invalid tenant slug format", 400),
-    RESERVED_SLUG("T002", "Slug is reserved and cannot be used", 400),
+    INVALID_SLUG("TENANT_001", "Invalid tenant slug format", 400),
+    RESERVED_SLUG("TENANT_002", "Slug is reserved and cannot be used", 400),
 
     // 404 Not Found
-    TENANT_NOT_FOUND("T003", "Tenant not found", 404),
+    TENANT_NOT_FOUND("TENANT_003", "Tenant not found", 404),
 
     // 409 Conflict
-    SLUG_ALREADY_EXISTS("T004", "Tenant with this slug already exists", 409),
-    INVALID_STATUS_TRANSITION("T005", "Invalid tenant status transition", 409),
+    SLUG_ALREADY_EXISTS("TENANT_004", "Tenant with this slug already exists", 409),
+    INVALID_STATUS_TRANSITION("TENANT_005", "Invalid tenant status transition", 409),
 
     // 500 Internal Server Error
-    SCHEMA_PROVISIONING_FAILED("T006", "Failed to provision tenant schema", 500);
+    SCHEMA_PROVISIONING_FAILED("TENANT_006", "Failed to provision tenant schema", 500);
 
     private final String code;
     private final String message;

@@ -7,9 +7,8 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.homepage.application.dto.request.PublishHomepageRequest;
 import com.lumie.homepage.application.dto.request.UpdateHomepageConfigRequest;
 import com.lumie.homepage.application.dto.response.HomepageConfigResponse;
-import com.lumie.homepage.application.port.in.GetHomepageConfigUseCase;
-import com.lumie.homepage.application.port.in.PublishHomepageUseCase;
-import com.lumie.homepage.application.port.in.UpdateHomepageConfigUseCase;
+import com.lumie.homepage.application.service.HomepageCommandService;
+import com.lumie.homepage.application.service.HomepageQueryService;
 import com.lumie.homepage.domain.exception.HomepageNotReadyToPublishException;
 import com.lumie.homepage.domain.vo.TemplateId;
 import org.junit.jupiter.api.AfterEach;
@@ -39,13 +38,10 @@ class HomepageControllerTest {
     private MockMvc mockMvc;
 
     @Mock
-    private GetHomepageConfigUseCase getHomepageConfigUseCase;
+    private HomepageQueryService homepageQueryService;
 
     @Mock
-    private UpdateHomepageConfigUseCase updateHomepageConfigUseCase;
-
-    @Mock
-    private PublishHomepageUseCase publishHomepageUseCase;
+    private HomepageCommandService homepageCommandService;
 
     @InjectMocks
     private HomepageController homepageController;
@@ -70,7 +66,7 @@ class HomepageControllerTest {
     @DisplayName("GET /v1/homepage - 설정 있을 때 반환")
     void getCurrent_returnsConfig() throws Exception {
         HomepageConfigResponse response = buildResponse(true);
-        when(getHomepageConfigUseCase.getCurrent()).thenReturn(Optional.of(response));
+        when(homepageQueryService.getCurrent()).thenReturn(Optional.of(response));
 
         mockMvc.perform(get("/v1/homepage"))
                 .andExpect(status().isOk())
@@ -81,7 +77,7 @@ class HomepageControllerTest {
     @Test
     @DisplayName("GET /v1/homepage - 설정 없을 때 null body 반환")
     void getCurrent_returnsNullBody_whenNoConfig() throws Exception {
-        when(getHomepageConfigUseCase.getCurrent()).thenReturn(Optional.empty());
+        when(homepageQueryService.getCurrent()).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/v1/homepage"))
                 .andExpect(status().isOk());
@@ -91,7 +87,7 @@ class HomepageControllerTest {
     @DisplayName("PUT /v1/homepage - OWNER 권한으로 설정 업데이트 성공")
     void update_success() throws Exception {
         HomepageConfigResponse response = buildResponse(false);
-        when(updateHomepageConfigUseCase.update(any())).thenReturn(response);
+        when(homepageCommandService.update(any())).thenReturn(response);
 
         ObjectNode sections = objectMapper.createObjectNode();
         sections.put("hero", true);
@@ -134,7 +130,7 @@ class HomepageControllerTest {
     @DisplayName("POST /v1/homepage/publish - 게시 상태 변경 성공")
     void publish_success() throws Exception {
         HomepageConfigResponse response = buildResponse(true);
-        when(publishHomepageUseCase.publish(any())).thenReturn(response);
+        when(homepageCommandService.publish(any())).thenReturn(response);
 
         mockMvc.perform(post("/v1/homepage/publish")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -146,21 +142,21 @@ class HomepageControllerTest {
     @Test
     @DisplayName("POST /v1/homepage/publish - 빈 config이면 422 반환")
     void publish_returns_422_when_not_ready() throws Exception {
-        when(publishHomepageUseCase.publish(any()))
+        when(homepageCommandService.publish(any()))
                 .thenThrow(new HomepageNotReadyToPublishException());
 
         mockMvc.perform(post("/v1/homepage/publish")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"published\": true}"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").value("H004"));
+                .andExpect(jsonPath("$.code").value("HOMEPAGE_004"));
     }
 
     @Test
     @DisplayName("GET /v1/homepage/public/by-custom-id/{customId} - 공개 설정 반환")
     void getPublicByCustomId_returnsPublishedConfig() throws Exception {
         HomepageConfigResponse response = buildResponse(true);
-        when(getHomepageConfigUseCase.getPublicByCustomId("my-academy")).thenReturn(Optional.of(response));
+        when(homepageQueryService.getPublicByCustomId("my-academy")).thenReturn(Optional.of(response));
 
         mockMvc.perform(get("/v1/homepage/public/by-custom-id/my-academy"))
                 .andExpect(status().isOk())
@@ -170,7 +166,7 @@ class HomepageControllerTest {
     @Test
     @DisplayName("GET /v1/homepage/public/by-custom-id/{customId} - 미공개 시 null body 반환")
     void getPublicByCustomId_returnsNullBody_whenUnpublished() throws Exception {
-        when(getHomepageConfigUseCase.getPublicByCustomId("my-academy")).thenReturn(Optional.empty());
+        when(homepageQueryService.getPublicByCustomId("my-academy")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/v1/homepage/public/by-custom-id/my-academy"))
                 .andExpect(status().isOk());

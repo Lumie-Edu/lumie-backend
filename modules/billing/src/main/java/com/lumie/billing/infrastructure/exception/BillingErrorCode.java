@@ -1,38 +1,38 @@
 package com.lumie.billing.infrastructure.exception;
 
+import com.lumie.common.exception.ErrorCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 
 @Getter
 @RequiredArgsConstructor
-public enum BillingErrorCode {
+public enum BillingErrorCode implements ErrorCode {
 
     // Plan errors
-    PLAN_NOT_FOUND("B001", "Plan not found", HttpStatus.NOT_FOUND),
+    PLAN_NOT_FOUND("BILLING_001", "Plan not found", 404),
 
     // Subscription errors
-    SUBSCRIPTION_NOT_FOUND("B101", "Subscription not found", HttpStatus.NOT_FOUND),
-    SUBSCRIPTION_ALREADY_EXISTS("B102", "Subscription already exists for this tenant", HttpStatus.CONFLICT),
-    INVALID_SUBSCRIPTION_STATE("B103", "Invalid subscription state for this operation", HttpStatus.BAD_REQUEST),
+    SUBSCRIPTION_NOT_FOUND("BILLING_101", "Subscription not found", 404),
+    SUBSCRIPTION_ALREADY_EXISTS("BILLING_102", "Subscription already exists for this tenant", 409),
+    INVALID_SUBSCRIPTION_STATE("BILLING_103", "Invalid subscription state for this operation", 400),
 
     // Quota errors
-    QUOTA_EXCEEDED("B201", "Quota exceeded", HttpStatus.FORBIDDEN),
+    QUOTA_EXCEEDED("BILLING_201", "Quota exceeded", 403),
 
     // Payment errors
-    PAYMENT_FAILED("B301", "Payment failed", HttpStatus.PAYMENT_REQUIRED),
-    PAYMENT_AMOUNT_MISMATCH("B302", "Payment amount does not match invoice", HttpStatus.BAD_REQUEST),
-    INVOICE_NOT_FOUND("B303", "Invoice not found", HttpStatus.NOT_FOUND),
-    INVALID_INVOICE_STATE("B304", "Invalid invoice state for this operation", HttpStatus.BAD_REQUEST),
+    PAYMENT_FAILED("BILLING_301", "Payment failed", 402),
+    PAYMENT_AMOUNT_MISMATCH("BILLING_302", "Payment amount does not match invoice", 400),
+    INVOICE_NOT_FOUND("BILLING_303", "Invoice not found", 404),
+    INVALID_INVOICE_STATE("BILLING_304", "Invalid invoice state for this operation", 400),
 
     // Paddle errors
-    PADDLE_WEBHOOK_SIGNATURE_INVALID("B401", "Invalid Paddle webhook signature", HttpStatus.UNAUTHORIZED),
-    PADDLE_API_ERROR("B402", "Paddle API call failed", HttpStatus.BAD_GATEWAY),
+    PADDLE_WEBHOOK_SIGNATURE_INVALID("BILLING_401", "Invalid Paddle webhook signature", 401),
+    PADDLE_API_ERROR("BILLING_402", "Paddle API call failed", 502),
 
     // General errors
-    INTERNAL_ERROR("B999", "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
+    INTERNAL_ERROR("BILLING_999", "Internal server error", 500);
 
     private final String code;
     private final String message;
-    private final HttpStatus httpStatus;
+    private final int status;
 }
