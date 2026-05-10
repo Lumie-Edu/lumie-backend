@@ -171,6 +171,38 @@ lumie:
       - http://localhost:3000
   internal:
     hmac-secret: ${LUMIE_INTERNAL_HMAC_SECRET:?LUMIE_INTERNAL_HMAC_SECRET env var required (Vault → VSO → K8s Secret)}
+  # Per-IP token-bucket rate limits. Rules evaluated in order, first match wins.
+  # Per-pod buckets — multi-pod cluster effective limit = capacity × pod count.
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    rules:
+      - path-pattern: /v1/login
+        capacity: 10
+        window: 1m
+      - path-pattern: /v1/register
+        capacity: 5
+        window: 1h
+      - path-pattern: /v1/register/owner
+        capacity: 5
+        window: 1h
+      - path-pattern: /v1/students/*/reset-password
+        capacity: 10
+        window: 1h
+      - path-pattern: /v1/admins/*/reset-password
+        capacity: 10
+        window: 1h
+      - path-pattern: /v1/students/bulk-import
+        capacity: 30
+        window: 1h
+      - path-pattern: /v1/exams/*/results/omr/batch/confirm
+        capacity: 60
+        window: 1m
+      - path-pattern: /v1/exams/*/reports/batch
+        capacity: 30
+        window: 1m
+      - path-pattern: /v1/payments/confirm
+        capacity: 30
+        window: 1m
 
 server:
   port: 8080

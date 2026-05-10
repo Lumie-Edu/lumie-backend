@@ -56,6 +56,12 @@ dependencies {
     // lumie-frontend consumes via openapi-typescript codegen.
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 
+    // Bucket4j — token-bucket rate limiter (in-memory per pod).
+    // Future enhancement: redis-backed distributed bucket for accurate
+    // multi-pod limits; for now per-pod limits are deliberate (a single
+    // attacker IP hitting one pod is bounded).
+    implementation("com.bucket4j:bucket4j-core:8.10.1")
+
     // Runtime
     runtimeOnly("org.postgresql:postgresql")
 
