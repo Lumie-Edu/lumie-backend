@@ -1,5 +1,6 @@
 package com.lumie.exam.adapter.in.web;
 
+import com.lumie.common.api.JobAcceptedResponse;
 import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -61,7 +63,7 @@ public class ResultController {
     }
 
     @PostMapping("/exams/{examId}/results/omr/batch/confirm")
-    public ResponseEntity<OmrJobResponse> confirmBatchUpload(
+    public ResponseEntity<JobAcceptedResponse> confirmBatchUpload(
             @PathVariable Long examId,
             @Valid @RequestBody OmrBatchConfirmRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
@@ -70,12 +72,18 @@ public class ResultController {
                     idempotencyKey,
                     OMR_BATCH_CONFIRM_SCOPE,
                     java.util.Map.of("examId", examId, "request", request),
-                    () -> ResponseEntity.status(HttpStatus.ACCEPTED)
-                            .body(resultCommandService.confirmBatchOmrGrading(examId, request))
+                    () -> acceptedOmrJob(examId, resultCommandService.confirmBatchOmrGrading(examId, request))
             );
         }
         OmrJobResponse response = resultCommandService.confirmBatchOmrGrading(examId, request);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+        return acceptedOmrJob(examId, response);
+    }
+
+    private ResponseEntity<JobAcceptedResponse> acceptedOmrJob(Long examId, OmrJobResponse response) {
+        String statusUrl = "/v1/exams/" + examId + "/omr-jobs/" + response.jobId();
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .location(URI.create(statusUrl))
+                .body(new JobAcceptedResponse(response.jobId(), statusUrl));
     }
 
     @GetMapping("/exams/{examId}/omr-jobs/{jobId}")

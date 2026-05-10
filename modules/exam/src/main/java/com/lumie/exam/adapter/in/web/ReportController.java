@@ -1,17 +1,20 @@
 package com.lumie.exam.adapter.in.web;
 
 import com.lumie.exam.application.dto.request.ReportBatchRequest;
-import com.lumie.exam.application.dto.response.ReportJobResponse;
 import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
 import com.lumie.exam.application.port.out.ReportServicePort;
 import com.lumie.exam.application.service.ReportJobService;
+import com.lumie.common.api.JobAcceptedResponse;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/v1")
@@ -45,7 +48,7 @@ public class ReportController {
     }
 
     @PostMapping("/exams/{examId}/reports/batch")
-    public ResponseEntity<ReportJobResponse> createBatchReport(
+    public ResponseEntity<JobAcceptedResponse> createBatchReport(
             @PathVariable Long examId,
             @RequestBody ReportBatchRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
@@ -55,14 +58,18 @@ public class ReportController {
                     idempotencyKey,
                     REPORTS_BATCH_SCOPE,
                     java.util.Map.of("examId", examId, "request", request),
-                    () -> {
-                        Long jobId = reportJobService.createBatchJob(examId, request.studentIds());
-                        return ResponseEntity.ok(new ReportJobResponse(jobId));
-                    }
+                    () -> acceptedReportJob(examId, reportJobService.createBatchJob(examId, request.studentIds()))
             );
         }
         Long jobId = reportJobService.createBatchJob(examId, request.studentIds());
-        return ResponseEntity.ok(new ReportJobResponse(jobId));
+        return acceptedReportJob(examId, jobId);
+    }
+
+    private ResponseEntity<JobAcceptedResponse> acceptedReportJob(Long examId, Long jobId) {
+        String statusUrl = "/v1/exams/" + examId + "/reports/jobs/" + jobId;
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .location(URI.create(statusUrl))
+                .body(new JobAcceptedResponse(jobId, statusUrl));
     }
 
     @GetMapping("/exams/{examId}/reports/jobs/{jobId}")
