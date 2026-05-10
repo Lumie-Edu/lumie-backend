@@ -8,10 +8,10 @@ import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.dto.response.OmrPresignResponse;
-import com.lumie.exam.application.port.out.BillingServicePort;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
-import com.lumie.exam.application.port.out.StudentServicePort;
+import com.lumie.internal.billing.BillingService;
+import com.lumie.internal.student.StudentService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.OmrGradingJob;
@@ -41,8 +41,8 @@ public class ResultCommandService {
     private final ExamResultRepository resultRepository;
     private final OmrGradingJobRepository jobRepository;
     private final GradeCalculator gradeCalculator;
-    private final StudentServicePort studentService;
-    private final BillingServicePort billingService;
+    private final StudentService studentService;
+    private final BillingService billingService;
     private final OmrServicePort omrService;
     private final OmrStoragePort storagePort;
     private final RabbitTemplate rabbitTemplate;
@@ -54,11 +54,12 @@ public class ResultCommandService {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
 
-        if (!studentService.existsById(studentId)) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        if (!studentService.validateStudent(tenantSlug, studentId).valid()) {
             throw new ExamException(ExamErrorCode.STUDENT_NOT_FOUND);
         }
 
-        if (!billingService.hasOmrQuota()) {
+        if (!billingService.checkQuota(tenantSlug, "OMR_GRADING").allowed()) {
             throw new ExamException(ExamErrorCode.OMR_QUOTA_EXCEEDED);
         }
 
@@ -75,7 +76,7 @@ public class ResultCommandService {
             throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
         }
 
-        billingService.consumeOmrQuota();
+        // Quota consumption is recorded by billing-svc when usage is logged elsewhere.
 
         ExamResult result = resolveResult(examId, exam, studentId, omrResult);
 

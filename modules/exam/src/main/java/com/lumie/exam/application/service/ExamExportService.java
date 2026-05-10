@@ -1,7 +1,8 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.common.csv.CsvWriter;
-import com.lumie.exam.application.port.out.StudentServicePort;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.internal.student.StudentService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.repository.ExamRepository;
@@ -22,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,7 +41,7 @@ public class ExamExportService {
     private final ExamResultRepository resultRepository;
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
-    private final StudentServicePort studentServicePort;
+    private final StudentService studentService;
 
     public void writeCsv(OutputStream out) {
         try (CsvWriter csv = new CsvWriter(out)) {
@@ -57,7 +59,7 @@ public class ExamExportService {
         List<ExamResult> results = resultRepository.findByExamId(exam.getId());
         if (results.isEmpty()) return;
 
-        Map<Long, StudentServicePort.StudentInfo> studentMap = fetchStudentMap(results);
+        Map<Long, StudentService.StudentData> studentMap = fetchStudentMap(results);
 
         List<Integer> allScores = results.stream()
             .map(ExamResult::getTotalScore)
@@ -69,7 +71,7 @@ public class ExamExportService {
             && exam.getGradingType() == GradingType.RELATIVE;
 
         for (ExamResult result : results) {
-            StudentServicePort.StudentInfo student = resolveStudent(studentMap, result);
+            StudentService.StudentData student = resolveStudent(studentMap, result);
             int rank = statisticsCalculator.calculateRank(result.getTotalScore(), allScores);
             double percentile = statisticsCalculator.calculatePercentile(result.getTotalScore(), allScores);
             Integer grade = result.getGrade();
@@ -78,8 +80,8 @@ public class ExamExportService {
             }
 
             csv.writeRow(List.of(
-                Objects.requireNonNullElse(student.name(), ""),
-                Objects.requireNonNullElse(student.phone() != null ? student.phone() : result.getPhoneNumber(), ""),
+                Objects.requireNonNullElse(student.studentName(), ""),
+                Objects.requireNonNullElse(student.studentPhone() != null ? student.studentPhone() : result.getPhoneNumber(), ""),
                 exam.getName(),
                 result.getCreatedAt() == null ? "" : result.getCreatedAt().toLocalDate().format(DATE_FMT),
                 Integer.toString(result.getTotalScore()),
@@ -93,23 +95,25 @@ public class ExamExportService {
         }
     }
 
-    private Map<Long, StudentServicePort.StudentInfo> fetchStudentMap(List<ExamResult> results) {
+    private Map<Long, StudentService.StudentData> fetchStudentMap(List<ExamResult> results) {
         List<Long> studentIds = results.stream()
             .map(ExamResult::getStudentId)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
         if (studentIds.isEmpty()) return Collections.emptyMap();
-        return studentServicePort.getStudentInfoBatch(studentIds);
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        return studentService.getStudentsByIds(tenantSlug, studentIds).students().stream()
+            .collect(Collectors.toMap(StudentService.StudentData::id, s -> s));
     }
 
-    private static StudentServicePort.StudentInfo resolveStudent(
-        Map<Long, StudentServicePort.StudentInfo> studentMap, ExamResult result) {
+    private static StudentService.StudentData resolveStudent(
+        Map<Long, StudentService.StudentData> studentMap, ExamResult result) {
         if (result.getStudentId() == null) {
             String displayName = result.getPhoneNumber() != null ? result.getPhoneNumber() : "미등록 학생";
-            return new StudentServicePort.StudentInfo(null, displayName, null, result.getPhoneNumber(), false);
+            return new StudentService.StudentData(null, null, displayName, result.getPhoneNumber(), false, null, null);
         }
         return studentMap.getOrDefault(result.getStudentId(),
-            new StudentServicePort.StudentInfo(result.getStudentId(), "학생 " + result.getStudentId(), null, null, true));
+            new StudentService.StudentData(result.getStudentId(), null, "학생 " + result.getStudentId(), null, true, null, null));
     }
 }

@@ -3,10 +3,9 @@ package com.lumie.exam.application.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
-import com.lumie.exam.application.port.out.BillingServicePort;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
-import com.lumie.exam.application.port.out.StudentServicePort;
+import com.lumie.internal.student.StudentService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.OmrGradingJob;
@@ -33,8 +32,7 @@ public class OmrGradingJobProcessor {
     private final ExamResultRepository resultRepository;
     private final ResultCommandService resultCommandService;
     private final OmrStoragePort storagePort;
-    private final StudentServicePort studentService;
-    private final BillingServicePort billingService;
+    private final StudentService studentService;
     private final OmrGradingJobRepository jobRepository;
     private final ObjectMapper objectMapper;
 
@@ -82,14 +80,16 @@ public class OmrGradingJobProcessor {
         OmrServicePort.OmrGradingResult omrResult = toOmrGradingResult(request);
 
         String fullPhone = "010" + request.phoneNumber();
-        Optional<StudentServicePort.StudentInfo> studentOpt = studentService.findByPhone(fullPhone);
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Optional<StudentService.StudentData> studentOpt =
+                studentService.getStudentByPhone(tenantSlug, fullPhone);
 
         ExamResult examResult;
         if (studentOpt.isPresent()) {
-            StudentServicePort.StudentInfo student = studentOpt.get();
+            StudentService.StudentData student = studentOpt.get();
             examResult = resultCommandService.resolveResult(exam, student.id(), omrResult);
             resultMap.put("studentId", student.id());
-            resultMap.put("studentName", student.name());
+            resultMap.put("studentName", student.studentName());
         } else {
             examResult = resultCommandService.resolveResultForUnregistered(exam, fullPhone, omrResult);
         }
@@ -117,7 +117,7 @@ public class OmrGradingJobProcessor {
             }
             savedResult = resultRepository.save(examResult);
         }
-        billingService.consumeOmrQuota();
+        // Quota consumption is recorded by billing-svc usage tracking.
 
         resultMap.put("success", true);
         resultMap.put("saved", true);

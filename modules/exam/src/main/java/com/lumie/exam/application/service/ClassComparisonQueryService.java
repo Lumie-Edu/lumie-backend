@@ -1,8 +1,9 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.response.statistics.ClassComparisonResponse;
-import com.lumie.exam.application.port.out.ClassEnrollmentPort;
 import com.lumie.exam.domain.entity.Exam;
+import com.lumie.internal.cls.ClassService;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
@@ -46,7 +47,7 @@ public class ClassComparisonQueryService {
     private final ExamResultRepository resultRepository;
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
-    private final ClassEnrollmentPort classEnrollmentPort;
+    private final ClassService classService;
 
     public ClassComparisonResponse getClassComparison(Long examId) {
         log.debug("Getting class comparison for exam: {}", examId);
@@ -66,9 +67,10 @@ public class ClassComparisonQueryService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        Map<Long, List<ClassEnrollmentPort.ClassParticipant>> classesByStudent = classEnrollmentPort
-                .findEnrolledClassesForStudents(studentIds).stream()
-                .collect(Collectors.groupingBy(ClassEnrollmentPort.ClassParticipant::studentId));
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Map<Long, List<ClassService.EnrolledClassData>> classesByStudent = classService
+                .getEnrolledClassesForStudents(tenantSlug, studentIds).stream()
+                .collect(Collectors.groupingBy(ClassService.EnrolledClassData::studentId));
 
         Map<Long, String> classNames = new HashMap<>();
         Map<Long, List<ExamResult>> resultsByClass = new LinkedHashMap<>();
@@ -76,14 +78,14 @@ public class ClassComparisonQueryService {
 
         for (ExamResult result : results) {
             Long studentId = result.getStudentId();
-            List<ClassEnrollmentPort.ClassParticipant> memberships =
+            List<ClassService.EnrolledClassData> memberships =
                     studentId != null ? classesByStudent.get(studentId) : null;
 
             if (memberships == null || memberships.isEmpty()) {
                 unassigned.add(result);
                 continue;
             }
-            for (ClassEnrollmentPort.ClassParticipant membership : memberships) {
+            for (ClassService.EnrolledClassData membership : memberships) {
                 classNames.putIfAbsent(membership.classId(), membership.className());
                 resultsByClass.computeIfAbsent(membership.classId(), k -> new ArrayList<>()).add(result);
             }

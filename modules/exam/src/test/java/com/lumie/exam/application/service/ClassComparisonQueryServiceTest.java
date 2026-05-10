@@ -1,8 +1,9 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.response.statistics.ClassComparisonResponse;
-import com.lumie.exam.application.port.out.ClassEnrollmentPort;
 import com.lumie.exam.domain.entity.Exam;
+import com.lumie.internal.cls.ClassService;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.repository.ExamRepository;
@@ -35,7 +36,17 @@ class ClassComparisonQueryServiceTest {
     @Mock private ExamRepository examRepository;
     @Mock private ExamResultRepository resultRepository;
     @Mock private GradeCalculator gradeCalculator;
-    @Mock private ClassEnrollmentPort classEnrollmentPort;
+    @Mock private ClassService classService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setupTenant() {
+        TenantContextHolder.setTenant("test-tenant");
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void clearTenant() {
+        TenantContextHolder.clear();
+    }
     @org.mockito.Spy private StatisticsCalculator statisticsCalculator = new StatisticsCalculator();
 
     @InjectMocks private ClassComparisonQueryService service;
@@ -77,11 +88,11 @@ class ClassComparisonQueryServiceTest {
 
         given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
         given(resultRepository.findByExamId(EXAM_ID)).willReturn(List.of(r1, r2, r3, r4));
-        given(classEnrollmentPort.findEnrolledClassesForStudents(any(Collection.class)))
+        given(classService.getEnrolledClassesForStudents(any(), any(Collection.class)))
                 .willReturn(List.of(
-                        new ClassEnrollmentPort.ClassParticipant(10L, "고2 A반", 100L),
-                        new ClassEnrollmentPort.ClassParticipant(10L, "고2 A반", 200L),
-                        new ClassEnrollmentPort.ClassParticipant(20L, "고2 B반", 200L)
+                        new ClassService.EnrolledClassData(10L, "고2 A반", 100L),
+                        new ClassService.EnrolledClassData(10L, "고2 A반", 200L),
+                        new ClassService.EnrolledClassData(20L, "고2 B반", 200L)
                 ));
 
         ClassComparisonResponse response = service.getClassComparison(EXAM_ID);

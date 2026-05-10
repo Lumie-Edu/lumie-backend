@@ -1,9 +1,10 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.response.statistics.StudentGradeResponse;
 import com.lumie.exam.application.dto.response.statistics.StudentResultSummaryResponse;
-import com.lumie.exam.application.port.out.StudentServicePort;
 import com.lumie.exam.domain.entity.Exam;
+import com.lumie.internal.student.StudentService;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
@@ -34,7 +35,7 @@ public class StudentGradeQueryService {
     private final ExamResultRepository resultRepository;
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
-    private final StudentServicePort studentServicePort;
+    private final StudentService studentService;
 
     public Page<StudentGradeResponse> getStudentGrades(Long examId, Pageable pageable) {
         log.debug("Getting student grades for exam: {}", examId);
@@ -43,7 +44,7 @@ public class StudentGradeQueryService {
                 .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
-        Map<Long, StudentServicePort.StudentInfo> studentMap = fetchStudentMap(results);
+        Map<Long, StudentService.StudentData> studentMap = fetchStudentMap(results);
 
         List<Integer> allScores = results.stream()
                 .map(ExamResult::getTotalScore)
@@ -53,7 +54,7 @@ public class StudentGradeQueryService {
 
         List<StudentGradeResponse> grades = results.stream()
                 .map(result -> {
-                    StudentServicePort.StudentInfo student = resolveStudent(studentMap, result);
+                    StudentService.StudentData student = resolveStudent(studentMap, result);
                     int rank = statisticsCalculator.calculateRank(result.getTotalScore(), allScores);
                     double percentile = statisticsCalculator.calculatePercentile(result.getTotalScore(), allScores);
 
@@ -65,9 +66,9 @@ public class StudentGradeQueryService {
 
                     return new StudentGradeResponse(
                             result.getStudentId(),
-                            student.phone(),
+                            student.studentPhone(),
                             result.getStudentId() != null,
-                            student.name(),
+                            student.studentName(),
                             result.getTotalScore(),
                             rank,
                             Math.round(percentile * 10) / 10.0,
@@ -98,17 +99,17 @@ public class StudentGradeQueryService {
                 .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
-        Map<Long, StudentServicePort.StudentInfo> studentMap = fetchStudentMap(results);
+        Map<Long, StudentService.StudentData> studentMap = fetchStudentMap(results);
 
         return results.stream()
                 .map(result -> {
-                    StudentServicePort.StudentInfo student = resolveStudent(studentMap, result);
+                    StudentService.StudentData student = resolveStudent(studentMap, result);
                     return new StudentResultSummaryResponse(
                             result.getId(),
                             result.getStudentId(),
                             result.getPhoneNumber(),
                             result.getStudentId() != null,
-                            student.name(),
+                            student.studentName(),
                             student.isActive(),
                             result.getTotalScore(),
                             result.getGrade(),
@@ -120,7 +121,7 @@ public class StudentGradeQueryService {
                 .toList();
     }
 
-    private Map<Long, StudentServicePort.StudentInfo> fetchStudentMap(List<ExamResult> results) {
+    private Map<Long, StudentService.StudentData> fetchStudentMap(List<ExamResult> results) {
         List<Long> studentIds = results.stream()
                 .map(ExamResult::getStudentId)
                 .filter(Objects::nonNull)
@@ -129,20 +130,22 @@ public class StudentGradeQueryService {
         if (studentIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return studentServicePort.getStudentInfoBatch(studentIds);
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        return studentService.getStudentsByIds(tenantSlug, studentIds).students().stream()
+                .collect(java.util.stream.Collectors.toMap(StudentService.StudentData::id, s -> s));
     }
 
-    private static StudentServicePort.StudentInfo resolveStudent(
-            Map<Long, StudentServicePort.StudentInfo> studentMap, ExamResult result) {
+    private static StudentService.StudentData resolveStudent(
+            Map<Long, StudentService.StudentData> studentMap, ExamResult result) {
         if (result.getStudentId() == null) {
             String displayName = result.getPhoneNumber() != null
                     ? result.getPhoneNumber() : "미등록 학생";
-            return new StudentServicePort.StudentInfo(
-                    null, displayName, null, result.getPhoneNumber(), false);
+            return new StudentService.StudentData(
+                    null, null, displayName, result.getPhoneNumber(), false, null, null);
         }
         return studentMap.getOrDefault(result.getStudentId(),
-                new StudentServicePort.StudentInfo(
-                        result.getStudentId(), "학생 " + result.getStudentId(),
-                        null, null, true));
+                new StudentService.StudentData(
+                        result.getStudentId(), null, "학생 " + result.getStudentId(),
+                        null, true, null, null));
     }
 }

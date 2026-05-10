@@ -1,9 +1,10 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.exam.application.port.out.BillingServicePort;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
-import com.lumie.exam.application.port.out.StudentServicePort;
+import com.lumie.internal.billing.BillingService;
+import com.lumie.internal.student.StudentService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
@@ -49,9 +50,9 @@ class ResultCommandServiceTest {
     @Mock
     private GradeCalculator gradeCalculator;
     @Mock
-    private StudentServicePort studentService;
+    private StudentService studentService;
     @Mock
-    private BillingServicePort billingService;
+    private BillingService billingService;
     @Mock
     private OmrServicePort omrService;
     @Mock
@@ -97,8 +98,8 @@ class ResultCommandServiceTest {
         ExamResult savedResult = ExamResult.create(exam, studentId, 100);
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
-        given(studentService.existsById(studentId)).willReturn(true);
-        given(billingService.hasOmrQuota()).willReturn(true);
+        given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
+        given(billingService.checkQuota(any(), eq("OMR_GRADING"))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, "OMR_GRADING", "ok"));
         given(omrService.gradeOmrImage(any(), any(), any(), any())).willReturn(buildOmrResult(100));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
         given(resultRepository.save(any(ExamResult.class))).willReturn(savedResult);
@@ -124,8 +125,8 @@ class ResultCommandServiceTest {
         }
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
-        given(studentService.existsById(studentId)).willReturn(true);
-        given(billingService.hasOmrQuota()).willReturn(true);
+        given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
+        given(billingService.checkQuota(any(), eq("OMR_GRADING"))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, "OMR_GRADING", "ok"));
         given(omrService.gradeOmrImage(any(), any(), any(), any())).willReturn(buildOmrResult(100));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.of(existingResult));
         given(resultRepository.save(any(ExamResult.class))).willReturn(existingResult);
@@ -152,7 +153,7 @@ class ResultCommandServiceTest {
     @DisplayName("학생이 존재하지 않으면 ExamException을 던진다")
     void processOmrGrading_studentNotFound_throwsExamException() {
         given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
-        given(studentService.existsById(100L)).willReturn(false);
+        given(studentService.validateStudent(any(), eq(100L))).willReturn(new StudentService.ValidateStudentResult(false, "not found", 100L));
 
         assertThatThrownBy(() -> resultCommandService.processOmrGrading(1L, 100L, new byte[]{1}))
                 .isInstanceOf(ExamException.class)
@@ -164,8 +165,8 @@ class ResultCommandServiceTest {
     @DisplayName("OMR 쿼터가 초과되면 ExamException을 던진다")
     void processOmrGrading_quotaExceeded_throwsExamException() {
         given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
-        given(studentService.existsById(100L)).willReturn(true);
-        given(billingService.hasOmrQuota()).willReturn(false);
+        given(studentService.validateStudent(any(), eq(100L))).willReturn(new StudentService.ValidateStudentResult(true, "ok", 100L));
+        given(billingService.checkQuota(any(), eq("OMR_GRADING"))).willReturn(new BillingService.QuotaResult(false, 1000L, 1000L, "OMR_GRADING", "exceeded"));
 
         assertThatThrownBy(() -> resultCommandService.processOmrGrading(1L, 100L, new byte[]{1}))
                 .isInstanceOf(ExamException.class)
@@ -177,8 +178,8 @@ class ResultCommandServiceTest {
     @DisplayName("OMR 채점 서비스 실패 시 ExamException을 던진다")
     void processOmrGrading_omrServiceFails_throwsExamException() {
         given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
-        given(studentService.existsById(100L)).willReturn(true);
-        given(billingService.hasOmrQuota()).willReturn(true);
+        given(studentService.validateStudent(any(), eq(100L))).willReturn(new StudentService.ValidateStudentResult(true, "ok", 100L));
+        given(billingService.checkQuota(any(), eq("OMR_GRADING"))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, "OMR_GRADING", "ok"));
         given(omrService.gradeOmrImage(any(), any(), any(), any()))
                 .willThrow(new RuntimeException("OMR service unavailable"));
 
@@ -197,15 +198,16 @@ class ResultCommandServiceTest {
         ExamResult savedResult = ExamResult.create(exam, studentId, 100);
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
-        given(studentService.existsById(studentId)).willReturn(true);
-        given(billingService.hasOmrQuota()).willReturn(true);
+        given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
+        given(billingService.checkQuota(any(), eq("OMR_GRADING"))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, "OMR_GRADING", "ok"));
         given(omrService.gradeOmrImage(any(), any(), any(), any())).willReturn(buildOmrResult(100));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
         given(resultRepository.save(any(ExamResult.class))).willReturn(savedResult);
 
         resultCommandService.processOmrGrading(examId, studentId, new byte[]{1});
 
-        verify(billingService).consumeOmrQuota();
+        // consumeOmrQuota was a no-op adapter method; quota tracking is elsewhere.
+        verify(billingService).checkQuota(any(), eq("OMR_GRADING"));
     }
 
     @Test

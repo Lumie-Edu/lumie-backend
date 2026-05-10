@@ -1,9 +1,10 @@
 package com.lumie.exam.application.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
-import com.lumie.exam.application.port.out.BillingServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
-import com.lumie.exam.application.port.out.StudentServicePort;
+import com.lumie.internal.student.StudentService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.repository.ExamRepository;
@@ -41,14 +42,24 @@ class OmrGradingJobProcessorTest {
     @Mock
     private OmrStoragePort storagePort;
     @Mock
-    private StudentServicePort studentService;
-    @Mock
-    private BillingServicePort billingService;
+    private StudentService studentService;
     @Mock
     private OmrGradingJobRepository jobRepository;
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private OmrGradingJobProcessor processor;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setupTenant() {
+        TenantContextHolder.setTenant("test-tenant");
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void clearTenant() {
+        TenantContextHolder.clear();
+    }
 
     private Exam buildExam() {
         return Exam.create(
@@ -85,12 +96,12 @@ class OmrGradingJobProcessorTest {
         Exam exam = buildExam();
         OmrGradingCallbackRequest request = buildSuccessCallback();
         Long studentId = 200L;
-        StudentServicePort.StudentInfo student = new StudentServicePort.StudentInfo(
-                studentId, "홍길동", "hong@test.com", "01012345678", true);
+        StudentService.StudentData student = new StudentService.StudentData(
+                studentId, 1000L, "홍길동", "01012345678", true, null, null);
         ExamResult resolvedResult = ExamResult.create(exam, studentId, 100);
 
         given(examRepository.findById(10L)).willReturn(Optional.of(exam));
-        given(studentService.findByPhone("01012345678")).willReturn(Optional.of(student));
+        given(studentService.getStudentByPhone(any(), eq("01012345678"))).willReturn(Optional.of(student));
         given(resultCommandService.resolveResult(eq(exam), eq(studentId), any())).willReturn(resolvedResult);
         given(storagePort.getObject(any())).willReturn(new byte[]{1, 2, 3});
         given(storagePort.putObject(any(), any(), any())).willReturn("omr/results/abc123/10/200");
@@ -101,7 +112,6 @@ class OmrGradingJobProcessorTest {
 
         verify(jobRepository).incrementSuccess(1L);
         verify(resultRepository).save(any(ExamResult.class));
-        verify(billingService).consumeOmrQuota();
     }
 
     @Test

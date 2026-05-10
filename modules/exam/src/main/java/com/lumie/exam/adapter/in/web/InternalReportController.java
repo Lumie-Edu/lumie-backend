@@ -7,8 +7,9 @@ import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.dto.response.statistics.ExamStatisticsResponse;
 import com.lumie.exam.application.dto.response.statistics.StabilityIndexResponse;
 import com.lumie.exam.application.dto.response.statistics.StudentRankResponse;
-import com.lumie.exam.application.port.out.StudentServicePort;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.service.*;
+import com.lumie.internal.student.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ public class InternalReportController {
     private final ExamSummaryStatisticsService examSummaryStatisticsService;
     private final StudentAnalyticsQueryService studentAnalyticsQueryService;
     private final ResultQueryService resultQueryService;
-    private final StudentServicePort studentService;
+    private final StudentService studentService;
 
     @PostMapping("/callback")
     public ResponseEntity<Void> handleCallback(@RequestBody ReportCallbackRequest request) {
@@ -67,7 +68,10 @@ public class InternalReportController {
     }
 
     @GetMapping("/students/{studentId}")
-    public ResponseEntity<StudentServicePort.StudentInfo> getStudent(@PathVariable Long studentId) {
-        return ResponseEntity.ok(studentService.getStudentInfo(studentId));
+    public ResponseEntity<StudentService.StudentData> getStudent(@PathVariable Long studentId) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        return studentService.getStudent(tenantSlug, studentId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
