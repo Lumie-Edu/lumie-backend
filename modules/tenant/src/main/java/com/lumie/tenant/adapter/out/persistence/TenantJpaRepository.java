@@ -1,7 +1,7 @@
 package com.lumie.tenant.adapter.out.persistence;
 
 import com.lumie.tenant.domain.entity.Tenant;
-import com.lumie.tenant.domain.vo.TenantStatus;
+import com.lumie.tenant.api.TenantStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

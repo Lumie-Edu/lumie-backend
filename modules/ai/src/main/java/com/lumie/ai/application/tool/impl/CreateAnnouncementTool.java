@@ -2,7 +2,7 @@ package com.lumie.ai.application.tool.impl;
 
 import com.lumie.ai.application.tool.*;
 import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.internal.content.ContentService;
+import com.lumie.content.api.ContentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

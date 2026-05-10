@@ -3,7 +3,7 @@ package com.lumie.exam.application.service;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.response.statistics.ClassComparisonResponse;
 import com.lumie.exam.domain.entity.Exam;
-import com.lumie.internal.cls.ClassService;
+import com.lumie.cls.api.ClassService;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.repository.ExamRepository;

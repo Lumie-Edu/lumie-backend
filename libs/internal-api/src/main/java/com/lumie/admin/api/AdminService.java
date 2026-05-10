@@ -1,4 +1,4 @@
-package com.lumie.internal.admin;
+package com.lumie.admin.api;
 
 import java.util.List;
 import java.util.Optional;

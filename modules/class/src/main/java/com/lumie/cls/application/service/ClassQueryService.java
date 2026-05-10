@@ -4,7 +4,7 @@ import com.lumie.cls.application.dto.ClassEnrollmentResponse;
 import com.lumie.cls.application.dto.ClassResponse;
 import com.lumie.cls.domain.entity.ClassEntity;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.admin.AdminService;
+import com.lumie.admin.api.AdminService;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
 import com.lumie.cls.domain.repository.ClassRepository;

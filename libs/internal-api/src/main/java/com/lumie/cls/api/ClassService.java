@@ -1,4 +1,4 @@
-package com.lumie.internal.cls;
+package com.lumie.cls.api;
 
 import java.util.Collection;
 import java.util.List;

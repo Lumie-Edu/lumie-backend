@@ -8,7 +8,7 @@ import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.cls.ClassService;
+import com.lumie.cls.api.ClassService;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.assignment.domain.exception.AssignmentNotFoundException;

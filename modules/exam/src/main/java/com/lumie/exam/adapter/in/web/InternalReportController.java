@@ -9,7 +9,7 @@ import com.lumie.exam.application.dto.response.statistics.StabilityIndexResponse
 import com.lumie.exam.application.dto.response.statistics.StudentRankResponse;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.service.*;
-import com.lumie.internal.student.StudentService;
+import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

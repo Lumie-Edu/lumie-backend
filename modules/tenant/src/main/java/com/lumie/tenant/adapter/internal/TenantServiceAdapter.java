@@ -1,6 +1,6 @@
 package com.lumie.tenant.adapter.internal;
 
-import com.lumie.internal.tenant.TenantService;
+import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.port.in.GetTenantUseCase;
 import com.lumie.tenant.application.port.in.ValidateTenantUseCase;
@@ -54,7 +54,7 @@ public class TenantServiceAdapter implements TenantService {
                 .filter(Tenant::isActive)
                 .map(t -> new TenantData(
                         t.getId(), t.getSlugValue(), t.getName(),
-                        t.getStatus().name(), t.getSchemaName(),
+                        t.getStatus(), t.getSchemaName(),
                         t.getCustomId(),
                         t.getCreatedAt() != null ? t.getCreatedAt().toString() : "",
                         t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : ""
@@ -120,7 +120,7 @@ public class TenantServiceAdapter implements TenantService {
     private TenantData toData(TenantResponse tenant) {
         return new TenantData(
                 tenant.id(), tenant.slug(), tenant.name(),
-                tenant.status().name(), tenant.schemaName(),
+                tenant.status(), tenant.schemaName(),
                 tenant.customId(),
                 tenant.createdAt().toString(), tenant.updatedAt().toString()
         );

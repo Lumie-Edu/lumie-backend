@@ -1,7 +1,7 @@
 package com.lumie.student.application.service;
 
 import com.lumie.common.csv.CsvWriter;
-import com.lumie.internal.auth.AuthService;
+import com.lumie.auth.api.AuthService;
 import com.lumie.student.application.dto.EnrollmentTrendResponse;
 import com.lumie.student.application.dto.StudentResponse;
 import com.lumie.student.domain.entity.Student;

@@ -1,4 +1,4 @@
-package com.lumie.internal.file;
+package com.lumie.file.api;
 
 import java.util.List;
 import java.util.UUID;

@@ -5,7 +5,7 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.application.dto.request.CreateReviewRequest;
 import com.lumie.content.application.dto.response.ReviewResponse;
 import com.lumie.content.domain.entity.Review;
-import com.lumie.internal.student.StudentService;
+import com.lumie.student.api.StudentService;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.ReviewRepository;

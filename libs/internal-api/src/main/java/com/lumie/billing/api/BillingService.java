@@ -1,4 +1,4 @@
-package com.lumie.internal.billing;
+package com.lumie.billing.api;
 
 import java.util.List;
 import java.util.Optional;

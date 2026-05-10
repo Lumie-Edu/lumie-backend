@@ -1,9 +1,9 @@
 package com.lumie.attendance.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.cls.ClassService;
-import com.lumie.internal.cls.ClassService.ClassData;
-import com.lumie.internal.cls.ClassService.ClassListData;
+import com.lumie.cls.api.ClassService;
+import com.lumie.cls.api.ClassService.ClassData;
+import com.lumie.cls.api.ClassService.ClassListData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

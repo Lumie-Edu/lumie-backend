@@ -2,7 +2,7 @@ package com.lumie.tenant.domain.entity;
 
 import com.lumie.tenant.domain.exception.InvalidTenantStateException;
 import com.lumie.tenant.domain.vo.TenantPlan;
-import com.lumie.tenant.domain.vo.TenantStatus;
+import com.lumie.tenant.api.TenantStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

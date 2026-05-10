@@ -1,7 +1,7 @@
 package com.lumie.tenant.application.port.out;
 
 import com.lumie.tenant.domain.entity.Tenant;
-import com.lumie.tenant.domain.vo.TenantStatus;
+import com.lumie.tenant.api.TenantStatus;
 
 import java.util.List;
 import java.util.Optional;

@@ -6,7 +6,7 @@ import com.lumie.cls.domain.entity.ClassEnrollment;
 import com.lumie.cls.domain.entity.ClassEntity;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.cls.domain.repository.ClassEnrollmentRepository;
-import com.lumie.internal.admin.AdminService;
+import com.lumie.admin.api.AdminService;
 import com.lumie.cls.domain.repository.ClassRepository;
 import com.lumie.cls.domain.vo.ClassSearchCriteria;
 import com.lumie.cls.domain.vo.EnrollmentStatus;

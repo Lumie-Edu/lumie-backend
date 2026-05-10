@@ -3,7 +3,7 @@ package com.lumie.content.application.service;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.domain.entity.Announcement;
-import com.lumie.internal.admin.AdminService;
+import com.lumie.admin.api.AdminService;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.AnnouncementRepository;

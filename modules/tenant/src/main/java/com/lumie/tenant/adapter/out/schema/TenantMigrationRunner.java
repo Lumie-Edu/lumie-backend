@@ -2,7 +2,7 @@ package com.lumie.tenant.adapter.out.schema;
 
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
-import com.lumie.tenant.domain.vo.TenantStatus;
+import com.lumie.tenant.api.TenantStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;

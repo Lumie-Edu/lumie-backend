@@ -5,7 +5,7 @@ import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.port.in.*;
-import com.lumie.tenant.domain.vo.TenantStatus;
+import com.lumie.tenant.api.TenantStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

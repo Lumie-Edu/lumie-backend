@@ -9,7 +9,7 @@ import com.lumie.attendance.domain.exception.SessionNotFoundException;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
-import com.lumie.internal.cls.ClassService;
+import com.lumie.cls.api.ClassService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,6 +1,6 @@
 package com.lumie.tenant.domain.exception;
 
-import com.lumie.tenant.domain.vo.TenantStatus;
+import com.lumie.tenant.api.TenantStatus;
 
 public class InvalidTenantStateException extends RuntimeException {
 

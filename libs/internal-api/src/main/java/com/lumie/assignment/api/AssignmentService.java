@@ -1,4 +1,4 @@
-package com.lumie.internal.assignment;
+package com.lumie.assignment.api;
 
 import java.util.List;
 import java.util.Optional;

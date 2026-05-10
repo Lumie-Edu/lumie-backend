@@ -1,4 +1,4 @@
-package com.lumie.internal.tenant;
+package com.lumie.tenant.api;
 
 import java.util.Optional;
 
@@ -27,14 +27,14 @@ public interface TenantService {
             Long id,
             String slug,
             String name,
-            String status,
+            TenantStatus status,
             String schemaName,
             String customId,
             String createdAt,
             String updatedAt
     ) {
         public boolean isActive() {
-            return "ACTIVE".equalsIgnoreCase(status);
+            return status == TenantStatus.ACTIVE;
         }
     }
 

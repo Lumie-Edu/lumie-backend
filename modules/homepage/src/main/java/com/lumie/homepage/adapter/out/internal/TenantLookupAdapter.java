@@ -1,7 +1,7 @@
 package com.lumie.homepage.adapter.out.internal;
 
 import com.lumie.homepage.application.port.out.TenantLookupPort;
-import com.lumie.internal.tenant.TenantService;
+import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

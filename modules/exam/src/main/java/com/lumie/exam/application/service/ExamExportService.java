@@ -2,7 +2,7 @@ package com.lumie.exam.application.service;
 
 import com.lumie.common.csv.CsvWriter;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.student.StudentService;
+import com.lumie.student.api.StudentService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.repository.ExamRepository;

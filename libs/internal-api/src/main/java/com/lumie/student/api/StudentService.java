@@ -1,4 +1,4 @@
-package com.lumie.internal.student;
+package com.lumie.student.api;
 
 import java.util.List;
 import java.util.Optional;

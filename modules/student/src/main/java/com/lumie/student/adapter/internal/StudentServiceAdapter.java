@@ -1,6 +1,6 @@
 package com.lumie.student.adapter.internal;
 
-import com.lumie.internal.student.StudentService;
+import com.lumie.student.api.StudentService;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;

@@ -9,7 +9,7 @@ import com.lumie.tenant.application.port.in.CreateTenantUseCase;
 import com.lumie.tenant.application.port.in.DeleteTenantUseCase;
 import com.lumie.tenant.application.port.in.SuspendTenantUseCase;
 import com.lumie.tenant.application.port.in.UpdateTenantUseCase;
-import com.lumie.internal.billing.BillingService;
+import com.lumie.billing.api.BillingService;
 import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;

@@ -4,7 +4,7 @@ import com.lumie.assignment.application.dto.AssignmentResponse;
 import com.lumie.assignment.application.service.AssignmentQueryService;
 import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.assignment.AssignmentService;
+import com.lumie.assignment.api.AssignmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

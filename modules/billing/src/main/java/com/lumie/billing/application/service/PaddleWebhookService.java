@@ -9,7 +9,7 @@ import com.lumie.billing.domain.entity.Invoice;
 import com.lumie.billing.domain.entity.Plan;
 import com.lumie.billing.domain.entity.Subscription;
 import com.lumie.billing.domain.vo.Money;
-import com.lumie.internal.tenant.TenantService;
+import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

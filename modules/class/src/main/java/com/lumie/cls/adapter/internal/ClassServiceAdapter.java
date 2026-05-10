@@ -4,7 +4,7 @@ import com.lumie.cls.application.dto.ClassResponse;
 import com.lumie.cls.application.service.ClassQueryService;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.internal.cls.ClassService;
+import com.lumie.cls.api.ClassService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

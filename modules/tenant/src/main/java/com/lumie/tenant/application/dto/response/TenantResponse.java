@@ -2,7 +2,7 @@ package com.lumie.tenant.application.dto.response;
 
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.domain.vo.TenantPlan;
-import com.lumie.tenant.domain.vo.TenantStatus;
+import com.lumie.tenant.api.TenantStatus;
 import lombok.Builder;
 
 import java.time.LocalDateTime;

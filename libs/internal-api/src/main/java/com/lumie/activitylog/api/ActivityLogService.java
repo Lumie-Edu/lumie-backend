@@ -1,4 +1,4 @@
-package com.lumie.internal.activitylog;
+package com.lumie.activitylog.api;
 
 public interface ActivityLogService {
 

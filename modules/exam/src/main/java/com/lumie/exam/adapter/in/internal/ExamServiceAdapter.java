@@ -1,7 +1,7 @@
 package com.lumie.exam.adapter.in.internal;
 
 import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.internal.exam.ExamService;
+import com.lumie.exam.api.ExamService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

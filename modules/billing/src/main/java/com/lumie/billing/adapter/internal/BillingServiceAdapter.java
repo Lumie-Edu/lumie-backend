@@ -5,7 +5,7 @@ import com.lumie.billing.application.dto.response.SubscriptionResponse;
 import com.lumie.billing.application.port.in.CreateSubscriptionUseCase;
 import com.lumie.billing.application.port.in.GetPlansUseCase;
 import com.lumie.billing.application.port.in.GetSubscriptionUseCase;
-import com.lumie.internal.billing.BillingService;
+import com.lumie.billing.api.BillingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

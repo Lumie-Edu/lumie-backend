@@ -1,4 +1,4 @@
-package com.lumie.internal.lecture;
+package com.lumie.lecture.api;
 
 import java.util.List;
 import java.util.Optional;

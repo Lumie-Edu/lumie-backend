@@ -7,7 +7,7 @@ import com.lumie.cls.application.dto.EnrollStudentsRequest;
 import com.lumie.cls.application.dto.UpdateClassRequest;
 import com.lumie.cls.application.dto.UpdateEnrollmentRequest;
 import com.lumie.cls.domain.entity.ClassEnrollment;
-import com.lumie.internal.admin.AdminService;
+import com.lumie.admin.api.AdminService;
 import com.lumie.cls.domain.entity.ClassEntity;
 import com.lumie.cls.domain.exception.ClassNotFoundException;
 import com.lumie.cls.domain.exception.DuplicateEnrollmentException;

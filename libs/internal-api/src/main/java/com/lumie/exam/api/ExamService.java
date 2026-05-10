@@ -1,4 +1,4 @@
-package com.lumie.internal.exam;
+package com.lumie.exam.api;
 
 /**
  * In-process internal API exposed by exam-svc and consumed by other services.

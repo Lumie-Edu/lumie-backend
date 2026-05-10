@@ -4,7 +4,7 @@ import com.lumie.auth.adapter.out.persistence.UserJpaRepository;
 import com.lumie.auth.application.port.in.ValidateTokenUseCase;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.common.auth.Role;
-import com.lumie.internal.auth.AuthService;
+import com.lumie.auth.api.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;

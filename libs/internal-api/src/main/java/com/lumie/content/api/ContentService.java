@@ -1,4 +1,4 @@
-package com.lumie.internal.content;
+package com.lumie.content.api;
 
 import java.util.Map;
 

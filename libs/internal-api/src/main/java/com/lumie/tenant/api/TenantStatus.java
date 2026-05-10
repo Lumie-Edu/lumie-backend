@@ -1,4 +1,4 @@
-package com.lumie.tenant.domain.vo;
+package com.lumie.tenant.api;
 
 public enum TenantStatus {
     PENDING,

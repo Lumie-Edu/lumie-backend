@@ -4,7 +4,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.response.statistics.StudentGradeResponse;
 import com.lumie.exam.application.dto.response.statistics.StudentResultSummaryResponse;
 import com.lumie.exam.domain.entity.Exam;
-import com.lumie.internal.student.StudentService;
+import com.lumie.student.api.StudentService;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;

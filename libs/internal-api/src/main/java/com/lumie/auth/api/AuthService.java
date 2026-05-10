@@ -1,4 +1,4 @@
-package com.lumie.internal.auth;
+package com.lumie.auth.api;
 
 import java.util.Collection;
 import java.util.Map;

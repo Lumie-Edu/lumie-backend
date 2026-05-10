@@ -4,7 +4,7 @@ import com.lumie.common.domain.BaseEntity;
 import com.lumie.tenant.domain.exception.InvalidTenantStateException;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.domain.vo.TenantSlug;
-import com.lumie.tenant.domain.vo.TenantStatus;
+import com.lumie.tenant.api.TenantStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
