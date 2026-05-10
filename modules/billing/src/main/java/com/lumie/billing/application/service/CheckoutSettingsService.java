@@ -1,6 +1,5 @@
 package com.lumie.billing.application.service;
 
-import com.lumie.billing.application.port.in.GetCheckoutSettingsUseCase;
 import com.lumie.billing.application.port.out.PlanPersistencePort;
 import com.lumie.billing.infrastructure.config.PaddleConfig;
 import lombok.RequiredArgsConstructor;
@@ -15,12 +14,15 @@ import java.util.Map;
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "paddle.enabled", havingValue = "true")
 @Transactional(readOnly = true)
-public class CheckoutSettingsService implements GetCheckoutSettingsUseCase {
+public class CheckoutSettingsService {
+
+    public record CheckoutSettings(String clientToken, String environment, Map<String, PlanPriceIds> plans) {}
+
+    public record PlanPriceIds(String monthlyPriceId, String yearlyPriceId) {}
 
     private final PaddleConfig paddleConfig;
     private final PlanPersistencePort planPersistencePort;
 
-    @Override
     public CheckoutSettings getCheckoutSettings() {
         Map<String, PlanPriceIds> plans = new LinkedHashMap<>();
         for (var plan : planPersistencePort.findAllActive()) {

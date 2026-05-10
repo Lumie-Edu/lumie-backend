@@ -3,9 +3,6 @@ package com.lumie.billing.application.service;
 import com.lumie.billing.application.dto.request.ChangeSubscriptionRequest;
 import com.lumie.billing.application.dto.request.CreateSubscriptionRequest;
 import com.lumie.billing.application.dto.response.SubscriptionResponse;
-import com.lumie.billing.application.port.in.CancelSubscriptionUseCase;
-import com.lumie.billing.application.port.in.ChangeSubscriptionUseCase;
-import com.lumie.billing.application.port.in.CreateSubscriptionUseCase;
 import com.lumie.billing.application.port.out.PlanPersistencePort;
 import com.lumie.billing.application.port.out.SubscriptionPersistencePort;
 import com.lumie.billing.domain.entity.Plan;
@@ -17,23 +14,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class SubscriptionCommandService implements
-        CreateSubscriptionUseCase,
-        ChangeSubscriptionUseCase,
-        CancelSubscriptionUseCase {
+public class SubscriptionCommandService {
 
     private static final String FREE_PLAN_ID = "FREE";
 
     private final SubscriptionPersistencePort subscriptionPersistencePort;
     private final PlanPersistencePort planPersistencePort;
 
-    @Override
     public SubscriptionResponse createSubscription(CreateSubscriptionRequest request) {
         log.info("Creating subscription for tenant: {} with plan: {}",
                 request.tenantSlug(), request.planId());
@@ -45,8 +39,8 @@ public class SubscriptionCommandService implements
         Plan plan = planPersistencePort.findById(request.planId())
                 .orElseThrow(() -> new ResourceNotFoundException("Plan", request.planId()));
 
-        LocalDateTime expiresAt = plan.isFree() ? null :
-                LocalDateTime.now().plusMonths(request.billingCycleMonths());
+        Instant expiresAt = plan.isFree() ? null :
+                Instant.now().atZone(ZoneOffset.UTC).plusMonths(request.billingCycleMonths()).toInstant();
 
         Subscription subscription = Subscription.create(
                 request.tenantId(),
@@ -62,7 +56,6 @@ public class SubscriptionCommandService implements
         return SubscriptionResponse.from(saved);
     }
 
-    @Override
     public SubscriptionResponse createFreeSubscription(Long tenantId, String tenantSlug) {
         log.info("Creating free subscription for tenant: {}", tenantSlug);
 
@@ -84,7 +77,6 @@ public class SubscriptionCommandService implements
         return SubscriptionResponse.from(saved);
     }
 
-    @Override
     public SubscriptionResponse changePlan(String tenantSlug, ChangeSubscriptionRequest request) {
         log.info("Changing plan for tenant: {} to plan: {}", tenantSlug, request.newPlanId());
 
@@ -105,7 +97,6 @@ public class SubscriptionCommandService implements
         return SubscriptionResponse.from(saved);
     }
 
-    @Override
     public void cancelSubscription(String tenantSlug) {
         log.info("Cancelling subscription for tenant: {}", tenantSlug);
 

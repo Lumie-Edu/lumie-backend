@@ -4,8 +4,8 @@ import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.PublicTenantResponse;
 import com.lumie.tenant.application.dto.response.TenantResponse;
-import com.lumie.tenant.application.port.in.*;
 import com.lumie.tenant.application.port.out.TenantLogoStoragePort.LogoStream;
+import com.lumie.tenant.application.service.TenantCommandService;
 import com.lumie.tenant.application.service.TenantLogoService;
 import com.lumie.tenant.application.service.TenantQueryService;
 import jakarta.validation.Valid;
@@ -25,13 +25,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TenantController {
 
-    private final CreateTenantUseCase createTenantUseCase;
-    private final GetTenantUseCase getTenantUseCase;
-    private final UpdateTenantUseCase updateTenantUseCase;
-    private final DeleteTenantUseCase deleteTenantUseCase;
-    private final SuspendTenantUseCase suspendTenantUseCase;
-    private final TenantLogoService tenantLogoService;
+    private final TenantCommandService tenantCommandService;
     private final TenantQueryService tenantQueryService;
+    private final TenantLogoService tenantLogoService;
 
     @GetMapping("/public/by-custom-id/{customId}")
     public ResponseEntity<PublicTenantResponse> getPublicTenantByCustomId(@PathVariable String customId) {
@@ -40,19 +36,19 @@ public class TenantController {
 
     @PostMapping
     public ResponseEntity<TenantResponse> createTenant(@Valid @RequestBody CreateTenantRequest request) {
-        TenantResponse response = createTenantUseCase.createTenant(request);
+        TenantResponse response = tenantCommandService.createTenant(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{slug}")
     public ResponseEntity<TenantResponse> getTenant(@PathVariable String slug) {
-        TenantResponse response = getTenantUseCase.getTenantBySlug(slug);
+        TenantResponse response = tenantQueryService.getTenantBySlug(slug);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
     public ResponseEntity<List<TenantResponse>> getAllTenants() {
-        List<TenantResponse> response = getTenantUseCase.getAllTenants();
+        List<TenantResponse> response = tenantQueryService.getAllTenants();
         return ResponseEntity.ok(response);
     }
 
@@ -60,13 +56,13 @@ public class TenantController {
     public ResponseEntity<TenantResponse> updateTenant(
             @PathVariable String slug,
             @Valid @RequestBody UpdateTenantRequest request) {
-        TenantResponse response = updateTenantUseCase.updateTenant(slug, request);
+        TenantResponse response = tenantCommandService.updateTenant(slug, request);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{slug}")
     public ResponseEntity<Void> deleteTenant(@PathVariable String slug) {
-        deleteTenantUseCase.deleteTenant(slug);
+        tenantCommandService.deleteTenant(slug);
         return ResponseEntity.noContent().build();
     }
 
@@ -74,13 +70,13 @@ public class TenantController {
     public ResponseEntity<TenantResponse> suspendTenant(
             @PathVariable String slug,
             @RequestParam(required = false, defaultValue = "Manual suspension") String reason) {
-        TenantResponse response = suspendTenantUseCase.suspendTenant(slug, reason);
+        TenantResponse response = tenantCommandService.suspendTenant(slug, reason);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{slug}/reactivate")
     public ResponseEntity<TenantResponse> reactivateTenant(@PathVariable String slug) {
-        TenantResponse response = suspendTenantUseCase.reactivateTenant(slug);
+        TenantResponse response = tenantCommandService.reactivateTenant(slug);
         return ResponseEntity.ok(response);
     }
 
@@ -89,13 +85,13 @@ public class TenantController {
             @PathVariable String slug,
             @RequestParam("file") MultipartFile file) {
         tenantLogoService.uploadLogo(slug, file);
-        return ResponseEntity.ok(getTenantUseCase.getTenantBySlug(slug));
+        return ResponseEntity.ok(tenantQueryService.getTenantBySlug(slug));
     }
 
     @DeleteMapping("/{slug}/logo")
     public ResponseEntity<TenantResponse> deleteLogo(@PathVariable String slug) {
         tenantLogoService.deleteLogo(slug);
-        return ResponseEntity.ok(getTenantUseCase.getTenantBySlug(slug));
+        return ResponseEntity.ok(tenantQueryService.getTenantBySlug(slug));
     }
 
     @GetMapping("/{slug}/logo")

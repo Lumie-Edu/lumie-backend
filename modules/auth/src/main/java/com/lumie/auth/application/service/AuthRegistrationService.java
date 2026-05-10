@@ -5,8 +5,6 @@ import com.lumie.auth.application.dto.request.RegisterRequest;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.exception.AuthErrors.TenantCreationFailedException;
 import com.lumie.auth.application.exception.AuthErrors.UserLoginIdAlreadyExistsException;
-import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
-import com.lumie.auth.application.port.in.RegisterUseCase;
 import com.lumie.auth.application.port.out.UserDirectoryPort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
@@ -33,7 +31,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthRegistrationService implements RegisterUseCase, OwnerRegisterUseCase {
+public class AuthRegistrationService {
 
     private final TenantService tenantService;
     private final UserLookupPort userLookupPort;
@@ -42,7 +40,6 @@ public class AuthRegistrationService implements RegisterUseCase, OwnerRegisterUs
     private final PasswordEncoder passwordEncoder;
     private final LoginSessionHelper loginSessionHelper;
 
-    @Override
     public LoginResponse register(RegisterRequest request, SessionMetadata metadata) {
         log.info("Registration attempt for userLoginId: {} on tenant: {}", request.userLoginId(), request.tenantSlug());
 
@@ -67,7 +64,6 @@ public class AuthRegistrationService implements RegisterUseCase, OwnerRegisterUs
         });
     }
 
-    @Override
     public LoginResponse registerOwner(OwnerRegisterRequest request, SessionMetadata metadata) {
         log.info("Owner registration attempt for userLoginId: {}, institute: {}", request.userLoginId(), request.instituteName());
 

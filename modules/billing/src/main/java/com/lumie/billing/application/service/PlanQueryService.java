@@ -1,7 +1,6 @@
 package com.lumie.billing.application.service;
 
 import com.lumie.billing.application.dto.response.PlanResponse;
-import com.lumie.billing.application.port.in.GetPlansUseCase;
 import com.lumie.billing.application.port.out.PlanPersistencePort;
 import com.lumie.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -15,11 +14,10 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class PlanQueryService implements GetPlansUseCase {
+public class PlanQueryService {
 
     private final PlanPersistencePort planPersistencePort;
 
-    @Override
     public List<PlanResponse> getAllPlans() {
         log.debug("Fetching all active plans");
         return planPersistencePort.findAllActive().stream()
@@ -27,7 +25,6 @@ public class PlanQueryService implements GetPlansUseCase {
                 .toList();
     }
 
-    @Override
     public PlanResponse getPlanById(String planId) {
         log.debug("Fetching plan by id: {}", planId);
         return planPersistencePort.findById(planId)

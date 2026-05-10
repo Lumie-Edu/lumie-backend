@@ -3,7 +3,6 @@ package com.lumie.auth.application.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.dto.response.LoginResponse;
-import com.lumie.auth.application.port.in.OAuth2LoginUseCase;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.api.TenantService.TenantData;
@@ -35,7 +34,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class OAuth2AuthService implements OAuth2LoginUseCase {
+public class OAuth2AuthService {
 
     private final OAuth2Config oAuth2Config;
     private final TenantService tenantService;
@@ -48,7 +47,6 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final long OAUTH2_NONCE_TTL_SECONDS = 600;
 
-    @Override
     public String getAuthorizationUrl(String provider, String tenantSlug) {
         log.info("Generating OAuth2 authorization URL for provider: {} tenant: {}", provider, tenantSlug);
 
@@ -74,7 +72,6 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         return authUrl;
     }
 
-    @Override
     public LoginResponse handleCallback(String provider, String code, String state, SessionMetadata metadata) {
         log.info("Handling OAuth2 callback for provider: {}", provider);
 

@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
-import com.lumie.tenant.application.port.in.*;
+import com.lumie.tenant.application.service.TenantCommandService;
+import com.lumie.tenant.application.service.TenantLogoService;
+import com.lumie.tenant.application.service.TenantQueryService;
 import com.lumie.tenant.api.TenantStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,16 +34,13 @@ class TenantControllerTest {
     private MockMvc mockMvc;
 
     @Mock
-    private CreateTenantUseCase createTenantUseCase;
+    private TenantCommandService tenantCommandService;
 
     @Mock
-    private GetTenantUseCase getTenantUseCase;
+    private TenantQueryService tenantQueryService;
 
     @Mock
-    private UpdateTenantUseCase updateTenantUseCase;
-
-    @Mock
-    private DeleteTenantUseCase deleteTenantUseCase;
+    private TenantLogoService tenantLogoService;
 
     @InjectMocks
     private TenantController tenantController;
@@ -78,7 +77,7 @@ class TenantControllerTest {
                 .updatedAt(Instant.now())
                 .build();
 
-        when(createTenantUseCase.createTenant(any())).thenReturn(response);
+        when(tenantCommandService.createTenant(any())).thenReturn(response);
 
         mockMvc.perform(post("/v1/tenants")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -116,7 +115,7 @@ class TenantControllerTest {
                 .updatedAt(Instant.now())
                 .build();
 
-        when(getTenantUseCase.getTenantBySlug("test-academy")).thenReturn(response);
+        when(tenantQueryService.getTenantBySlug("test-academy")).thenReturn(response);
 
         mockMvc.perform(get("/v1/tenants/test-academy"))
                 .andExpect(status().isOk())
@@ -127,7 +126,7 @@ class TenantControllerTest {
     @Test
     @DisplayName("GET /v1/tenants/{slug} - 존재하지 않는 테넌트")
     void getTenantNotFound() throws Exception {
-        when(getTenantUseCase.getTenantBySlug("non-existent"))
+        when(tenantQueryService.getTenantBySlug("non-existent"))
                 .thenThrow(new ResourceNotFoundException("Tenant", "non-existent"));
 
         mockMvc.perform(get("/v1/tenants/non-existent"))

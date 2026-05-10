@@ -1,6 +1,6 @@
 package com.lumie.auth.infrastructure.security;
 
-import com.lumie.auth.application.port.in.ValidateTokenUseCase;
+import com.lumie.auth.application.service.AuthQueryService;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
@@ -26,7 +26,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final ValidateTokenUseCase validateTokenUseCase;
+    private final AuthQueryService authQueryService;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -40,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = extractToken(request);
 
         if (token != null) {
-            Optional<TokenClaims> claimsOpt = validateTokenUseCase.validate(token);
+            Optional<TokenClaims> claimsOpt = authQueryService.validate(token);
 
             if (claimsOpt.isPresent()) {
                 TokenClaims claims = claimsOpt.get();

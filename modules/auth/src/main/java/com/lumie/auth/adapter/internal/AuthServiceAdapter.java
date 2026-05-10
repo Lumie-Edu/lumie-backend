@@ -1,7 +1,7 @@
 package com.lumie.auth.adapter.internal;
 
 import com.lumie.auth.adapter.out.persistence.UserJpaRepository;
-import com.lumie.auth.application.port.in.ValidateTokenUseCase;
+import com.lumie.auth.application.service.AuthQueryService;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.common.auth.Role;
 import com.lumie.auth.api.AuthService;
@@ -26,7 +26,7 @@ public class AuthServiceAdapter implements AuthService {
     private static final int MAX_LOGIN_ID_ATTEMPTS = 10;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final ValidateTokenUseCase validateTokenUseCase;
+    private final AuthQueryService authQueryService;
     private final UserLookupPort userLookupPort;
     private final UserJpaRepository userJpaRepository;
     private final PasswordEncoder passwordEncoder;
@@ -45,7 +45,7 @@ public class AuthServiceAdapter implements AuthService {
 
     @Override
     public TokenValidationResult validateToken(String token) {
-        Optional<com.lumie.auth.domain.vo.TokenClaims> claimsOpt = validateTokenUseCase.validate(token);
+        Optional<com.lumie.auth.domain.vo.TokenClaims> claimsOpt = authQueryService.validate(token);
 
         if (claimsOpt.isPresent()) {
             var claims = claimsOpt.get();
@@ -62,7 +62,7 @@ public class AuthServiceAdapter implements AuthService {
 
     @Override
     public Optional<UserData> getUserInfo(String token) {
-        Optional<com.lumie.auth.domain.vo.TokenClaims> claimsOpt = validateTokenUseCase.validate(token);
+        Optional<com.lumie.auth.domain.vo.TokenClaims> claimsOpt = authQueryService.validate(token);
         if (claimsOpt.isEmpty()) {
             return Optional.empty();
         }

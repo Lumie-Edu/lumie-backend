@@ -2,8 +2,6 @@ package com.lumie.billing.application.service;
 
 import com.lumie.billing.application.dto.response.QuotaCheckResponse;
 import com.lumie.billing.application.dto.response.SubscriptionResponse;
-import com.lumie.billing.application.port.in.CheckQuotaUseCase;
-import com.lumie.billing.application.port.in.GetSubscriptionUseCase;
 import com.lumie.billing.application.port.out.SubscriptionPersistencePort;
 import com.lumie.billing.application.port.out.UsageLogPersistencePort;
 import com.lumie.billing.domain.entity.Subscription;
@@ -21,12 +19,11 @@ import java.time.LocalDate;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class SubscriptionQueryService implements GetSubscriptionUseCase, CheckQuotaUseCase {
+public class SubscriptionQueryService {
 
     private final SubscriptionPersistencePort subscriptionPersistencePort;
     private final UsageLogPersistencePort usageLogPersistencePort;
 
-    @Override
     public SubscriptionResponse getSubscription(String tenantSlug) {
         log.debug("Fetching subscription for tenant: {}", tenantSlug);
         return subscriptionPersistencePort.findByTenantSlug(tenantSlug)
@@ -34,7 +31,6 @@ public class SubscriptionQueryService implements GetSubscriptionUseCase, CheckQu
                 .orElseThrow(() -> new ResourceNotFoundException("Subscription", tenantSlug));
     }
 
-    @Override
     public SubscriptionResponse getSubscriptionByTenantId(Long tenantId) {
         log.debug("Fetching subscription for tenantId: {}", tenantId);
         return subscriptionPersistencePort.findByTenantId(tenantId)
@@ -42,7 +38,6 @@ public class SubscriptionQueryService implements GetSubscriptionUseCase, CheckQu
                 .orElseThrow(() -> new ResourceNotFoundException("Subscription", "tenantId:" + tenantId));
     }
 
-    @Override
     public QuotaCheckResponse checkQuota(String tenantSlug, MetricType metricType) {
         log.debug("Checking quota for tenant: {}, metricType: {}", tenantSlug, metricType);
 
@@ -53,7 +48,6 @@ public class SubscriptionQueryService implements GetSubscriptionUseCase, CheckQu
         return checkQuotaInternal(subscription, metricType, currentUsage);
     }
 
-    @Override
     public QuotaCheckResponse checkQuota(String tenantSlug, MetricType metricType, long currentUsage) {
         log.debug("Checking quota for tenant: {}, metricType: {}, currentUsage: {}",
                 tenantSlug, metricType, currentUsage);

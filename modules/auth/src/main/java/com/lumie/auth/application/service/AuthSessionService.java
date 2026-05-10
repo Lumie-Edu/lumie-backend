@@ -8,10 +8,6 @@ import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
 import com.lumie.auth.application.exception.AuthErrors.InvalidCredentialsException;
 import com.lumie.auth.application.exception.AuthErrors.InvalidTokenException;
-import com.lumie.auth.application.port.in.LoginUseCase;
-import com.lumie.auth.application.port.in.LogoutUseCase;
-import com.lumie.auth.application.port.in.RefreshTokenUseCase;
-import com.lumie.auth.application.port.in.RevokeSessionUseCase;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.TokenProviderPort;
 import com.lumie.tenant.api.TenantService;
@@ -45,7 +41,7 @@ import java.util.Set;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshTokenUseCase, RevokeSessionUseCase {
+public class AuthSessionService {
 
     private final TenantService tenantService;
     private final UserLookupPort userLookupPort;
@@ -56,7 +52,6 @@ public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshT
     private final ObjectMapper objectMapper;
     private final LoginSessionHelper loginSessionHelper;
 
-    @Override
     public LoginResponse login(LoginRequest request, SessionMetadata metadata) {
         log.info("Login attempt for userLoginId: {}", request.userLoginId());
 
@@ -103,7 +98,6 @@ public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshT
         return tenant;
     }
 
-    @Override
     public void logout(String token) {
         TokenClaims claims = tokenProvider.parseToken(token)
                 .orElseThrow(() -> new InvalidTokenException("Invalid token"));
@@ -115,7 +109,6 @@ public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshT
         log.info("Logout successful for user: {} on tenant: {}", claims.sub(), claims.tenantSlug());
     }
 
-    @Override
     public void logoutAll(String token) {
         TokenClaims claims = tokenProvider.parseToken(token)
                 .orElseThrow(() -> new InvalidTokenException("Invalid token"));
@@ -128,7 +121,6 @@ public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshT
         log.info("Logout all sessions successful for user: {}", claims.sub());
     }
 
-    @Override
     public TokenResponse refresh(RefreshTokenRequest request) {
         log.info("Token refresh request received");
 
@@ -170,7 +162,6 @@ public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshT
         return TokenResponse.from(newTokenPair);
     }
 
-    @Override
     public void revokeSession(Long userId, String tenantSlug, String sid) {
         log.info("Revoke session request for user: {} sid: {}", userId, sid);
 
@@ -198,7 +189,6 @@ public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshT
         tokenPersistencePort.removeSessionFromIndex(tenantSlug, userId, sid);
     }
 
-    @Override
     public void revokeOtherSessions(Long userId, String tenantSlug, String currentSid) {
         Set<String> allSids = tokenPersistencePort.findAllSessionJtis(tenantSlug, userId);
         for (String sid : allSids) {

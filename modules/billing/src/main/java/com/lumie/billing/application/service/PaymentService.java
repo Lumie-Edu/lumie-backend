@@ -4,9 +4,6 @@ import com.lumie.billing.application.dto.request.ConfirmPaymentRequest;
 import com.lumie.billing.application.dto.request.TossWebhookPayload;
 import com.lumie.billing.application.dto.response.InvoiceResponse;
 import com.lumie.billing.application.dto.response.PaymentResponse;
-import com.lumie.billing.application.port.in.ConfirmPaymentUseCase;
-import com.lumie.billing.application.port.in.GetPaymentHistoryUseCase;
-import com.lumie.billing.application.port.in.HandleWebhookUseCase;
 import com.lumie.billing.application.port.out.InvoicePersistencePort;
 import com.lumie.billing.application.port.out.PaymentGatewayPort;
 import com.lumie.billing.application.port.out.SubscriptionPersistencePort;
@@ -19,23 +16,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class PaymentService implements
-        ConfirmPaymentUseCase,
-        HandleWebhookUseCase,
-        GetPaymentHistoryUseCase {
+public class PaymentService {
 
     private final PaymentGatewayPort paymentGatewayPort;
     private final InvoicePersistencePort invoicePersistencePort;
     private final SubscriptionPersistencePort subscriptionPersistencePort;
 
-    @Override
     public PaymentResponse confirmPayment(ConfirmPaymentRequest request) {
         log.info("Confirming payment: orderId={}, amount={}", request.orderId(), request.amount());
 
@@ -67,7 +61,6 @@ public class PaymentService implements
         return response;
     }
 
-    @Override
     public void handleWebhook(TossWebhookPayload payload) {
         log.info("Processing webhook: eventType={}, orderId={}",
                 payload.eventType(), payload.data().orderId());
@@ -92,7 +85,6 @@ public class PaymentService implements
         }
     }
 
-    @Override
     @Transactional(readOnly = true)
     public List<InvoiceResponse> getPaymentHistory(String tenantSlug) {
         log.debug("Fetching payment history for tenant: {}", tenantSlug);
@@ -104,7 +96,7 @@ public class PaymentService implements
     private void extendSubscription(Invoice invoice) {
         Subscription subscription = invoice.getSubscription();
         if (subscription != null && subscription.isActive()) {
-            LocalDateTime newExpiresAt = calculateNewExpiration(invoice);
+            Instant newExpiresAt = calculateNewExpiration(invoice);
             subscription.extendExpiration(newExpiresAt);
             subscriptionPersistencePort.save(subscription);
             log.info("Subscription extended for tenant: {}, newExpiresAt={}",
@@ -112,18 +104,19 @@ public class PaymentService implements
         }
     }
 
-    private LocalDateTime calculateNewExpiration(Invoice invoice) {
-        LocalDateTime baseDate = invoice.getSubscription().getExpiresAt();
-        if (baseDate == null || baseDate.isBefore(LocalDateTime.now())) {
-            baseDate = LocalDateTime.now();
+    private Instant calculateNewExpiration(Invoice invoice) {
+        Instant now = Instant.now();
+        Instant baseDate = invoice.getSubscription().getExpiresAt();
+        if (baseDate == null || baseDate.isBefore(now)) {
+            baseDate = now;
         }
 
+        long months = 1;
         if (invoice.getBillingPeriodStart() != null && invoice.getBillingPeriodEnd() != null) {
-            long months = java.time.temporal.ChronoUnit.MONTHS.between(
-                    invoice.getBillingPeriodStart(), invoice.getBillingPeriodEnd());
-            return baseDate.plusMonths(Math.max(1, months));
+            months = Math.max(1, java.time.temporal.ChronoUnit.MONTHS.between(
+                    invoice.getBillingPeriodStart().atZone(ZoneOffset.UTC),
+                    invoice.getBillingPeriodEnd().atZone(ZoneOffset.UTC)));
         }
-
-        return baseDate.plusMonths(1);
+        return baseDate.atZone(ZoneOffset.UTC).plusMonths(months).toInstant();
     }
 }

@@ -25,6 +25,7 @@ Behavioral invariants. Java-specific. Read with `.claude/knowledge/HARD_RULES_CR
 - ✅ Records (not classes) for DTOs.
 - ✅ MapStruct for entity ↔ DTO (or record `from(entity)` factory; do not hand-roll).
 - ✅ JUnit 5 + Mockito + MockMvc for unit/slice; TestContainers Postgres for integration.
+- ✅ Controllers inject application services directly. No port/in indirection.
 
 ## Module structure (hexagonal)
 
@@ -32,7 +33,7 @@ Behavioral invariants. Java-specific. Read with `.claude/knowledge/HARD_RULES_CR
 modules/{module}/
 └── src/main/java/com/lumie/{module}/
     ├── domain/{entity,vo,repository,exception}/
-    ├── application/{service,port/in,port/out,dto/{request,response}}/
+    ├── application/{service,port/out,dto/{request,response}}/
     └── adapter/{in/web,in/messaging,out/persistence,out/external,internal}/
 ```
 

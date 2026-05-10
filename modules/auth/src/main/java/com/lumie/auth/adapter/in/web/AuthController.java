@@ -12,17 +12,11 @@ import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.SessionResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
 import com.lumie.auth.application.dto.response.UserResponse;
-import com.lumie.auth.application.port.in.ChangePasswordUseCase;
-import com.lumie.auth.application.port.in.GetMeUseCase;
-import com.lumie.auth.application.port.in.GetSessionsUseCase;
-import com.lumie.auth.application.port.in.LoginUseCase;
-import com.lumie.auth.application.port.in.LogoutUseCase;
-import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
-import com.lumie.auth.application.port.in.RefreshTokenUseCase;
-import com.lumie.auth.application.port.in.RegisterUseCase;
-import com.lumie.auth.application.port.in.RevokeSessionUseCase;
-import com.lumie.auth.application.port.in.UpdateAvatarUseCase;
-import com.lumie.auth.application.port.in.UpdateProfileUseCase;
+import com.lumie.auth.application.service.AuthQueryService;
+import com.lumie.auth.application.service.AuthRegistrationService;
+import com.lumie.auth.application.service.AuthSessionService;
+import com.lumie.auth.application.service.AvatarService;
+import com.lumie.auth.application.service.UserProfileService;
 import com.lumie.auth.infrastructure.util.SessionMetadataExtractor;
 import com.lumie.auth.infrastructure.config.CookieConfig;
 import com.lumie.auth.infrastructure.util.CookieUtils;
@@ -42,17 +36,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final RegisterUseCase registerUseCase;
-    private final OwnerRegisterUseCase ownerRegisterUseCase;
-    private final LoginUseCase loginUseCase;
-    private final LogoutUseCase logoutUseCase;
-    private final RefreshTokenUseCase refreshTokenUseCase;
-    private final UpdateAvatarUseCase updateAvatarUseCase;
-    private final GetMeUseCase getMeUseCase;
-    private final UpdateProfileUseCase updateProfileUseCase;
-    private final ChangePasswordUseCase changePasswordUseCase;
-    private final GetSessionsUseCase getSessionsUseCase;
-    private final RevokeSessionUseCase revokeSessionUseCase;
+    private final AuthRegistrationService authRegistrationService;
+    private final AuthSessionService authSessionService;
+    private final AuthQueryService authQueryService;
+    private final UserProfileService userProfileService;
+    private final AvatarService avatarService;
     private final CookieUtils cookieUtils;
     private final CookieConfig cookieConfig;
 
@@ -63,7 +51,7 @@ public class AuthController {
         if (userId == null || tenantSlug == null) {
             return ResponseEntity.status(401).build();
         }
-        return ResponseEntity.ok(getMeUseCase.getMe(userId, tenantSlug));
+        return ResponseEntity.ok(authQueryService.getMe(userId, tenantSlug));
     }
 
     @PatchMapping("/me")
@@ -73,7 +61,7 @@ public class AuthController {
         if (userId == null || tenantSlug == null) {
             return ResponseEntity.status(401).build();
         }
-        return ResponseEntity.ok(updateProfileUseCase.updateProfile(userId, tenantSlug, request));
+        return ResponseEntity.ok(userProfileService.updateProfile(userId, tenantSlug, request));
     }
 
     @PostMapping("/me/password")
@@ -83,7 +71,7 @@ public class AuthController {
         if (userId == null || tenantSlug == null) {
             return ResponseEntity.status(401).build();
         }
-        changePasswordUseCase.changePassword(userId, tenantSlug, request);
+        userProfileService.changePassword(userId, tenantSlug, request);
         return ResponseEntity.noContent().build();
     }
 
@@ -93,7 +81,7 @@ public class AuthController {
         if (userId == null) {
             return ResponseEntity.status(401).build();
         }
-        updateAvatarUseCase.updateAvatar(userId, request.avatarSeed());
+        avatarService.updateAvatar(userId, request.avatarSeed());
         return ResponseEntity.noContent().build();
     }
 
@@ -105,7 +93,7 @@ public class AuthController {
         if (userId == null || tenantSlug == null) {
             return ResponseEntity.status(401).build();
         }
-        return ResponseEntity.ok(getSessionsUseCase.getSessions(userId, tenantSlug, currentSid));
+        return ResponseEntity.ok(authQueryService.getSessions(userId, tenantSlug, currentSid));
     }
 
     @DeleteMapping("/me/sessions/{sid}")
@@ -119,7 +107,7 @@ public class AuthController {
         if (sid.equals(currentSid)) {
             return ResponseEntity.badRequest().build();
         }
-        revokeSessionUseCase.revokeSession(userId, tenantSlug, sid);
+        authSessionService.revokeSession(userId, tenantSlug, sid);
         return ResponseEntity.noContent().build();
     }
 
@@ -131,7 +119,7 @@ public class AuthController {
         if (userId == null || tenantSlug == null) {
             return ResponseEntity.status(401).build();
         }
-        revokeSessionUseCase.revokeOtherSessions(userId, tenantSlug, currentSid);
+        authSessionService.revokeOtherSessions(userId, tenantSlug, currentSid);
         return ResponseEntity.noContent().build();
     }
 
@@ -139,7 +127,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
         var metadata = SessionMetadataExtractor.extract(httpRequest);
-        LoginResponse response = registerUseCase.register(request, metadata);
+        LoginResponse response = authRegistrationService.register(request, metadata);
         return buildAuthResponse(response, 201);
     }
 
@@ -147,7 +135,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> registerOwner(
             @Valid @RequestBody OwnerRegisterRequest request, HttpServletRequest httpRequest) {
         var metadata = SessionMetadataExtractor.extract(httpRequest);
-        LoginResponse response = ownerRegisterUseCase.registerOwner(request, metadata);
+        LoginResponse response = authRegistrationService.registerOwner(request, metadata);
         return buildAuthResponse(response, 201);
     }
 
@@ -155,7 +143,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         var metadata = SessionMetadataExtractor.extract(httpRequest);
-        LoginResponse response = loginUseCase.login(request, metadata);
+        LoginResponse response = authSessionService.login(request, metadata);
         return buildAuthResponse(response, 200);
     }
 
@@ -173,7 +161,7 @@ public class AuthController {
             return ResponseEntity.status(401).build();
         }
 
-        TokenResponse response = refreshTokenUseCase.refresh(
+        TokenResponse response = authSessionService.refresh(
                 RefreshTokenRequest.builder().refreshToken(refreshToken).build()
         );
         return buildTokenRefreshResponse(response);
@@ -190,7 +178,7 @@ public class AuthController {
         }
 
         if (token != null) {
-            logoutUseCase.logout(token);
+            authSessionService.logout(token);
         }
 
         return buildLogoutResponse();
@@ -207,7 +195,7 @@ public class AuthController {
         }
 
         if (token != null) {
-            logoutUseCase.logoutAll(token);
+            authSessionService.logoutAll(token);
         }
 
         return buildLogoutResponse();

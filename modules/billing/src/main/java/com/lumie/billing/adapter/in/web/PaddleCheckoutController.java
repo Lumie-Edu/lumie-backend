@@ -1,7 +1,7 @@
 package com.lumie.billing.adapter.in.web;
 
-import com.lumie.billing.application.port.in.GetCheckoutSettingsUseCase;
-import com.lumie.billing.application.port.in.GetCheckoutSettingsUseCase.CheckoutSettings;
+import com.lumie.billing.application.service.CheckoutSettingsService;
+import com.lumie.billing.application.service.CheckoutSettingsService.CheckoutSettings;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
@@ -15,10 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnProperty(name = "paddle.enabled", havingValue = "true")
 public class PaddleCheckoutController {
 
-    private final GetCheckoutSettingsUseCase getCheckoutSettingsUseCase;
+    private final CheckoutSettingsService checkoutSettingsService;
 
     @GetMapping("/checkout-settings")
     public ResponseEntity<CheckoutSettings> getCheckoutSettings() {
-        return ResponseEntity.ok(getCheckoutSettingsUseCase.getCheckoutSettings());
+        return ResponseEntity.ok(checkoutSettingsService.getCheckoutSettings());
     }
 }

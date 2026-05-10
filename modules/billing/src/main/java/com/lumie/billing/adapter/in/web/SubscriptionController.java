@@ -4,7 +4,8 @@ import com.lumie.billing.application.dto.request.ChangeSubscriptionRequest;
 import com.lumie.billing.application.dto.request.CreateSubscriptionRequest;
 import com.lumie.billing.application.dto.response.QuotaCheckResponse;
 import com.lumie.billing.application.dto.response.SubscriptionResponse;
-import com.lumie.billing.application.port.in.*;
+import com.lumie.billing.application.service.SubscriptionCommandService;
+import com.lumie.billing.application.service.SubscriptionQueryService;
 import com.lumie.billing.domain.vo.MetricType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,22 +18,19 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class SubscriptionController {
 
-    private final CreateSubscriptionUseCase createSubscriptionUseCase;
-    private final GetSubscriptionUseCase getSubscriptionUseCase;
-    private final ChangeSubscriptionUseCase changeSubscriptionUseCase;
-    private final CancelSubscriptionUseCase cancelSubscriptionUseCase;
-    private final CheckQuotaUseCase checkQuotaUseCase;
+    private final SubscriptionCommandService subscriptionCommandService;
+    private final SubscriptionQueryService subscriptionQueryService;
 
     @PostMapping
     public ResponseEntity<SubscriptionResponse> createSubscription(
             @Valid @RequestBody CreateSubscriptionRequest request) {
-        SubscriptionResponse response = createSubscriptionUseCase.createSubscription(request);
+        SubscriptionResponse response = subscriptionCommandService.createSubscription(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{tenantSlug}")
     public ResponseEntity<SubscriptionResponse> getSubscription(@PathVariable String tenantSlug) {
-        SubscriptionResponse response = getSubscriptionUseCase.getSubscription(tenantSlug);
+        SubscriptionResponse response = subscriptionQueryService.getSubscription(tenantSlug);
         return ResponseEntity.ok(response);
     }
 
@@ -40,13 +38,13 @@ public class SubscriptionController {
     public ResponseEntity<SubscriptionResponse> changePlan(
             @PathVariable String tenantSlug,
             @Valid @RequestBody ChangeSubscriptionRequest request) {
-        SubscriptionResponse response = changeSubscriptionUseCase.changePlan(tenantSlug, request);
+        SubscriptionResponse response = subscriptionCommandService.changePlan(tenantSlug, request);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{tenantSlug}")
     public ResponseEntity<Void> cancelSubscription(@PathVariable String tenantSlug) {
-        cancelSubscriptionUseCase.cancelSubscription(tenantSlug);
+        subscriptionCommandService.cancelSubscription(tenantSlug);
         return ResponseEntity.noContent().build();
     }
 
@@ -57,9 +55,9 @@ public class SubscriptionController {
             @RequestParam(required = false) Long currentUsage) {
         QuotaCheckResponse response;
         if (currentUsage != null) {
-            response = checkQuotaUseCase.checkQuota(tenantSlug, metricType, currentUsage);
+            response = subscriptionQueryService.checkQuota(tenantSlug, metricType, currentUsage);
         } else {
-            response = checkQuotaUseCase.checkQuota(tenantSlug, metricType);
+            response = subscriptionQueryService.checkQuota(tenantSlug, metricType);
         }
         return ResponseEntity.ok(response);
     }

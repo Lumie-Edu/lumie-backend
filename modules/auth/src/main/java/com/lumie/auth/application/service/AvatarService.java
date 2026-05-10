@@ -1,6 +1,5 @@
 package com.lumie.auth.application.service;
 
-import com.lumie.auth.application.port.in.UpdateAvatarUseCase;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -10,11 +9,10 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AvatarService implements UpdateAvatarUseCase {
+public class AvatarService {
 
     private final UserLookupPort userLookupPort;
 
-    @Override
     public void updateAvatar(Long userId, String avatarSeed) {
         boolean updated = userLookupPort.updateAvatarSeed(userId, avatarSeed);
         if (!updated) {

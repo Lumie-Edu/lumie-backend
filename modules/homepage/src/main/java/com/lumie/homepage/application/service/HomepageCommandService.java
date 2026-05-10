@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.homepage.application.dto.request.PublishHomepageRequest;
 import com.lumie.homepage.application.dto.request.UpdateHomepageConfigRequest;
 import com.lumie.homepage.application.dto.response.HomepageConfigResponse;
-import com.lumie.homepage.application.port.in.PublishHomepageUseCase;
-import com.lumie.homepage.application.port.in.UpdateHomepageConfigUseCase;
 import com.lumie.homepage.application.port.out.HomepageConfigPersistencePort;
 import com.lumie.homepage.domain.entity.HomepageConfig;
 import com.lumie.homepage.domain.exception.HomepageConfigNotFoundException;
@@ -18,12 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class HomepageCommandService implements UpdateHomepageConfigUseCase, PublishHomepageUseCase {
+public class HomepageCommandService {
 
     private final HomepageConfigPersistencePort homepageConfigPersistencePort;
     private final ObjectMapper objectMapper;
 
-    @Override
     public HomepageConfigResponse update(UpdateHomepageConfigRequest request) {
         log.info("Upserting homepage config: templateId={}, version={}", request.templateId(), request.templateVersion());
 
@@ -45,7 +42,6 @@ public class HomepageCommandService implements UpdateHomepageConfigUseCase, Publ
         return HomepageConfigResponse.from(saved, objectMapper);
     }
 
-    @Override
     public HomepageConfigResponse publish(PublishHomepageRequest request) {
         log.info("Toggling homepage publish: published={}", request.published());
 

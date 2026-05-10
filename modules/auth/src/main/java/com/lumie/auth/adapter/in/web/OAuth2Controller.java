@@ -1,7 +1,7 @@
 package com.lumie.auth.adapter.in.web;
 
 import com.lumie.auth.application.dto.response.LoginResponse;
-import com.lumie.auth.application.port.in.OAuth2LoginUseCase;
+import com.lumie.auth.application.service.OAuth2AuthService;
 import com.lumie.auth.infrastructure.util.SessionMetadataExtractor;
 import com.lumie.auth.infrastructure.config.OAuth2Config;
 import com.lumie.auth.infrastructure.util.CookieUtils;
@@ -21,7 +21,7 @@ import java.net.URI;
 @RequiredArgsConstructor
 public class OAuth2Controller {
 
-    private final OAuth2LoginUseCase oAuth2LoginUseCase;
+    private final OAuth2AuthService oAuth2AuthService;
     private final CookieUtils cookieUtils;
     private final OAuth2Config oAuth2Config;
 
@@ -29,7 +29,7 @@ public class OAuth2Controller {
     public ResponseEntity<Void> authorize(
             @PathVariable String provider,
             @RequestParam("tenant") String tenantSlug) {
-        String authUrl = oAuth2LoginUseCase.getAuthorizationUrl(provider, tenantSlug);
+        String authUrl = oAuth2AuthService.getAuthorizationUrl(provider, tenantSlug);
         return ResponseEntity
                 .status(HttpStatus.FOUND)
                 .location(URI.create(authUrl))
@@ -43,7 +43,7 @@ public class OAuth2Controller {
             @RequestParam String state,
             HttpServletRequest httpRequest) {
         var metadata = SessionMetadataExtractor.extract(httpRequest);
-        LoginResponse response = oAuth2LoginUseCase.handleCallback(provider, code, state, metadata);
+        LoginResponse response = oAuth2AuthService.handleCallback(provider, code, state, metadata);
 
         return ResponseEntity
                 .status(HttpStatus.FOUND)

@@ -5,10 +5,6 @@ import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
-import com.lumie.tenant.application.port.in.CreateTenantUseCase;
-import com.lumie.tenant.application.port.in.DeleteTenantUseCase;
-import com.lumie.tenant.application.port.in.SuspendTenantUseCase;
-import com.lumie.tenant.application.port.in.UpdateTenantUseCase;
 import com.lumie.tenant.api.TenantCreatedEvent;
 import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
@@ -23,17 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class TenantCommandService implements
-        CreateTenantUseCase,
-        UpdateTenantUseCase,
-        DeleteTenantUseCase,
-        SuspendTenantUseCase {
+public class TenantCommandService {
 
     private final TenantPersistencePort tenantPersistencePort;
     private final SchemaProvisioningPort schemaProvisioningPort;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Override
     public TenantResponse createTenant(CreateTenantRequest request) {
         log.info("Creating tenant with slug: {}", request.slug());
 
@@ -73,7 +64,6 @@ public class TenantCommandService implements
         return TenantResponse.from(savedTenant);
     }
 
-    @Override
     public TenantResponse updateTenant(String slug, UpdateTenantRequest request) {
         log.info("Updating tenant with slug: {}", slug);
 
@@ -101,7 +91,6 @@ public class TenantCommandService implements
         tenant.updateCustomId(normalized);
     }
 
-    @Override
     public void deleteTenant(String slug) {
         log.info("Deleting tenant with slug: {}", slug);
 
@@ -112,7 +101,6 @@ public class TenantCommandService implements
         log.info("Tenant marked as deleted: {}", slug);
     }
 
-    @Override
     public TenantResponse suspendTenant(String slug, String reason) {
         log.info("Suspending tenant: {} with reason: {}", slug, reason);
 
@@ -123,7 +111,6 @@ public class TenantCommandService implements
         return TenantResponse.from(savedTenant);
     }
 
-    @Override
     public TenantResponse reactivateTenant(String slug) {
         log.info("Reactivating tenant: {}", slug);
 

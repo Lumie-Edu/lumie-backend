@@ -2,9 +2,8 @@ package com.lumie.tenant.adapter.internal;
 
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.application.dto.response.TenantResponse;
-import com.lumie.tenant.application.port.in.GetTenantUseCase;
-import com.lumie.tenant.application.port.in.ValidateTenantUseCase;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
+import com.lumie.tenant.application.service.TenantQueryService;
 import com.lumie.tenant.application.service.TenantRegistrationService;
 import com.lumie.tenant.application.service.TenantRegistrationService.TenantRegistrationResult;
 import com.lumie.tenant.api.TenantStatus;
@@ -23,15 +22,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TenantServiceAdapter implements TenantService {
 
-    private final GetTenantUseCase getTenantUseCase;
-    private final ValidateTenantUseCase validateTenantUseCase;
+    private final TenantQueryService tenantQueryService;
     private final TenantRegistrationService tenantRegistrationService;
     private final TenantPersistencePort tenantPersistencePort;
 
     @Override
     public Optional<TenantData> getTenant(Long tenantId) {
         try {
-            TenantResponse tenant = getTenantUseCase.getTenantById(tenantId);
+            TenantResponse tenant = tenantQueryService.getTenantById(tenantId);
             return Optional.of(toData(tenant));
         } catch (Exception e) {
             log.warn("Tenant not found by id: {}", tenantId);
@@ -42,7 +40,7 @@ public class TenantServiceAdapter implements TenantService {
     @Override
     public Optional<TenantData> getTenantBySlug(String slug) {
         try {
-            TenantResponse tenant = getTenantUseCase.getTenantBySlug(slug);
+            TenantResponse tenant = tenantQueryService.getTenantBySlug(slug);
             return Optional.of(toData(tenant));
         } catch (Exception e) {
             log.warn("Tenant not found by slug: {}", slug);
@@ -73,8 +71,8 @@ public class TenantServiceAdapter implements TenantService {
 
     @Override
     public ValidateTenantResult validateTenant(String slug) {
-        boolean isValid = validateTenantUseCase.isValidAndActive(slug);
-        long tenantId = validateTenantUseCase.getTenantIdBySlug(slug).orElse(0L);
+        boolean isValid = tenantQueryService.isValidAndActive(slug);
+        long tenantId = tenantQueryService.getTenantIdBySlug(slug).orElse(0L);
         return new ValidateTenantResult(
                 isValid,
                 isValid ? "Tenant is valid and active" : "Tenant is invalid or not active",

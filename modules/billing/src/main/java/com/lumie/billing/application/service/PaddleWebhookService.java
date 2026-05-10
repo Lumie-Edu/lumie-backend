@@ -16,7 +16,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Slf4j
@@ -81,7 +82,7 @@ public class PaddleWebhookService {
                 .orElseGet(() -> {
                     log.warn("No existing subscription for tenant={}, creating new", tenantSlug);
                     Subscription newSub = Subscription.create(null, tenantSlug, plan,
-                            LocalDateTime.now().plusMonths(1));
+                            Instant.now().atZone(ZoneOffset.UTC).plusMonths(1).toInstant());
                     newSub.linkPaddle(paddleSubId, paddleCustId);
                     return newSub;
                 });
@@ -143,21 +144,24 @@ public class PaddleWebhookService {
         }
 
         long amount = amountStr != null ? Long.parseLong(amountStr) : 0;
+        Instant now = Instant.now();
+        Instant periodStart = now.atZone(ZoneOffset.UTC).withDayOfMonth(1).toInstant();
+        Instant periodEnd = now.atZone(ZoneOffset.UTC).plusMonths(1).withDayOfMonth(1).toInstant();
         Invoice invoice = Invoice.create(
                 "INV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(),
                 subscription,
                 Money.of(amount),
                 "Paddle transaction " + paddleTxnId,
-                LocalDateTime.now().withDayOfMonth(1),
-                LocalDateTime.now().plusMonths(1).withDayOfMonth(1),
-                LocalDateTime.now(),
+                periodStart,
+                periodEnd,
+                now,
                 paddleTxnId
         );
         invoice.markAsPaid(paddleTxnId);
 
         invoicePersistencePort.save(invoice);
 
-        subscription.extendExpiration(LocalDateTime.now().plusMonths(1));
+        subscription.extendExpiration(now.atZone(ZoneOffset.UTC).plusMonths(1).toInstant());
         subscriptionPersistencePort.save(subscription);
 
         log.info("Transaction completed: paddleTxn={}, tenant={}, amount={}",

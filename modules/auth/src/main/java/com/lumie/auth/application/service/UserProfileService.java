@@ -3,8 +3,6 @@ package com.lumie.auth.application.service;
 import com.lumie.auth.application.dto.request.ChangePasswordRequest;
 import com.lumie.auth.application.dto.request.UpdateProfileRequest;
 import com.lumie.auth.application.dto.response.UserResponse;
-import com.lumie.auth.application.port.in.ChangePasswordUseCase;
-import com.lumie.auth.application.port.in.UpdateProfileUseCase;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
@@ -22,13 +20,12 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UserProfileService implements UpdateProfileUseCase, ChangePasswordUseCase {
+public class UserProfileService {
 
     private final UserLookupPort userLookupPort;
     private final TokenPersistencePort tokenPersistencePort;
     private final PasswordEncoder passwordEncoder;
 
-    @Override
     public UserResponse updateProfile(Long userId, String tenantSlug, UpdateProfileRequest request) {
         log.info("Profile update request for user: {}", userId);
 
@@ -42,7 +39,6 @@ public class UserProfileService implements UpdateProfileUseCase, ChangePasswordU
         return user.toUserResponse(tenantSlug);
     }
 
-    @Override
     public void changePassword(Long userId, String tenantSlug, ChangePasswordRequest request) {
         log.info("Password change request for user: {}", userId);
 

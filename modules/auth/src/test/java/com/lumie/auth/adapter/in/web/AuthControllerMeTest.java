@@ -2,17 +2,11 @@ package com.lumie.auth.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.dto.response.UserResponse;
-import com.lumie.auth.application.port.in.ChangePasswordUseCase;
-import com.lumie.auth.application.port.in.GetMeUseCase;
-import com.lumie.auth.application.port.in.GetSessionsUseCase;
-import com.lumie.auth.application.port.in.LoginUseCase;
-import com.lumie.auth.application.port.in.LogoutUseCase;
-import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
-import com.lumie.auth.application.port.in.RefreshTokenUseCase;
-import com.lumie.auth.application.port.in.RegisterUseCase;
-import com.lumie.auth.application.port.in.RevokeSessionUseCase;
-import com.lumie.auth.application.port.in.UpdateAvatarUseCase;
-import com.lumie.auth.application.port.in.UpdateProfileUseCase;
+import com.lumie.auth.application.service.AuthQueryService;
+import com.lumie.auth.application.service.AuthRegistrationService;
+import com.lumie.auth.application.service.AuthSessionService;
+import com.lumie.auth.application.service.AvatarService;
+import com.lumie.auth.application.service.UserProfileService;
 import com.lumie.common.auth.Role;
 import com.lumie.auth.infrastructure.config.CookieConfig;
 import com.lumie.auth.infrastructure.util.CookieUtils;
@@ -45,17 +39,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("AuthController /v1/me 단위 테스트")
 class AuthControllerMeTest {
 
-    @Mock private RegisterUseCase registerUseCase;
-    @Mock private OwnerRegisterUseCase ownerRegisterUseCase;
-    @Mock private LoginUseCase loginUseCase;
-    @Mock private LogoutUseCase logoutUseCase;
-    @Mock private RefreshTokenUseCase refreshTokenUseCase;
-    @Mock private UpdateAvatarUseCase updateAvatarUseCase;
-    @Mock private GetMeUseCase getMeUseCase;
-    @Mock private UpdateProfileUseCase updateProfileUseCase;
-    @Mock private ChangePasswordUseCase changePasswordUseCase;
-    @Mock private GetSessionsUseCase getSessionsUseCase;
-    @Mock private RevokeSessionUseCase revokeSessionUseCase;
+    @Mock private AuthRegistrationService authRegistrationService;
+    @Mock private AuthSessionService authSessionService;
+    @Mock private AuthQueryService authQueryService;
+    @Mock private UserProfileService userProfileService;
+    @Mock private AvatarService avatarService;
     @Mock private CookieUtils cookieUtils;
     @Mock private CookieConfig cookieConfig;
 
@@ -95,7 +83,7 @@ class AuthControllerMeTest {
                 .tenantId(7L)
                 .avatarSeed("seed-1")
                 .build();
-        given(getMeUseCase.getMe(eq(42L), eq("acme"))).willReturn(response);
+        given(authQueryService.getMe(eq(42L), eq("acme"))).willReturn(response);
 
         // when / then
         mockMvc.perform(get("/v1/me"))
@@ -120,7 +108,7 @@ class AuthControllerMeTest {
         // when / then
         mockMvc.perform(get("/v1/me"))
                 .andExpect(status().isUnauthorized());
-        then(getMeUseCase).should(never()).getMe(eq(0L), eq("acme"));
+        then(authQueryService).should(never()).getMe(eq(0L), eq("acme"));
     }
 
     @Test
@@ -145,7 +133,7 @@ class AuthControllerMeTest {
                 .email("alice@example.com")
                 .role(Role.OWNER).tenantSlug("acme").tenantId(7L).avatarSeed("seed-1")
                 .build();
-        given(updateProfileUseCase.updateProfile(eq(42L), eq("acme"), org.mockito.ArgumentMatchers.any()))
+        given(userProfileService.updateProfile(eq(42L), eq("acme"), org.mockito.ArgumentMatchers.any()))
                 .willReturn(response);
 
         // when / then
@@ -191,7 +179,7 @@ class AuthControllerMeTest {
                         .content(objectMapper.writeValueAsString(
                                 new ChangePasswordBody("Old@Pass1", "New@Pass2"))))
                 .andExpect(status().isNoContent());
-        then(changePasswordUseCase).should()
+        then(userProfileService).should()
                 .changePassword(eq(42L), eq("acme"), org.mockito.ArgumentMatchers.any());
     }
 
@@ -228,7 +216,7 @@ class AuthControllerMeTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new AvatarBody("seed-2"))))
                 .andExpect(status().isNoContent());
-        then(updateAvatarUseCase).should().updateAvatar(42L, "seed-2");
+        then(avatarService).should().updateAvatar(42L, "seed-2");
     }
 
     @Test

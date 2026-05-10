@@ -1,6 +1,5 @@
 package com.lumie.billing.application.service;
 
-import com.lumie.billing.application.port.in.RecordUsageUseCase;
 import com.lumie.billing.application.port.out.UsageLogPersistencePort;
 import com.lumie.billing.domain.entity.UsageLog;
 import com.lumie.billing.domain.vo.MetricType;
@@ -15,11 +14,10 @@ import java.time.LocalDate;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class UsageTrackingService implements RecordUsageUseCase {
+public class UsageTrackingService {
 
     private final UsageLogPersistencePort usageLogPersistencePort;
 
-    @Override
     public void recordUsage(Long tenantId, String tenantSlug, MetricType metricType, long value) {
         log.debug("Recording usage for tenant: {}, metricType: {}, value: {}",
                 tenantSlug, metricType, value);
@@ -38,7 +36,6 @@ public class UsageTrackingService implements RecordUsageUseCase {
                 tenantSlug, metricType, value);
     }
 
-    @Override
     public void incrementUsage(Long tenantId, String tenantSlug, MetricType metricType, long delta) {
         log.debug("Incrementing usage for tenant: {}, metricType: {}, delta: {}",
                 tenantSlug, metricType, delta);

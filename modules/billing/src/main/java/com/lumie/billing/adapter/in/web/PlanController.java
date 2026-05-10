@@ -1,7 +1,7 @@
 package com.lumie.billing.adapter.in.web;
 
 import com.lumie.billing.application.dto.response.PlanResponse;
-import com.lumie.billing.application.port.in.GetPlansUseCase;
+import com.lumie.billing.application.service.PlanQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,17 +16,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PlanController {
 
-    private final GetPlansUseCase getPlansUseCase;
+    private final PlanQueryService planQueryService;
 
     @GetMapping
     public ResponseEntity<List<PlanResponse>> getAllPlans() {
-        List<PlanResponse> plans = getPlansUseCase.getAllPlans();
+        List<PlanResponse> plans = planQueryService.getAllPlans();
         return ResponseEntity.ok(plans);
     }
 
     @GetMapping("/{planId}")
     public ResponseEntity<PlanResponse> getPlanById(@PathVariable String planId) {
-        PlanResponse plan = getPlansUseCase.getPlanById(planId);
+        PlanResponse plan = planQueryService.getPlanById(planId);
         return ResponseEntity.ok(plan);
     }
 }

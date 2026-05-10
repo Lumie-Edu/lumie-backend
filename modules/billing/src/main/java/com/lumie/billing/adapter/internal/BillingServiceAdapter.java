@@ -2,9 +2,9 @@ package com.lumie.billing.adapter.internal;
 
 import com.lumie.billing.application.dto.response.PlanResponse;
 import com.lumie.billing.application.dto.response.SubscriptionResponse;
-import com.lumie.billing.application.port.in.CreateSubscriptionUseCase;
-import com.lumie.billing.application.port.in.GetPlansUseCase;
-import com.lumie.billing.application.port.in.GetSubscriptionUseCase;
+import com.lumie.billing.application.service.PlanQueryService;
+import com.lumie.billing.application.service.SubscriptionCommandService;
+import com.lumie.billing.application.service.SubscriptionQueryService;
 import com.lumie.billing.api.BillingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,14 +19,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class BillingServiceAdapter implements BillingService {
 
-    private final GetSubscriptionUseCase getSubscriptionUseCase;
-    private final CreateSubscriptionUseCase createSubscriptionUseCase;
-    private final GetPlansUseCase getPlansUseCase;
+    private final SubscriptionQueryService subscriptionQueryService;
+    private final SubscriptionCommandService subscriptionCommandService;
+    private final PlanQueryService planQueryService;
 
     @Override
     public Optional<SubscriptionData> getSubscription(String tenantSlug) {
         try {
-            SubscriptionResponse sub = getSubscriptionUseCase.getSubscription(tenantSlug);
+            SubscriptionResponse sub = subscriptionQueryService.getSubscription(tenantSlug);
             return Optional.of(toSubscriptionData(sub));
         } catch (Exception e) {
             log.warn("Subscription not found for tenant: {}", tenantSlug);
@@ -44,7 +44,7 @@ public class BillingServiceAdapter implements BillingService {
     @Override
     public Optional<PlanFeaturesData> getPlanFeatures(String planId) {
         try {
-            PlanResponse plan = getPlansUseCase.getPlanById(planId);
+            PlanResponse plan = planQueryService.getPlanById(planId);
             List<String> features = new ArrayList<>();
             if (plan.features().customDomains()) features.add("custom_domains");
             if (plan.features().advancedAnalytics()) features.add("advanced_analytics");
@@ -63,7 +63,7 @@ public class BillingServiceAdapter implements BillingService {
 
     @Override
     public SubscriptionData createFreeSubscription(Long tenantId, String tenantSlug) {
-        SubscriptionResponse sub = createSubscriptionUseCase.createFreeSubscription(tenantId, tenantSlug);
+        SubscriptionResponse sub = subscriptionCommandService.createFreeSubscription(tenantId, tenantSlug);
         return toSubscriptionData(sub);
     }
 

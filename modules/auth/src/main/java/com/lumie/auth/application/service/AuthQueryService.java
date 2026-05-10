@@ -4,9 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.dto.response.SessionResponse;
 import com.lumie.auth.application.dto.response.UserResponse;
-import com.lumie.auth.application.port.in.GetMeUseCase;
-import com.lumie.auth.application.port.in.GetSessionsUseCase;
-import com.lumie.auth.application.port.in.ValidateTokenUseCase;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
@@ -27,14 +24,13 @@ import java.util.Set;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthQueryService implements ValidateTokenUseCase, GetMeUseCase, GetSessionsUseCase {
+public class AuthQueryService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenPersistencePort tokenPersistencePort;
     private final UserLookupPort userLookupPort;
     private final ObjectMapper objectMapper;
 
-    @Override
     public Optional<TokenClaims> validate(String token) {
         log.debug("Validating token");
 
@@ -60,19 +56,16 @@ public class AuthQueryService implements ValidateTokenUseCase, GetMeUseCase, Get
         return Optional.of(claims);
     }
 
-    @Override
     public boolean isValid(String token) {
         return validate(token).isPresent();
     }
 
-    @Override
     public UserResponse getMe(Long userId, String tenantSlug) {
         UserData user = userLookupPort.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
         return user.toUserResponse(tenantSlug);
     }
 
-    @Override
     public List<SessionResponse> getSessions(Long userId, String tenantSlug, String currentSid) {
         Set<String> sids = tokenPersistencePort.findAllSessionJtis(tenantSlug, userId);
         if (sids.isEmpty()) {

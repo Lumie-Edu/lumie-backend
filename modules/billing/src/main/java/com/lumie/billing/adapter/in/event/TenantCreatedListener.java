@@ -1,6 +1,6 @@
 package com.lumie.billing.adapter.in.event;
 
-import com.lumie.billing.application.port.in.CreateSubscriptionUseCase;
+import com.lumie.billing.application.service.SubscriptionCommandService;
 import com.lumie.tenant.api.TenantCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,12 +27,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TenantCreatedListener {
 
-    private final CreateSubscriptionUseCase createSubscriptionUseCase;
+    private final SubscriptionCommandService subscriptionCommandService;
 
     @ApplicationModuleListener
     public void onTenantCreated(TenantCreatedEvent event) {
         try {
-            createSubscriptionUseCase.createFreeSubscription(event.tenantId(), event.tenantSlug());
+            subscriptionCommandService.createFreeSubscription(event.tenantId(), event.tenantSlug());
             log.info("FREE subscription provisioned for new tenant: {}", event.tenantSlug());
         } catch (Exception e) {
             log.error("Failed to provision FREE subscription for tenant {}: {}",
