@@ -1,6 +1,7 @@
 package com.lumie.student.adapter.in.web;
 
 import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.student.application.dto.*;
 import com.lumie.student.application.service.StudentCommandService;
@@ -30,8 +31,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class StudentController {
 
+    private static final String BULK_IMPORT_SCOPE = "POST /v1/students/bulk";
+
     private final StudentCommandService studentCommandService;
     private final StudentQueryService studentQueryService;
+    private final IdempotencyService idempotencyService;
 
     @PostMapping
     public ResponseEntity<StudentResponse> registerStudent(@Valid @RequestBody StudentRequest request) {
@@ -124,7 +128,22 @@ public class StudentController {
 
     @PostMapping(value = "/bulk", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BulkImportResult> bulkImportStudents(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        if (idempotencyKey != null) {
+            // Multipart upload — fingerprint by filename + size; the IdempotencyService
+            // SHA-256s this descriptor as its canonical body.
+            BulkUploadFingerprint fingerprint = new BulkUploadFingerprint(
+                    file.getOriginalFilename() == null ? "" : file.getOriginalFilename(),
+                    file.getSize()
+            );
+            return idempotencyService.executeOnce(
+                    idempotencyKey,
+                    BULK_IMPORT_SCOPE,
+                    fingerprint,
+                    () -> ResponseEntity.ok(studentCommandService.bulkImportStudents(file))
+            );
+        }
         BulkImportResult result = studentCommandService.bulkImportStudents(file);
         return ResponseEntity.ok(result);
     }
@@ -148,4 +167,6 @@ public class StudentController {
             .contentLength(body.length)
             .body(body);
     }
+
+    private record BulkUploadFingerprint(String filename, long size) {}
 }

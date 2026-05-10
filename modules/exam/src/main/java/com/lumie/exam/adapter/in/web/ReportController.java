@@ -5,6 +5,7 @@ import com.lumie.exam.application.dto.response.ReportJobResponse;
 import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
 import com.lumie.exam.application.port.out.ReportServicePort;
 import com.lumie.exam.application.service.ReportJobService;
+import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -17,8 +18,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ReportController {
 
+    private static final String REPORTS_BATCH_SCOPE = "POST /v1/exams/{examId}/reports/batch";
+
     private final ReportServicePort reportServicePort;
     private final ReportJobService reportJobService;
+    private final IdempotencyService idempotencyService;
 
     @PostMapping("/reports/students/{studentId}/exams/{examId}")
     public ResponseEntity<byte[]> generateReport(
@@ -43,8 +47,20 @@ public class ReportController {
     @PostMapping("/exams/{examId}/reports/batch")
     public ResponseEntity<ReportJobResponse> createBatchReport(
             @PathVariable Long examId,
-            @RequestBody ReportBatchRequest request
+            @RequestBody ReportBatchRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
+        if (idempotencyKey != null) {
+            return idempotencyService.executeOnce(
+                    idempotencyKey,
+                    REPORTS_BATCH_SCOPE,
+                    java.util.Map.of("examId", examId, "request", request),
+                    () -> {
+                        Long jobId = reportJobService.createBatchJob(examId, request.studentIds());
+                        return ResponseEntity.ok(new ReportJobResponse(jobId));
+                    }
+            );
+        }
         Long jobId = reportJobService.createBatchJob(examId, request.studentIds());
         return ResponseEntity.ok(new ReportJobResponse(jobId));
     }

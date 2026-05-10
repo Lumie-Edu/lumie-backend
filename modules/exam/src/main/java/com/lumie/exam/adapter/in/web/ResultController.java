@@ -1,6 +1,7 @@
 package com.lumie.exam.adapter.in.web;
 
 import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
@@ -34,9 +35,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ResultController {
 
+    private static final String OMR_BATCH_CONFIRM_SCOPE = "POST /v1/exams/{examId}/results/omr/batch/confirm";
+
     private final ResultCommandService resultCommandService;
     private final ResultQueryService resultQueryService;
     private final ExamExportService examExportService;
+    private final IdempotencyService idempotencyService;
 
     @PostMapping(value = "/exams/{examId}/results/omr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ExamResultResponse> processOmrGrading(
@@ -59,7 +63,17 @@ public class ResultController {
     @PostMapping("/exams/{examId}/results/omr/batch/confirm")
     public ResponseEntity<OmrJobResponse> confirmBatchUpload(
             @PathVariable Long examId,
-            @Valid @RequestBody OmrBatchConfirmRequest request) {
+            @Valid @RequestBody OmrBatchConfirmRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        if (idempotencyKey != null) {
+            return idempotencyService.executeOnce(
+                    idempotencyKey,
+                    OMR_BATCH_CONFIRM_SCOPE,
+                    java.util.Map.of("examId", examId, "request", request),
+                    () -> ResponseEntity.status(HttpStatus.ACCEPTED)
+                            .body(resultCommandService.confirmBatchOmrGrading(examId, request))
+            );
+        }
         OmrJobResponse response = resultCommandService.confirmBatchOmrGrading(examId, request);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
