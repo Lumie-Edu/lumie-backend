@@ -21,6 +21,10 @@ public class Tenant extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Embedded
     private TenantSlug slug;
 

@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,6 +45,10 @@ public class AttendanceSession extends BaseEntity {
     @Column(name = "late_threshold_minutes", nullable = false)
     private Integer lateThresholdMinutes;
 
+    // @BatchSize avoids the N+1 lazy-load that would otherwise hit when a Page<AttendanceSession>
+    // result iterates over records. Fetch joining via @EntityGraph would force in-memory pagination
+    // (HHH000104), so batch fetching is the canonical pattern for Page + OneToMany.
+    @BatchSize(size = 25)
     @OneToMany(mappedBy = "session", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<AttendanceRecord> records = new ArrayList<>();
 

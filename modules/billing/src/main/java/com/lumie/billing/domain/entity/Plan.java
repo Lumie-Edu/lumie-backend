@@ -20,6 +20,10 @@ public class Plan extends BaseEntity {
     @Column(name = "id", length = 20)
     private String id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "name", nullable = false, length = 50)
     private String name;
 

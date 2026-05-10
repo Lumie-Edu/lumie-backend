@@ -21,6 +21,10 @@ public class HomepageConfig extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "template_id", nullable = false, length = 64)
     private TemplateId templateId;

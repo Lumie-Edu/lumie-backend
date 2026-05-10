@@ -24,6 +24,10 @@ public class AdminPermission {
     @Column(name = "access_level", nullable = false, length = 10)
     private AccessLevel accessLevel = AccessLevel.NONE;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     public AdminPermission(Long adminId, String permissionCode, AccessLevel accessLevel) {
         this.adminId = adminId;
         this.permissionCode = permissionCode;

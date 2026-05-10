@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,10 @@ public class QnaBoard extends BaseEntity {
     @Column(name = "is_it_answered", nullable = false)
     private Boolean isItAnswered;
 
+    // @BatchSize avoids N+1 lazy-load when a Page<QnaBoard> iterates over comments.
+    // Fetch joining via @EntityGraph would force in-memory pagination (HHH000104),
+    // so batch fetching is the canonical pattern for Page + OneToMany.
+    @BatchSize(size = 25)
     @OneToMany(mappedBy = "qnaBoard", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC")
     private List<QnaComment> comments = new ArrayList<>();

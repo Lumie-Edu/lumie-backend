@@ -27,6 +27,10 @@ public class AssignmentSubmission extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "assignment_id", nullable = false)
     private Long assignmentId;
 
