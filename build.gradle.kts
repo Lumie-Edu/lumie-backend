@@ -1,7 +1,12 @@
+import com.github.jk1.license.filter.LicenseBundleNormalizer
+import com.github.jk1.license.render.InventoryHtmlReportRenderer
+import com.github.jk1.license.render.JsonReportRenderer
+
 plugins {
     java
-    id("org.springframework.boot") version "3.4.1" apply false
+    id("org.springframework.boot") version "3.4.13" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
+    id("com.github.jk1.dependency-license-report") version "2.9"
 }
 
 allprojects {
@@ -30,4 +35,22 @@ subprojects {
     tasks.withType<Test> {
         useJUnitPlatform()
     }
+}
+
+// License compliance — fail build on disallowed licenses (AGPL, GPL, etc.).
+// Allowed list lives in config/allowed-licenses.json.
+licenseReport {
+    outputDir = "$projectDir/build/reports/dependency-license"
+    renderers = arrayOf(
+        InventoryHtmlReportRenderer("report.html"),
+        JsonReportRenderer("licenses.json", false),
+    )
+    filters = arrayOf(LicenseBundleNormalizer())
+    allowedLicensesFile = file("$projectDir/config/allowed-licenses.json")
+    excludeBoms = true
+    projects = subprojects.toTypedArray()
+}
+
+tasks.named("check") {
+    dependsOn("checkLicense")
 }
