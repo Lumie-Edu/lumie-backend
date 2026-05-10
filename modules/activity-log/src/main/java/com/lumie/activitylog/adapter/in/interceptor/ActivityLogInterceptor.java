@@ -4,7 +4,6 @@ import com.lumie.activitylog.application.service.ActivityLogContext;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.activitylog.api.ActivityLogService;
-import com.lumie.admin.api.AdminService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,6 @@ import java.util.regex.Pattern;
 public class ActivityLogInterceptor implements HandlerInterceptor {
 
     private final ActivityLogService activityLogService;
-    private final AdminService adminService;
 
     private static final Pattern ENTITY_ID_PATTERN = Pattern.compile("/v1/[^/]+/(\\d+)");
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
@@ -93,11 +91,14 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
                 return;
             }
 
-            adminService.getAdminByUserId(tenantSlug, userId).ifPresent(actor ->
-                    activityLogService.log(
-                            actor.id(), actor.name(), role,
-                            action, entityType, entityId, null, null
-                    )
+            // Snapshot pattern (CIRCULAR_MODULE_DEPS_AUDIT Resolution A, pair 1):
+            // log directly from request context — no cross-module lookup.
+            // Actor display name will be filled from JWT name claim once that is added
+            // to the auth pipeline; until then we log actorId only and the UI resolves.
+            String actorName = UserContextHolder.getUserName();
+            activityLogService.log(
+                    userId, actorName, role,
+                    action, entityType, entityId, null, null
             );
         } catch (Exception e) {
             log.warn("Failed to auto-log activity: {}", e.getMessage());

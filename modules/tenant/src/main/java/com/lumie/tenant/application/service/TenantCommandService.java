@@ -9,12 +9,13 @@ import com.lumie.tenant.application.port.in.CreateTenantUseCase;
 import com.lumie.tenant.application.port.in.DeleteTenantUseCase;
 import com.lumie.tenant.application.port.in.SuspendTenantUseCase;
 import com.lumie.tenant.application.port.in.UpdateTenantUseCase;
-import com.lumie.billing.api.BillingService;
+import com.lumie.tenant.api.TenantCreatedEvent;
 import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +31,7 @@ public class TenantCommandService implements
 
     private final TenantPersistencePort tenantPersistencePort;
     private final SchemaProvisioningPort schemaProvisioningPort;
-    private final BillingService billingService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public TenantResponse createTenant(CreateTenantRequest request) {
@@ -64,7 +65,10 @@ public class TenantCommandService implements
         savedTenant.activate();
         tenantPersistencePort.save(savedTenant);
 
-        billingService.createFreeSubscription(savedTenant.getId(), savedTenant.getSlugValue());
+        // Free-subscription provisioning runs as an AFTER_COMMIT listener on this
+        // event in billing. Breaks the previous tenant↔billing cycle
+        // (CIRCULAR_MODULE_DEPS_AUDIT Resolution A, pair 3).
+        eventPublisher.publishEvent(new TenantCreatedEvent(savedTenant.getId(), savedTenant.getSlugValue()));
 
         return TenantResponse.from(savedTenant);
     }

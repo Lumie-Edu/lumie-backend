@@ -8,7 +8,7 @@ import com.lumie.student.application.dto.StudentResponse;
 import com.lumie.student.application.dto.StudentUpdateRequest;
 import com.lumie.auth.api.AuthService;
 import com.lumie.billing.api.BillingService;
-import com.lumie.exam.api.ExamService;
+import com.lumie.student.api.StudentRegisteredEvent;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.DuplicatePhoneException;
 import com.lumie.student.domain.exception.QuotaExceededException;
@@ -20,6 +20,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -40,8 +41,8 @@ public class StudentCommandService {
     private final StudentRepository studentRepository;
     private final AuthService authService;
     private final BillingService billingService;
-    private final ExamService examService;
     private final EntityManager entityManager;
+    private final ApplicationEventPublisher eventPublisher;
 
     public StudentResponse registerStudent(StudentRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -75,21 +76,10 @@ public class StudentCommandService {
 
         Student saved = studentRepository.save(student);
 
-        // Backfill: link any pre-existing unregistered exam results with the same phone
-        // to the newly created student.
-        if (saved.getPhone() != null && !saved.getPhone().isBlank()) {
-            try {
-                int linked = examService.linkUnregisteredResultsByPhone(saved.getPhone(), saved.getId());
-                if (linked > 0) {
-                    log.info("Backfilled {} exam results for student {} (phone={})",
-                            linked, saved.getId(), saved.getPhone());
-                }
-            } catch (Exception e) {
-                // Non-fatal: student registration should not fail due to backfill issues.
-                log.warn("Failed to backfill exam results for student {} (phone={}): {}",
-                        saved.getId(), saved.getPhone(), e.getMessage());
-            }
-        }
+        // Cross-module backfill (e.g. exam.linkUnregisteredResultsByPhone) runs as
+        // an AFTER_COMMIT listener on this event. Breaks the previous student↔exam
+        // cycle (CIRCULAR_MODULE_DEPS_AUDIT Resolution A, pair 2).
+        eventPublisher.publishEvent(new StudentRegisteredEvent(saved.getId(), saved.getPhone(), tenantSlug));
 
         log.info("Student registered: {} in tenant: {}", saved.getUserLoginId(), tenantSlug);
         return StudentResponse.from(saved);

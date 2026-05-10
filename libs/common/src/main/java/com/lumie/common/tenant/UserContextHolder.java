@@ -9,6 +9,7 @@ package com.lumie.common.tenant;
 public final class UserContextHolder {
 
     private static final ThreadLocal<Long> CURRENT_USER_ID = new ThreadLocal<>();
+    private static final ThreadLocal<String> CURRENT_USER_NAME = new ThreadLocal<>();
     private static final ThreadLocal<String> CURRENT_USER_ROLE = new ThreadLocal<>();
     private static final ThreadLocal<String> CURRENT_SID = new ThreadLocal<>();
 
@@ -31,6 +32,15 @@ public final class UserContextHolder {
         return userId;
     }
 
+    /** Display name from the JWT {@code name} claim. May be {@code null} for tokens issued before name was added. */
+    public static void setUserName(String name) {
+        CURRENT_USER_NAME.set(name);
+    }
+
+    public static String getUserName() {
+        return CURRENT_USER_NAME.get();
+    }
+
     public static void setUserRole(String role) {
         CURRENT_USER_ROLE.set(role);
     }
@@ -49,6 +59,7 @@ public final class UserContextHolder {
 
     public static void clear() {
         CURRENT_USER_ID.remove();
+        CURRENT_USER_NAME.remove();
         CURRENT_USER_ROLE.remove();
         CURRENT_SID.remove();
     }
