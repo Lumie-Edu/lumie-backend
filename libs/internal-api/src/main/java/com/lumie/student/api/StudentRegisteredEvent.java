@@ -1,5 +1,7 @@
 package com.lumie.student.api;
 
+import com.lumie.event.DomainEvent;
+
 /**
  * Domain event published after a Student is registered (single or bulk path).
  *
@@ -7,8 +9,9 @@ package com.lumie.student.api;
  * {@code @TransactionalEventListener(phase = AFTER_COMMIT)} to backfill
  * cross-module work that previously required a synchronous call back into
  * student. Replaces the direct {@code student → exam.linkUnregistered}
- * call that created the student↔exam circular dependency
- * (see {@code temp/audits-cleanup/CIRCULAR_MODULE_DEPS_AUDIT.md}).
+ * call that created the student↔exam circular dependency.
+ *
+ * <p>Schema version 1.
  *
  * @param studentId persisted student id
  * @param phone phone number recorded on the student (may be null/blank)
@@ -21,5 +24,5 @@ public record StudentRegisteredEvent(
         Long studentId,
         String phone,
         String tenantSlug
-) {
+) implements DomainEvent {
 }
