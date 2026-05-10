@@ -3,28 +3,43 @@ package com.lumie.exam.adapter.out.external;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.*;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class OmrServiceClient implements OmrServicePort {
 
-    private final RestTemplate restTemplate;
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration OMR_READ_TIMEOUT = Duration.ofSeconds(90);
+
+    private final RestClient restClient;
 
     @Value("${lumie.services.grading.url}")
     private String gradingServiceUrl;
+
+    public OmrServiceClient(RestClient.Builder restClientBuilder) {
+        // OMR grading is long-running (image processing); override default 30s read timeout to 90s.
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+        factory.setReadTimeout(OMR_READ_TIMEOUT);
+        this.restClient = restClientBuilder.requestFactory(factory).build();
+    }
 
     @Override
     public OmrGradingResult gradeOmrImage(byte[] imageData,
@@ -32,9 +47,6 @@ public class OmrServiceClient implements OmrServicePort {
                                            Map<String, Integer> questionScores,
                                            Map<String, String> questionTypes) {
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 
             ByteArrayResource imageResource = new ByteArrayResource(imageData) {
@@ -48,13 +60,12 @@ public class OmrServiceClient implements OmrServicePort {
             body.add("question_scores", toJson(questionScores));
             body.add("question_types", toJson(questionTypes));
 
-            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
-
-            ResponseEntity<OmrResponse> response = restTemplate.postForEntity(
-                    gradingServiceUrl + "/api/omr/grade",
-                    request,
-                    OmrResponse.class
-            );
+            ResponseEntity<OmrResponse> response = restClient.post()
+                    .uri(gradingServiceUrl + "/api/omr/grade")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .toEntity(OmrResponse.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return mapToResult(response.getBody());
@@ -87,7 +98,8 @@ public class OmrServiceClient implements OmrServicePort {
             sb.append("}");
             return sb.toString();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to convert map to JSON", e);
+            log.error("Failed to convert map to JSON for OMR grading", e);
+            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
         }
     }
 

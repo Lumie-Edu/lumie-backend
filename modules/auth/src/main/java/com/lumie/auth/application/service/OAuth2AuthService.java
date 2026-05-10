@@ -17,10 +17,10 @@ import com.lumie.auth.domain.vo.TokenPair;
 import com.lumie.auth.infrastructure.config.OAuth2Config;
 import com.lumie.auth.application.port.out.TokenProviderPort;
 import com.lumie.common.exception.ResourceNotFoundException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -33,7 +33,6 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class OAuth2AuthService {
 
     private final OAuth2Config oAuth2Config;
@@ -41,8 +40,24 @@ public class OAuth2AuthService {
     private final UserLookupPort userLookupPort;
     private final TokenPersistencePort tokenPersistencePort;
     private final TokenProviderPort tokenProvider;
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final ObjectMapper objectMapper;
+
+    public OAuth2AuthService(OAuth2Config oAuth2Config,
+                              TenantService tenantService,
+                              UserLookupPort userLookupPort,
+                              TokenPersistencePort tokenPersistencePort,
+                              TokenProviderPort tokenProvider,
+                              RestClient.Builder restClientBuilder,
+                              ObjectMapper objectMapper) {
+        this.oAuth2Config = oAuth2Config;
+        this.tenantService = tenantService;
+        this.userLookupPort = userLookupPort;
+        this.tokenPersistencePort = tokenPersistencePort;
+        this.tokenProvider = tokenProvider;
+        this.restClient = restClientBuilder.build();
+        this.objectMapper = objectMapper;
+    }
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final long OAUTH2_NONCE_TTL_SECONDS = 600;
@@ -162,31 +177,33 @@ public class OAuth2AuthService {
     @SuppressWarnings("unchecked")
     private Map<String, String> exchangeCodeForToken(String provider, String code,
                                                       OAuth2Config.ProviderConfig config) {
-        Map<String, String> params = Map.of(
-                "grant_type", "authorization_code",
-                "client_id", config.getClientId(),
-                "client_secret", config.getClientSecret(),
-                "redirect_uri", config.getRedirectUri(),
-                "code", code
-        );
+        // RFC 6749 §4.1.3 mandates application/x-www-form-urlencoded for the
+        // token endpoint. Google + Naver enforce this strictly; Kakao is
+        // lenient but documents form-encoding as the supported shape.
+        org.springframework.util.MultiValueMap<String, String> params =
+                new org.springframework.util.LinkedMultiValueMap<>();
+        params.add("grant_type", "authorization_code");
+        params.add("client_id", config.getClientId());
+        params.add("client_secret", config.getClientSecret());
+        params.add("redirect_uri", config.getRedirectUri());
+        params.add("code", code);
 
-        return restTemplate.postForObject(config.getTokenUri(), params, Map.class);
+        return restClient.post()
+                .uri(config.getTokenUri())
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(params)
+                .retrieve()
+                .body(Map.class);
     }
 
     @SuppressWarnings("unchecked")
     private OAuth2UserInfo getUserInfo(String provider, String accessToken,
                                         OAuth2Config.ProviderConfig config) {
-        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        org.springframework.http.HttpEntity<Void> entity = new org.springframework.http.HttpEntity<>(headers);
-
-        Map<String, Object> response = restTemplate.exchange(
-                config.getUserInfoUri(),
-                org.springframework.http.HttpMethod.GET,
-                entity,
-                Map.class
-        ).getBody();
+        Map<String, Object> response = restClient.get()
+                .uri(config.getUserInfoUri())
+                .header(org.springframework.http.HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .retrieve()
+                .body(Map.class);
 
         return switch (provider.toLowerCase()) {
             case "google" -> new OAuth2UserInfo(

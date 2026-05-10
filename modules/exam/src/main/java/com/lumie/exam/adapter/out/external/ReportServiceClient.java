@@ -3,43 +3,40 @@ package com.lumie.exam.adapter.out.external;
 import com.lumie.exam.application.port.out.ReportServicePort;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class ReportServiceClient implements ReportServicePort {
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
 
     @Value("${lumie.services.report.url}")
     private String reportServiceUrl;
 
+    public ReportServiceClient(RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder.build();
+    }
+
     @Override
     public byte[] generateReport(Long studentId, Long examId, String tenantSlug) {
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Tenant-Slug", tenantSlug);
-
-            HttpEntity<Void> request = new HttpEntity<>(headers);
-
             String url = String.format(
                     "%s/v1/reports/students/%d/exams/%d",
                     reportServiceUrl, studentId, examId
             );
 
-            ResponseEntity<byte[]> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    request,
-                    byte[].class
-            );
+            ResponseEntity<byte[]> response = restClient.post()
+                    .uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-Tenant-Slug", tenantSlug)
+                    .retrieve()
+                    .toEntity(byte[].class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return response.getBody();
