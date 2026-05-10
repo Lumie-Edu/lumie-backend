@@ -21,13 +21,15 @@ public class HomepageController {
 
     /**
      * GET /v1/homepage — returns the current tenant's homepage config.
-     * Returns 200 with null body if no config exists yet.
+     * Returns 404 if no config exists yet.
      * Requires authenticated user (tenant context populated from the
      * X-Tenant-Slug request header by RequestContextFilter).
      */
     @GetMapping
     public ResponseEntity<HomepageConfigResponse> getCurrent() {
-        return ResponseEntity.ok(homepageQueryService.getCurrent().orElse(null));
+        return homepageQueryService.getCurrent()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**
@@ -54,10 +56,12 @@ public class HomepageController {
 
     /**
      * GET /v1/homepage/public/by-custom-id/{customId} — anonymous, no tenant header.
-     * Returns config only if published=true; otherwise returns 200 with null body.
+     * Returns config only if published=true; otherwise returns 404.
      */
     @GetMapping("/public/by-custom-id/{customId}")
     public ResponseEntity<HomepageConfigResponse> getPublicByCustomId(@PathVariable String customId) {
-        return ResponseEntity.ok(homepageQueryService.getPublicByCustomId(customId).orElse(null));
+        return homepageQueryService.getPublicByCustomId(customId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
