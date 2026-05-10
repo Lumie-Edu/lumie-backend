@@ -26,6 +26,7 @@ Behavioral invariants. Java-specific. Read with `.claude/knowledge/HARD_RULES_CR
 - ✅ MapStruct for entity ↔ DTO (or record `from(entity)` factory; do not hand-roll).
 - ✅ JUnit 5 + Mockito + MockMvc for unit/slice; TestContainers Postgres for integration.
 - ✅ Controllers inject application services directly. No port/in indirection.
+- ✅ `Pageable`-bound list endpoints declare `@AllowedSortFields({...})` (from `libs/common`) listing the property names valid for `?sort=`. Unlisted properties → 400.
 
 ## Module structure (hexagonal)
 

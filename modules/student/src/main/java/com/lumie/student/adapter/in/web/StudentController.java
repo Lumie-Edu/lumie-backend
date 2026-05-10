@@ -1,5 +1,6 @@
 package com.lumie.student.adapter.in.web;
 
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -55,6 +56,7 @@ public class StudentController {
     }
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "name", "phone", "studentHighschool", "studentBirthYear"})
     public ResponseEntity<Page<StudentResponse>> getStudents(
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String search,

@@ -1,5 +1,6 @@
 package com.lumie.exam.adapter.in.web;
 
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
 import com.lumie.exam.application.dto.request.UpdateExamRequest;
 import com.lumie.exam.application.dto.response.ExamDetailResponse;
@@ -25,6 +26,7 @@ public class ExamController {
     private final ExamQueryService examQueryService;
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "name", "category"})
     public ResponseEntity<Page<ExamResponse>> listExams(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(examQueryService.listExams(pageable));
