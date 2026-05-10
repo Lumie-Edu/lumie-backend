@@ -2,7 +2,7 @@ package com.lumie.notification.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.admin.api.AdminService;
-import com.lumie.cls.api.ClassService;
+import com.lumie.classroom.api.ClassService;
 import com.lumie.student.api.StudentService;
 import com.lumie.notification.application.dto.*;
 import com.lumie.notification.domain.entity.SmsMessage;

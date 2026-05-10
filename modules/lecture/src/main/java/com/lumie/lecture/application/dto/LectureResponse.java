@@ -4,7 +4,6 @@ import com.lumie.lecture.domain.entity.Lecture;
 
 import java.time.LocalDate;
 import java.time.Instant;
-import com.lumie.common.util.Timestamps;
 
 public record LectureResponse(
         Long id,
@@ -30,8 +29,8 @@ public record LectureResponse(
                 lecture.getVisibility().name(),
                 lecture.getStatus().name(),
                 lecture.getLectureDate(),
-                Timestamps.utcInstant(lecture.getCreatedAt()),
-                Timestamps.utcInstant(lecture.getUpdatedAt())
+                lecture.getCreatedAt(),
+                lecture.getUpdatedAt()
         );
     }
 }

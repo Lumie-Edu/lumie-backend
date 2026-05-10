@@ -4,9 +4,8 @@ import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.homepage.application.dto.request.PublishHomepageRequest;
 import com.lumie.homepage.application.dto.request.UpdateHomepageConfigRequest;
 import com.lumie.homepage.application.dto.response.HomepageConfigResponse;
-import com.lumie.homepage.application.port.in.GetHomepageConfigUseCase;
-import com.lumie.homepage.application.port.in.PublishHomepageUseCase;
-import com.lumie.homepage.application.port.in.UpdateHomepageConfigUseCase;
+import com.lumie.homepage.application.service.HomepageCommandService;
+import com.lumie.homepage.application.service.HomepageQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +16,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class HomepageController {
 
-    private final GetHomepageConfigUseCase getHomepageConfigUseCase;
-    private final UpdateHomepageConfigUseCase updateHomepageConfigUseCase;
-    private final PublishHomepageUseCase publishHomepageUseCase;
+    private final HomepageQueryService homepageQueryService;
+    private final HomepageCommandService homepageCommandService;
 
     /**
      * GET /v1/homepage — returns the current tenant's homepage config.
@@ -29,7 +27,7 @@ public class HomepageController {
      */
     @GetMapping
     public ResponseEntity<HomepageConfigResponse> getCurrent() {
-        return ResponseEntity.ok(getHomepageConfigUseCase.getCurrent().orElse(null));
+        return ResponseEntity.ok(homepageQueryService.getCurrent().orElse(null));
     }
 
     /**
@@ -39,7 +37,7 @@ public class HomepageController {
     @PutMapping
     public ResponseEntity<HomepageConfigResponse> update(@Valid @RequestBody UpdateHomepageConfigRequest request) {
         AuthorizationGuard.requireOwner();
-        HomepageConfigResponse response = updateHomepageConfigUseCase.update(request);
+        HomepageConfigResponse response = homepageCommandService.update(request);
         return ResponseEntity.ok(response);
     }
 
@@ -50,7 +48,7 @@ public class HomepageController {
     @PostMapping("/publish")
     public ResponseEntity<HomepageConfigResponse> publish(@Valid @RequestBody PublishHomepageRequest request) {
         AuthorizationGuard.requireOwner();
-        HomepageConfigResponse response = publishHomepageUseCase.publish(request);
+        HomepageConfigResponse response = homepageCommandService.publish(request);
         return ResponseEntity.ok(response);
     }
 
@@ -60,6 +58,6 @@ public class HomepageController {
      */
     @GetMapping("/public/by-custom-id/{customId}")
     public ResponseEntity<HomepageConfigResponse> getPublicByCustomId(@PathVariable String customId) {
-        return ResponseEntity.ok(getHomepageConfigUseCase.getPublicByCustomId(customId).orElse(null));
+        return ResponseEntity.ok(homepageQueryService.getPublicByCustomId(customId).orElse(null));
     }
 }
