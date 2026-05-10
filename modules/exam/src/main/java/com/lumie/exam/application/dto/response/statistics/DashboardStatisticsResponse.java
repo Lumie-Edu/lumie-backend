@@ -8,7 +8,6 @@ public record DashboardStatisticsResponse(
         double overallAverageScore,
         List<TypeAccuracy> typeAccuracyList,
         List<TopIncorrectQuestion> topIncorrectQuestions,
-        int activeExams,
         GradeDistributionByScale gradeDistribution
 ) {
     public record TypeAccuracy(

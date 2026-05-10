@@ -111,11 +111,9 @@ public class ExamSummaryStatisticsService {
         }
 
         if (allResults.isEmpty()) {
-            // TODO: Exam entity has no active/published status field; activeExams equals totalExams until a status concept is added
             return new DashboardStatisticsResponse(
                     allExams.size(), 0, 0.0,
                     Collections.emptyList(), Collections.emptyList(),
-                    allExams.size(),
                     new DashboardStatisticsResponse.GradeDistributionByScale(
                             buildDashboardGradeBuckets(Collections.emptyMap(), 5),
                             buildDashboardGradeBuckets(Collections.emptyMap(), 9)
@@ -217,12 +215,10 @@ public class ExamSummaryStatisticsService {
                         buildDashboardGradeBuckets(nineBuckets, 9)
                 );
 
-        // TODO: Exam entity has no active/published status field; activeExams equals totalExams until a status concept is added
         return new DashboardStatisticsResponse(
                 allExams.size(), allResults.size(),
                 Math.round(overallAverage * 10) / 10.0,
                 typeAccuracyList, topIncorrect,
-                allExams.size(),
                 gradeDistribution
         );
     }
