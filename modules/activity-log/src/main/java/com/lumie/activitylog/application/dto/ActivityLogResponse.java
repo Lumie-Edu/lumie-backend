@@ -2,7 +2,8 @@ package com.lumie.activitylog.application.dto;
 
 import com.lumie.activitylog.domain.entity.ActivityLog;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record ActivityLogResponse(
         Long id,
@@ -14,7 +15,7 @@ public record ActivityLogResponse(
         Long entityId,
         String entityName,
         String description,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {
     public static ActivityLogResponse from(ActivityLog entity) {
         return new ActivityLogResponse(
@@ -27,7 +28,7 @@ public record ActivityLogResponse(
                 entity.getEntityId(),
                 entity.getEntityName(),
                 entity.getDescription(),
-                entity.getCreatedAt()
+                Timestamps.utcInstant(entity.getCreatedAt())
         );
     }
 }

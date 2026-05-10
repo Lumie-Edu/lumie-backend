@@ -4,7 +4,8 @@ import com.lumie.content.domain.entity.Textbook;
 import com.lumie.content.domain.vo.TextbookStatus;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record TextbookResponse(
         Long id,
@@ -18,8 +19,8 @@ public record TextbookResponse(
         BigDecimal price,
         String coverImagePath,
         TextbookStatus status,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static TextbookResponse from(Textbook textbook) {
         return new TextbookResponse(
@@ -34,8 +35,8 @@ public record TextbookResponse(
                 textbook.getPrice(),
                 textbook.getCoverImagePath(),
                 textbook.getStatus(),
-                textbook.getCreatedAt(),
-                textbook.getUpdatedAt()
+                Timestamps.utcInstant(textbook.getCreatedAt()),
+                Timestamps.utcInstant(textbook.getUpdatedAt())
         );
     }
 }

@@ -3,7 +3,8 @@ package com.lumie.exam.application.dto.response;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.vo.ExamCategory;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 import java.util.Map;
 
 public record ExamDetailResponse(
@@ -16,8 +17,8 @@ public record ExamDetailResponse(
         Map<String, String> questionTypes,
         Integer totalPossibleScore,
         Integer passScore,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static ExamDetailResponse from(Exam exam) {
         return new ExamDetailResponse(
@@ -30,8 +31,8 @@ public record ExamDetailResponse(
                 exam.getQuestionTypes(),
                 exam.calculateTotalPossibleScore(),
                 exam.getPassScore(),
-                exam.getCreatedAt(),
-                exam.getUpdatedAt()
+                Timestamps.utcInstant(exam.getCreatedAt()),
+                Timestamps.utcInstant(exam.getUpdatedAt())
         );
     }
 }

@@ -2,7 +2,8 @@ package com.lumie.exam.application.dto.response;
 
 import com.lumie.exam.domain.entity.ExamResult;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record ExamResultResponse(
         Long id,
@@ -16,7 +17,7 @@ public record ExamResultResponse(
         Integer correctCount,
         Integer incorrectCount,
         boolean hasOmrImage,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {
     public static ExamResultResponse from(ExamResult result) {
         return new ExamResultResponse(
@@ -31,7 +32,7 @@ public record ExamResultResponse(
                 result.getCorrectCount(),
                 result.getIncorrectCount(),
                 result.getOmrImageKey() != null,
-                result.getCreatedAt()
+                Timestamps.utcInstant(result.getCreatedAt())
         );
     }
 }

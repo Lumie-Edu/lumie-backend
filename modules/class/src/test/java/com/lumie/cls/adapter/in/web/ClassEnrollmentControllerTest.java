@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -108,8 +109,8 @@ class ClassEnrollmentControllerTest {
     @DisplayName("PATCH /v1/classes/{classId}/enrollments/{enrollmentId} - 상태 변경 시 200을 반환한다")
     void updateEnrollmentStatus_returns200() throws Exception {
         ClassEnrollmentResponse response = new ClassEnrollmentResponse(
-                10L, 1L, 42L, LocalDateTime.now(), LocalDateTime.now(),
-                EnrollmentStatus.DROPPED, LocalDateTime.now(), LocalDateTime.now());
+                10L, 1L, 42L, Instant.now(), Instant.now(),
+                EnrollmentStatus.DROPPED, Instant.now(), Instant.now());
         given(commandService.updateEnrollmentStatus(eq(1L), eq(10L), any(UpdateEnrollmentRequest.class)))
                 .willReturn(response);
 
@@ -124,7 +125,7 @@ class ClassEnrollmentControllerTest {
 
     private ClassEnrollmentResponse buildEnrollmentResponse(Long id) {
         return new ClassEnrollmentResponse(
-                id, 1L, 42L, LocalDateTime.now(), null,
-                EnrollmentStatus.ENROLLED, LocalDateTime.now(), LocalDateTime.now());
+                id, 1L, 42L, Instant.now(), null,
+                EnrollmentStatus.ENROLLED, Instant.now(), Instant.now());
     }
 }

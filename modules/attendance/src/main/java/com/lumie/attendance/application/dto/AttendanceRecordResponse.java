@@ -3,7 +3,8 @@ package com.lumie.attendance.application.dto;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.vo.AttendanceStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record AttendanceRecordResponse(
     Long id,
@@ -11,7 +12,7 @@ public record AttendanceRecordResponse(
     Long studentId,
     String studentName,
     AttendanceStatus status,
-    LocalDateTime checkedAt,
+    Instant checkedAt,
     String memo
 ) {
     public static AttendanceRecordResponse from(AttendanceRecord record, String studentName) {
@@ -21,7 +22,7 @@ public record AttendanceRecordResponse(
             record.getStudentId(),
             studentName,
             record.getStatus(),
-            record.getCheckedAt(),
+            Timestamps.utcInstant(record.getCheckedAt()),
             record.getMemo()
         );
     }

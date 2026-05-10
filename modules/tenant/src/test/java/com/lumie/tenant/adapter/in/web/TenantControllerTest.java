@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -73,8 +74,8 @@ class TenantControllerTest {
                 .status(TenantStatus.PENDING)
                 .schemaName("tenant_test_academy")
                 .ownerEmail("owner@test.com")
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .build();
 
         when(createTenantUseCase.createTenant(any())).thenReturn(response);
@@ -111,8 +112,8 @@ class TenantControllerTest {
                 .name("Test Academy")
                 .status(TenantStatus.ACTIVE)
                 .schemaName("tenant_test_academy")
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .build();
 
         when(getTenantUseCase.getTenantBySlug("test-academy")).thenReturn(response);

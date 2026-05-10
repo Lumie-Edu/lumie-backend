@@ -5,7 +5,8 @@ import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 import java.util.List;
 
 public record SmsMessageResponse(
@@ -16,12 +17,12 @@ public record SmsMessageResponse(
     String title,
     String content,
     Long templateId,
-    LocalDateTime sentAt,
+    Instant sentAt,
     SmsStatus status,
     int successCount,
     int failCount,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    Instant createdAt,
+    Instant updatedAt
 ) {
     public static SmsMessageResponse from(SmsMessage entity) {
         return new SmsMessageResponse(
@@ -32,12 +33,12 @@ public record SmsMessageResponse(
             entity.getTitle(),
             entity.getContent(),
             entity.getTemplateId(),
-            entity.getSentAt(),
+            Timestamps.utcInstant(entity.getSentAt()),
             entity.getStatus(),
             entity.getSuccessCount(),
             entity.getFailCount(),
-            entity.getCreatedAt(),
-            entity.getUpdatedAt()
+            Timestamps.utcInstant(entity.getCreatedAt()),
+            Timestamps.utcInstant(entity.getUpdatedAt())
         );
     }
 }

@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -112,7 +113,7 @@ class SmsControllerTest {
                 id, 10L, RecipientType.STUDENT,
                 List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                 "테스트 제목", "테스트 내용", null,
-                LocalDateTime.now(), SmsStatus.SENT, 1, 0,
-                LocalDateTime.now(), LocalDateTime.now());
+                Instant.now(), SmsStatus.SENT, 1, 0,
+                Instant.now(), Instant.now());
     }
 }

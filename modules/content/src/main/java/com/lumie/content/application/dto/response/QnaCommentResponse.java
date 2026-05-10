@@ -2,7 +2,8 @@ package com.lumie.content.application.dto.response;
 
 import com.lumie.content.domain.entity.QnaComment;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record QnaCommentResponse(
         Long id,
@@ -11,8 +12,8 @@ public record QnaCommentResponse(
         Long userId,
         String adminName,
         String commentContent,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static QnaCommentResponse from(QnaComment comment, String adminName) {
         return new QnaCommentResponse(
@@ -22,8 +23,8 @@ public record QnaCommentResponse(
                 comment.getUserId(),
                 adminName,
                 comment.getCommentContent(),
-                comment.getCreatedAt(),
-                comment.getUpdatedAt()
+                Timestamps.utcInstant(comment.getCreatedAt()),
+                Timestamps.utcInstant(comment.getUpdatedAt())
         );
     }
 }

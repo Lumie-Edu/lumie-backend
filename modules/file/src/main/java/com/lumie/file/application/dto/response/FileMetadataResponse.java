@@ -3,7 +3,8 @@ package com.lumie.file.application.dto.response;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.vo.EntityType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 import java.util.UUID;
 
 public record FileMetadataResponse(
@@ -15,7 +16,7 @@ public record FileMetadataResponse(
         String contentType,
         Long fileSize,
         boolean uploadCompleted,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {
     public static FileMetadataResponse from(FileMetadata fileMetadata) {
         return new FileMetadataResponse(
@@ -27,7 +28,7 @@ public record FileMetadataResponse(
                 fileMetadata.getContentType(),
                 fileMetadata.getFileSize(),
                 fileMetadata.isUploadCompleted(),
-                fileMetadata.getCreatedAt()
+                Timestamps.utcInstant(fileMetadata.getCreatedAt())
         );
     }
 }

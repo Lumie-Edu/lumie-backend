@@ -5,7 +5,8 @@ import com.lumie.billing.domain.vo.PlanLimits;
 import com.lumie.billing.domain.vo.SubscriptionStatus;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 @Builder
 public record SubscriptionResponse(
@@ -15,11 +16,11 @@ public record SubscriptionResponse(
         String planId,
         String planName,
         SubscriptionStatus status,
-        LocalDateTime startedAt,
-        LocalDateTime expiresAt,
+        Instant startedAt,
+        Instant expiresAt,
         PlanLimits limits,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static SubscriptionResponse from(Subscription subscription) {
         return SubscriptionResponse.builder()
@@ -29,11 +30,11 @@ public record SubscriptionResponse(
                 .planId(subscription.getPlanId())
                 .planName(subscription.getPlanName())
                 .status(subscription.getStatus())
-                .startedAt(subscription.getStartedAt())
-                .expiresAt(subscription.getExpiresAt())
+                .startedAt(Timestamps.utcInstant(subscription.getStartedAt()))
+                .expiresAt(Timestamps.utcInstant(subscription.getExpiresAt()))
                 .limits(subscription.getLimits())
-                .createdAt(subscription.getCreatedAt())
-                .updatedAt(subscription.getUpdatedAt())
+                .createdAt(Timestamps.utcInstant(subscription.getCreatedAt()))
+                .updatedAt(Timestamps.utcInstant(subscription.getUpdatedAt()))
                 .build();
     }
 }

@@ -29,6 +29,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,7 +69,7 @@ class AssignmentCommandServiceTest {
         void createAssignment_success() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
                     1L, "수학 숙제", "1장 풀기", "HOMEWORK",
-                    LocalDateTime.of(2026, 4, 15, 23, 59), 100, null);
+                    LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC), 100, null);
 
             given(classService.getClass(any(), eq(1L)))
                     .willReturn(Optional.of(new ClassService.ClassData(

@@ -5,7 +5,7 @@ import com.lumie.billing.application.port.out.PaymentGatewayPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Stub implementation of PaymentGatewayPort.
@@ -33,8 +33,8 @@ public class TossPaymentClient implements PaymentGatewayPort {
                 .status("DONE")
                 .totalAmount(amount)
                 .method("CARD")
-                .requestedAt(LocalDateTime.now())
-                .approvedAt(LocalDateTime.now())
+                .requestedAt(Instant.now())
+                .approvedAt(Instant.now())
                 .card(null)
                 .message("STUB: Payment integration pending")
                 .build();
@@ -53,7 +53,7 @@ public class TossPaymentClient implements PaymentGatewayPort {
                 .status("CANCELED")
                 .totalAmount(0)
                 .method("CARD")
-                .requestedAt(LocalDateTime.now())
+                .requestedAt(Instant.now())
                 .approvedAt(null)
                 .card(null)
                 .message("STUB: Payment integration pending")
@@ -72,8 +72,8 @@ public class TossPaymentClient implements PaymentGatewayPort {
                 .status("DONE")
                 .totalAmount(0)
                 .method("CARD")
-                .requestedAt(LocalDateTime.now())
-                .approvedAt(LocalDateTime.now())
+                .requestedAt(Instant.now())
+                .approvedAt(Instant.now())
                 .card(null)
                 .message("STUB: Payment integration pending")
                 .build();

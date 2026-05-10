@@ -3,28 +3,29 @@ package com.lumie.cls.application.dto;
 import com.lumie.cls.domain.entity.ClassEnrollment;
 import com.lumie.cls.domain.vo.EnrollmentStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record ClassEnrollmentResponse(
     Long id,
     Long classId,
     Long studentId,
-    LocalDateTime enrolledAt,
-    LocalDateTime droppedAt,
+    Instant enrolledAt,
+    Instant droppedAt,
     EnrollmentStatus status,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    Instant createdAt,
+    Instant updatedAt
 ) {
     public static ClassEnrollmentResponse from(ClassEnrollment enrollment) {
         return new ClassEnrollmentResponse(
             enrollment.getId(),
             enrollment.getClassEntity().getId(),
             enrollment.getStudentId(),
-            enrollment.getEnrolledAt(),
-            enrollment.getDroppedAt(),
+            Timestamps.utcInstant(enrollment.getEnrolledAt()),
+            Timestamps.utcInstant(enrollment.getDroppedAt()),
             enrollment.getStatus(),
-            enrollment.getCreatedAt(),
-            enrollment.getUpdatedAt()
+            Timestamps.utcInstant(enrollment.getCreatedAt()),
+            Timestamps.utcInstant(enrollment.getUpdatedAt())
         );
     }
 }

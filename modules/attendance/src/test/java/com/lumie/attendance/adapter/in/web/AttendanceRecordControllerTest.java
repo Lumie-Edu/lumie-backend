@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -57,7 +58,7 @@ class AttendanceRecordControllerTest {
     void getRecords_returnsList() throws Exception {
         // given
         AttendanceRecordResponse record = new AttendanceRecordResponse(
-            1L, 10L, 5L, "홍길동", AttendanceStatus.PRESENT, LocalDateTime.now(), null);
+            1L, 10L, 5L, "홍길동", AttendanceStatus.PRESENT, Instant.now(), null);
         given(queryService.getRecordsBySession(10L)).willReturn(List.of(record));
 
         // when / then

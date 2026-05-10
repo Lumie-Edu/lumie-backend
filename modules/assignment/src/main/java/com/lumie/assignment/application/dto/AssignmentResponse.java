@@ -4,7 +4,8 @@ import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 import java.util.List;
 
 public record AssignmentResponse(
@@ -13,12 +14,12 @@ public record AssignmentResponse(
     String title,
     String description,
     AssignmentType type,
-    LocalDateTime dueDate,
+    Instant dueDate,
     Integer maxScore,
     List<Long> attachments,
     AssignmentStatus status,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    Instant createdAt,
+    Instant updatedAt
 ) {
     public static AssignmentResponse from(Assignment entity) {
         return new AssignmentResponse(
@@ -27,12 +28,12 @@ public record AssignmentResponse(
             entity.getTitle(),
             entity.getDescription(),
             entity.getType(),
-            entity.getDueDate(),
+            Timestamps.utcInstant(entity.getDueDate()),
             entity.getMaxScore(),
             entity.getAttachments(),
             entity.getStatus(),
-            entity.getCreatedAt(),
-            entity.getUpdatedAt()
+            Timestamps.utcInstant(entity.getCreatedAt()),
+            Timestamps.utcInstant(entity.getUpdatedAt())
         );
     }
 }

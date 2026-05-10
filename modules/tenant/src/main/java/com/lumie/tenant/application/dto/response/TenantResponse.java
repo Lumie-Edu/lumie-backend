@@ -5,7 +5,8 @@ import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.api.TenantStatus;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 @Builder
 public record TenantResponse(
@@ -23,8 +24,8 @@ public record TenantResponse(
         String businessRegistrationNumber,
         String logoUrl,
         String customId,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static TenantResponse from(Tenant tenant) {
         boolean hasLogo = tenant.getLogoObjectKey() != null
@@ -44,8 +45,8 @@ public record TenantResponse(
                 .businessRegistrationNumber(tenant.getBusinessRegistrationNumber())
                 .logoUrl(hasLogo ? "/api/tenant/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
                 .customId(tenant.getCustomId())
-                .createdAt(tenant.getCreatedAt())
-                .updatedAt(tenant.getUpdatedAt())
+                .createdAt(Timestamps.utcInstant(tenant.getCreatedAt()))
+                .updatedAt(Timestamps.utcInstant(tenant.getUpdatedAt()))
                 .build();
     }
 }

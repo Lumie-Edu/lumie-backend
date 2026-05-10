@@ -4,7 +4,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lumie.content.domain.entity.Schedule;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 import java.time.LocalTime;
 
 public record ScheduleResponse(
@@ -17,8 +18,8 @@ public record ScheduleResponse(
         Boolean isAvailable,
         Boolean hasReservation,
         Integer confirmedCount,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static ScheduleResponse from(Schedule schedule) {
         return new ScheduleResponse(
@@ -31,8 +32,8 @@ public record ScheduleResponse(
                 schedule.getIsAvailable(),
                 schedule.hasReservation(),
                 schedule.getConfirmedCount(),
-                schedule.getCreatedAt(),
-                schedule.getUpdatedAt()
+                Timestamps.utcInstant(schedule.getCreatedAt()),
+                Timestamps.utcInstant(schedule.getUpdatedAt())
         );
     }
 }

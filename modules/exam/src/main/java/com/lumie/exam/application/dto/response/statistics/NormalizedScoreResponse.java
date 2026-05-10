@@ -9,7 +9,7 @@ public record NormalizedScoreResponse(
     public record NormalizedExamScore(
             Long examId,
             String examName,
-            java.time.LocalDateTime examDate,
+            java.time.Instant examDate,
             int rawScore,
             double examMean,
             double examStdDev,

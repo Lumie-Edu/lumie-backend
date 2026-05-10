@@ -2,7 +2,8 @@ package com.lumie.content.application.dto.response;
 
 import com.lumie.content.domain.entity.Announcement;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record AnnouncementResponse(
         Long id,
@@ -12,8 +13,8 @@ public record AnnouncementResponse(
         String announcementContent,
         Boolean isItAssetAnnouncement,
         Boolean isItImportantAnnouncement,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static AnnouncementResponse from(Announcement announcement) {
         return from(announcement, null);
@@ -28,8 +29,8 @@ public record AnnouncementResponse(
                 announcement.getAnnouncementContent(),
                 announcement.getIsItAssetAnnouncement(),
                 announcement.getIsItImportantAnnouncement(),
-                announcement.getCreatedAt(),
-                announcement.getUpdatedAt()
+                Timestamps.utcInstant(announcement.getCreatedAt()),
+                Timestamps.utcInstant(announcement.getUpdatedAt())
         );
     }
 }

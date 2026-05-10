@@ -3,7 +3,8 @@ package com.lumie.content.application.dto.response;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 import java.util.List;
 import java.util.Map;
 
@@ -15,8 +16,8 @@ public record QnaDetailResponse(
         String qnaContent,
         Boolean isItAnswered,
         List<QnaCommentResponse> comments,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     private static final String DELETED_USER_NAME = "삭제된 유저";
 
@@ -33,8 +34,8 @@ public record QnaDetailResponse(
                 qnaBoard.getQnaContent(),
                 qnaBoard.getIsItAnswered(),
                 commentResponses,
-                qnaBoard.getCreatedAt(),
-                qnaBoard.getUpdatedAt()
+                Timestamps.utcInstant(qnaBoard.getCreatedAt()),
+                Timestamps.utcInstant(qnaBoard.getUpdatedAt())
         );
     }
 

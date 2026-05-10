@@ -2,7 +2,8 @@ package com.lumie.exam.application.dto.response;
 
 import com.lumie.exam.domain.entity.OmrGradingJob;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +17,7 @@ public record OmrJobStatusResponse(
         int failCount,
         int savedCount,
         List<Map<String, Object>> results,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {
     public static OmrJobStatusResponse from(OmrGradingJob job) {
         return new OmrJobStatusResponse(
@@ -29,7 +30,7 @@ public record OmrJobStatusResponse(
                 job.getFailCount(),
                 job.getSavedCount(),
                 job.getResults(),
-                job.getCreatedAt()
+                Timestamps.utcInstant(job.getCreatedAt())
         );
     }
 }

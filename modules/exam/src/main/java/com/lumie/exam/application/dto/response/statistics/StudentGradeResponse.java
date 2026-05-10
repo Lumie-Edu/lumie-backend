@@ -2,7 +2,8 @@ package com.lumie.exam.application.dto.response.statistics;
 
 import com.lumie.exam.domain.vo.ExamCategory;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record StudentGradeResponse(
         Long studentId,
@@ -15,6 +16,6 @@ public record StudentGradeResponse(
         Integer grade,
         ExamCategory examCategory,
         boolean isPassed,
-        LocalDateTime submittedAt,
+        Instant submittedAt,
         Long resultId
 ) {}

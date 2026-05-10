@@ -5,7 +5,8 @@ import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record ExamResponse(
         Long id,
@@ -16,8 +17,8 @@ public record ExamResponse(
         Integer totalQuestions,
         Integer totalPossibleScore,
         Integer passScore,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static ExamResponse from(Exam exam) {
         return new ExamResponse(
@@ -29,8 +30,8 @@ public record ExamResponse(
                 exam.getTotalQuestions(),
                 exam.calculateTotalPossibleScore(),
                 exam.getPassScore(),
-                exam.getCreatedAt(),
-                exam.getUpdatedAt()
+                Timestamps.utcInstant(exam.getCreatedAt()),
+                Timestamps.utcInstant(exam.getUpdatedAt())
         );
     }
 }

@@ -5,7 +5,8 @@ import com.lumie.content.domain.entity.Reservation;
 import com.lumie.content.domain.vo.ReservationStatus;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 import java.time.LocalTime;
 
 public record ReservationResponse(
@@ -18,8 +19,8 @@ public record ReservationResponse(
         Long userId,
         String consultationContent,
         ReservationStatus status,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static ReservationResponse from(Reservation reservation) {
         return new ReservationResponse(
@@ -32,8 +33,8 @@ public record ReservationResponse(
                 reservation.getUserId(),
                 reservation.getConsultationContent(),
                 reservation.getStatus(),
-                reservation.getCreatedAt(),
-                reservation.getUpdatedAt()
+                Timestamps.utcInstant(reservation.getCreatedAt()),
+                Timestamps.utcInstant(reservation.getUpdatedAt())
         );
     }
 }

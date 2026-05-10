@@ -3,15 +3,16 @@ package com.lumie.notification.application.dto;
 import com.lumie.notification.domain.entity.SmsTemplate;
 import com.lumie.notification.domain.vo.TemplateCategory;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record SmsTemplateResponse(
     Long id,
     String name,
     String content,
     TemplateCategory category,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    Instant createdAt,
+    Instant updatedAt
 ) {
     public static SmsTemplateResponse from(SmsTemplate entity) {
         return new SmsTemplateResponse(
@@ -19,8 +20,8 @@ public record SmsTemplateResponse(
             entity.getName(),
             entity.getContent(),
             entity.getCategory(),
-            entity.getCreatedAt(),
-            entity.getUpdatedAt()
+            Timestamps.utcInstant(entity.getCreatedAt()),
+            Timestamps.utcInstant(entity.getUpdatedAt())
         );
     }
 }

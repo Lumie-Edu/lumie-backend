@@ -3,7 +3,8 @@ package com.lumie.assignment.application.dto;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 import java.util.List;
 
 public record SubmissionResponse(
@@ -14,11 +15,11 @@ public record SubmissionResponse(
     List<Long> attachments,
     Integer score,
     String feedback,
-    LocalDateTime submittedAt,
-    LocalDateTime gradedAt,
+    Instant submittedAt,
+    Instant gradedAt,
     SubmissionStatus status,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    Instant createdAt,
+    Instant updatedAt
 ) {
     public static SubmissionResponse from(AssignmentSubmission entity) {
         return new SubmissionResponse(
@@ -29,11 +30,11 @@ public record SubmissionResponse(
             entity.getAttachments(),
             entity.getScore(),
             entity.getFeedback(),
-            entity.getSubmittedAt(),
-            entity.getGradedAt(),
+            Timestamps.utcInstant(entity.getSubmittedAt()),
+            Timestamps.utcInstant(entity.getGradedAt()),
             entity.getStatus(),
-            entity.getCreatedAt(),
-            entity.getUpdatedAt()
+            Timestamps.utcInstant(entity.getCreatedAt()),
+            Timestamps.utcInstant(entity.getUpdatedAt())
         );
     }
 }

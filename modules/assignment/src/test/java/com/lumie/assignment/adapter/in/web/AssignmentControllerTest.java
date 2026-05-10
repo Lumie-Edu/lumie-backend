@@ -27,6 +27,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -64,7 +66,7 @@ class AssignmentControllerTest {
 
         CreateAssignmentRequest request = new CreateAssignmentRequest(
                 1L, "수학 숙제", "1장 풀기", "HOMEWORK",
-                LocalDateTime.of(2026, 4, 15, 23, 59), 100, null);
+                LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC), 100, null);
 
         mockMvc.perform(post("/v1/assignments")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -160,8 +162,8 @@ class AssignmentControllerTest {
     private AssignmentResponse buildAssignmentResponse(Long id) {
         return new AssignmentResponse(
                 id, 1L, "수학 숙제", "1장 풀기",
-                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59),
+                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
                 100, null, AssignmentStatus.ACTIVE,
-                LocalDateTime.now(), LocalDateTime.now());
+                Instant.now(), Instant.now());
     }
 }

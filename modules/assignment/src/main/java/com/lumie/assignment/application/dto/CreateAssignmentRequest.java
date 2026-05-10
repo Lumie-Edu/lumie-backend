@@ -3,7 +3,8 @@ package com.lumie.assignment.application.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 import java.util.List;
 
 public record CreateAssignmentRequest(
@@ -15,7 +16,7 @@ public record CreateAssignmentRequest(
 
     String description,
     String type,
-    LocalDateTime dueDate,
+    Instant dueDate,
     Integer maxScore,
     List<Long> attachments
 ) {

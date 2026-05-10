@@ -1,6 +1,7 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.util.Timestamps;
 import com.lumie.exam.application.dto.response.statistics.StudentGradeResponse;
 import com.lumie.exam.application.dto.response.statistics.StudentResultSummaryResponse;
 import com.lumie.exam.domain.entity.Exam;
@@ -75,7 +76,7 @@ public class StudentGradeQueryService {
                             grade,
                             exam.getCategory(),
                             result.isPassed(),
-                            result.getCreatedAt(),
+                            Timestamps.utcInstant(result.getCreatedAt()),
                             result.getId()
                     );
                 })

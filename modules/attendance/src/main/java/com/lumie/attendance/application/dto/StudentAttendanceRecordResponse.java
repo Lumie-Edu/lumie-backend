@@ -4,7 +4,8 @@ import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.vo.AttendanceStatus;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record StudentAttendanceRecordResponse(
     Long id,
@@ -14,7 +15,7 @@ public record StudentAttendanceRecordResponse(
     Long studentId,
     String studentName,
     AttendanceStatus status,
-    LocalDateTime checkedAt,
+    Instant checkedAt,
     String memo
 ) {
     public static StudentAttendanceRecordResponse from(AttendanceRecord record, String studentName) {
@@ -26,7 +27,7 @@ public record StudentAttendanceRecordResponse(
             record.getStudentId(),
             studentName,
             record.getStatus(),
-            record.getCheckedAt(),
+            Timestamps.utcInstant(record.getCheckedAt()),
             record.getMemo()
         );
     }

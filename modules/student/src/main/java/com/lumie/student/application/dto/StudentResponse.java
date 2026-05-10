@@ -2,7 +2,8 @@ package com.lumie.student.application.dto;
 
 import com.lumie.student.domain.entity.Student;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record StudentResponse(
     Long id,
@@ -16,8 +17,8 @@ public record StudentResponse(
     String studentMemo,
     Boolean isActive,
     String avatarSeed,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    Instant createdAt,
+    Instant updatedAt
 ) {
     public static StudentResponse from(Student student) {
         return from(student, null);
@@ -36,8 +37,8 @@ public record StudentResponse(
             student.getStudentMemo(),
             student.isActive(),
             avatarSeed,
-            student.getCreatedAt(),
-            student.getUpdatedAt()
+            Timestamps.utcInstant(student.getCreatedAt()),
+            Timestamps.utcInstant(student.getUpdatedAt())
         );
     }
 }

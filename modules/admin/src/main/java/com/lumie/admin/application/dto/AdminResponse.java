@@ -3,7 +3,8 @@ package com.lumie.admin.application.dto;
 import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.vo.EmploymentStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record AdminResponse(
     Long id,
@@ -17,8 +18,8 @@ public record AdminResponse(
     Boolean isActive,
     EmploymentStatus employmentStatus,
     String avatarSeed,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    Instant createdAt,
+    Instant updatedAt
 ) {
     public static AdminResponse from(Admin admin) {
         return from(admin, null);
@@ -37,8 +38,8 @@ public record AdminResponse(
             admin.isActive(),
             admin.getEmploymentStatus(),
             avatarSeed,
-            admin.getCreatedAt(),
-            admin.getUpdatedAt()
+            Timestamps.utcInstant(admin.getCreatedAt()),
+            Timestamps.utcInstant(admin.getUpdatedAt())
         );
     }
 }

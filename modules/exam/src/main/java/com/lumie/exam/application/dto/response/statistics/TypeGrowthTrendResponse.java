@@ -15,7 +15,7 @@ public record TypeGrowthTrendResponse(
     public record TrendPoint(
             Long examId,
             String examName,
-            java.time.LocalDateTime examDate,
+            java.time.Instant examDate,
             int correctCount,
             int totalCount,
             double accuracy

@@ -2,7 +2,8 @@ package com.lumie.billing.application.dto.response;
 
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 @Builder
 public record PaymentResponse(
@@ -12,8 +13,8 @@ public record PaymentResponse(
         String status,
         long totalAmount,
         String method,
-        LocalDateTime requestedAt,
-        LocalDateTime approvedAt,
+        Instant requestedAt,
+        Instant approvedAt,
         CardInfo card,
         String message
 ) {

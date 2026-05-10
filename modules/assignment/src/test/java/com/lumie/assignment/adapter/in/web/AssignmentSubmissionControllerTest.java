@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -103,8 +104,8 @@ class AssignmentSubmissionControllerTest {
     void updateSubmission_returns200() throws Exception {
         SubmissionResponse response = new SubmissionResponse(
                 10L, 1L, 42L, "답안", null, 85, "잘했습니다.",
-                LocalDateTime.now(), LocalDateTime.now(), SubmissionStatus.GRADED,
-                LocalDateTime.now(), LocalDateTime.now());
+                Instant.now(), Instant.now(), SubmissionStatus.GRADED,
+                Instant.now(), Instant.now());
         given(commandService.updateSubmission(eq(1L), eq(10L), any(UpdateSubmissionRequest.class)))
                 .willReturn(response);
 
@@ -148,7 +149,7 @@ class AssignmentSubmissionControllerTest {
     private SubmissionResponse buildSubmissionResponse(Long id) {
         return new SubmissionResponse(
                 id, 1L, 42L, "답안 내용", null, null, null,
-                LocalDateTime.now(), null, SubmissionStatus.SUBMITTED,
-                LocalDateTime.now(), LocalDateTime.now());
+                Instant.now(), null, SubmissionStatus.SUBMITTED,
+                Instant.now(), Instant.now());
     }
 }

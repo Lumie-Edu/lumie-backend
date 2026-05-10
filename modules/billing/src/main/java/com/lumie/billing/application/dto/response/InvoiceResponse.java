@@ -4,7 +4,8 @@ import com.lumie.billing.domain.entity.Invoice;
 import com.lumie.billing.domain.vo.InvoiceStatus;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 @Builder
 public record InvoiceResponse(
@@ -14,12 +15,12 @@ public record InvoiceResponse(
         long amount,
         InvoiceStatus status,
         String description,
-        LocalDateTime billingPeriodStart,
-        LocalDateTime billingPeriodEnd,
-        LocalDateTime dueDate,
-        LocalDateTime paidAt,
+        Instant billingPeriodStart,
+        Instant billingPeriodEnd,
+        Instant dueDate,
+        Instant paidAt,
         String paymentKey,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {
     public static InvoiceResponse from(Invoice invoice) {
         return InvoiceResponse.builder()
@@ -29,12 +30,12 @@ public record InvoiceResponse(
                 .amount(invoice.getAmount().toLong())
                 .status(invoice.getStatus())
                 .description(invoice.getDescription())
-                .billingPeriodStart(invoice.getBillingPeriodStart())
-                .billingPeriodEnd(invoice.getBillingPeriodEnd())
-                .dueDate(invoice.getDueDate())
-                .paidAt(invoice.getPaidAt())
+                .billingPeriodStart(Timestamps.utcInstant(invoice.getBillingPeriodStart()))
+                .billingPeriodEnd(Timestamps.utcInstant(invoice.getBillingPeriodEnd()))
+                .dueDate(Timestamps.utcInstant(invoice.getDueDate()))
+                .paidAt(Timestamps.utcInstant(invoice.getPaidAt()))
                 .paymentKey(invoice.getPaymentKey())
-                .createdAt(invoice.getCreatedAt())
+                .createdAt(Timestamps.utcInstant(invoice.getCreatedAt()))
                 .build();
     }
 }

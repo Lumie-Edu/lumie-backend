@@ -2,15 +2,16 @@ package com.lumie.content.application.dto.response;
 
 import com.lumie.content.domain.entity.Review;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record ReviewResponse(
         Long id,
         String reviewerName,
         String reviewTitle,
         String reviewContent,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static ReviewResponse from(Review review) {
         return new ReviewResponse(
@@ -18,8 +19,8 @@ public record ReviewResponse(
                 review.getReviewerName(),
                 review.getReviewTitle(),
                 review.getReviewContent(),
-                review.getCreatedAt(),
-                review.getUpdatedAt()
+                Timestamps.utcInstant(review.getCreatedAt()),
+                Timestamps.utcInstant(review.getUpdatedAt())
         );
     }
 }

@@ -3,7 +3,8 @@ package com.lumie.cls.application.dto;
 import com.lumie.cls.domain.entity.ClassEntity;
 import com.lumie.cls.domain.vo.SchedulePattern;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record ClassResponse(
     Long id,
@@ -12,8 +13,8 @@ public record ClassResponse(
     String teacherName,
     SchedulePattern schedulePattern,
     String description,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    Instant createdAt,
+    Instant updatedAt
 ) {
     public static ClassResponse from(ClassEntity entity, String teacherName) {
         return new ClassResponse(
@@ -23,8 +24,8 @@ public record ClassResponse(
             teacherName,
             entity.getSchedulePattern(),
             entity.getDescription(),
-            entity.getCreatedAt(),
-            entity.getUpdatedAt()
+            Timestamps.utcInstant(entity.getCreatedAt()),
+            Timestamps.utcInstant(entity.getUpdatedAt())
         );
     }
 }

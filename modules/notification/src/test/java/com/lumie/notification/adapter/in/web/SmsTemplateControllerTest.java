@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -123,6 +124,6 @@ class SmsTemplateControllerTest {
         return new SmsTemplateResponse(
                 id, "출석 알림", "{학생명}님이 출석했습니다.",
                 TemplateCategory.ATTENDANCE,
-                LocalDateTime.now(), LocalDateTime.now());
+                Instant.now(), Instant.now());
     }
 }

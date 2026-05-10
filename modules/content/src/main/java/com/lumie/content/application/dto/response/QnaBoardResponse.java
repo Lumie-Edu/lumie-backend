@@ -2,7 +2,8 @@ package com.lumie.content.application.dto.response;
 
 import com.lumie.content.domain.entity.QnaBoard;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import com.lumie.common.util.Timestamps;
 
 public record QnaBoardResponse(
         Long id,
@@ -11,8 +12,8 @@ public record QnaBoardResponse(
         String qnaTitle,
         Boolean isItAnswered,
         Integer commentCount,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static QnaBoardResponse from(QnaBoard qnaBoard, String qnaUserName) {
         return new QnaBoardResponse(
@@ -22,8 +23,8 @@ public record QnaBoardResponse(
                 qnaBoard.getQnaTitle(),
                 qnaBoard.getIsItAnswered(),
                 qnaBoard.getComments() != null ? qnaBoard.getComments().size() : 0,
-                qnaBoard.getCreatedAt(),
-                qnaBoard.getUpdatedAt()
+                Timestamps.utcInstant(qnaBoard.getCreatedAt()),
+                Timestamps.utcInstant(qnaBoard.getUpdatedAt())
         );
     }
 }
