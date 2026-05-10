@@ -27,9 +27,13 @@ import java.util.Locale;
  *
  * <p>Required headers on every request:
  * <ul>
- *   <li>{@code X-Tenant-Slug} — non-blank tenant slug.</li>
+ *   <li>{@code X-Tenant-Slug} — non-blank tenant slug. <b>Bound into the signature</b>:
+ *       the filter recomputes the HMAC using this header value, so a request whose
+ *       header doesn't match the tenant the caller signed for fails verification.
+ *       This blocks a worker authorized for tenant A from acting on tenant B.</li>
  *   <li>{@code X-Timestamp}  — Unix seconds; rejected if skewed more than 300s.</li>
- *   <li>{@code X-Signature}  — hex-encoded HMAC-SHA256({@code timestamp + "\n" + body}).</li>
+ *   <li>{@code X-Signature}  — hex-encoded
+ *       HMAC-SHA256({@code timestamp + "\n" + tenantSlug + "\n" + body}).</li>
  * </ul>
  *
  * <p>On verification success, the {@link SecurityContextHolder} is populated
@@ -117,7 +121,7 @@ public class InternalHmacAuthFilter extends OncePerRequestFilter {
         }
         CachedBodyHttpServletRequest wrapped = new CachedBodyHttpServletRequest(request, body);
 
-        String expectedSignature = computeSignature(timestamp, body);
+        String expectedSignature = computeSignature(timestamp, tenantSlug, body);
         if (!constantTimeEquals(expectedSignature, providedSignature.toLowerCase(Locale.ROOT))) {
             reject(response, "signature mismatch");
             return;
@@ -137,11 +141,13 @@ public class InternalHmacAuthFilter extends OncePerRequestFilter {
         }
     }
 
-    private String computeSignature(long timestamp, byte[] body) {
+    private String computeSignature(long timestamp, String tenantSlug, byte[] body) {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             mac.init(keySpec);
             mac.update(Long.toString(timestamp).getBytes(StandardCharsets.UTF_8));
+            mac.update((byte) '\n');
+            mac.update(tenantSlug.getBytes(StandardCharsets.UTF_8));
             mac.update((byte) '\n');
             mac.update(body);
             return toHex(mac.doFinal());
