@@ -14,7 +14,8 @@ public enum AuthErrorCode implements ErrorCode {
     USER_DISABLED("AUTH_004", "User account is disabled", 403),
     TENANT_INACTIVE("AUTH_005", "Tenant is not active", 403),
     OAUTH_PROVIDER_ERROR("AUTH_006", "OAuth provider error", 502),
-    INVALID_STATE("AUTH_007", "Invalid OAuth state parameter", 400);
+    INVALID_STATE("AUTH_007", "Invalid OAuth state parameter", 400),
+    TOKEN_PERSISTENCE_FAILED("AUTH_008", "Failed to persist auth token", 500);
 
     private final String code;
     private final String message;

@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.domain.entity.AuthToken;
 import com.lumie.auth.domain.repository.TokenRepository;
+import com.lumie.auth.infrastructure.exception.AuthErrorCode;
 import com.lumie.common.auth.Role;
+import com.lumie.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -44,7 +46,8 @@ public class RedisTokenRepository implements TokenRepository, TokenPersistencePo
             redisTemplate.opsForValue().set(key, value, ttl);
             log.debug("Saved refresh token for user: {}", token.getUserId());
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize token", e);
+            log.error("Failed to serialize refresh token for user={}, jti={}", token.getUserId(), token.getJti(), e);
+            throw new BusinessException(AuthErrorCode.TOKEN_PERSISTENCE_FAILED, e);
         }
     }
 

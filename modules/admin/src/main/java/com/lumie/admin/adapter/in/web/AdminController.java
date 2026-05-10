@@ -5,6 +5,9 @@ import com.lumie.admin.application.dto.AdminPermissionResponse;
 import com.lumie.admin.application.dto.AdminRequest;
 import com.lumie.admin.application.dto.AdminResponse;
 import com.lumie.admin.application.dto.AdminUpdateRequest;
+import com.lumie.admin.application.dto.ChangeLoginIdRequest;
+import com.lumie.admin.application.dto.ChangeLoginIdResponse;
+import com.lumie.admin.application.dto.SetPermissionsRequest;
 import com.lumie.admin.application.service.AdminCommandService;
 import com.lumie.admin.application.service.AdminQueryService;
 import jakarta.validation.Valid;
@@ -18,7 +21,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/v1/admins")
@@ -67,8 +69,8 @@ public class AdminController {
     @PutMapping("/{adminId}/permissions")
     public ResponseEntity<Void> setAdminPermissions(
             @PathVariable Long adminId,
-            @RequestBody Map<String, String> permissions) {
-        adminCommandService.setAdminPermissions(adminId, permissions);
+            @Valid @RequestBody SetPermissionsRequest request) {
+        adminCommandService.setAdminPermissions(adminId, request.permissions());
         return ResponseEntity.ok().build();
     }
 
@@ -79,15 +81,11 @@ public class AdminController {
     }
 
     @PatchMapping("/{id}/login-id")
-    public ResponseEntity<Map<String, String>> changeAdminLoginId(
+    public ResponseEntity<ChangeLoginIdResponse> changeAdminLoginId(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
-        String newLoginId = body.get("loginId");
-        if (newLoginId == null || newLoginId.isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-        String result = adminCommandService.changeAdminLoginId(id, newLoginId);
-        return ResponseEntity.ok(Map.of("loginId", result));
+            @Valid @RequestBody ChangeLoginIdRequest request) {
+        String result = adminCommandService.changeAdminLoginId(id, request.loginId());
+        return ResponseEntity.ok(new ChangeLoginIdResponse(result));
     }
 
     @PostMapping("/{id}/deactivate")

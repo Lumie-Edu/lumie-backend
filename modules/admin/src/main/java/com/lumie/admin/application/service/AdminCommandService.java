@@ -7,6 +7,7 @@ import com.lumie.auth.api.AuthService;
 import com.lumie.billing.api.BillingService;
 import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.entity.AdminPermission;
+import com.lumie.admin.domain.exception.AdminErrorCode;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
 import com.lumie.admin.domain.exception.DuplicatePhoneException;
 import com.lumie.admin.domain.exception.QuotaExceededException;
@@ -14,6 +15,7 @@ import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
 import com.lumie.admin.domain.vo.AccessLevel;
 import com.lumie.common.auth.Role;
+import com.lumie.common.cache.CacheConfig;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -21,6 +23,7 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.activitylog.api.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,7 +68,8 @@ public class AdminCommandService {
         );
 
         if (!userResult.success()) {
-            throw new RuntimeException("Failed to create user: " + userResult.message());
+            log.error("Auth service createUser failed: {}", userResult.message());
+            throw new BusinessException(AdminErrorCode.AUTH_OP_FAILED);
         }
 
         Admin admin = Admin.create(
@@ -106,7 +110,8 @@ public class AdminCommandService {
         return AdminResponse.from(updated);
     }
 
-    public void setAdminPermissions(Long adminId, Map<String, String> permissions) {
+    @CacheEvict(value = CacheConfig.CACHE_ADMIN_PERMISSIONS, key = "#adminId")
+    public void setAdminPermissions(Long adminId, Map<String, AccessLevel> permissions) {
         Admin admin = adminRepository.findById(adminId)
                 .orElseThrow(() -> new AdminNotFoundException(adminId));
 
@@ -115,7 +120,7 @@ public class AdminCommandService {
         adminPermissionRepository.deleteByAdminId(adminId);
 
         List<AdminPermission> entries = permissions.entrySet().stream()
-                .map(e -> AdminPermission.of(adminId, e.getKey(), AccessLevel.valueOf(e.getValue())))
+                .map(e -> AdminPermission.of(adminId, e.getKey(), e.getValue()))
                 .toList();
         adminPermissionRepository.saveAll(entries);
 
@@ -167,7 +172,8 @@ public class AdminCommandService {
 
         AuthService.ResetPasswordResult result = authService.resetPassword(admin.getUserId());
         if (!result.success()) {
-            throw new RuntimeException("Failed to reset password: " + result.message());
+            log.error("Auth service resetPassword failed for adminId={}: {}", id, result.message());
+            throw new BusinessException(AdminErrorCode.AUTH_OP_FAILED);
         }
 
         log.info("Password reset for admin: {} in tenant: {}", id, tenantSlug);
@@ -184,7 +190,8 @@ public class AdminCommandService {
 
         AuthService.ChangeLoginIdResult result = authService.changeLoginId(admin.getUserId(), newLoginId);
         if (!result.success()) {
-            throw new RuntimeException("Failed to change login ID: " + result.message());
+            log.error("Auth service changeLoginId failed for adminId={}: {}", id, result.message());
+            throw new BusinessException(AdminErrorCode.AUTH_OP_FAILED);
         }
 
         admin.updateLoginId(result.newLoginId());

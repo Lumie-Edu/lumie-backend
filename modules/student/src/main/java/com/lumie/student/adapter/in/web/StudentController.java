@@ -24,7 +24,6 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/v1/students")
@@ -91,15 +90,11 @@ public class StudentController {
     }
 
     @PatchMapping("/{id}/login-id")
-    public ResponseEntity<Map<String, String>> changeStudentLoginId(
+    public ResponseEntity<ChangeLoginIdResponse> changeStudentLoginId(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
-        String newLoginId = body.get("loginId");
-        if (newLoginId == null || newLoginId.isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-        String result = studentCommandService.changeStudentLoginId(id, newLoginId);
-        return ResponseEntity.ok(Map.of("loginId", result));
+            @Valid @RequestBody ChangeLoginIdRequest request) {
+        String result = studentCommandService.changeStudentLoginId(id, request.loginId());
+        return ResponseEntity.ok(new ChangeLoginIdResponse(result));
     }
 
     @DeleteMapping("/{id}")
@@ -126,6 +121,21 @@ public class StudentController {
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * Bulk-imports students from an Excel/CSV upload.
+     *
+     * <p><b>Synchronous by design.</b> Unlike the OMR confirm
+     * ({@code POST /v1/exams/{examId}/results/omr/batch/confirm}) and report batch
+     * ({@code POST /v1/exams/{examId}/reports/batch}) endpoints — which return
+     * {@code 202 Accepted} + {@code JobAcceptedResponse} and are polled via a
+     * separate status URL — bulk-import runs inline and returns
+     * {@code 200 OK} with the full {@link BulkImportResult}.
+     *
+     * <p>Rationale: typical uploads (≤ a few hundred rows) parse + INSERT in
+     * under 5 s. Wrapping in an async job table for marginal latency benefit
+     * adds infra (job persistence, polling endpoint, FE state) without payoff.
+     * Revisit only if real-world payloads grow past the request-timeout budget.
+     */
     @PostMapping(value = "/bulk", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BulkImportResult> bulkImportStudents(
             @RequestParam("file") MultipartFile file,

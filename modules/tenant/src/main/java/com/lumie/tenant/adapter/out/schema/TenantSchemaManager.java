@@ -1,6 +1,8 @@
 package com.lumie.tenant.adapter.out.schema;
 
+import com.lumie.common.exception.BusinessException;
 import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
+import com.lumie.tenant.infrastructure.exception.TenantErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -110,7 +112,8 @@ public class TenantSchemaManager implements SchemaProvisioningPort {
                 return false;
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to check schema existence: " + schemaName, e);
+            log.error("Failed to check schema existence: {}", schemaName, e);
+            throw new BusinessException(TenantErrorCode.SCHEMA_PROVISIONING_FAILED, e);
         }
     }
 
@@ -120,7 +123,8 @@ public class TenantSchemaManager implements SchemaProvisioningPort {
             conn.setAutoCommit(true);
             stmt.execute(sql);
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to execute DDL: " + sql, e);
+            log.error("Failed to execute DDL: {}", sql, e);
+            throw new BusinessException(TenantErrorCode.SCHEMA_PROVISIONING_FAILED, e);
         }
     }
 
