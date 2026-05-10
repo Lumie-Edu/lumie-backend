@@ -26,6 +26,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -61,6 +63,8 @@ class ResultCommandServiceTest {
     private OmrStoragePort storagePort;
     @Mock
     private RabbitTemplate rabbitTemplate;
+    @Mock
+    private TransactionTemplate transactionTemplate;
 
     @InjectMocks
     private ResultCommandService resultCommandService;
@@ -68,6 +72,12 @@ class ResultCommandServiceTest {
     @BeforeEach
     void setUpTenantContext() {
         TenantContextHolder.setTenant("test-academy");
+        // The two-phase processOmrGrading wraps DB phases in TransactionTemplate.execute().
+        // Run the callback inline so unit tests don't need a real PlatformTransactionManager.
+        lenient().when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
+            TransactionCallback<?> callback = invocation.getArgument(0);
+            return callback.doInTransaction(null);
+        });
     }
 
     @AfterEach

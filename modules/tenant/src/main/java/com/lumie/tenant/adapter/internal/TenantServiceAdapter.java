@@ -7,6 +7,7 @@ import com.lumie.tenant.application.port.in.ValidateTenantUseCase;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.application.service.TenantRegistrationService;
 import com.lumie.tenant.application.service.TenantRegistrationService.TenantRegistrationResult;
+import com.lumie.tenant.api.TenantStatus;
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -59,6 +61,14 @@ public class TenantServiceAdapter implements TenantService {
                         t.getCreatedAt() != null ? t.getCreatedAt().toString() : "",
                         t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : ""
                 ));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> listActiveTenantSlugs() {
+        return tenantPersistencePort.findAllByStatus(TenantStatus.ACTIVE).stream()
+                .map(Tenant::getSlugValue)
+                .toList();
     }
 
     @Override

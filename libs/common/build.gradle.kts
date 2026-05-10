@@ -18,6 +18,10 @@ dependencies {
     // Version pinned (rather than from BOM) so transitive resolution in consumer
     // modules' compileClasspath finds it without each module re-importing the BOM.
     api("org.springframework.modulith:spring-modulith-events-api:1.4.4")
+
+    // ShedLock — exposes @SchedulerLock to module schedulers (multi-pod safety).
+    // The LockProvider bean lives in app/ alongside the shared DataSource.
+    api("net.javacrumbs.shedlock:shedlock-spring:5.16.0")
     compileOnly("org.springframework.boot:spring-boot-starter-web")
     compileOnly("org.springframework.boot:spring-boot-starter-security")
     api("org.springframework.boot:spring-boot-autoconfigure")

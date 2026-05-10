@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Long> {
@@ -46,4 +47,15 @@ public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Lo
     default boolean tryComplete(Long jobId, int totalImages) {
         return markCompletedIfAllProcessed(jobId, totalImages) > 0;
     }
+
+    /**
+     * Mark every {@code PROCESSING} job whose row was created before {@code cutoff}
+     * as {@code FAILED}. Used by the timeout sweeper to recover from worker pods
+     * that crashed mid-job without marking the job complete.
+     */
+    @Modifying
+    @Query(value = "UPDATE omr_grading_jobs " +
+            "SET status = 'FAILED', updated_at = NOW() " +
+            "WHERE status = 'PROCESSING' AND created_at < :cutoff", nativeQuery = true)
+    int markStaleAsFailed(@Param("cutoff") LocalDateTime cutoff);
 }

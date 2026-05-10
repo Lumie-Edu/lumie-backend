@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import java.util.List;
 import java.util.Map;
 
@@ -46,23 +47,26 @@ public class ResultCommandService {
     private final OmrServicePort omrService;
     private final OmrStoragePort storagePort;
     private final RabbitTemplate rabbitTemplate;
+    private final TransactionTemplate transactionTemplate;
 
-    @Transactional
     public ExamResultResponse processOmrGrading(Long examId, Long studentId, byte[] imageData) {
         log.info("Processing OMR grading for exam: {}, student: {}", examId, studentId);
 
-        Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
-
+        // Phase 1 — validate (each cross-module call self-manages its own short tx).
+        // Held outside the persistence transaction so the long-running OMR HTTP
+        // call below does not pin a Hikari connection.
         String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Exam exam = transactionTemplate.execute(status ->
+                examRepository.findById(examId)
+                        .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND)));
         if (!studentService.validateStudent(tenantSlug, studentId).valid()) {
             throw new ExamException(ExamErrorCode.STUDENT_NOT_FOUND);
         }
-
         if (!billingService.checkQuota(tenantSlug, "OMR_GRADING").allowed()) {
             throw new ExamException(ExamErrorCode.OMR_QUOTA_EXCEEDED);
         }
 
+        // Phase 2 — external HTTP grading. No tx held during this call (HARD_RULES).
         OmrServicePort.OmrGradingResult omrResult;
         try {
             omrResult = omrService.gradeOmrImage(
@@ -76,14 +80,18 @@ public class ResultCommandService {
             throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
         }
 
-        // Quota consumption is recorded by billing-svc when usage is logged elsewhere.
-
-        ExamResult result = resolveResult(examId, exam, studentId, omrResult);
-
-        ExamResult savedResult = resultRepository.save(result);
+        // Phase 3 — persist results in a fresh write transaction.
+        // Re-fetch exam inside the tx so resolveResult works on a managed entity.
+        ExamResultResponse response = transactionTemplate.execute(status -> {
+            Exam managedExam = examRepository.findById(examId)
+                    .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+            ExamResult result = resolveResult(examId, managedExam, studentId, omrResult);
+            ExamResult saved = resultRepository.save(result);
+            return ExamResultResponse.from(saved);
+        });
 
         log.info("OMR grading completed for exam: {}, student: {}", examId, studentId);
-        return ExamResultResponse.from(savedResult);
+        return response;
     }
 
     public OmrPresignResponse generatePresignedUrls(Long examId, OmrPresignRequest request) {

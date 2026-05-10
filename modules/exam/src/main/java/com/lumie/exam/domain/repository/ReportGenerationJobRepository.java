@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ReportGenerationJobRepository extends JpaRepository<ReportGenerationJob, Long> {
@@ -44,4 +45,15 @@ public interface ReportGenerationJobRepository extends JpaRepository<ReportGener
     default boolean tryComplete(Long jobId, int totalReports) {
         return markCompletedIfAllProcessed(jobId, totalReports) > 0;
     }
+
+    /**
+     * Mark every {@code PROCESSING} report job whose row was created before
+     * {@code cutoff} as {@code FAILED}. Used by the timeout sweeper to recover
+     * from worker pods that crashed mid-job without marking it complete.
+     */
+    @Modifying
+    @Query(value = "UPDATE report_generation_jobs " +
+            "SET status = 'FAILED', updated_at = NOW() " +
+            "WHERE status = 'PROCESSING' AND created_at < :cutoff", nativeQuery = true)
+    int markStaleAsFailed(@Param("cutoff") LocalDateTime cutoff);
 }

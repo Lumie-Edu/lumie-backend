@@ -1,5 +1,6 @@
 package com.lumie.tenant.api;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface TenantService {
@@ -7,6 +8,14 @@ public interface TenantService {
     Optional<TenantData> getTenant(Long tenantId);
 
     Optional<TenantData> getTenantBySlug(String slug);
+
+    /**
+     * Slugs of all tenants in {@link TenantStatus#ACTIVE} state. Used by
+     * cross-tenant background jobs (schedulers, sweepers) instead of querying
+     * {@code information_schema.schemata} directly, so DELETED/SUSPENDED
+     * tenants are skipped and the registry stays the single source of truth.
+     */
+    List<String> listActiveTenantSlugs();
 
     /**
      * Look up a tenant by its public-facing customId (the URL slug used in

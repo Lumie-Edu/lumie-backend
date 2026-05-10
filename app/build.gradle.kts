@@ -46,6 +46,11 @@ dependencies {
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.springframework.modulith:spring-modulith-starter-jdbc")
 
+    // ShedLock — distributed lock for @Scheduled methods. JDBC provider pins the
+    // shedlock table to the public schema (cross-tenant). DDL in Flyway V14.
+    implementation("net.javacrumbs.shedlock:shedlock-spring:5.16.0")
+    implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0")
+
     // Runtime
     runtimeOnly("org.postgresql:postgresql")
 

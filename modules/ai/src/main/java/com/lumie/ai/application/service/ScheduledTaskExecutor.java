@@ -6,21 +6,20 @@ import com.lumie.ai.application.tool.Tool;
 import com.lumie.ai.application.tool.ToolRegistry;
 import com.lumie.ai.application.tool.ToolResult;
 import com.lumie.ai.domain.entity.ScheduledTask;
+import com.lumie.ai.domain.exception.AiErrorCode;
+import com.lumie.ai.domain.exception.AiException;
 import com.lumie.ai.domain.repository.ScheduledTaskRepository;
 import com.lumie.ai.domain.vo.TaskFrequency;
 import com.lumie.ai.domain.vo.TaskStatus;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -32,11 +31,13 @@ public class ScheduledTaskExecutor {
     private final ScheduledTaskRepository scheduledTaskRepository;
     private final ToolRegistry toolRegistry;
     private final ObjectMapper objectMapper;
-    private final DataSource dataSource;
+    private final TenantService tenantService;
 
     @Scheduled(fixedDelay = 60_000)
+    @SchedulerLock(name = "executeDueScheduledTasks",
+            lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
     public void executeDueTasks() {
-        List<String> tenantSlugs = getAllTenantSlugs();
+        List<String> tenantSlugs = tenantService.listActiveTenantSlugs();
 
         for (String slug : tenantSlugs) {
             try {
@@ -65,35 +66,18 @@ public class ScheduledTaskExecutor {
         }
     }
 
-    private List<String> getAllTenantSlugs() {
-        List<String> slugs = new ArrayList<>();
-        try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(
-                     "SELECT schema_name FROM information_schema.schemata " +
-                     "WHERE schema_name LIKE 'tenant_%'")) {
-            while (rs.next()) {
-                String schema = rs.getString("schema_name");
-                // tenant_my_slug -> my-slug
-                slugs.add(schema.substring("tenant_".length()).replace("_", "-"));
-            }
-        } catch (Exception e) {
-            log.error("Failed to fetch tenant list: {}", e.getMessage());
-        }
-        return slugs;
-    }
-
     private void executeTask(ScheduledTask task) {
         log.info("Executing scheduled task: {} (ID: {})", task.getName(), task.getId());
 
         Tool tool = toolRegistry.getTool(task.getToolName())
-                .orElseThrow(() -> new RuntimeException("Tool not found: " + task.getToolName()));
+                .orElseThrow(() -> new AiException(AiErrorCode.TOOL_EXECUTION_ERROR,
+                        "Tool not found: " + task.getToolName()));
 
         Map<String, Object> arguments;
         try {
             arguments = objectMapper.readValue(task.getToolArguments(), new TypeReference<>() {});
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse tool arguments", e);
+            throw new AiException(AiErrorCode.TOOL_EXECUTION_ERROR, e);
         }
 
         ToolResult result = tool.execute(task.getTenantSlug(), arguments);
