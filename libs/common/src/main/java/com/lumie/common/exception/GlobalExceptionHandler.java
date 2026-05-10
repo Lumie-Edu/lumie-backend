@@ -1,7 +1,5 @@
 package com.lumie.common.exception;
 
-import com.lumie.common.exception.BusinessException;
-import com.lumie.common.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,9 +8,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.Instant;
+import java.util.List;
 
 @Slf4j
 @RestControllerAdvice
@@ -24,26 +21,22 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = e.getErrorCode();
         return ResponseEntity
             .status(errorCode.getStatus())
-            .body(new ErrorResponse(
-                errorCode.getCode(),
-                e.getMessage(),
-                LocalDateTime.now()
-            ));
+            .body(ErrorResponse.of(errorCode.getCode(), e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
-        Map<String, String> errors = new HashMap<>();
-        for (FieldError fieldError : e.getBindingResult().getFieldErrors()) {
-            errors.put(fieldError.getField(), fieldError.getDefaultMessage());
-        }
-        log.warn("Validation errors: {}", errors);
+        List<FieldViolation> violations = e.getBindingResult().getFieldErrors().stream()
+                .map(fe -> new FieldViolation(fe.getField(), fe.getDefaultMessage(), describe(fe)))
+                .toList();
+        log.warn("Validation errors: {}", violations);
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
             .body(new ErrorResponse(
                 "VALIDATION_ERROR",
-                "Validation failed: " + errors,
-                LocalDateTime.now()
+                "Request validation failed",
+                Instant.now(),
+                violations
             ));
     }
 
@@ -52,11 +45,7 @@ public class GlobalExceptionHandler {
         log.warn("Illegal state: {}", e.getMessage());
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(new ErrorResponse(
-                "ILLEGAL_STATE",
-                e.getMessage(),
-                LocalDateTime.now()
-            ));
+            .body(ErrorResponse.of("ILLEGAL_STATE", e.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
@@ -64,13 +53,30 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error", e);
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(new ErrorResponse(
-                "INTERNAL_ERROR",
-                "An unexpected error occurred",
-                LocalDateTime.now()
-            ));
+            .body(ErrorResponse.of("INTERNAL_ERROR", "An unexpected error occurred"));
     }
 
-    public record ErrorResponse(String code, String message, LocalDateTime timestamp) {
+    private static String describe(FieldError fe) {
+        Object rejected = fe.getRejectedValue();
+        return rejected == null ? null : rejected.toString();
     }
+
+    /**
+     * @param errors per-field violations on validation failures; {@code null}
+     *               for non-validation errors. Kept nullable rather than empty
+     *               so consumers can distinguish "no per-field detail" from
+     *               "validated cleanly".
+     */
+    public record ErrorResponse(
+            String code,
+            String message,
+            Instant timestamp,
+            List<FieldViolation> errors
+    ) {
+        public static ErrorResponse of(String code, String message) {
+            return new ErrorResponse(code, message, Instant.now(), null);
+        }
+    }
+
+    public record FieldViolation(String field, String message, String rejectedValue) {}
 }
