@@ -7,9 +7,3 @@ lumie:
     allowed-origins:
       - https://lumie-edu.com
       - https://dev.lumie-edu.com
-  tenant:
-    # Prod runs Flyway via an explicit ArgoCD post-sync Job
-    # (`FlywayTenantMigrationService` invocation), not from the app boot path.
-    # The app pod becomes Ready immediately on rollout and never blocks
-    # liveness on N × per-tenant migration time.
-    migrate-on-boot: false
