@@ -2,8 +2,8 @@ package com.lumie.content.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
-import com.lumie.content.application.port.out.AdminServicePort;
 import com.lumie.content.domain.entity.Announcement;
+import com.lumie.internal.admin.AdminService;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.AnnouncementRepository;
@@ -27,7 +27,7 @@ public class AnnouncementQueryService {
     private static final String DELETED_USER_NAME = "삭제된 유저";
 
     private final AnnouncementRepository announcementRepository;
-    private final AdminServicePort adminServicePort;
+    private final AdminService adminService;
 
     public Page<AnnouncementResponse> listAnnouncements(Boolean isAsset, Pageable pageable) {
         log.debug("Listing announcements with pagination, isAsset={}", isAsset);
@@ -71,10 +71,10 @@ public class AnnouncementQueryService {
             return Map.of();
         }
 
-        String tenantSlug = TenantContextHolder.getTenant();
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
         return authorIds.stream()
-                .flatMap(authorId -> adminServicePort.getAdminByUserId(tenantSlug, authorId)
-                        .map(admin -> Map.entry(authorId, admin.adminName()))
+                .flatMap(authorId -> adminService.getAdminByUserId(tenantSlug, authorId)
+                        .map(admin -> Map.entry(authorId, admin.name()))
                         .stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
     }

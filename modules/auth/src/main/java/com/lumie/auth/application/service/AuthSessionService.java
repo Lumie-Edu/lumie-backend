@@ -12,10 +12,10 @@ import com.lumie.auth.application.port.in.LoginUseCase;
 import com.lumie.auth.application.port.in.LogoutUseCase;
 import com.lumie.auth.application.port.in.RefreshTokenUseCase;
 import com.lumie.auth.application.port.in.RevokeSessionUseCase;
-import com.lumie.auth.application.port.out.TenantServicePort;
-import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.TokenProviderPort;
+import com.lumie.internal.tenant.TenantService;
+import com.lumie.internal.tenant.TenantService.TenantData;
 import com.lumie.auth.application.port.out.UserDirectoryPort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
@@ -47,7 +47,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshTokenUseCase, RevokeSessionUseCase {
 
-    private final TenantServicePort tenantServicePort;
+    private final TenantService tenantService;
     private final UserLookupPort userLookupPort;
     private final UserDirectoryPort userDirectoryPort;
     private final TokenPersistencePort tokenPersistencePort;
@@ -83,7 +83,7 @@ public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshT
         String headerSlug = TenantContextHolder.getTenant();
         if (headerSlug != null && !headerSlug.isBlank()) {
             // Portal entry — header provides the tenant.
-            TenantData tenant = tenantServicePort.validateTenant(headerSlug)
+            TenantData tenant = tenantService.getTenantBySlug(headerSlug)
                     .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
             if (!tenant.isActive()) {
                 throw new IllegalStateException("Tenant is not active");
@@ -95,7 +95,7 @@ public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshT
         UserDirectoryPort.DirectoryEntry entry = userDirectoryPort.findByUserLoginId(request.userLoginId())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
 
-        TenantData tenant = tenantServicePort.validateTenantById(entry.tenantId())
+        TenantData tenant = tenantService.getTenant(entry.tenantId())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
         if (!tenant.isActive()) {
             throw new IllegalStateException("Tenant is not active");
@@ -141,7 +141,7 @@ public class AuthSessionService implements LoginUseCase, LogoutUseCase, RefreshT
         tokenPersistencePort.findRefreshToken(claims.getUserId(), claims.jti())
                 .orElseThrow(() -> new InvalidTokenException("Refresh token not found"));
 
-        TenantData tenant = tenantServicePort.validateTenant(claims.tenantSlug())
+        TenantData tenant = tenantService.getTenantBySlug(claims.tenantSlug())
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", claims.tenantSlug()));
         if (!tenant.isActive()) {
             throw new IllegalStateException("Tenant is not active");

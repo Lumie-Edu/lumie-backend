@@ -32,7 +32,11 @@ public interface TenantService {
             String customId,
             String createdAt,
             String updatedAt
-    ) {}
+    ) {
+        public boolean isActive() {
+            return "ACTIVE".equalsIgnoreCase(status);
+        }
+    }
 
     record ValidateTenantResult(
             boolean valid,

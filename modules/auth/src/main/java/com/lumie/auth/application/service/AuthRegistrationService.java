@@ -7,13 +7,13 @@ import com.lumie.auth.application.exception.AuthErrors.TenantCreationFailedExcep
 import com.lumie.auth.application.exception.AuthErrors.UserLoginIdAlreadyExistsException;
 import com.lumie.auth.application.port.in.OwnerRegisterUseCase;
 import com.lumie.auth.application.port.in.RegisterUseCase;
-import com.lumie.auth.application.port.out.AdminServicePort;
-import com.lumie.auth.application.port.out.TenantServicePort;
-import com.lumie.auth.application.port.out.TenantServicePort.TenantCreationResult;
-import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
 import com.lumie.auth.application.port.out.UserDirectoryPort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
+import com.lumie.internal.admin.AdminService;
+import com.lumie.internal.tenant.TenantService;
+import com.lumie.internal.tenant.TenantService.CreateTenantResult;
+import com.lumie.internal.tenant.TenantService.TenantData;
 import com.lumie.auth.application.service.LoginSessionHelper.IssuedTokens;
 import com.lumie.auth.domain.vo.SessionMetadata;
 import com.lumie.common.auth.Role;
@@ -34,10 +34,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthRegistrationService implements RegisterUseCase, OwnerRegisterUseCase {
 
-    private final TenantServicePort tenantServicePort;
+    private final TenantService tenantService;
     private final UserLookupPort userLookupPort;
     private final UserDirectoryPort userDirectoryPort;
-    private final AdminServicePort adminServicePort;
+    private final AdminService adminService;
     private final PasswordEncoder passwordEncoder;
     private final LoginSessionHelper loginSessionHelper;
 
@@ -45,7 +45,7 @@ public class AuthRegistrationService implements RegisterUseCase, OwnerRegisterUs
     public LoginResponse register(RegisterRequest request, SessionMetadata metadata) {
         log.info("Registration attempt for userLoginId: {} on tenant: {}", request.userLoginId(), request.tenantSlug());
 
-        TenantData tenant = tenantServicePort.validateTenant(request.tenantSlug())
+        TenantData tenant = tenantService.getTenantBySlug(request.tenantSlug())
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", request.tenantSlug()));
         if (!tenant.isActive()) {
             throw new IllegalStateException("Tenant is not active: " + request.tenantSlug());
@@ -74,7 +74,7 @@ public class AuthRegistrationService implements RegisterUseCase, OwnerRegisterUs
             throw new UserLoginIdAlreadyExistsException("User login ID already registered: " + request.userLoginId());
         }
 
-        TenantCreationResult tenantResult = tenantServicePort.createTenant(
+        CreateTenantResult tenantResult = tenantService.createTenant(
                 request.instituteName(), request.businessRegistrationNumber(),
                 request.userLoginId(), request.name());
         if (!tenantResult.success()) {
@@ -93,7 +93,7 @@ public class AuthRegistrationService implements RegisterUseCase, OwnerRegisterUs
         userDirectoryPort.createDirectoryEntry(
                 user.id(), request.userLoginId(), tenantResult.tenantId(), null);
 
-        adminServicePort.createOwnerAdmin(
+        adminService.createOwnerAdmin(
                 tenantResult.tenantSlug(), user.id(),
                 request.userLoginId(), request.name(), request.phone(), null);
 

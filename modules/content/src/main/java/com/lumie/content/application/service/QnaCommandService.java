@@ -6,7 +6,6 @@ import com.lumie.content.application.dto.request.CreateQnaRequest;
 import com.lumie.content.application.dto.request.UpdateQnaRequest;
 import com.lumie.content.application.dto.response.QnaBoardResponse;
 import com.lumie.content.application.dto.response.QnaCommentResponse;
-import com.lumie.content.application.port.out.AdminServicePort;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
 import com.lumie.content.domain.exception.ContentErrorCode;

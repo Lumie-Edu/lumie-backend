@@ -3,9 +3,9 @@ package com.lumie.content.application.service;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.application.dto.response.QnaBoardResponse;
 import com.lumie.content.application.dto.response.QnaDetailResponse;
-import com.lumie.content.application.port.out.AdminServicePort;
-import com.lumie.content.application.port.out.StudentServicePort;
 import com.lumie.content.domain.entity.QnaBoard;
+import com.lumie.internal.admin.AdminService;
+import com.lumie.internal.student.StudentService;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.QnaBoardRepository;
@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
 public class QnaQueryService {
 
     private final QnaBoardRepository qnaBoardRepository;
-    private final StudentServicePort studentServicePort;
-    private final AdminServicePort adminServicePort;
+    private final StudentService studentService;
+    private final AdminService adminService;
 
     public Page<QnaBoardResponse> listQnas(Boolean isItAnswered, Pageable pageable) {
         log.debug("Listing Q&As with pagination, isItAnswered={}", isItAnswered);
@@ -60,11 +60,12 @@ public class QnaQueryService {
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
 
-        String tenantSlug = TenantContextHolder.getTenant();
-        String userName = studentServicePort.getStudentsByUserIds(tenantSlug, List.of(qnaBoard.getQnaUserId()))
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        String userName = studentService.getStudentsByUserIds(tenantSlug, List.of(qnaBoard.getQnaUserId()))
+                .students()
                 .stream()
                 .findFirst()
-                .map(StudentServicePort.StudentInfo::name)
+                .map(StudentService.StudentData::studentName)
                 .orElse(String.valueOf(qnaBoard.getQnaUserId()));
 
         List<Long> userIds = qnaBoard.getComments().stream()
@@ -74,8 +75,8 @@ public class QnaQueryService {
                 .collect(Collectors.toList());
 
         Map<Long, String> adminNameMap = userIds.stream()
-                .flatMap(userId -> adminServicePort.getAdminByUserId(tenantSlug, userId)
-                        .map(a -> Map.entry(userId, a.adminName()))
+                .flatMap(userId -> adminService.getAdminByUserId(tenantSlug, userId)
+                        .map(a -> Map.entry(userId, a.name()))
                         .stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
 
@@ -94,15 +95,15 @@ public class QnaQueryService {
 
         log.info("[QNA] Looking up names for userIds: {}", userIds);
 
-        String tenantSlug = TenantContextHolder.getTenant();
-        var students = studentServicePort.getStudentsByUserIds(tenantSlug, userIds);
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        var students = studentService.getStudentsByUserIds(tenantSlug, userIds).students();
         log.info("[QNA] Found {} students", students.size());
-        students.forEach(s -> log.info("[QNA] student userId={} name={}", s.userId(), s.name()));
+        students.forEach(s -> log.info("[QNA] student userId={} name={}", s.userId(), s.studentName()));
 
         Map<Long, String> nameMap = students.stream()
                 .collect(Collectors.toMap(
-                        StudentServicePort.StudentInfo::userId,
-                        StudentServicePort.StudentInfo::name,
+                        StudentService.StudentData::userId,
+                        StudentService.StudentData::studentName,
                         (a, b) -> a
                 ));
 

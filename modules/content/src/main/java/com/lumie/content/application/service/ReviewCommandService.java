@@ -4,8 +4,8 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.application.dto.request.CreateReviewRequest;
 import com.lumie.content.application.dto.response.ReviewResponse;
-import com.lumie.content.application.port.out.StudentServicePort;
 import com.lumie.content.domain.entity.Review;
+import com.lumie.internal.student.StudentService;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.ReviewRepository;
@@ -22,7 +22,7 @@ import java.util.List;
 public class ReviewCommandService {
 
     private final ReviewRepository reviewRepository;
-    private final StudentServicePort studentServicePort;
+    private final StudentService studentService;
 
     @Transactional
     public ReviewResponse createReview(CreateReviewRequest request) {
@@ -30,10 +30,11 @@ public class ReviewCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         log.info("Creating review for userId: {}", userId);
 
-        String reviewerName = studentServicePort.getStudentsByUserIds(tenantSlug, List.of(userId))
+        String reviewerName = studentService.getStudentsByUserIds(tenantSlug, List.of(userId))
+                .students()
                 .stream()
                 .findFirst()
-                .map(StudentServicePort.StudentInfo::name)
+                .map(StudentService.StudentData::studentName)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.STUDENT_NOT_FOUND));
 
         Review review = Review.create(reviewerName, request.reviewTitle(), request.reviewContent());

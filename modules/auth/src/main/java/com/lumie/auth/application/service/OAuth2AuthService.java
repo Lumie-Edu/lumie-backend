@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.port.in.OAuth2LoginUseCase;
-import com.lumie.auth.application.port.out.TenantServicePort;
-import com.lumie.auth.application.port.out.TenantServicePort.TenantData;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
+import com.lumie.internal.tenant.TenantService;
+import com.lumie.internal.tenant.TenantService.TenantData;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
 import com.lumie.auth.application.exception.AuthErrors.InvalidCredentialsException;
@@ -38,7 +38,7 @@ import java.util.UUID;
 public class OAuth2AuthService implements OAuth2LoginUseCase {
 
     private final OAuth2Config oAuth2Config;
-    private final TenantServicePort tenantServicePort;
+    private final TenantService tenantService;
     private final UserLookupPort userLookupPort;
     private final TokenPersistencePort tokenPersistencePort;
     private final TokenProviderPort tokenProvider;
@@ -52,7 +52,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
     public String getAuthorizationUrl(String provider, String tenantSlug) {
         log.info("Generating OAuth2 authorization URL for provider: {} tenant: {}", provider, tenantSlug);
 
-        tenantServicePort.validateTenant(tenantSlug)
+        tenantService.getTenantBySlug(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
 
         String nonce = generateNonce();
@@ -88,7 +88,7 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
             throw new IllegalStateException("OAuth2 state tenant mismatch");
         }
 
-        TenantData tenant = tenantServicePort.validateTenant(tenantSlug)
+        TenantData tenant = tenantService.getTenantBySlug(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
 
         if (!tenant.isActive()) {
