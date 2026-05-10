@@ -221,9 +221,9 @@ public class OAuth2AuthService implements OAuth2LoginUseCase {
         String refreshJti = UUID.randomUUID().toString();
 
         String accessToken = tokenProvider.generateAccessToken(
-                user.id(), tenantSlug, tenantId, user.role(), accessJti, sid);
+                user.id(), user.name(), tenantSlug, tenantId, user.role(), accessJti, sid);
         String refreshToken = tokenProvider.generateRefreshToken(
-                user.id(), tenantSlug, tenantId, user.role(), refreshJti, sid);
+                user.id(), user.name(), tenantSlug, tenantId, user.role(), refreshJti, sid);
 
         return TokenPair.of(
                 accessToken,

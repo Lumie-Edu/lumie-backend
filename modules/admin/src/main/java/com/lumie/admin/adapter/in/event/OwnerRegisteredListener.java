@@ -5,9 +5,8 @@ import com.lumie.auth.api.OwnerRegisteredEvent;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Listens for {@link OwnerRegisteredEvent} after owner-registration commit
@@ -24,7 +23,7 @@ public class OwnerRegisteredListener {
 
     private final AdminService adminService;
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @ApplicationModuleListener
     public void onOwnerRegistered(OwnerRegisteredEvent event) {
         Runnable createOwner = () -> {
             try {

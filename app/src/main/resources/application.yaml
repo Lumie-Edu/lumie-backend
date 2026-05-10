@@ -29,6 +29,17 @@ spring:
     baseline-on-migrate: true
     baseline-version: "0"
 
+  # Spring Modulith outbox — JDBC store, public schema (cross-tenant).
+  # schema-initialization disabled because Flyway owns the DDL (V13).
+  # republish-outstanding-events-on-restart: incomplete events are retried on boot.
+  modulith:
+    events:
+      jdbc:
+        schema: public
+        schema-initialization:
+          enabled: false
+      republish-outstanding-events-on-restart: true
+
   data:
     redis:
       password: ${REDIS_PASSWORD:}

@@ -6,6 +6,7 @@ plugins {
 dependencyManagement {
     imports {
         mavenBom("org.springframework.ai:spring-ai-bom:1.0.0")
+        mavenBom("org.springframework.modulith:spring-modulith-bom:1.4.4")
     }
 }
 
@@ -36,6 +37,14 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+
+    // Spring Modulith — transactional outbox for cross-module domain events.
+    // Replaces hand-rolled @TransactionalEventListener(AFTER_COMMIT) so events
+    // survive pod restarts and listener exceptions.
+    // JDBC (not JPA) store: bypasses Hibernate schema-multitenancy and pins
+    // event_publication to a fixed schema (see spring.modulith.events.jdbc.schema).
+    implementation("org.springframework.modulith:spring-modulith-starter-core")
+    implementation("org.springframework.modulith:spring-modulith-starter-jdbc")
 
     // Runtime
     runtimeOnly("org.postgresql:postgresql")

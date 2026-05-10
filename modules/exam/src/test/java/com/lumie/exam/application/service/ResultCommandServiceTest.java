@@ -17,6 +17,8 @@ import com.lumie.exam.domain.service.GradeCalculator;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,6 +64,16 @@ class ResultCommandServiceTest {
 
     @InjectMocks
     private ResultCommandService resultCommandService;
+
+    @BeforeEach
+    void setUpTenantContext() {
+        TenantContextHolder.setTenant("test-academy");
+    }
+
+    @AfterEach
+    void clearTenantContext() {
+        TenantContextHolder.clear();
+    }
 
     private Exam buildExam() {
         return Exam.create(

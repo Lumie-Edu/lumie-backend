@@ -15,10 +15,10 @@ import java.util.Optional;
  */
 public interface TokenProviderPort {
 
-    String generateAccessToken(Long userId, String tenantSlug, Long tenantId,
+    String generateAccessToken(Long userId, String name, String tenantSlug, Long tenantId,
                                Role role, String jti, String sid);
 
-    String generateRefreshToken(Long userId, String tenantSlug, Long tenantId,
+    String generateRefreshToken(Long userId, String name, String tenantSlug, Long tenantId,
                                 Role role, String jti, String sid);
 
     Optional<TokenClaims> parseToken(String token);

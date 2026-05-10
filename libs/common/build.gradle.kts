@@ -6,6 +6,7 @@ plugins {
 dependencyManagement {
     imports {
         mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
+        mavenBom("org.springframework.modulith:spring-modulith-bom:1.4.4")
     }
 }
 
@@ -13,6 +14,10 @@ dependencies {
     // Spring
     api("org.springframework.boot:spring-boot-starter-validation")
     api("org.springframework.boot:spring-boot-starter-data-jpa")
+    // Spring Modulith — exposes @ApplicationModuleListener to module listeners.
+    // Version pinned (rather than from BOM) so transitive resolution in consumer
+    // modules' compileClasspath finds it without each module re-importing the BOM.
+    api("org.springframework.modulith:spring-modulith-events-api:1.4.4")
     compileOnly("org.springframework.boot:spring-boot-starter-web")
     compileOnly("org.springframework.boot:spring-boot-starter-security")
     api("org.springframework.boot:spring-boot-autoconfigure")

@@ -31,13 +31,14 @@ public class JwtTokenProvider {
         this.secretKey = Keys.hmacShaKeyFor(jwtConfig.getSecretKey().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(Long userId, String tenantSlug, Long tenantId,
+    public String generateAccessToken(Long userId, String name, String tenantSlug, Long tenantId,
                                        Role role, String jti, String sid) {
         Instant now = Instant.now();
         Instant expiration = now.plusSeconds(jwtConfig.getAccessExpiration());
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("name", name)
                 .claim("tenant_slug", tenantSlug)
                 .claim("tenant_id", tenantId)
                 .claim("role", role.name())
@@ -51,13 +52,14 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String generateRefreshToken(Long userId, String tenantSlug, Long tenantId,
+    public String generateRefreshToken(Long userId, String name, String tenantSlug, Long tenantId,
                                         Role role, String jti, String sid) {
         Instant now = Instant.now();
         Instant expiration = now.plusSeconds(jwtConfig.getRefreshExpiration());
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("name", name)
                 .claim("tenant_slug", tenantSlug)
                 .claim("tenant_id", tenantId)
                 .claim("role", role.name())
@@ -81,6 +83,7 @@ public class JwtTokenProvider {
 
             return Optional.of(TokenClaims.of(
                     claims.getSubject(),
+                    claims.get("name", String.class),
                     claims.get("tenant_slug", String.class),
                     claims.get("tenant_id", Long.class),
                     Role.fromString(claims.get("role", String.class)),

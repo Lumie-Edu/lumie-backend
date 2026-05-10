@@ -76,10 +76,21 @@ public class AdminServiceAdapter implements AdminService {
     public AdminData createOwnerAdmin(String tenantSlug, Long userId, String userLoginId,
                                       String name, String phone, String email) {
         return TenantContextHolder.withinContext(tenantSlug, () -> {
-            Admin admin = Admin.create(userId, userLoginId, name, phone, email, null);
-            Admin saved = adminRepository.save(admin);
-            log.info("OWNER admin row created: userId={}, tenant={}", userId, tenantSlug);
-            return toAdminDataFromEntity(saved);
+            // Idempotent: Spring Modulith may re-deliver OwnerRegisteredEvent on
+            // restart if the prior listener invocation didn't mark the publication
+            // complete. Returning the existing admin row keeps the operation safe.
+            return adminRepository.findByUserId(userId)
+                    .map(existing -> {
+                        log.info("OWNER admin already exists for userId={}, tenant={} — idempotent skip",
+                                userId, tenantSlug);
+                        return toAdminDataFromEntity(existing);
+                    })
+                    .orElseGet(() -> {
+                        Admin admin = Admin.create(userId, userLoginId, name, phone, email, null);
+                        Admin saved = adminRepository.save(admin);
+                        log.info("OWNER admin row created: userId={}, tenant={}", userId, tenantSlug);
+                        return toAdminDataFromEntity(saved);
+                    });
         });
     }
 

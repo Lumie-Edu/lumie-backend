@@ -18,6 +18,7 @@ import java.time.Instant;
  */
 public record TokenClaims(
         String sub,
+        String name,
         String tenantSlug,
         Long tenantId,
         Role role,
@@ -26,9 +27,9 @@ public record TokenClaims(
         String jti,
         String sid
 ) {
-    public static TokenClaims of(String sub, String tenantSlug, Long tenantId,
+    public static TokenClaims of(String sub, String name, String tenantSlug, Long tenantId,
                                   Role role, Instant iat, Instant exp, String jti, String sid) {
-        return new TokenClaims(sub, tenantSlug, tenantId, role, iat, exp, jti, sid);
+        return new TokenClaims(sub, name, tenantSlug, tenantId, role, iat, exp, jti, sid);
     }
 
     public boolean isExpired() {

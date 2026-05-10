@@ -5,7 +5,7 @@ import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
-import com.lumie.billing.api.BillingService;
+import com.lumie.tenant.api.TenantCreatedEvent;
 import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
@@ -18,6 +18,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 
@@ -37,7 +38,7 @@ class TenantCommandServiceTest {
     private SchemaProvisioningPort schemaProvisioningPort;
 
     @Mock
-    private BillingService billingService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private TenantCommandService tenantCommandService;
@@ -69,7 +70,7 @@ class TenantCommandServiceTest {
 
         verify(schemaProvisioningPort).createSchema(anyString());
         verify(schemaProvisioningPort).migrateSchema(anyString());
-        verify(billingService).createFreeSubscription(any(), eq("test-academy"));
+        verify(eventPublisher).publishEvent(any(TenantCreatedEvent.class));
     }
 
     @Test
@@ -82,7 +83,7 @@ class TenantCommandServiceTest {
 
         verify(tenantPersistencePort, never()).save(any());
         verify(schemaProvisioningPort, never()).createSchema(anyString());
-        verify(billingService, never()).createFreeSubscription(any(), anyString());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
