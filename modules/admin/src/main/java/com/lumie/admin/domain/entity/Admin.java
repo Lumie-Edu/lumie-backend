@@ -1,7 +1,7 @@
 package com.lumie.admin.domain.entity;
 
 import com.lumie.admin.domain.vo.EmploymentStatus;
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -13,7 +13,7 @@ import org.hibernate.annotations.Formula;
 @Table(name = "admins")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Admin extends BaseEntity {
+public class Admin extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

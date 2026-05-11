@@ -5,7 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentType;
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -21,7 +21,7 @@ import java.util.List;
 @Table(name = "assignments")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Assignment extends BaseEntity {
+public class Assignment extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

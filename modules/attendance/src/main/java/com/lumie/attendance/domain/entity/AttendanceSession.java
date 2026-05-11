@@ -1,6 +1,6 @@
 package com.lumie.attendance.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -18,7 +18,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @Table(name = "attendance_sessions")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class AttendanceSession extends BaseEntity {
+public class AttendanceSession extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

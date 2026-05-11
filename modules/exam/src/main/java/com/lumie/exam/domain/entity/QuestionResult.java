@@ -1,5 +1,6 @@
 package com.lumie.exam.domain.entity;
 
+import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -32,6 +33,16 @@ public class QuestionResult {
 
     @Column(name = "score", nullable = false)
     private Integer score;
+
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private Long tenantId;
+
+    @PrePersist
+    private void initTenantId() {
+        if (this.tenantId == null) {
+            this.tenantId = TenantContextHolder.getRequiredTenantId();
+        }
+    }
 
     @Builder
     private QuestionResult(Integer questionNumber, String selectedChoice,

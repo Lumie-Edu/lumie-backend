@@ -1,6 +1,6 @@
 package com.lumie.lecture.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.lecture.domain.vo.LectureStatus;
 import com.lumie.lecture.domain.vo.LectureVisibility;
 import jakarta.persistence.*;
@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @Table(name = "lectures")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Lecture extends BaseEntity {
+public class Lecture extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

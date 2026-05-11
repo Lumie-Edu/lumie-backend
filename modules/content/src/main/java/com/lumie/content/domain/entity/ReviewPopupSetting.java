@@ -1,6 +1,6 @@
 package com.lumie.content.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "toggles")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ReviewPopupSetting extends BaseEntity {
+public class ReviewPopupSetting extends TenantScopedEntity {
 
     @Id
     private Long id;

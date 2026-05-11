@@ -3,7 +3,7 @@ package com.lumie.notification.domain.entity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
@@ -22,7 +22,7 @@ import java.util.List;
 @Table(name = "sms_messages")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class SmsMessage extends BaseEntity {
+public class SmsMessage extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

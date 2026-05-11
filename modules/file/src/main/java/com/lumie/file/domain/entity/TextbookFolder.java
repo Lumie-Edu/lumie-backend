@@ -1,6 +1,6 @@
 package com.lumie.file.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.exception.FileException;
 import jakarta.persistence.*;
@@ -15,7 +15,7 @@ import java.util.UUID;
 @Table(name = "textbook_folders")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class TextbookFolder extends BaseEntity {
+public class TextbookFolder extends TenantScopedEntity {
 
     private static final int MAX_DEPTH = 5;
 

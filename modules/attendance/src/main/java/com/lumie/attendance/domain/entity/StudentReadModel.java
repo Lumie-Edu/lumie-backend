@@ -25,4 +25,7 @@ public class StudentReadModel {
 
     @Column(name = "user_id")
     private Long userId;
+
+    @Column(name = "tenant_id", nullable = false, updatable = false, insertable = false)
+    private Long tenantId;
 }

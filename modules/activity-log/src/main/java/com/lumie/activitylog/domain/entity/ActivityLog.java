@@ -1,5 +1,6 @@
 package com.lumie.activitylog.domain.entity;
 
+import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -41,12 +42,18 @@ public class ActivityLog {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private Long tenantId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = Instant.now();
+        if (this.tenantId == null) {
+            this.tenantId = TenantContextHolder.getRequiredTenantId();
+        }
     }
 
     private ActivityLog(Long actorId, String actorName, String actorRole,

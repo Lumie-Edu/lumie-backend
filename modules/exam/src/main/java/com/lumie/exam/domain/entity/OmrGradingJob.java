@@ -1,6 +1,6 @@
 package com.lumie.exam.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.exam.domain.vo.OmrJobStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -16,7 +16,7 @@ import java.util.Map;
 @Table(name = "omr_grading_jobs")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class OmrGradingJob extends BaseEntity {
+public class OmrGradingJob extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

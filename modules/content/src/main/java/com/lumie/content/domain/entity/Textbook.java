@@ -1,6 +1,6 @@
 package com.lumie.content.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.content.domain.vo.TextbookStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Table(name = "textbooks")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Textbook extends BaseEntity {
+public class Textbook extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,6 +1,7 @@
 package com.lumie.admin.domain.entity;
 
 import com.lumie.admin.domain.vo.AccessLevel;
+import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,6 +28,16 @@ public class AdminPermission {
     @Version
     @Column(name = "version", nullable = false)
     private Long version;
+
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private Long tenantId;
+
+    @PrePersist
+    private void initTenantId() {
+        if (this.tenantId == null) {
+            this.tenantId = TenantContextHolder.getRequiredTenantId();
+        }
+    }
 
     public AdminPermission(Long adminId, String permissionCode, AccessLevel accessLevel) {
         this.adminId = adminId;

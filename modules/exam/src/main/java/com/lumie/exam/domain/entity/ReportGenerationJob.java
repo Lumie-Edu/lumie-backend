@@ -1,6 +1,6 @@
 package com.lumie.exam.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.exam.domain.vo.JobStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -15,7 +15,7 @@ import java.util.List;
 @Table(name = "report_generation_jobs")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ReportGenerationJob extends BaseEntity {
+public class ReportGenerationJob extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

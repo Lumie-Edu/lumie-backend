@@ -2,7 +2,7 @@ package com.lumie.ai.domain.entity;
 
 import com.lumie.ai.domain.vo.TaskFrequency;
 import com.lumie.ai.domain.vo.TaskStatus;
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -17,7 +17,7 @@ import java.time.Instant;
 @Table(name = "ai_scheduled_tasks")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ScheduledTask extends BaseEntity {
+public class ScheduledTask extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

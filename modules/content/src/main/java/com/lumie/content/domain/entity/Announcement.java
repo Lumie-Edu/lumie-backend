@@ -1,6 +1,6 @@
 package com.lumie.content.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "announcements")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Announcement extends BaseEntity {
+public class Announcement extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

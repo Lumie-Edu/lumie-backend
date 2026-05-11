@@ -1,6 +1,6 @@
 package com.lumie.file.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.file.domain.vo.EntityType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -14,7 +14,7 @@ import java.util.UUID;
 @Table(name = "file_metadata")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class FileMetadata extends BaseEntity {
+public class FileMetadata extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

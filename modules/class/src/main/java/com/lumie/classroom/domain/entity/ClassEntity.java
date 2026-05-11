@@ -3,7 +3,7 @@ package com.lumie.classroom.domain.entity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.classroom.domain.vo.SchedulePattern;
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -16,7 +16,7 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "classes")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ClassEntity extends BaseEntity {
+public class ClassEntity extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

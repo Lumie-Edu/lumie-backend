@@ -1,6 +1,6 @@
 package com.lumie.admin.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "permissions")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Permission extends BaseEntity {
+public class Permission extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

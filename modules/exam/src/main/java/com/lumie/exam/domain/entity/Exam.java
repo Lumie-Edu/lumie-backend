@@ -1,6 +1,6 @@
 package com.lumie.exam.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
@@ -20,7 +20,7 @@ import java.util.Map;
 @Table(name = "exams")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Exam extends BaseEntity {
+public class Exam extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

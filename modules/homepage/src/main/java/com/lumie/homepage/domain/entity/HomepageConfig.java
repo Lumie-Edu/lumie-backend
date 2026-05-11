@@ -1,6 +1,6 @@
 package com.lumie.homepage.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.homepage.domain.exception.HomepageNotReadyToPublishException;
 import com.lumie.homepage.domain.vo.TemplateId;
 import jakarta.persistence.*;
@@ -15,7 +15,7 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "homepage_config")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class HomepageConfig extends BaseEntity {
+public class HomepageConfig extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

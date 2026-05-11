@@ -1,6 +1,6 @@
 package com.lumie.exam.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -14,7 +14,7 @@ import java.util.List;
 @Table(name = "exam_results")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ExamResult extends BaseEntity {
+public class ExamResult extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

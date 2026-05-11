@@ -1,6 +1,6 @@
 package com.lumie.notification.domain.entity;
 
-import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.notification.domain.vo.TemplateCategory;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "sms_templates")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class SmsTemplate extends BaseEntity {
+public class SmsTemplate extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
