@@ -1,6 +1,5 @@
 package com.lumie.exam.adapter.in.web;
 
-import com.lumie.exam.application.dto.request.ReportCallbackRequest;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.dto.response.statistics.ExamStatisticsResponse;
@@ -22,17 +21,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InternalReportController {
 
-    private final ReportJobService reportJobService;
     private final ExamSummaryStatisticsService examSummaryStatisticsService;
     private final StudentAnalyticsQueryService studentAnalyticsQueryService;
     private final ResultQueryService resultQueryService;
     private final StudentService studentService;
-
-    @PostMapping("/callback")
-    public ResponseEntity<Void> handleCallback(@RequestBody ReportCallbackRequest request) {
-        reportJobService.processCallback(request);
-        return ResponseEntity.ok().build();
-    }
 
     @GetMapping("/exams/{examId}/statistics")
     public ResponseEntity<ExamStatisticsResponse> getExamStatistics(@PathVariable Long examId) {

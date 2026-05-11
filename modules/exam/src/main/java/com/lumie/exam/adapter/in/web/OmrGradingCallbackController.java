@@ -1,28 +1,29 @@
 package com.lumie.exam.adapter.in.web;
 
-import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.dto.response.ExamDetailResponse;
 import com.lumie.exam.application.service.ExamQueryService;
-import com.lumie.exam.application.service.OmrGradingJobProcessor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Internal HTTP query endpoints for the OMR domain — used by
+ * grading-svc to fetch exam metadata mid-job. The callback path
+ * (POST /callback) was retired; results now flow over RabbitMQ
+ * (queue {@code grading.omr-callback}) consumed by
+ * {@code OmrGradingCallbackListener}.
+ */
 @Slf4j
 @RestController
 @RequestMapping("/internal/omr")
 @RequiredArgsConstructor
 public class OmrGradingCallbackController {
 
-    private final OmrGradingJobProcessor processor;
     private final ExamQueryService examQueryService;
-
-    @PostMapping("/callback")
-    public ResponseEntity<Void> handleCallback(@RequestBody OmrGradingCallbackRequest request) {
-        processor.processGradingCallback(request);
-        return ResponseEntity.ok().build();
-    }
 
     @GetMapping("/exams/{id}/detail")
     public ResponseEntity<ExamDetailResponse> getExamDetail(@PathVariable Long id) {
