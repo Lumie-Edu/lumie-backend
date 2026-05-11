@@ -12,11 +12,13 @@
 
 -- Core platform tables ------------------------------------------------
 
+-- NOTE: custom_domain_activated_at / custom_domain_expires_at were added
+-- in V10 and dropped in V11 (workflow simplified to manual mode), so V15
+-- only converts the audit pair that survived. Older envs that ran V10
+-- but somehow skipped V11 are not a real case in this codebase's history.
 ALTER TABLE IF EXISTS tenants
-    ALTER COLUMN created_at                  TYPE TIMESTAMPTZ USING created_at                  AT TIME ZONE 'UTC',
-    ALTER COLUMN updated_at                  TYPE TIMESTAMPTZ USING updated_at                  AT TIME ZONE 'UTC',
-    ALTER COLUMN custom_domain_activated_at  TYPE TIMESTAMPTZ USING custom_domain_activated_at  AT TIME ZONE 'UTC',
-    ALTER COLUMN custom_domain_expires_at    TYPE TIMESTAMPTZ USING custom_domain_expires_at    AT TIME ZONE 'UTC';
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'UTC',
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ USING updated_at AT TIME ZONE 'UTC';
 
 ALTER TABLE IF EXISTS tenant_settings
     ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'UTC',
