@@ -25,6 +25,12 @@ public class ReportGenerationCallbackListener {
 
     @RabbitListener(queues = "report.generation-callback")
     public void handle(ReportCallbackRequest request) {
+        if (request.tenantSlug() == null || request.tenantSlug().isBlank()) {
+            throw new IllegalArgumentException(
+                    "Report callback missing tenantSlug for job " + request.jobId()
+                            + " — rejecting to DLQ"
+            );
+        }
         TenantContextHolder.withinContext(request.tenantSlug(), null, (Runnable) () -> {
             try {
                 reportJobService.processCallback(request);

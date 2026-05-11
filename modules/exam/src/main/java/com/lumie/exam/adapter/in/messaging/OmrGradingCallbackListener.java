@@ -33,6 +33,12 @@ public class OmrGradingCallbackListener {
 
     @RabbitListener(queues = "grading.omr-callback")
     public void handle(OmrGradingCallbackRequest request) {
+        if (request.tenantSlug() == null || request.tenantSlug().isBlank()) {
+            throw new IllegalArgumentException(
+                    "OMR callback missing tenantSlug for job " + request.jobId()
+                            + " — rejecting to DLQ"
+            );
+        }
         TenantContextHolder.withinContext(request.tenantSlug(), null, (Runnable) () -> {
             try {
                 processor.processGradingCallback(request);
