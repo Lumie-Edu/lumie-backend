@@ -2,7 +2,7 @@
   "name": "lumie-backend",
   "version": "0.1.0",
   "description": "Lumie backend plugin: Spring Boot monolith reviewer, scaffolder, migration tooling, and Java-specific rules.",
-  "author": "Lumie",
+  "author": { "name": "Lumie" },
   "contributes": {
     "agents": [".claude/agents"],
     "skills": [".claude/skills"],
