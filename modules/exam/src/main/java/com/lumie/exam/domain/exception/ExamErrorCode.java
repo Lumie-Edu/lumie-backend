@@ -13,6 +13,7 @@ public enum ExamErrorCode implements ErrorCode {
     INVALID_SCORE_DATA("EXAM_002", "Invalid score data", 400),
     INVALID_ANSWER_DATA("EXAM_003", "Invalid answer data", 400),
     INVALID_OMR_IMAGE("EXAM_004", "Invalid OMR image", 400),
+    MISSING_TENANT_SLUG("EXAM_005", "Callback payload missing tenant slug", 400),
 
     // 404 Not Found
     EXAM_NOT_FOUND("EXAM_101", "Exam not found", 404),

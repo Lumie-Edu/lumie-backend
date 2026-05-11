@@ -3,6 +3,8 @@ package com.lumie.exam.adapter.in.messaging;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.service.OmrGradingJobProcessor;
+import com.lumie.exam.domain.exception.ExamErrorCode;
+import com.lumie.exam.domain.exception.ExamException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -34,9 +36,9 @@ public class OmrGradingCallbackListener {
     @RabbitListener(queues = "grading.omr-callback")
     public void handle(OmrGradingCallbackRequest request) {
         if (request.tenantSlug() == null || request.tenantSlug().isBlank()) {
-            throw new IllegalArgumentException(
+            throw new ExamException(
+                    ExamErrorCode.MISSING_TENANT_SLUG,
                     "OMR callback missing tenantSlug for job " + request.jobId()
-                            + " — rejecting to DLQ"
             );
         }
         TenantContextHolder.withinContext(request.tenantSlug(), null, (Runnable) () -> {
