@@ -4,12 +4,10 @@ paths: ["lumie-backend/**/db/migration/**/*.sql"]
 
 # Flyway Migrations (path-scoped rules)
 
-Auto-loaded when editing files in `**/db/migration/**`. SQL-only rules — Java-side timestamp rules (`Instant` in DTOs) live in `.claude/knowledge/BACKEND_RULES.md`.
-
 ## NEVER
 
 - ❌ Edit a migration that has been applied to any environment. Create a new V file instead.
-- ❌ Use `LocalDateTime`-equivalent (`TIMESTAMP WITHOUT TIME ZONE`). Use `TIMESTAMP WITH TIME ZONE` for any time field.
+- ❌ Use `TIMESTAMP WITHOUT TIME ZONE`. Use `TIMESTAMP WITH TIME ZONE` for every time field.
 - ❌ Drop a column without checking dependencies in `lumie-backend` and FE.
 - ❌ Mix public-schema and tenant-schema operations in one migration.
 - ❌ Cross-schema reference without verifying both schemas' state at migration time (V12/V32 incident).
@@ -26,8 +24,7 @@ Auto-loaded when editing files in `**/db/migration/**`. SQL-only rules — Java-
 
 ## Expand / contract for destructive changes
 
-Any rename, type-change, or DROP on a table that has rows in ANY environment MUST use the
-three-phase sequence below. Single-shot destructive DDL is forbidden.
+Any rename, type-change, or DROP on a table with rows in ANY environment MUST use the three-phase sequence below. Single-shot destructive DDL is forbidden.
 
 | Phase | What | Migration |
 |---|---|---|
@@ -39,7 +36,3 @@ three-phase sequence below. Single-shot destructive DDL is forbidden.
 - ❌ NEVER run Contract before confirming no code path reads the old column (grep + deploy order).
 - ✅ ALWAYS mark the Backfill migration idempotent (`WHERE old IS NULL` or `ON CONFLICT DO NOTHING`).
 - ✅ ALWAYS document the expected deploy order in the migration's comment block.
-
-## References
-
-- `.claude/knowledge/BACKEND_RULES.md`
