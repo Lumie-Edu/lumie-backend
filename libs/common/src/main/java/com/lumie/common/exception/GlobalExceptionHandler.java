@@ -1,6 +1,7 @@
 package com.lumie.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -54,6 +55,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
             .body(ErrorResponse.of("ILLEGAL_ARGUMENT", e.getMessage()));
+    }
+
+    /**
+     * Optimistic-lock conflict — surfaces concurrent edits on entities now
+     * carrying {@code @Version}. Distinguished from {@code DuplicateResource
+     * Exception} (also 409) by the {@code OPTIMISTIC_LOCK_CONFLICT} code so
+     * the FE can show a "이 항목은 다른 곳에서 수정되었습니다" toast
+     * specifically for stale-edit scenarios rather than the generic
+     * duplicate message.
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(OptimisticLockingFailureException e) {
+        log.warn("Optimistic lock conflict: {}", e.getMessage());
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(ErrorResponse.of("OPTIMISTIC_LOCK_CONFLICT",
+                    "Resource was modified by another request; refresh and retry."));
     }
 
     @ExceptionHandler(Exception.class)
