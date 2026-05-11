@@ -1,4 +1,4 @@
-package com.lumie.tenant.infrastructure.config;
+package com.lumie.tenant.adapter.out.config;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;

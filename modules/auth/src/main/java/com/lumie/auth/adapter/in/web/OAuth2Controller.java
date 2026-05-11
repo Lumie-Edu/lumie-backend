@@ -3,7 +3,7 @@ package com.lumie.auth.adapter.in.web;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.service.OAuth2AuthService;
 import com.lumie.auth.infrastructure.util.SessionMetadataExtractor;
-import com.lumie.auth.infrastructure.config.OAuth2Config;
+import com.lumie.auth.adapter.out.config.OAuth2Config;
 import com.lumie.auth.infrastructure.util.CookieUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

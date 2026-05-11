@@ -1,4 +1,4 @@
-package com.lumie.exam.infrastructure.config;
+package com.lumie.exam.adapter.out.config;
 
 import io.minio.MinioClient;
 import org.springframework.beans.factory.annotation.Qualifier;

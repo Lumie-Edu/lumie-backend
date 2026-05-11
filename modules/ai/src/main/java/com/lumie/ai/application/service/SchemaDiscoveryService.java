@@ -1,6 +1,6 @@
 package com.lumie.ai.application.service;
 
-import com.lumie.ai.infrastructure.config.ReadOnlyDataSourceConfig;
+import com.lumie.ai.adapter.out.config.ReadOnlyDataSourceConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;

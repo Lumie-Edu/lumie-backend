@@ -1,4 +1,4 @@
-package com.lumie.ai.infrastructure.config;
+package com.lumie.ai.adapter.out.config;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Value;

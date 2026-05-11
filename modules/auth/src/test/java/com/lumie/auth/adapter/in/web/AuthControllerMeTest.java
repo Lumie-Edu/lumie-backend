@@ -8,7 +8,7 @@ import com.lumie.auth.application.service.AuthSessionService;
 import com.lumie.auth.application.service.AvatarService;
 import com.lumie.auth.application.service.UserProfileService;
 import com.lumie.common.auth.Role;
-import com.lumie.auth.infrastructure.config.CookieConfig;
+import com.lumie.auth.adapter.out.config.CookieConfig;
 import com.lumie.auth.infrastructure.util.CookieUtils;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.tenant.TenantContextHolder;

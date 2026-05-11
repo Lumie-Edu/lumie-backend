@@ -1,7 +1,7 @@
 package com.lumie.billing.application.service;
 
 import com.lumie.billing.application.port.out.PlanPersistencePort;
-import com.lumie.billing.infrastructure.config.PaddleConfig;
+import com.lumie.billing.adapter.out.config.PaddleConfig;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;

@@ -2,7 +2,7 @@ package com.lumie.billing.adapter.out.external;
 
 import com.lumie.billing.application.port.out.PaddleGatewayPort;
 import com.lumie.billing.domain.exception.PaymentFailedException;
-import com.lumie.billing.infrastructure.config.PaddleConfig;
+import com.lumie.billing.adapter.out.config.PaddleConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;

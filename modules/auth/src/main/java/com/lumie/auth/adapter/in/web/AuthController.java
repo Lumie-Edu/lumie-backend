@@ -18,7 +18,7 @@ import com.lumie.auth.application.service.AuthSessionService;
 import com.lumie.auth.application.service.AvatarService;
 import com.lumie.auth.application.service.UserProfileService;
 import com.lumie.auth.infrastructure.util.SessionMetadataExtractor;
-import com.lumie.auth.infrastructure.config.CookieConfig;
+import com.lumie.auth.adapter.out.config.CookieConfig;
 import com.lumie.auth.infrastructure.util.CookieUtils;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;

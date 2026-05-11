@@ -14,7 +14,7 @@ import com.lumie.auth.domain.vo.DeviceCategory;
 import com.lumie.auth.domain.vo.SessionMetadata;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.domain.vo.TokenPair;
-import com.lumie.auth.infrastructure.config.OAuth2Config;
+import com.lumie.auth.adapter.out.config.OAuth2Config;
 import com.lumie.auth.application.port.out.TokenProviderPort;
 import com.lumie.common.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;

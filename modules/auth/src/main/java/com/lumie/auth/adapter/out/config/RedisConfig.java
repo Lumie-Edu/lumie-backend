@@ -1,4 +1,4 @@
-package com.lumie.auth.infrastructure.config;
+package com.lumie.auth.adapter.out.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

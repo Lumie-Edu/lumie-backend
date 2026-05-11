@@ -1,4 +1,4 @@
-package com.lumie.exam.infrastructure.config;
+package com.lumie.exam.adapter.out.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

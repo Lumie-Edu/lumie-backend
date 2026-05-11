@@ -1,4 +1,4 @@
-package com.lumie.billing.infrastructure.config;
+package com.lumie.billing.adapter.out.config;
 
 import lombok.Getter;
 import lombok.Setter;

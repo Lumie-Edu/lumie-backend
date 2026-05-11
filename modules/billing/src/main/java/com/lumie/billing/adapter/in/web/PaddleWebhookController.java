@@ -2,7 +2,7 @@ package com.lumie.billing.adapter.in.web;
 
 import com.lumie.billing.application.dto.request.PaddleWebhookPayload;
 import com.lumie.billing.application.service.PaddleWebhookService;
-import com.lumie.billing.infrastructure.config.PaddleConfig;
+import com.lumie.billing.adapter.out.config.PaddleConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
 package com.lumie.auth.infrastructure.util;
 
-import com.lumie.auth.infrastructure.config.CookieConfig;
-import com.lumie.auth.infrastructure.config.JwtConfig;
+import com.lumie.auth.adapter.out.config.CookieConfig;
+import com.lumie.auth.adapter.out.config.JwtConfig;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
