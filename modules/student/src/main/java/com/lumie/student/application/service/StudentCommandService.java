@@ -21,8 +21,6 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -289,76 +287,63 @@ public class StudentCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Long tenantId = TenantContextHolder.getRequiredTenantId();
 
-        List<BulkImportResult.RowError> errors = new ArrayList<>();
-        int successCount = 0;
-        int totalRows = 0;
-
-        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
-            Sheet sheet = workbook.getSheetAt(0);
-            int lastRowNum = sheet.getLastRowNum();
-
-            for (int i = 1; i <= lastRowNum; i++) {
-                Row row = sheet.getRow(i);
-                if (row == null) continue;
-
-                totalRows++;
-
-                try {
-                    String name = getCellStringValue(row.getCell(0));
-                    String phone = getCellStringValue(row.getCell(1));
-                    String studentHighschool = getCellStringValue(row.getCell(2));
-                    Integer studentBirthYear = getCellIntegerValue(row.getCell(3));
-                    String parentPhone = getCellStringValue(row.getCell(4));
-                    String studentMemo = getCellStringValue(row.getCell(5));
-
-                    if (name == null || name.isBlank()) {
-                        errors.add(new BulkImportResult.RowError(i + 1, "name", "Name is required"));
-                        continue;
-                    }
-
-                    checkStudentQuota(tenantSlug);
-
-                    AuthService.CreateUserResult userResult = authService.createUser(
-                            name,
-                            phone,
-                            "STUDENT",
-                            tenantId
-                    );
-
-                    if (!userResult.success()) {
-                        errors.add(new BulkImportResult.RowError(i + 1, "user", "Failed to create user: " + userResult.message()));
-                        continue;
-                    }
-
-                    Student student = Student.create(
-                            userResult.userId(),
-                            userResult.userLoginId(),
-                            name,
-                            phone,
-                            studentHighschool,
-                            studentBirthYear,
-                            parentPhone,
-                            studentMemo
-                    );
-                    studentRepository.save(student);
-                    successCount++;
-
-                } catch (QuotaExceededException e) {
-                    errors.add(new BulkImportResult.RowError(i + 1, "quota", "Student quota exceeded"));
-                    break;
-                } catch (Exception e) {
-                    errors.add(new BulkImportResult.RowError(i + 1, "unknown", e.getMessage()));
-                }
-            }
+        List<StudentExcelParser.StudentRow> rows;
+        try {
+            rows = StudentExcelParser.parse(file.getInputStream());
         } catch (IOException e) {
             log.error("Failed to read Excel file", e);
             throw new BusinessException(StudentErrorCode.EXCEL_PARSE_FAILED, "Failed to read Excel file: " + e.getMessage());
         }
 
+        List<BulkImportResult.RowError> errors = new ArrayList<>();
+        int successCount = 0;
+
+        for (StudentExcelParser.StudentRow row : rows) {
+            try {
+                if (row.name() == null || row.name().isBlank()) {
+                    errors.add(new BulkImportResult.RowError(row.rowNumber(), "name", "Name is required"));
+                    continue;
+                }
+
+                checkStudentQuota(tenantSlug);
+
+                AuthService.CreateUserResult userResult = authService.createUser(
+                        row.name(),
+                        row.phone(),
+                        "STUDENT",
+                        tenantId
+                );
+
+                if (!userResult.success()) {
+                    errors.add(new BulkImportResult.RowError(row.rowNumber(), "user", "Failed to create user: " + userResult.message()));
+                    continue;
+                }
+
+                Student student = Student.create(
+                        userResult.userId(),
+                        userResult.userLoginId(),
+                        row.name(),
+                        row.phone(),
+                        row.studentHighschool(),
+                        row.studentBirthYear(),
+                        row.parentPhone(),
+                        row.studentMemo()
+                );
+                studentRepository.save(student);
+                successCount++;
+
+            } catch (QuotaExceededException e) {
+                errors.add(new BulkImportResult.RowError(row.rowNumber(), "quota", "Student quota exceeded"));
+                break;
+            } catch (Exception e) {
+                errors.add(new BulkImportResult.RowError(row.rowNumber(), "unknown", e.getMessage()));
+            }
+        }
+
         log.info("Bulk import completed: {} success, {} failures in tenant: {}",
                  successCount, errors.size(), tenantSlug);
 
-        return BulkImportResult.partial(totalRows, successCount, errors);
+        return BulkImportResult.partial(rows.size(), successCount, errors);
     }
 
     private void validatePhoneUniqueness(String phone, String parentPhone, Long excludeId) {
@@ -387,29 +372,5 @@ public class StudentCommandService {
         if (!result.allowed()) {
             throw new QuotaExceededException("MAX_STUDENTS", result.currentUsage(), result.limit());
         }
-    }
-
-    private String getCellStringValue(Cell cell) {
-        if (cell == null) return null;
-        return switch (cell.getCellType()) {
-            case STRING -> cell.getStringCellValue();
-            case NUMERIC -> String.valueOf((long) cell.getNumericCellValue());
-            default -> null;
-        };
-    }
-
-    private Integer getCellIntegerValue(Cell cell) {
-        if (cell == null) return null;
-        return switch (cell.getCellType()) {
-            case NUMERIC -> (int) cell.getNumericCellValue();
-            case STRING -> {
-                try {
-                    yield Integer.parseInt(cell.getStringCellValue());
-                } catch (NumberFormatException e) {
-                    yield null;
-                }
-            }
-            default -> null;
-        };
     }
 }
