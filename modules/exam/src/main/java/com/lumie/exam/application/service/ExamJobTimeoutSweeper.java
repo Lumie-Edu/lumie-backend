@@ -4,6 +4,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
 import com.lumie.tenant.api.TenantService;
+import com.lumie.tenant.api.TenantService.TenantData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -27,6 +28,13 @@ import java.util.List;
  * the per-image increment SQL bypasses Hibernate dirty-checking and never
  * refreshes {@code updated_at}. Two hours is generous enough that a slow
  * legitimate batch (1000 images on a busy worker) won't be killed.
+ *
+ * <p>The {@code @Transactional} sweep methods are extracted to
+ * {@link Tx} so the per-tenant loop invokes them through the Spring proxy.
+ * Calling {@code this.sweepOmrJobs(cutoff)} would bypass the proxy and the
+ * annotation would silently do nothing — the historical bug that left
+ * the sweeper logging "Executing an update/delete query" every 10 minutes
+ * (NEXT_SESSION.md follow-up to #22).
  */
 @Slf4j
 @Component
@@ -36,25 +44,25 @@ public class ExamJobTimeoutSweeper {
     private static final Duration STALE_THRESHOLD = Duration.ofHours(2);
 
     private final TenantService tenantService;
-    private final OmrGradingJobRepository omrGradingJobRepository;
-    private final ReportGenerationJobRepository reportGenerationJobRepository;
+    private final Tx tx;
 
     @Scheduled(fixedDelay = 600_000)
     @SchedulerLock(name = "examJobTimeoutSweeper",
             lockAtMostFor = "PT5M", lockAtLeastFor = "PT1M")
     public void sweepStaleJobs() {
         Instant cutoff = Instant.now().minus(STALE_THRESHOLD);
-        List<String> tenantSlugs = tenantService.listActiveTenantSlugs();
+        List<TenantData> tenants = tenantService.listActiveTenants();
 
         int totalOmr = 0;
         int totalReport = 0;
-        for (String slug : tenantSlugs) {
+        for (TenantData tenant : tenants) {
             try {
-                TenantContextHolder.setTenant(slug);
-                totalOmr += sweepOmrJobs(cutoff);
-                totalReport += sweepReportJobs(cutoff);
+                TenantContextHolder.setTenant(tenant.slug());
+                TenantContextHolder.setTenantId(tenant.id());
+                totalOmr += tx.sweepOmrJobs(cutoff);
+                totalReport += tx.sweepReportJobs(cutoff);
             } catch (Exception e) {
-                log.error("Failed to sweep stale jobs for tenant {}: {}", slug, e.getMessage());
+                log.error("Failed to sweep stale jobs for tenant {}: {}", tenant.slug(), e.getMessage());
             } finally {
                 TenantContextHolder.clear();
             }
@@ -62,17 +70,24 @@ public class ExamJobTimeoutSweeper {
 
         if (totalOmr + totalReport > 0) {
             log.warn("Stale job sweep: {} OMR + {} report jobs marked FAILED across {} tenants",
-                    totalOmr, totalReport, tenantSlugs.size());
+                    totalOmr, totalReport, tenants.size());
         }
     }
 
-    @Transactional
-    protected int sweepOmrJobs(Instant cutoff) {
-        return omrGradingJobRepository.markStaleAsFailed(cutoff);
-    }
+    @Component
+    @RequiredArgsConstructor
+    static class Tx {
+        private final OmrGradingJobRepository omrGradingJobRepository;
+        private final ReportGenerationJobRepository reportGenerationJobRepository;
 
-    @Transactional
-    protected int sweepReportJobs(Instant cutoff) {
-        return reportGenerationJobRepository.markStaleAsFailed(cutoff);
+        @Transactional
+        public int sweepOmrJobs(Instant cutoff) {
+            return omrGradingJobRepository.markStaleAsFailed(cutoff);
+        }
+
+        @Transactional
+        public int sweepReportJobs(Instant cutoff) {
+            return reportGenerationJobRepository.markStaleAsFailed(cutoff);
+        }
     }
 }

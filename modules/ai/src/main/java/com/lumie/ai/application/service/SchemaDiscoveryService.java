@@ -1,10 +1,10 @@
 package com.lumie.ai.application.service;
 
-import com.lumie.ai.adapter.out.config.ReadOnlyDataSourceConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,6 +19,7 @@ public class SchemaDiscoveryService {
     private final Map<String, CachedSchema> cache = new ConcurrentHashMap<>();
     private static final long CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+    @Transactional(readOnly = true)
     public String getSchemaDescription(String tenantSlug) {
         CachedSchema cached = cache.get(tenantSlug);
         if (cached != null && !cached.isExpired()) {
@@ -26,9 +27,9 @@ public class SchemaDiscoveryService {
         }
 
         try {
-            ReadOnlyDataSourceConfig.setTenantSchema(readOnlyJdbcTemplate, tenantSlug);
-            String schema = "tenant_" + tenantSlug.replace("-", "_");
-
+            // Post-RLS the schema is the same across tenants (single
+            // public schema), but cache is still tenant-keyed in case
+            // future per-tenant feature flags ever diverge the surface.
             List<Map<String, Object>> rows = readOnlyJdbcTemplate.queryForList("""
                 SELECT t.table_name, c.column_name, c.data_type, c.udt_name,
                        c.is_nullable, c.column_default,
@@ -44,10 +45,10 @@ public class SchemaDiscoveryService {
                   ON tc.constraint_name = kcu.constraint_name
                   AND tc.table_schema = kcu.table_schema
                   AND tc.constraint_type = 'PRIMARY KEY'
-                WHERE t.table_schema = ? AND t.table_type = 'BASE TABLE'
+                WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
                   AND t.table_name NOT IN ('flyway_schema_history')
                 ORDER BY t.table_name, c.ordinal_position
-                """, schema);
+                """);
 
             Map<String, List<String>> tables = new LinkedHashMap<>();
             for (Map<String, Object> row : rows) {

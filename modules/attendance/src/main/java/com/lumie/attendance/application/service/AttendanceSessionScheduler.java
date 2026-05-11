@@ -5,6 +5,7 @@ import com.lumie.classroom.api.ClassService;
 import com.lumie.classroom.api.ClassService.ClassData;
 import com.lumie.classroom.api.ClassService.ClassListData;
 import com.lumie.tenant.api.TenantService;
+import com.lumie.tenant.api.TenantService.TenantData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -44,16 +45,17 @@ public class AttendanceSessionScheduler {
 
         log.info("Starting daily attendance session creation for {} ({})", today, todayDay);
 
-        List<String> tenantSlugs = tenantService.listActiveTenantSlugs();
+        List<TenantData> tenants = tenantService.listActiveTenants();
         int totalCreated = 0;
 
-        for (String slug : tenantSlugs) {
+        for (TenantData tenant : tenants) {
             try {
-                TenantContextHolder.setTenant(slug);
-                int created = createSessionsForTenant(slug, today, todayDay);
+                TenantContextHolder.setTenant(tenant.slug());
+                TenantContextHolder.setTenantId(tenant.id());
+                int created = createSessionsForTenant(tenant.slug(), today, todayDay);
                 totalCreated += created;
             } catch (Exception e) {
-                log.error("Failed to create attendance sessions for tenant {}: {}", slug, e.getMessage());
+                log.error("Failed to create attendance sessions for tenant {}: {}", tenant.slug(), e.getMessage());
             } finally {
                 TenantContextHolder.clear();
             }

@@ -18,6 +18,17 @@ public interface TenantService {
     List<String> listActiveTenantSlugs();
 
     /**
+     * All ACTIVE tenants with both id and slug populated. Preferred over
+     * {@link #listActiveTenantSlugs()} for scheduler/sweeper loops post-
+     * RLS — both fields are needed in the per-iteration
+     * {@link com.lumie.common.tenant.TenantContextHolder} setup
+     * (the RLS aspect reads the id, audit logging / MDC reads the slug).
+     * Avoids the N+1 slug→id lookup that would otherwise need a
+     * per-iteration {@link #getTenantBySlug(String)} call.
+     */
+    List<TenantData> listActiveTenants();
+
+    /**
      * Look up a tenant by its public-facing customId (the URL slug used in
      * {@code lumie-edu.com/{customId}}). Used by homepage-svc to route public
      * portal requests to the correct tenant context. Returns empty if no such

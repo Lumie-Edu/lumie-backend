@@ -31,8 +31,21 @@ public class ReadOnlyDataSourceConfig {
         return new JdbcTemplate(ds);
     }
 
-    public static void setTenantSchema(JdbcTemplate jdbcTemplate, String tenantSlug) {
-        String schema = "tenant_" + tenantSlug.replace("-", "_");
-        jdbcTemplate.execute("SET search_path TO " + schema + ", public");
+    /**
+     * Bind the RLS tenant GUC on the read-only connection. Post-RLS
+     * (2026-05-12) the readonly path no longer routes by schema —
+     * Postgres RLS policies filter rows by {@code current_setting(
+     * 'app.tenant_id')}, so callers SET that GUC instead of switching
+     * search_path.
+     *
+     * <p>This helper uses {@code SET LOCAL}, which means it only persists
+     * for the current JDBC transaction. The two callers
+     * ({@code SchemaDiscoveryService}, {@code GeneralQueryTool}) wrap
+     * their queries in {@code @Transactional(readOnly=true)} so the
+     * setting carries into Hibernate's read path.
+     */
+    public static void setTenantSchema(JdbcTemplate jdbcTemplate, Long tenantId) {
+        jdbcTemplate.update("SELECT set_config('app.tenant_id', ?, true)",
+                String.valueOf(tenantId));
     }
 }

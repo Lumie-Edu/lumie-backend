@@ -5,6 +5,7 @@ import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.service.OmrGradingJobProcessor;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
+import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Component;
 public class OmrGradingCallbackListener {
 
     private final OmrGradingJobProcessor processor;
+    private final TenantService tenantService;
 
     @RabbitListener(queues = "grading.omr-callback")
     public void handle(OmrGradingCallbackRequest request) {
@@ -41,7 +43,14 @@ public class OmrGradingCallbackListener {
                     "OMR callback missing tenantSlug for job " + request.jobId()
             );
         }
-        TenantContextHolder.withinContext(request.tenantSlug(), null, (Runnable) () -> {
+        Long tenantId = tenantService.getTenantBySlug(request.tenantSlug())
+                .map(TenantService.TenantData::id)
+                .orElseThrow(() -> new ExamException(
+                        ExamErrorCode.MISSING_TENANT_SLUG,
+                        "OMR callback references unknown tenant " + request.tenantSlug()
+                                + " for job " + request.jobId()
+                ));
+        TenantContextHolder.withinContext(request.tenantSlug(), tenantId, (Runnable) () -> {
             try {
                 processor.processGradingCallback(request);
             } catch (RuntimeException e) {

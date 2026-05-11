@@ -13,6 +13,7 @@ import com.lumie.ai.domain.vo.TaskFrequency;
 import com.lumie.ai.domain.vo.TaskStatus;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.tenant.api.TenantService;
+import com.lumie.tenant.api.TenantService.TenantData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -38,14 +39,15 @@ public class ScheduledTaskExecutor {
     @SchedulerLock(name = "executeDueScheduledTasks",
             lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
     public void executeDueTasks() {
-        List<String> tenantSlugs = tenantService.listActiveTenantSlugs();
+        List<TenantData> tenants = tenantService.listActiveTenants();
 
-        for (String slug : tenantSlugs) {
+        for (TenantData tenant : tenants) {
             try {
-                TenantContextHolder.setTenant(slug);
-                executeTasksForTenant(slug);
+                TenantContextHolder.setTenant(tenant.slug());
+                TenantContextHolder.setTenantId(tenant.id());
+                executeTasksForTenant(tenant.slug());
             } catch (Exception e) {
-                log.error("Failed to process scheduled tasks for tenant {}: {}", slug, e.getMessage());
+                log.error("Failed to process scheduled tasks for tenant {}: {}", tenant.slug(), e.getMessage());
             } finally {
                 TenantContextHolder.clear();
             }

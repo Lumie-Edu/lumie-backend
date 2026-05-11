@@ -75,6 +75,19 @@ public class TenantServiceAdapter implements TenantService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<TenantData> listActiveTenants() {
+        return tenantPersistencePort.findAllByStatus(TenantStatus.ACTIVE).stream()
+                .map(t -> new TenantData(
+                        t.getId(), t.getSlugValue(), t.getName(),
+                        t.getStatus(), t.getCustomId(),
+                        t.getCreatedAt() != null ? t.getCreatedAt().toString() : "",
+                        t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : ""
+                ))
+                .toList();
+    }
+
+    @Override
     public ValidateTenantResult validateTenant(String slug) {
         boolean isValid = tenantQueryService.isValidAndActive(slug);
         long tenantId = tenantQueryService.getTenantIdBySlug(slug).orElse(0L);

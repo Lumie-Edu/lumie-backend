@@ -5,6 +5,7 @@ import com.lumie.exam.application.dto.request.ReportCallbackRequest;
 import com.lumie.exam.application.service.ReportJobService;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.exception.ExamException;
+import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Component;
 public class ReportGenerationCallbackListener {
 
     private final ReportJobService reportJobService;
+    private final TenantService tenantService;
 
     @RabbitListener(queues = "report.generation-callback")
     public void handle(ReportCallbackRequest request) {
@@ -33,7 +35,14 @@ public class ReportGenerationCallbackListener {
                     "Report callback missing tenantSlug for job " + request.jobId()
             );
         }
-        TenantContextHolder.withinContext(request.tenantSlug(), null, (Runnable) () -> {
+        Long tenantId = tenantService.getTenantBySlug(request.tenantSlug())
+                .map(TenantService.TenantData::id)
+                .orElseThrow(() -> new ExamException(
+                        ExamErrorCode.MISSING_TENANT_SLUG,
+                        "Report callback references unknown tenant " + request.tenantSlug()
+                                + " for job " + request.jobId()
+                ));
+        TenantContextHolder.withinContext(request.tenantSlug(), tenantId, (Runnable) () -> {
             try {
                 reportJobService.processCallback(request);
             } catch (RuntimeException e) {

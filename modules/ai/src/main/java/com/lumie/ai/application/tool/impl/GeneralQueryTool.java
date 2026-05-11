@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -55,13 +56,15 @@ public class GeneralQueryTool implements Tool {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ToolResult execute(String tenantSlug, Map<String, Object> arguments) {
         String sql = (String) arguments.get("sql");
 
         try {
             sqlValidator.validate(sql);
 
-            ReadOnlyDataSourceConfig.setTenantSchema(readOnlyJdbcTemplate, tenantSlug);
+            Long tenantId = com.lumie.common.tenant.TenantContextHolder.getRequiredTenantId();
+            ReadOnlyDataSourceConfig.setTenantSchema(readOnlyJdbcTemplate, tenantId);
 
             List<Map<String, Object>> results = readOnlyJdbcTemplate.queryForList(sql);
 
