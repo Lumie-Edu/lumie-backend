@@ -6,5 +6,5 @@ public interface TenantLookupPort {
 
     Optional<TenantInfo> findByCustomId(String customId);
 
-    record TenantInfo(String slug, String schemaName) {}
+    record TenantInfo(String slug) {}
 }

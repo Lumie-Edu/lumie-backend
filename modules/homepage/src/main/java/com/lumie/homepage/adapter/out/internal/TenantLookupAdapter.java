@@ -24,6 +24,6 @@ public class TenantLookupAdapter implements TenantLookupPort {
     @Override
     public Optional<TenantInfo> findByCustomId(String customId) {
         return tenantService.getTenantByCustomId(customId)
-                .map(t -> new TenantInfo(t.slug(), t.schemaName()));
+                .map(t -> new TenantInfo(t.slug()));
     }
 }

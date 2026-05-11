@@ -1,7 +1,6 @@
 package com.lumie.common.tenant;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,19 +14,11 @@ import org.springframework.core.Ordered;
  * <p>Automatically registers:
  * <ul>
  *   <li>{@link RequestContextFilter} - extracts tenant/user context from headers</li>
- *   <li>{@link TenantIdentifierResolver} - Hibernate multi-tenancy (when Hibernate is present)</li>
  * </ul>
  *
- * <p>Configuration properties:
- * <pre>
- * lumie:
- *   tenant:
- *     enabled: true              # Enable tenant context (default: true)
- *     hibernate-enabled: true    # Enable Hibernate resolver (default: true)
- *     exclude-paths:             # Paths excluded from tenant check
- *       - /actuator/**
- *       - /health/**
- * </pre>
+ * <p>RLS-based tenancy (post-2026-05-12): per-tx tenant binding is handled
+ * by {@link RlsTenantContextAspect}, which is a regular {@code @Component}
+ * picked up by component scan — no auto-configuration entry needed here.
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -54,12 +45,5 @@ public class TenantAutoConfiguration {
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 11);
         registration.setName("accessLogFilter");
         return registration;
-    }
-
-    @Bean
-    @ConditionalOnClass(name = "org.hibernate.context.spi.CurrentTenantIdentifierResolver")
-    @ConditionalOnProperty(prefix = "lumie.tenant", name = "hibernate-enabled", matchIfMissing = true)
-    public TenantIdentifierResolver tenantIdentifierResolver() {
-        return new TenantIdentifierResolver();
     }
 }

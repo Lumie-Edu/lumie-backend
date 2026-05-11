@@ -38,9 +38,6 @@ public class Tenant extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     private TenantStatus status;
 
-    @Column(name = "schema_name", length = 63)
-    private String schemaName;
-
     @Column(name = "owner_email", length = 255)
     private String ownerEmail;
 
@@ -98,7 +95,6 @@ public class Tenant extends BaseEntity {
         this.displayName = displayName;
         this.ownerEmail = ownerEmail;
         this.status = TenantStatus.PENDING;
-        this.schemaName = slug.toSchemaName();
         this.plan = plan != null ? plan : TenantPlan.FREE;
         this.instituteName = instituteName;
         this.businessRegistrationNumber = businessRegistrationNumber;

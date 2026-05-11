@@ -70,7 +70,7 @@ class HomepageQueryServiceTest {
     @DisplayName("공개 조회 - published=true이면 설정 반환")
     void getPublicByCustomId_publishedConfig_returnsConfig() {
         when(tenantLookupPort.findByCustomId("my-academy"))
-                .thenReturn(Optional.of(new TenantInfo("my-academy", "tenant_my_academy")));
+                .thenReturn(Optional.of(new TenantInfo("my-academy")));
         HomepageConfig config = buildPublishedConfig();
         when(homepageConfigPersistencePort.find()).thenReturn(Optional.of(config));
 
@@ -84,7 +84,7 @@ class HomepageQueryServiceTest {
     @DisplayName("공개 조회 - published=false이면 빈 Optional 반환")
     void getPublicByCustomId_unpublishedConfig_returnsEmpty() {
         when(tenantLookupPort.findByCustomId("my-academy"))
-                .thenReturn(Optional.of(new TenantInfo("my-academy", "tenant_my_academy")));
+                .thenReturn(Optional.of(new TenantInfo("my-academy")));
         // Config with meaningful content but unpublished
         HomepageConfig config = buildUnpublishedConfig();
         when(homepageConfigPersistencePort.find()).thenReturn(Optional.of(config));
@@ -111,7 +111,7 @@ class HomepageQueryServiceTest {
         TenantContextHolder.setTenant("owner-tenant");
 
         when(tenantLookupPort.findByCustomId("other-academy"))
-                .thenReturn(Optional.of(new TenantInfo("other-academy", "tenant_other_academy")));
+                .thenReturn(Optional.of(new TenantInfo("other-academy")));
         HomepageConfig config = buildUnpublishedConfig();
         when(homepageConfigPersistencePort.find()).thenReturn(Optional.of(config));
 
@@ -125,7 +125,7 @@ class HomepageQueryServiceTest {
     @DisplayName("getPublicByCustomId_returns_empty_when_unpublished")
     void getPublicByCustomId_returns_empty_when_unpublished() {
         when(tenantLookupPort.findByCustomId("my-academy"))
-                .thenReturn(Optional.of(new TenantInfo("my-academy", "tenant_my_academy")));
+                .thenReturn(Optional.of(new TenantInfo("my-academy")));
         HomepageConfig config = buildUnpublishedConfig();
         when(homepageConfigPersistencePort.find()).thenReturn(Optional.of(config));
 

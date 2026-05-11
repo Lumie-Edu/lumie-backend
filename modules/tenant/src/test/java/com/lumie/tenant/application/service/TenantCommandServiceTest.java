@@ -6,7 +6,6 @@ import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.api.TenantCreatedEvent;
-import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.api.TenantStatus;
@@ -25,7 +24,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,9 +31,6 @@ class TenantCommandServiceTest {
 
     @Mock
     private TenantPersistencePort tenantPersistencePort;
-
-    @Mock
-    private SchemaProvisioningPort schemaProvisioningPort;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -60,7 +55,6 @@ class TenantCommandServiceTest {
     void createTenantSuccess() {
         when(tenantPersistencePort.existsBySlug("test-academy")).thenReturn(false);
         when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(schemaProvisioningPort.schemaExists(anyString())).thenReturn(false);
 
         TenantResponse response = tenantCommandService.createTenant(createRequest);
 
@@ -68,8 +62,6 @@ class TenantCommandServiceTest {
         assertThat(response.name()).isEqualTo("Test Academy");
         assertThat(response.status()).isEqualTo(TenantStatus.ACTIVE);
 
-        verify(schemaProvisioningPort).createSchema(anyString());
-        verify(schemaProvisioningPort).migrateSchema(anyString());
         verify(eventPublisher).publishEvent(any(TenantCreatedEvent.class));
     }
 
@@ -82,7 +74,6 @@ class TenantCommandServiceTest {
                 .isInstanceOf(DuplicateResourceException.class);
 
         verify(tenantPersistencePort, never()).save(any());
-        verify(schemaProvisioningPort, never()).createSchema(anyString());
         verify(eventPublisher, never()).publishEvent(any());
     }
 

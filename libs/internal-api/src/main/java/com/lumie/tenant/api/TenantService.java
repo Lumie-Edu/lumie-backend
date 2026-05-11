@@ -20,7 +20,7 @@ public interface TenantService {
     /**
      * Look up a tenant by its public-facing customId (the URL slug used in
      * {@code lumie-edu.com/{customId}}). Used by homepage-svc to route public
-     * portal requests to the correct tenant schema. Returns empty if no such
+     * portal requests to the correct tenant context. Returns empty if no such
      * tenant exists or it is not active.
      */
     Optional<TenantData> getTenantByCustomId(String customId);
@@ -37,7 +37,6 @@ public interface TenantService {
             String slug,
             String name,
             TenantStatus status,
-            String schemaName,
             String customId,
             String createdAt,
             String updatedAt
@@ -57,7 +56,6 @@ public interface TenantService {
             boolean success,
             String message,
             Long tenantId,
-            String tenantSlug,
-            String schemaName
+            String tenantSlug
     ) {}
 }

@@ -28,10 +28,6 @@ public class TenantSlug {
         return new TenantSlug(value.toLowerCase());
     }
 
-    public String toSchemaName() {
-        return "tenant_" + value.replace("-", "_");
-    }
-
     @Override
     public String toString() {
         return value;

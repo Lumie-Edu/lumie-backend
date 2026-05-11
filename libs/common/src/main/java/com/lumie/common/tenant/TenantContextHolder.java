@@ -109,20 +109,6 @@ public final class TenantContextHolder {
     }
 
     /**
-     * Returns the PostgreSQL schema name for the current tenant.
-     * Format: "tenant_" + slug with hyphens replaced by underscores.
-     *
-     * @return schema name, or "public" if no tenant is set
-     */
-    public static String getSchemaName() {
-        String tenant = getTenant();
-        if (tenant == null || tenant.isBlank()) {
-            return "public";
-        }
-        return "tenant_" + tenant.replace("-", "_");
-    }
-
-    /**
      * Returns the storage-friendly tenant identifier derived from a slug —
      * stripping the well-known {@code "inst-"} prefix used for institute
      * tenants. Used as the top-level segment of object-storage keys (e.g.

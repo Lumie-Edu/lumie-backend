@@ -6,7 +6,6 @@ import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.api.TenantCreatedEvent;
-import com.lumie.tenant.application.port.out.SchemaProvisioningPort;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +14,13 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Tenant lifecycle commands. Post-RLS (2026-05-12), tenant onboarding is
+ * a single INSERT into {@code public.tenants} — no per-tenant schema
+ * creation or Flyway migration. The {@code PENDING → PROVISIONING → ACTIVE}
+ * state machine is preserved as a billing/payment hook surface; the
+ * provisioning phase is now effectively instantaneous.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -22,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class TenantCommandService {
 
     private final TenantPersistencePort tenantPersistencePort;
-    private final SchemaProvisioningPort schemaProvisioningPort;
     private final ApplicationEventPublisher eventPublisher;
 
     public TenantResponse createTenant(CreateTenantRequest request) {
@@ -43,16 +48,6 @@ public class TenantCommandService {
         log.info("Tenant created with ID: {}, slug: {}", savedTenant.getId(), savedTenant.getSlugValue());
 
         savedTenant.startProvisioning();
-        tenantPersistencePort.save(savedTenant);
-
-        String schemaName = savedTenant.getSchemaName();
-        if (!schemaProvisioningPort.schemaExists(schemaName)) {
-            schemaProvisioningPort.createSchema(schemaName);
-            log.info("Schema created: {}", schemaName);
-        }
-        schemaProvisioningPort.migrateSchema(schemaName);
-        log.info("Schema migration completed: {}", schemaName);
-
         savedTenant.activate();
         tenantPersistencePort.save(savedTenant);
 

@@ -59,7 +59,7 @@ public class TenantServiceAdapter implements TenantService {
                 .filter(Tenant::isActive)
                 .map(t -> new TenantData(
                         t.getId(), t.getSlugValue(), t.getName(),
-                        t.getStatus(), t.getSchemaName(),
+                        t.getStatus(),
                         t.getCustomId(),
                         t.getCreatedAt() != null ? t.getCreatedAt().toString() : "",
                         t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : ""
@@ -93,12 +93,12 @@ public class TenantServiceAdapter implements TenantService {
                     instituteName, businessRegistrationNumber, ownerEmail);
             return new CreateTenantResult(
                     result.success(), result.message(),
-                    result.tenantId(), result.tenantSlug(), result.schemaName()
+                    result.tenantId(), result.tenantSlug()
             );
         } catch (Exception e) {
             log.error("Failed to create tenant: {}", instituteName, e);
             return new CreateTenantResult(false, "Failed to create tenant: " + e.getMessage(),
-                    null, null, null);
+                    null, null);
         }
     }
 
@@ -134,7 +134,7 @@ public class TenantServiceAdapter implements TenantService {
     private TenantData toData(TenantResponse tenant) {
         return new TenantData(
                 tenant.id(), tenant.slug(), tenant.name(),
-                tenant.status(), tenant.schemaName(),
+                tenant.status(),
                 tenant.customId(),
                 tenant.createdAt().toString(), tenant.updatedAt().toString()
         );

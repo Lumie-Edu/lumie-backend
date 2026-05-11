@@ -16,12 +16,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * User entity stored in the per-tenant {@code users} table.
+ * User entity stored in the tenant-scoped {@code users} table.
  *
- * <p>Hibernate multi-tenancy resolves the actual schema at session acquisition
- * via {@link com.lumie.common.tenant.TenantConnectionProvider}. Callers MUST
- * have {@code TenantContextHolder} set to the desired tenant before invoking
- * any JPA operation against this entity.
+ * <p>Postgres RLS enforces tenant isolation: every query against this entity
+ * is automatically filtered by {@code app.tenant_id} (set per-tx by
+ * {@link com.lumie.common.tenant.RlsTenantContextAspect}). Callers MUST
+ * have {@code TenantContextHolder.setTenantId(...)} populated before
+ * invoking any JPA operation, or rows will be invisible.
  *
  * <p>The legacy {@code public.users} table (which once held all users globally)
  * has been slimmed down to an OWNER-only directory; access it via

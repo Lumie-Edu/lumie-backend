@@ -16,7 +16,6 @@ class TenantSlugTest {
         TenantSlug slug = TenantSlug.of("my-academy");
 
         assertThat(slug.getValue()).isEqualTo("my-academy");
-        assertThat(slug.toSchemaName()).isEqualTo("tenant_my_academy");
     }
 
     @ParameterizedTest

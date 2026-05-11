@@ -21,7 +21,6 @@ class TenantTest {
         assertThat(tenant.getDisplayName()).isEqualTo("테스트 학원");
         assertThat(tenant.getOwnerEmail()).isEqualTo("owner@test.com");
         assertThat(tenant.getStatus()).isEqualTo(TenantStatus.PENDING);
-        assertThat(tenant.getSchemaName()).isEqualTo("tenant_test_academy");
     }
 
     @Test

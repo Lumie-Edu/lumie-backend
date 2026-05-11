@@ -71,7 +71,6 @@ class TenantControllerTest {
                 .name("Test Academy")
                 .displayName("테스트 학원")
                 .status(TenantStatus.PENDING)
-                .schemaName("tenant_test_academy")
                 .ownerEmail("owner@test.com")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -110,7 +109,6 @@ class TenantControllerTest {
                 .slug("test-academy")
                 .name("Test Academy")
                 .status(TenantStatus.ACTIVE)
-                .schemaName("tenant_test_academy")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

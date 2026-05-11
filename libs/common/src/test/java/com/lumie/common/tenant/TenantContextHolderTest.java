@@ -48,32 +48,6 @@ class TenantContextHolderTest {
     }
 
     @Test
-    void getSchemaName_withTenant_returnsFormattedSchema() {
-        TenantContextHolder.setTenant("test-tenant");
-
-        assertEquals("tenant_test_tenant", TenantContextHolder.getSchemaName());
-    }
-
-    @Test
-    void getSchemaName_withHyphens_replacesWithUnderscores() {
-        TenantContextHolder.setTenant("my-test-tenant");
-
-        assertEquals("tenant_my_test_tenant", TenantContextHolder.getSchemaName());
-    }
-
-    @Test
-    void getSchemaName_whenNotSet_returnsPublic() {
-        assertEquals("public", TenantContextHolder.getSchemaName());
-    }
-
-    @Test
-    void getSchemaName_whenBlank_returnsPublic() {
-        TenantContextHolder.setTenant("   ");
-
-        assertEquals("public", TenantContextHolder.getSchemaName());
-    }
-
-    @Test
     void threadIsolation() throws InterruptedException {
         TenantContextHolder.setTenant("main-thread-tenant");
 

@@ -15,7 +15,6 @@ public record TenantResponse(
         String displayName,
         TenantStatus status,
         TenantPlan plan,
-        String schemaName,
         String ownerEmail,
         String phone,
         String address,
@@ -36,7 +35,6 @@ public record TenantResponse(
                 .displayName(tenant.getDisplayName())
                 .status(tenant.getStatus())
                 .plan(tenant.getPlan())
-                .schemaName(tenant.getSchemaName())
                 .ownerEmail(tenant.getOwnerEmail())
                 .phone(tenant.getPhone())
                 .address(tenant.getAddress())
