@@ -62,5 +62,5 @@ Configuration-cache is enabled (`org.gradle.configuration-cache=true`) — incre
 - Workspace rules: `../.claude/CLAUDE.md`
 - Per-repo AI rules: `./CLAUDE.md`
 - Hard rules: `.claude/knowledge/BACKEND_RULES.md`
-- Architecture intent: `.claude/knowledge/ARCHITECTURE_INTENT.md`
+- Architecture intent (workspace): `../.claude/knowledge/ARCHITECTURE_INTENT.md`
 - Path-scoped rules: `.claude/rules/{controllers,entities,services,migrations}.md`
