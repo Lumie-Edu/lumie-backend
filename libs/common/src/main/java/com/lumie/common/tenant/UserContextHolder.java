@@ -1,5 +1,7 @@
 package com.lumie.common.tenant;
 
+import com.lumie.common.auth.Role;
+
 /**
  * Holds the current user context for the request thread.
  * Populated by {@code JwtAuthenticationFilter} from the validated access
@@ -10,7 +12,7 @@ public final class UserContextHolder {
 
     private static final ThreadLocal<Long> CURRENT_USER_ID = new ThreadLocal<>();
     private static final ThreadLocal<String> CURRENT_USER_NAME = new ThreadLocal<>();
-    private static final ThreadLocal<String> CURRENT_USER_ROLE = new ThreadLocal<>();
+    private static final ThreadLocal<Role> CURRENT_USER_ROLE = new ThreadLocal<>();
     private static final ThreadLocal<String> CURRENT_SID = new ThreadLocal<>();
 
     private UserContextHolder() {
@@ -41,11 +43,22 @@ public final class UserContextHolder {
         return CURRENT_USER_NAME.get();
     }
 
+    /**
+     * Lenient String-accepting setter for JWT-filter / HTTP-header paths
+     * that hand off a raw role claim. Normalizes via {@link Role#fromString}
+     * (handles legacy aliases ADMIN → INSTRUCTOR, DEVELOPER → MANAGER) so
+     * every read path sees a canonical enum.
+     */
     public static void setUserRole(String role) {
+        CURRENT_USER_ROLE.set(role == null ? null : Role.fromString(role));
+    }
+
+    /** Type-safe setter for callers that already hold a {@link Role}. */
+    public static void setUserRole(Role role) {
         CURRENT_USER_ROLE.set(role);
     }
 
-    public static String getUserRole() {
+    public static Role getUserRole() {
         return CURRENT_USER_ROLE.get();
     }
 

@@ -1,6 +1,8 @@
 package com.lumie.activitylog.adapter.in.interceptor;
 
 import com.lumie.activitylog.application.service.ActivityLogContext;
+import com.lumie.common.auth.ActionType;
+import com.lumie.common.auth.EntityType;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.activitylog.api.ActivityLogService;
@@ -27,33 +29,33 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
     private static final Pattern ENTITY_ID_PATTERN = Pattern.compile("/v1/[^/]+/(\\d+)");
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
-    private static final Map<String, String> PATH_TO_ENTITY = new LinkedHashMap<>();
+    private static final Map<String, EntityType> PATH_TO_ENTITY = new LinkedHashMap<>();
 
     static {
-        PATH_TO_ENTITY.put("/v1/classes/*/enrollments/**", "ENROLLMENT");
-        PATH_TO_ENTITY.put("/v1/classes/**", "CLASS");
-        PATH_TO_ENTITY.put("/v1/students/**", "STUDENT");
-        PATH_TO_ENTITY.put("/v1/admins/**", "ADMIN");
-        PATH_TO_ENTITY.put("/v1/academies/**", "ACADEMY");
-        PATH_TO_ENTITY.put("/v1/attendance/**", "ATTENDANCE");
-        PATH_TO_ENTITY.put("/v1/assignments/**", "ASSIGNMENT");
-        PATH_TO_ENTITY.put("/v1/exams/**", "EXAM");
-        PATH_TO_ENTITY.put("/v1/exam-templates/**", "EXAM_TEMPLATE");
-        PATH_TO_ENTITY.put("/v1/lectures/**", "LECTURE");
-        PATH_TO_ENTITY.put("/v1/textbooks/**", "TEXTBOOK");
-        PATH_TO_ENTITY.put("/v1/schedules/**", "SCHEDULE");
-        PATH_TO_ENTITY.put("/v1/announcements/**", "ANNOUNCEMENT");
-        PATH_TO_ENTITY.put("/v1/reviews/**", "REVIEW");
-        PATH_TO_ENTITY.put("/v1/reservations/**", "RESERVATION");
-        PATH_TO_ENTITY.put("/v1/sms/**", "SMS");
-        PATH_TO_ENTITY.put("/v1/qna/**", "QNA");
-        PATH_TO_ENTITY.put("/v1/conversations/**", "CONVERSATION");
-        PATH_TO_ENTITY.put("/v1/chat/**", "CHAT");
-        PATH_TO_ENTITY.put("/v1/files/**", "FILE");
-        PATH_TO_ENTITY.put("/v1/scheduled-tasks/**", "SCHEDULED_TASK");
-        PATH_TO_ENTITY.put("/v1/statistics/**", "STATISTICS");
-        PATH_TO_ENTITY.put("/v1/reports/**", "REPORT");
-        PATH_TO_ENTITY.put("/v1/results/**", "RESULT");
+        PATH_TO_ENTITY.put("/v1/classes/*/enrollments/**", EntityType.ENROLLMENT);
+        PATH_TO_ENTITY.put("/v1/classes/**", EntityType.CLASS);
+        PATH_TO_ENTITY.put("/v1/students/**", EntityType.STUDENT);
+        PATH_TO_ENTITY.put("/v1/admins/**", EntityType.ADMIN);
+        PATH_TO_ENTITY.put("/v1/academies/**", EntityType.ACADEMY);
+        PATH_TO_ENTITY.put("/v1/attendance/**", EntityType.ATTENDANCE);
+        PATH_TO_ENTITY.put("/v1/assignments/**", EntityType.ASSIGNMENT);
+        PATH_TO_ENTITY.put("/v1/exams/**", EntityType.EXAM);
+        PATH_TO_ENTITY.put("/v1/exam-templates/**", EntityType.EXAM_TEMPLATE);
+        PATH_TO_ENTITY.put("/v1/lectures/**", EntityType.LECTURE);
+        PATH_TO_ENTITY.put("/v1/textbooks/**", EntityType.TEXTBOOK);
+        PATH_TO_ENTITY.put("/v1/schedules/**", EntityType.SCHEDULE);
+        PATH_TO_ENTITY.put("/v1/announcements/**", EntityType.ANNOUNCEMENT);
+        PATH_TO_ENTITY.put("/v1/reviews/**", EntityType.REVIEW);
+        PATH_TO_ENTITY.put("/v1/reservations/**", EntityType.RESERVATION);
+        PATH_TO_ENTITY.put("/v1/sms/**", EntityType.SMS);
+        PATH_TO_ENTITY.put("/v1/qna/**", EntityType.QNA);
+        PATH_TO_ENTITY.put("/v1/conversations/**", EntityType.CONVERSATION);
+        PATH_TO_ENTITY.put("/v1/chat/**", EntityType.CHAT);
+        PATH_TO_ENTITY.put("/v1/files/**", EntityType.FILE);
+        PATH_TO_ENTITY.put("/v1/scheduled-tasks/**", EntityType.SCHEDULED_TASK);
+        PATH_TO_ENTITY.put("/v1/statistics/**", EntityType.STATISTICS);
+        PATH_TO_ENTITY.put("/v1/reports/**", EntityType.REPORT);
+        PATH_TO_ENTITY.put("/v1/results/**", EntityType.RESULT);
     }
 
     @Override
@@ -77,16 +79,16 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
             String path = request.getRequestURI();
             String method = request.getMethod();
 
-            String entityType = resolveEntityType(path);
+            EntityType entityType = resolveEntityType(path);
             if (entityType == null) {
                 return;
             }
 
-            String action = resolveAction(method, path);
+            ActionType action = resolveAction(method, path);
             Long entityId = extractEntityId(path);
 
             String tenantSlug = TenantContextHolder.getTenant();
-            String role = UserContextHolder.getUserRole();
+            com.lumie.common.auth.Role role = UserContextHolder.getUserRole();
             if (tenantSlug == null || role == null) {
                 return;
             }
@@ -97,8 +99,8 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
             // to the auth pipeline; until then we log actorId only and the UI resolves.
             String actorName = UserContextHolder.getUserName();
             activityLogService.log(
-                    userId, actorName, role,
-                    action, entityType, entityId, null, null
+                    userId, actorName, role.name(),
+                    action.name(), entityType.name(), entityId, null, null
             );
         } catch (Exception e) {
             log.warn("Failed to auto-log activity: {}", e.getMessage());
@@ -107,8 +109,8 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
         }
     }
 
-    private String resolveEntityType(String path) {
-        for (Map.Entry<String, String> entry : PATH_TO_ENTITY.entrySet()) {
+    private EntityType resolveEntityType(String path) {
+        for (Map.Entry<String, EntityType> entry : PATH_TO_ENTITY.entrySet()) {
             if (PATH_MATCHER.match(entry.getKey(), path)) {
                 return entry.getValue();
             }
@@ -116,24 +118,24 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
         return null;
     }
 
-    private String resolveAction(String method, String path) {
+    private ActionType resolveAction(String method, String path) {
         return switch (method) {
-            case "GET" -> "VIEW";
-            case "DELETE" -> "DELETE";
-            case "PUT", "PATCH" -> "UPDATE";
+            case "GET" -> ActionType.VIEW;
+            case "DELETE" -> ActionType.DELETE;
+            case "PUT", "PATCH" -> ActionType.UPDATE;
             case "POST" -> resolvePostAction(path);
-            default -> method;
+            default -> ActionType.VIEW;
         };
     }
 
-    private String resolvePostAction(String path) {
-        if (path.endsWith("/deactivate")) return "DEACTIVATE";
-        if (path.endsWith("/reactivate")) return "REACTIVATE";
-        if (path.endsWith("/terminate")) return "TERMINATE";
-        if (path.endsWith("/check-in")) return "CHECK_IN";
-        if (path.contains("/send")) return "SEND";
-        if (path.endsWith("/close")) return "CLOSE";
-        return "CREATE";
+    private ActionType resolvePostAction(String path) {
+        if (path.endsWith("/deactivate")) return ActionType.DEACTIVATE;
+        if (path.endsWith("/reactivate")) return ActionType.REACTIVATE;
+        if (path.endsWith("/terminate")) return ActionType.TERMINATE;
+        if (path.endsWith("/check-in")) return ActionType.CHECK_IN;
+        if (path.contains("/send")) return ActionType.SEND;
+        if (path.endsWith("/close")) return ActionType.CLOSE;
+        return ActionType.CREATE;
     }
 
     private Long extractEntityId(String path) {

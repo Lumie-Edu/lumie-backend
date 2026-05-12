@@ -1,5 +1,6 @@
 package com.lumie.app.config;
 
+import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import org.slf4j.MDC;
@@ -34,7 +35,7 @@ public class TenantAwareTaskDecoratorConfig {
             Long tenantId = TenantContextHolder.getTenantId();
             Long userId = UserContextHolder.getUserId();
             String userName = UserContextHolder.getUserName();
-            String userRole = UserContextHolder.getUserRole();
+            Role userRole = UserContextHolder.getUserRole();
             String sid = UserContextHolder.getCurrentSid();
             Map<String, String> mdc = MDC.getCopyOfContextMap();
             return () -> {

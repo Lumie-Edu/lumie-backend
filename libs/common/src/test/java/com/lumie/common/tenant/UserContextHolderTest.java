@@ -1,5 +1,6 @@
 package com.lumie.common.tenant;
 
+import com.lumie.common.auth.Role;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,16 +33,24 @@ class UserContextHolderTest {
     }
 
     @Test
-    void setAndGetUserRole() {
+    void setAndGetUserRole_normalizesLegacyAlias() {
+        // "ADMIN" is a legacy alias that fromString maps to INSTRUCTOR.
         UserContextHolder.setUserRole("ADMIN");
 
-        assertEquals("ADMIN", UserContextHolder.getUserRole());
+        assertEquals(Role.INSTRUCTOR, UserContextHolder.getUserRole());
+    }
+
+    @Test
+    void setUserRole_acceptsEnumDirectly() {
+        UserContextHolder.setUserRole(Role.OWNER);
+
+        assertEquals(Role.OWNER, UserContextHolder.getUserRole());
     }
 
     @Test
     void clear_removesAllContext() {
         UserContextHolder.setUserId(123L);
-        UserContextHolder.setUserRole("ADMIN");
+        UserContextHolder.setUserRole(Role.MANAGER);
 
         UserContextHolder.clear();
 
@@ -52,23 +61,23 @@ class UserContextHolderTest {
     @Test
     void threadIsolation() throws InterruptedException {
         UserContextHolder.setUserId(1L);
-        UserContextHolder.setUserRole("ADMIN");
+        UserContextHolder.setUserRole(Role.OWNER);
 
         Thread otherThread = new Thread(() -> {
             assertNull(UserContextHolder.getUserId());
             assertNull(UserContextHolder.getUserRole());
 
             UserContextHolder.setUserId(2L);
-            UserContextHolder.setUserRole("STUDENT");
+            UserContextHolder.setUserRole(Role.STUDENT);
 
             assertEquals(2L, UserContextHolder.getUserId());
-            assertEquals("STUDENT", UserContextHolder.getUserRole());
+            assertEquals(Role.STUDENT, UserContextHolder.getUserRole());
         });
 
         otherThread.start();
         otherThread.join();
 
         assertEquals(1L, UserContextHolder.getUserId());
-        assertEquals("ADMIN", UserContextHolder.getUserRole());
+        assertEquals(Role.OWNER, UserContextHolder.getUserRole());
     }
 }

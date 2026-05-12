@@ -6,14 +6,12 @@ import com.lumie.common.tenant.UserContextHolder;
 
 public final class AuthorizationGuard {
 
-    private static final String OWNER_ROLE = "OWNER";
-
     private AuthorizationGuard() {
     }
 
     public static void requireOwner() {
-        String role = UserContextHolder.getUserRole();
-        if (!OWNER_ROLE.equalsIgnoreCase(role)) {
+        Role role = UserContextHolder.getUserRole();
+        if (role != Role.OWNER) {
             throw new BusinessException(CommonErrorCode.FORBIDDEN, "Owner role required");
         }
     }

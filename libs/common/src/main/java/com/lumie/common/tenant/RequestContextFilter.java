@@ -1,5 +1,6 @@
 package com.lumie.common.tenant;
 
+import com.lumie.common.auth.Role;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -116,7 +117,7 @@ public class RequestContextFilter extends OncePerRequestFilter {
         if (tenantId != null) MDC.put("tenantId", tenantId.toString());
         Long userId = UserContextHolder.getUserId();
         if (userId != null) MDC.put("userId", userId.toString());
-        String role = UserContextHolder.getUserRole();
-        if (role != null) MDC.put("userRole", role);
+        Role role = UserContextHolder.getUserRole();
+        if (role != null) MDC.put("userRole", role.name());
     }
 }

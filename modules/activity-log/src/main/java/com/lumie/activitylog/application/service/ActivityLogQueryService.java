@@ -5,6 +5,8 @@ import com.lumie.activitylog.application.dto.ActivityLogResponse;
 import com.lumie.activitylog.domain.entity.ActivityLog;
 import com.lumie.activitylog.domain.exception.ActivityLogErrorCode;
 import com.lumie.activitylog.domain.repository.ActivityLogRepository;
+import com.lumie.common.auth.EntityType;
+import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.UserContextHolder;
 import jakarta.persistence.criteria.Predicate;
@@ -28,8 +30,8 @@ public class ActivityLogQueryService {
     private final ActivityLogRepository activityLogRepository;
 
     public Page<ActivityLogResponse> getLogs(ActivityLogFilterRequest filter, Pageable pageable) {
-        String requesterRole = UserContextHolder.getUserRole();
-        List<String> visibleRoles = getVisibleRoles(requesterRole);
+        Role requesterRole = UserContextHolder.getUserRole();
+        List<Role> visibleRoles = getVisibleRoles(requesterRole);
 
         if (visibleRoles.isEmpty()) {
             throw new BusinessException(ActivityLogErrorCode.INSUFFICIENT_ROLE);
@@ -39,7 +41,7 @@ public class ActivityLogQueryService {
         return activityLogRepository.findAll(spec, pageable).map(ActivityLogResponse::from);
     }
 
-    private Specification<ActivityLog> buildSpecification(ActivityLogFilterRequest filter, List<String> visibleRoles) {
+    private Specification<ActivityLog> buildSpecification(ActivityLogFilterRequest filter, List<Role> visibleRoles) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -50,7 +52,7 @@ public class ActivityLogQueryService {
             }
 
             if (filter != null && filter.entityType() != null && !filter.entityType().isBlank()) {
-                predicates.add(cb.equal(root.get("entityType"), filter.entityType()));
+                predicates.add(cb.equal(root.get("entityType"), EntityType.valueOf(filter.entityType())));
             }
 
             if (filter != null && filter.startDate() != null) {
@@ -72,10 +74,10 @@ public class ActivityLogQueryService {
         };
     }
 
-    private List<String> getVisibleRoles(String role) {
+    private List<Role> getVisibleRoles(Role role) {
         return switch (role) {
-            case "OWNER" -> List.of("MANAGER", "INSTRUCTOR");
-            case "MANAGER" -> List.of("INSTRUCTOR");
+            case OWNER -> List.of(Role.MANAGER, Role.INSTRUCTOR);
+            case MANAGER -> List.of(Role.INSTRUCTOR);
             default -> List.of();
         };
     }

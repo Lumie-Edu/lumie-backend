@@ -1,10 +1,15 @@
 package com.lumie.activitylog.domain.entity;
 
+import com.lumie.common.auth.ActionType;
+import com.lumie.common.auth.EntityType;
+import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -24,14 +29,17 @@ public class ActivityLog {
     @Column(name = "actor_name", nullable = false, length = 100)
     private String actorName;
 
-    @Column(name = "actor_role", nullable = false, length = 50)
-    private String actorRole;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "actor_role", nullable = false, columnDefinition = "actor_role_type")
+    private Role actorRole;
 
-    @Column(name = "action", nullable = false, length = 50)
-    private String action;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "action", nullable = false, columnDefinition = "activity_action_type")
+    private ActionType action;
 
-    @Column(name = "entity_type", nullable = false, length = 50)
-    private String entityType;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "entity_type", nullable = false, columnDefinition = "activity_entity_type")
+    private EntityType entityType;
 
     @Column(name = "entity_id")
     private Long entityId;
@@ -56,8 +64,8 @@ public class ActivityLog {
         }
     }
 
-    private ActivityLog(Long actorId, String actorName, String actorRole,
-                        String action, String entityType, Long entityId,
+    private ActivityLog(Long actorId, String actorName, Role actorRole,
+                        ActionType action, EntityType entityType, Long entityId,
                         String entityName, String description) {
         this.actorId = actorId;
         this.actorName = actorName;
@@ -69,8 +77,8 @@ public class ActivityLog {
         this.description = description;
     }
 
-    public static ActivityLog create(Long actorId, String actorName, String actorRole,
-                                     String action, String entityType, Long entityId,
+    public static ActivityLog create(Long actorId, String actorName, Role actorRole,
+                                     ActionType action, EntityType entityType, Long entityId,
                                      String entityName, String description) {
         return new ActivityLog(actorId, actorName, actorRole, action, entityType, entityId, entityName, description);
     }

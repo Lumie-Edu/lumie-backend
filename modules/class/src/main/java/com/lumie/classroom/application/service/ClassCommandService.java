@@ -18,6 +18,8 @@ import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import com.lumie.classroom.domain.vo.SchedulePattern;
+import com.lumie.common.auth.ActionType;
+import com.lumie.common.auth.EntityType;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.activitylog.api.ActivityLogService;
@@ -58,7 +60,7 @@ public class ClassCommandService {
         ClassEntity saved = classRepository.save(entity);
 
         log.info("Class created: {}", saved.getId());
-        logActivity("CREATE", "CLASS", saved.getId(), saved.getName(), null);
+        logActivity(ActionType.CREATE, EntityType.CLASS, saved.getId(), saved.getName(), null);
         String teacherName = saved.getTeacherId() != null
             ? adminService.getAdmin(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(AdminService.AdminData::name).orElse(null)
             : null;
@@ -81,7 +83,7 @@ public class ClassCommandService {
         ClassEntity saved = classRepository.save(entity);
 
         log.info("Class updated: {}", saved.getId());
-        logActivity("UPDATE", "CLASS", saved.getId(), saved.getName(), null);
+        logActivity(ActionType.UPDATE, EntityType.CLASS, saved.getId(), saved.getName(), null);
         String updatedTeacherName = saved.getTeacherId() != null
             ? adminService.getAdmin(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(AdminService.AdminData::name).orElse(null)
             : null;
@@ -96,7 +98,7 @@ public class ClassCommandService {
         classRepository.delete(entity);
 
         log.info("Class deleted: {}", id);
-        logActivity("DELETE", "CLASS", id, className, null);
+        logActivity(ActionType.DELETE, EntityType.CLASS, id, className, null);
     }
 
     public List<ClassEnrollmentResponse> enrollStudents(Long classId, EnrollStudentsRequest request) {
@@ -117,7 +119,7 @@ public class ClassCommandService {
         List<ClassEnrollment> saved = enrollmentRepository.saveAll(enrollments);
 
         log.info("Enrolled {} students in class: {}", saved.size(), classId);
-        logActivity("ENROLL", "CLASS", classId, classEntity.getName(),
+        logActivity(ActionType.ENROLL, EntityType.CLASS, classId, classEntity.getName(),
                 saved.size() + " students enrolled");
         return saved.stream()
             .map(ClassEnrollmentResponse::from)
@@ -135,7 +137,7 @@ public class ClassCommandService {
         enrollmentRepository.delete(enrollment);
 
         log.info("Enrollment {} removed from class: {}", enrollmentId, classId);
-        logActivity("DROP", "CLASS", classId, enrollment.getClassEntity().getName(), null);
+        logActivity(ActionType.DROP, EntityType.CLASS, classId, enrollment.getClassEntity().getName(), null);
     }
 
     public void removeEnrollmentByStudent(Long classId, Long studentId) {
@@ -145,7 +147,7 @@ public class ClassCommandService {
         enrollmentRepository.delete(enrollment);
 
         log.info("Student {} removed from class: {}", studentId, classId);
-        logActivity("DROP", "CLASS", classId, enrollment.getClassEntity().getName(), null);
+        logActivity(ActionType.DROP, EntityType.CLASS, classId, enrollment.getClassEntity().getName(), null);
     }
 
     public ClassEnrollmentResponse updateEnrollmentStatus(Long classId, Long enrollmentId,
@@ -229,14 +231,14 @@ public class ClassCommandService {
                 && a.endTime().compareTo(b.startTime()) > 0;
     }
 
-    private void logActivity(String action, String entityType, Long entityId,
+    private void logActivity(ActionType action, EntityType entityType, Long entityId,
                              String entityName, String description) {
         try {
             Long userId = UserContextHolder.getRequiredUserId();
-            String role = UserContextHolder.getUserRole();
+            com.lumie.common.auth.Role role = UserContextHolder.getUserRole();
             adminService.getAdminByUserId(TenantContextHolder.getRequiredTenant(), userId).ifPresent(actor ->
-                activityLogService.log(actor.id(), actor.name(), role,
-                    action, entityType, entityId, entityName, description)
+                activityLogService.log(actor.id(), actor.name(), role == null ? null : role.name(),
+                    action.name(), entityType.name(), entityId, entityName, description)
             );
         } catch (Exception e) {
             log.warn("Failed to log activity: {}", e.getMessage());
