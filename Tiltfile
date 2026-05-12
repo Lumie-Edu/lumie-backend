@@ -81,12 +81,26 @@ spec:
           containerPort: 8080
           protocol: TCP
         env:%s
+        # Runtime app role (lumie_app NOSUPERUSER NOBYPASSRLS) — RLS-active.
+        # Migrator role (postgres SUPERUSER) is reserved for Flyway only.
+        # See lumie-infra applications/lumie/backend common-values.yaml for the
+        # equivalent prod wiring, and HARD_RULES_CROSS.md for why the split exists.
         - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-app-db-secrets
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-app-db-secrets
+              key: password
+        - name: DB_MIGRATOR_USERNAME
           valueFrom:
             secretKeyRef:
               name: lumie-dev-db-secrets
               key: username
-        - name: DB_PASSWORD
+        - name: DB_MIGRATOR_PASSWORD
           valueFrom:
             secretKeyRef:
               name: lumie-dev-db-secrets
@@ -94,12 +108,12 @@ spec:
         - name: RO_DB_USERNAME
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-db-secrets
+              name: lumie-dev-app-db-secrets
               key: username
         - name: RO_DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-db-secrets
+              name: lumie-dev-app-db-secrets
               key: password
         - name: RABBITMQ_PASSWORD
           valueFrom:
