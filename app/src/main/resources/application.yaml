@@ -32,6 +32,11 @@ spring:
 
   flyway:
     enabled: true
+    # Migrations run as the table-owning role (DB_MIGRATOR_*), distinct from
+    # the runtime HikariCP pool (DB_USERNAME/PASSWORD = lumie_app NOSUPERUSER).
+    # Falls back to the runtime creds for local dev where one role suffices.
+    user: ${DB_MIGRATOR_USERNAME:${DB_USERNAME:lumie}}
+    password: ${DB_MIGRATOR_PASSWORD:${DB_PASSWORD:lumie}}
     # Phase 1 (2026-05-12 RLS cutover): keep scanning only the platform
     # public/ tree. The tenant/ tree still exists under db/migration/ but
     # is not loaded — versions there will collide (multiple V1, V2, V3
