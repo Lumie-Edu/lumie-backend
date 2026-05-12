@@ -8,6 +8,7 @@ import com.lumie.tenant.api.TenantService.TenantData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,12 +60,16 @@ public class ExamJobTimeoutSweeper {
             try {
                 TenantContextHolder.setTenant(tenant.slug());
                 TenantContextHolder.setTenantId(tenant.id());
+                MDC.put("tenantSlug", tenant.slug());
+                MDC.put("tenantId", String.valueOf(tenant.id()));
                 totalOmr += tx.sweepOmrJobs(cutoff);
                 totalReport += tx.sweepReportJobs(cutoff);
             } catch (Exception e) {
                 log.error("Failed to sweep stale jobs for tenant {}: {}", tenant.slug(), e.getMessage());
             } finally {
                 TenantContextHolder.clear();
+                MDC.remove("tenantSlug");
+                MDC.remove("tenantId");
             }
         }
 

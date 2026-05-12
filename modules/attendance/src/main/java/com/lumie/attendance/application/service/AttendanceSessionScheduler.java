@@ -9,6 +9,7 @@ import com.lumie.tenant.api.TenantService.TenantData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -52,12 +53,16 @@ public class AttendanceSessionScheduler {
             try {
                 TenantContextHolder.setTenant(tenant.slug());
                 TenantContextHolder.setTenantId(tenant.id());
+                MDC.put("tenantSlug", tenant.slug());
+                MDC.put("tenantId", String.valueOf(tenant.id()));
                 int created = createSessionsForTenant(tenant.slug(), today, todayDay);
                 totalCreated += created;
             } catch (Exception e) {
                 log.error("Failed to create attendance sessions for tenant {}: {}", tenant.slug(), e.getMessage());
             } finally {
                 TenantContextHolder.clear();
+                MDC.remove("tenantSlug");
+                MDC.remove("tenantId");
             }
         }
 
