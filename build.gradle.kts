@@ -7,6 +7,7 @@ plugins {
     id("org.springframework.boot") version "3.4.13" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("com.github.jk1.dependency-license-report") version "2.9"
+    id("com.diffplug.spotless") version "6.25.0" apply false
 }
 
 allprojects {
@@ -20,6 +21,7 @@ allprojects {
 
 subprojects {
     apply(plugin = "java")
+    apply(plugin = "com.diffplug.spotless")
 
     java {
         toolchain {
@@ -34,6 +36,29 @@ subprojects {
 
     tasks.withType<Test> {
         useJUnitPlatform()
+    }
+
+    // Spotless: hygiene-only (no full Google-Java-Format reflow yet).
+    // Strips unused imports, normalizes whitespace + line endings, removes tabs.
+    // Ramp to googleJavaFormat() when ready for the larger diff.
+    configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+        java {
+            target("src/**/*.java")
+            targetExclude("**/build/**", "**/generated/**")
+            removeUnusedImports()
+            trimTrailingWhitespace()
+            endWithNewline()
+            indentWithSpaces(4)
+        }
+        kotlinGradle {
+            target("*.gradle.kts")
+            trimTrailingWhitespace()
+            endWithNewline()
+        }
+    }
+
+    tasks.named("check") {
+        dependsOn("spotlessCheck")
     }
 }
 

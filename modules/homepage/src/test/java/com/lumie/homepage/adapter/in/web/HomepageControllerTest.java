@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.homepage.application.dto.request.PublishHomepageRequest;
 import com.lumie.homepage.application.dto.request.UpdateHomepageConfigRequest;
 import com.lumie.homepage.application.dto.response.HomepageConfigResponse;
 import com.lumie.homepage.application.service.HomepageCommandService;
@@ -23,7 +22,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.LocalDateTime;
 import java.time.Instant;
 import java.util.Optional;
 

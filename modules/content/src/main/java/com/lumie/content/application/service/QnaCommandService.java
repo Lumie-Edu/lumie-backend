@@ -1,6 +1,5 @@
 package com.lumie.content.application.service;
 
-import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.application.dto.request.CreateCommentRequest;
 import com.lumie.content.application.dto.request.CreateQnaRequest;
 import com.lumie.content.application.dto.request.UpdateQnaRequest;

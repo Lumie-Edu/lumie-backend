@@ -2,8 +2,6 @@ package com.lumie.common.tenant;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
@@ -19,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.Ordered;
+import org.springframework.test.context.TestConstructor;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -47,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         webEnvironment = SpringBootTest.WebEnvironment.NONE
 )
 @Testcontainers
+@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class RlsTenantContextAspectIntegrationTest {
 
     @Container
@@ -60,11 +60,11 @@ class RlsTenantContextAspectIntegrationTest {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
     }
 
-    @Autowired
-    private RlsProbeService probeService;
+    private final RlsProbeService probeService;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    RlsTenantContextAspectIntegrationTest(RlsProbeService probeService) {
+        this.probeService = probeService;
+    }
 
     @AfterEach
     void clearContext() {

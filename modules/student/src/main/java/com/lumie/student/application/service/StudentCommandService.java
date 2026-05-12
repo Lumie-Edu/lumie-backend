@@ -1,6 +1,5 @@
 package com.lumie.student.application.service;
 
-import com.lumie.student.application.dto.BatchOperationRequest;
 import com.lumie.student.application.dto.BatchOperationResult;
 import com.lumie.student.application.dto.BulkImportResult;
 import com.lumie.student.application.dto.StudentRequest;

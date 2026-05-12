@@ -3,7 +3,6 @@ package com.lumie.billing.application.dto.request;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Builder;
 
-import java.time.Instant;
 
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
