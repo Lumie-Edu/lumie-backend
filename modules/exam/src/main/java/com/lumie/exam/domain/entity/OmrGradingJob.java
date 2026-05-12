@@ -1,7 +1,7 @@
 package com.lumie.exam.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
-import com.lumie.exam.domain.vo.OmrJobStatus;
+import com.lumie.exam.domain.vo.JobStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -31,7 +31,7 @@ public class OmrGradingJob extends TenantScopedEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private OmrJobStatus status;
+    private JobStatus status;
 
     @Column(name = "total_images", nullable = false)
     private Integer totalImages;
@@ -60,7 +60,7 @@ public class OmrGradingJob extends TenantScopedEntity {
         OmrGradingJob job = new OmrGradingJob();
         job.exam = exam;
         job.tenantSlug = tenantSlug;
-        job.status = OmrJobStatus.PENDING;
+        job.status = JobStatus.PENDING;
         job.totalImages = totalImages;
         job.processedImages = 0;
         job.successCount = 0;
@@ -71,7 +71,7 @@ public class OmrGradingJob extends TenantScopedEntity {
     }
 
     public void startProcessing() {
-        this.status = OmrJobStatus.PROCESSING;
+        this.status = JobStatus.PROCESSING;
     }
 
     public void incrementProcessed(boolean success, boolean saved) {
@@ -87,12 +87,12 @@ public class OmrGradingJob extends TenantScopedEntity {
     }
 
     public void complete(List<Map<String, Object>> results) {
-        this.status = OmrJobStatus.COMPLETED;
+        this.status = JobStatus.COMPLETED;
         this.results = results;
     }
 
     public void fail(List<Map<String, Object>> results) {
-        this.status = OmrJobStatus.FAILED;
+        this.status = JobStatus.FAILED;
         this.results = results;
     }
 }

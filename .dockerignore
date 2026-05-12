@@ -1,0 +1,56 @@
+.git/
+.gitignore
+.gitattributes
+
+# Build outputs
+build/
+out/
+target/
+*/build/
+
+# Gradle
+.gradle/
+gradle-app.setting
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env & secrets
+.env
+.env.local
+application-local.yml
+application-local.properties
+
+# Test outputs
+test-results/
+test-output/
+
+# Logs
+*.log
+logs/
+
+# Tilt
+.tilt/
+
+# Claude Code
+.claude/agent-memory/
+
+# Docker
+Dockerfile.dev
+docker-compose*.yml
+
+# Docs
+README.md
+CLAUDE.md
+*.md
