@@ -1,12 +1,5 @@
 plugins {
     id("java-library")
-    id("io.spring.dependency-management")
-}
-
-dependencyManagement {
-    imports {
-        mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
-    }
 }
 
 dependencies {
@@ -26,10 +19,6 @@ dependencies {
     // Jackson (for JsonNode in DTOs)
     implementation("com.fasterxml.jackson.core:jackson-databind")
 
-    // Lombok
-    compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
-    annotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
-
     // MapStruct
     implementation("org.mapstruct:mapstruct:${property("mapstructVersion")}")
     annotationProcessor("org.mapstruct:mapstruct-processor:${property("mapstructVersion")}")
@@ -37,12 +26,4 @@ dependencies {
 
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")
-
-    // Test
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:postgresql")
-    testCompileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
-    testAnnotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
 }

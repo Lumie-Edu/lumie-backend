@@ -25,6 +25,7 @@ subprojects {
     apply(plugin = "java")
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "net.ltgt.errorprone")
+    apply(plugin = "io.spring.dependency-management")
 
     java {
         toolchain {
@@ -32,8 +33,27 @@ subprojects {
         }
     }
 
+    // Spring Boot BOM available to every subproject. Modules with extra BOMs
+    // (Spring AI, Spring Modulith) layer them additively in their own
+    // dependencyManagement {} blocks.
+    configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
+        imports {
+            mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
+        }
+    }
+
     dependencies {
         "errorprone"("com.google.errorprone:error_prone_core:2.27.1")
+
+        // Lombok: universal across every subproject (incl. libs/internal-api,
+        // which gets compile-only annotations cost-free).
+        "compileOnly"("org.projectlombok:lombok:${property("lombokVersion")}")
+        "annotationProcessor"("org.projectlombok:lombok:${property("lombokVersion")}")
+        "testCompileOnly"("org.projectlombok:lombok:${property("lombokVersion")}")
+        "testAnnotationProcessor"("org.projectlombok:lombok:${property("lombokVersion")}")
+
+        // Spring Boot test starter: universal (JUnit5 + AssertJ + Mockito).
+        "testImplementation"("org.springframework.boot:spring-boot-starter-test")
     }
 
     tasks.withType<JavaCompile> {
@@ -78,6 +98,18 @@ subprojects {
 
     tasks.named("check") {
         dependsOn("spotlessCheck")
+    }
+}
+
+// Testcontainers stack: only modules that hit Postgres in integration tests.
+// libs/internal-api (pure interfaces) and libs/messaging (AMQP wiring) skip.
+configure(subprojects.filter {
+    it.path.startsWith(":modules:") || it.path == ":libs:common"
+}) {
+    dependencies {
+        "testImplementation"("org.springframework.boot:spring-boot-testcontainers")
+        "testImplementation"("org.testcontainers:junit-jupiter")
+        "testImplementation"("org.testcontainers:postgresql")
     }
 }
 

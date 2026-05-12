@@ -1,11 +1,9 @@
 plugins {
     id("java-library")
-    id("io.spring.dependency-management")
 }
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
         mavenBom("org.springframework.modulith:spring-modulith-bom:1.4.4")
     }
 }
@@ -33,10 +31,6 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-autoconfigure-processor")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-    // Lombok
-    compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
-    annotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
-
     // Jackson
     api("com.fasterxml.jackson.core:jackson-databind")
     api("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
@@ -44,14 +38,8 @@ dependencies {
     // Logging
     api("net.logstash.logback:logstash-logback-encoder:8.0")
 
-    // Test
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    // Test (module-specific only — common test deps in root build.gradle.kts)
     testImplementation("org.springframework.boot:spring-boot-starter-web")
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc")
-    testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:postgresql")
     testRuntimeOnly("org.postgresql:postgresql")
-    testCompileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
-    testAnnotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
 }

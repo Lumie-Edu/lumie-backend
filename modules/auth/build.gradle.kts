@@ -1,12 +1,5 @@
 plugins {
     id("java-library")
-    id("io.spring.dependency-management")
-}
-
-dependencyManagement {
-    imports {
-        mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
-    }
 }
 
 dependencies {
@@ -30,19 +23,9 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
 
-    // Lombok
-    compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
-    annotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
-
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")
 
-    // Test
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    // Test (module-specific only — common test deps in root build.gradle.kts)
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:postgresql")
-    testCompileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
-    testAnnotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
 }
