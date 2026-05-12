@@ -42,7 +42,7 @@ public class TenantServiceAdapter implements TenantService {
 
     @Override
     @Cacheable(value = CacheConfig.CACHE_TENANTS_BY_SLUG, key = "#slug",
-               unless = "#result == null || #result.isEmpty()")
+               unless = "#result == null")
     public Optional<TenantData> getTenantBySlug(String slug) {
         try {
             TenantResponse tenant = tenantQueryService.getTenantBySlug(slug);
