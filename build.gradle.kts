@@ -1,6 +1,7 @@
 import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryHtmlReportRenderer
 import com.github.jk1.license.render.JsonReportRenderer
+import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
     java
@@ -8,6 +9,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("com.github.jk1.dependency-license-report") version "2.9"
     id("com.diffplug.spotless") version "6.25.0" apply false
+    id("net.ltgt.errorprone") version "3.1.0" apply false
 }
 
 allprojects {
@@ -22,6 +24,7 @@ allprojects {
 subprojects {
     apply(plugin = "java")
     apply(plugin = "com.diffplug.spotless")
+    apply(plugin = "net.ltgt.errorprone")
 
     java {
         toolchain {
@@ -29,9 +32,25 @@ subprojects {
         }
     }
 
+    dependencies {
+        "errorprone"("com.google.errorprone:error_prone_core:2.27.1")
+    }
+
     tasks.withType<JavaCompile> {
         options.encoding = "UTF-8"
         options.compilerArgs.addAll(listOf("-parameters"))
+        options.errorprone {
+            // Ramping mode: all checks report as WARN until the baseline 36
+            // violations are cleaned. Flip to errors per-rule afterward.
+            isEnabled.set(true)
+            allErrorsAsWarnings.set(true)
+            disable(
+                "UnusedVariable",        // covered by IDE
+                "MissingSummary",        // Javadoc style noise
+                "EmptyCatch",            // intentional in many places
+                "InlineMeSuggester",     // library-author concern
+            )
+        }
     }
 
     tasks.withType<Test> {
