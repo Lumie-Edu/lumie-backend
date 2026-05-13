@@ -52,7 +52,13 @@ public class ActivityLogQueryService {
             }
 
             if (filter != null && filter.entityType() != null && !filter.entityType().isBlank()) {
-                predicates.add(cb.equal(root.get("entityType"), EntityType.valueOf(filter.entityType())));
+                EntityType parsed;
+                try {
+                    parsed = EntityType.valueOf(filter.entityType());
+                } catch (IllegalArgumentException e) {
+                    throw new BusinessException(ActivityLogErrorCode.INVALID_ENTITY_TYPE, e);
+                }
+                predicates.add(cb.equal(root.get("entityType"), parsed));
             }
 
             if (filter != null && filter.startDate() != null) {

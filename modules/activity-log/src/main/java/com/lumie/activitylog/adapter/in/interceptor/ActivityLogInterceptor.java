@@ -85,6 +85,9 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
             }
 
             ActionType action = resolveAction(method, path);
+            if (action == null) {
+                return;
+            }
             Long entityId = extractEntityId(path);
 
             String tenantSlug = TenantContextHolder.getTenant();
@@ -124,7 +127,7 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
             case "DELETE" -> ActionType.DELETE;
             case "PUT", "PATCH" -> ActionType.UPDATE;
             case "POST" -> resolvePostAction(path);
-            default -> ActionType.VIEW;
+            default -> null;
         };
     }
 
