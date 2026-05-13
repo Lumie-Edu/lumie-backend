@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.ByteArrayOutputStream;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -25,22 +25,17 @@ public class AttendanceExportController {
     private final AttendanceExportService attendanceExportService;
 
     @GetMapping(value = "/records/export.csv", produces = "text/csv;charset=UTF-8")
-    public ResponseEntity<byte[]> exportRecordsCsv() {
+    public ResponseEntity<StreamingResponseBody> exportRecordsCsv() {
         AuthorizationGuard.requireOwner();
         String filename = "%s_attendance_%s.csv".formatted(
             TenantContextHolder.getRequiredTenant(),
             LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
         );
 
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        attendanceExportService.writeCsv(buffer);
-        byte[] body = buffer.toByteArray();
-
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
             .header(HttpHeaders.CONTENT_DISPOSITION,
                 ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString())
-            .contentLength(body.length)
-            .body(body);
+            .body(attendanceExportService::writeCsv);
     }
 }

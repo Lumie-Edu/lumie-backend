@@ -24,8 +24,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -108,14 +108,11 @@ public class ResultController {
         return ResponseEntity.ok(resultQueryService.getStudentResults(studentId));
     }
 
-    @PatchMapping("/exams/{examId}/results/{resultId}/questions/{questionResultId}")
+    @PatchMapping("/question-results/{id}")
     public ResponseEntity<QuestionResultResponse> updateQuestionAnswer(
-            @PathVariable Long examId,
-            @PathVariable Long resultId,
-            @PathVariable Long questionResultId,
+            @PathVariable Long id,
             @Valid @RequestBody UpdateQuestionAnswerRequest request) {
-        QuestionResultResponse response = resultCommandService.updateQuestionAnswer(
-                examId, resultId, questionResultId, request);
+        QuestionResultResponse response = resultCommandService.updateQuestionAnswer(id, request);
         return ResponseEntity.ok(response);
     }
 
@@ -144,22 +141,17 @@ public class ResultController {
     }
 
     @GetMapping(value = "/exams/results/export.csv", produces = "text/csv;charset=UTF-8")
-    public ResponseEntity<byte[]> exportResultsCsv() {
+    public ResponseEntity<StreamingResponseBody> exportResultsCsv() {
         AuthorizationGuard.requireOwner();
         String filename = "%s_grades_%s.csv".formatted(
             TenantContextHolder.getRequiredTenant(),
             LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
         );
 
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        examExportService.writeCsv(buffer);
-        byte[] body = buffer.toByteArray();
-
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
             .header(HttpHeaders.CONTENT_DISPOSITION,
                 ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString())
-            .contentLength(body.length)
-            .body(body);
+            .body(examExportService::writeCsv);
     }
 }

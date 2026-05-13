@@ -47,15 +47,16 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
         PATH_TO_ENTITY.put("/v1/announcements/**", EntityType.ANNOUNCEMENT);
         PATH_TO_ENTITY.put("/v1/reviews/**", EntityType.REVIEW);
         PATH_TO_ENTITY.put("/v1/reservations/**", EntityType.RESERVATION);
+        PATH_TO_ENTITY.put("/v1/sms-templates/**", EntityType.SMS);
         PATH_TO_ENTITY.put("/v1/sms/**", EntityType.SMS);
         PATH_TO_ENTITY.put("/v1/qna/**", EntityType.QNA);
         PATH_TO_ENTITY.put("/v1/conversations/**", EntityType.CONVERSATION);
         PATH_TO_ENTITY.put("/v1/chat/**", EntityType.CHAT);
         PATH_TO_ENTITY.put("/v1/files/**", EntityType.FILE);
-        PATH_TO_ENTITY.put("/v1/scheduled-tasks/**", EntityType.SCHEDULED_TASK);
         PATH_TO_ENTITY.put("/v1/statistics/**", EntityType.STATISTICS);
         PATH_TO_ENTITY.put("/v1/reports/**", EntityType.REPORT);
         PATH_TO_ENTITY.put("/v1/results/**", EntityType.RESULT);
+        PATH_TO_ENTITY.put("/v1/question-results/**", EntityType.RESULT);
     }
 
     @Override

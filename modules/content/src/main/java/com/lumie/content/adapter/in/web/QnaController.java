@@ -8,6 +8,7 @@ import com.lumie.content.application.dto.response.QnaCommentResponse;
 import com.lumie.content.application.dto.response.QnaDetailResponse;
 import com.lumie.content.application.service.QnaCommandService;
 import com.lumie.content.application.service.QnaQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,23 +28,23 @@ public class QnaController {
     private final QnaQueryService queryService;
 
     @GetMapping
-    public ResponseEntity<Page<QnaBoardResponse>> listQnas(
-            @RequestParam(required = false) Boolean isItAnswered,
+    public ResponseEntity<PageResponse<QnaBoardResponse>> listQnas(
+            @RequestParam(required = false) Boolean isAnswered,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.listQnas(isItAnswered, pageable));
+        return ResponseEntity.ok(PageResponse.from(queryService.listQnas(isAnswered, pageable)));
     }
 
     @GetMapping("/unanswered")
-    public ResponseEntity<Page<QnaBoardResponse>> listUnansweredQnas(
+    public ResponseEntity<PageResponse<QnaBoardResponse>> listUnansweredQnas(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.listUnansweredQnas(pageable));
+        return ResponseEntity.ok(PageResponse.from(queryService.listUnansweredQnas(pageable)));
     }
 
     @GetMapping("/user/{qnaUserId}")
-    public ResponseEntity<Page<QnaBoardResponse>> listQnasByUser(
+    public ResponseEntity<PageResponse<QnaBoardResponse>> listQnasByUser(
             @PathVariable Long qnaUserId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.listQnasByUser(qnaUserId, pageable));
+        return ResponseEntity.ok(PageResponse.from(queryService.listQnasByUser(qnaUserId, pageable)));
     }
 
     @GetMapping("/{id}")

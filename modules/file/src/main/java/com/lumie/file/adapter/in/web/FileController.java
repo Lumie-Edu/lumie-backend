@@ -9,6 +9,7 @@ import com.lumie.file.application.dto.response.PresignedDownloadResponse;
 import com.lumie.file.application.dto.response.PresignedUploadResponse;
 import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
+import com.lumie.common.exception.BusinessRuleViolationException;
 import com.lumie.file.domain.vo.EntityType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,12 +29,18 @@ public class FileController {
     private final FileCommandService fileCommandService;
     private final FileQueryService fileQueryService;
 
+    private static final long PROXY_UPLOAD_MAX_BYTES = 1024 * 1024; // 1 MiB
+
     @PostMapping("/upload")
     public ResponseEntity<FileMetadataResponse> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("entityType") EntityType entityType,
             @RequestParam(value = "entityId", required = false) Long entityId,
             @RequestParam(value = "folderId", required = false) UUID folderId) {
+        if (file.getSize() > PROXY_UPLOAD_MAX_BYTES) {
+            throw new BusinessRuleViolationException(
+                "Files larger than 1 MiB must use the presigned-upload flow (POST /v1/files/presigned-upload)");
+        }
         FileMetadataResponse response = fileCommandService.uploadFile(entityType, entityId, folderId, file);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

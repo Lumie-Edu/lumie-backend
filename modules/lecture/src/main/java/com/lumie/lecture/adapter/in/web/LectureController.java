@@ -3,6 +3,7 @@ package com.lumie.lecture.adapter.in.web;
 import com.lumie.lecture.application.dto.*;
 import com.lumie.lecture.application.service.LectureCommandService;
 import com.lumie.lecture.application.service.LectureQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,7 +30,7 @@ public class LectureController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<LectureResponse>> findAll(
+    public ResponseEntity<PageResponse<LectureResponse>> findAll(
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Long teacherId,
             @RequestParam(required = false) String status,
@@ -37,9 +38,9 @@ public class LectureController {
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.findAll(
+        return ResponseEntity.ok(PageResponse.from(queryService.findAll(
                 classId, teacherId, status,
-                startDate, endDate, search, pageable));
+                startDate, endDate, search, pageable)));
     }
 
     @GetMapping("/{id}")

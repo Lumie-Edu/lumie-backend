@@ -5,6 +5,7 @@ import com.lumie.content.application.dto.request.UpdateTextbookRequest;
 import com.lumie.content.application.dto.response.TextbookResponse;
 import com.lumie.content.application.service.TextbookCommandService;
 import com.lumie.content.application.service.TextbookQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,13 +27,13 @@ public class TextbookController {
     private final TextbookQueryService queryService;
 
     @GetMapping
-    public ResponseEntity<Page<TextbookResponse>> listTextbooks(
+    public ResponseEntity<PageResponse<TextbookResponse>> listTextbooks(
             @RequestParam(required = false) String subject,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         if (subject != null && !subject.isBlank()) {
-            return ResponseEntity.ok(queryService.listTextbooksBySubject(subject, pageable));
+            return ResponseEntity.ok(PageResponse.from(queryService.listTextbooksBySubject(subject, pageable)));
         }
-        return ResponseEntity.ok(queryService.listTextbooks(pageable));
+        return ResponseEntity.ok(PageResponse.from(queryService.listTextbooks(pageable)));
     }
 
     @GetMapping("/active")

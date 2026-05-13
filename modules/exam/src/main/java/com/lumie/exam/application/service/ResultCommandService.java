@@ -160,16 +160,12 @@ public class ResultCommandService {
 
     @Transactional
     public QuestionResultResponse updateQuestionAnswer(
-            Long examId, Long resultId, Long questionResultId, UpdateQuestionAnswerRequest request) {
-        log.info("Updating question answer: examId={}, resultId={}, questionResultId={}, newChoice={}",
-                examId, resultId, questionResultId, request.selectedChoice());
+            Long questionResultId, UpdateQuestionAnswerRequest request) {
+        log.info("Updating question answer: questionResultId={}, newChoice={}",
+                questionResultId, request.selectedChoice());
 
-        ExamResult result = resultRepository.findById(resultId)
+        ExamResult result = resultRepository.findByQuestionResultId(questionResultId)
                 .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
-
-        if (!result.getExam().getId().equals(examId)) {
-            throw new ExamException(ExamErrorCode.RESULT_NOT_FOUND);
-        }
 
         QuestionResult updated = result.updateQuestionAnswer(questionResultId, request.selectedChoice());
         gradeCalculator.calculateAndAssignGradeIfAbsolute(result.getExam(), result);

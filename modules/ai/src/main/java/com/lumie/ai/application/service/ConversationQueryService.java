@@ -1,5 +1,8 @@
 package com.lumie.ai.application.service;
 
+import com.lumie.ai.application.dto.ConversationDetailResponse;
+import com.lumie.ai.application.dto.ConversationSummaryResponse;
+import com.lumie.ai.application.dto.MessageResponse;
 import com.lumie.ai.domain.entity.ChatMessage;
 import com.lumie.ai.domain.entity.Conversation;
 import com.lumie.ai.domain.exception.AiErrorCode;
@@ -14,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -24,13 +26,13 @@ public class ConversationQueryService {
     private final ConversationRepository conversationRepository;
     private final ChatMessageRepository chatMessageRepository;
 
-    public Page<Map<String, Object>> listConversations(Pageable pageable) {
+    public Page<ConversationSummaryResponse> listConversations(Pageable pageable) {
         Long userId = UserContextHolder.getRequiredUserId();
         return conversationRepository.findByUserIdAndIsActiveTrue(userId, pageable)
                 .map(this::toConversationSummary);
     }
 
-    public Map<String, Object> getConversation(Long conversationId) {
+    public ConversationDetailResponse getConversation(Long conversationId) {
         Long userId = UserContextHolder.getRequiredUserId();
         Conversation conversation = conversationRepository.findByIdAndUserId(conversationId, userId)
                 .orElseThrow(() -> new AiException(AiErrorCode.CONVERSATION_NOT_FOUND));
@@ -38,17 +40,17 @@ public class ConversationQueryService {
         List<ChatMessage> messages = chatMessageRepository
                 .findByConversationIdOrderByCreatedAtAsc(conversationId);
 
-        List<Map<String, Object>> messageList = messages.stream()
+        List<MessageResponse> messageList = messages.stream()
                 .map(this::toMessageResponse)
                 .toList();
 
-        return Map.of(
-                "id", conversation.getId(),
-                "title", conversation.getTitle() != null ? conversation.getTitle() : "",
-                "isActive", conversation.isActive(),
-                "messages", messageList,
-                "createdAt", conversation.getCreatedAt(),
-                "updatedAt", conversation.getUpdatedAt()
+        return new ConversationDetailResponse(
+                conversation.getId(),
+                conversation.getTitle() != null ? conversation.getTitle() : "",
+                conversation.isActive(),
+                messageList,
+                conversation.getCreatedAt(),
+                conversation.getUpdatedAt()
         );
     }
 
@@ -61,26 +63,22 @@ public class ConversationQueryService {
         conversationRepository.save(conversation);
     }
 
-    private Map<String, Object> toConversationSummary(Conversation conversation) {
-        return Map.of(
-                "id", conversation.getId(),
-                "title", conversation.getTitle() != null ? conversation.getTitle() : "",
-                "createdAt", conversation.getCreatedAt(),
-                "updatedAt", conversation.getUpdatedAt()
+    private ConversationSummaryResponse toConversationSummary(Conversation conversation) {
+        return new ConversationSummaryResponse(
+                conversation.getId(),
+                conversation.getTitle() != null ? conversation.getTitle() : "",
+                conversation.getCreatedAt(),
+                conversation.getUpdatedAt()
         );
     }
 
-    private Map<String, Object> toMessageResponse(ChatMessage message) {
-        Map<String, Object> map = new java.util.HashMap<>();
-        map.put("id", message.getId());
-        map.put("role", message.getRole().name());
-        map.put("content", message.getContent());
-        map.put("createdAt", message.getCreatedAt());
-
-        if (message.getPendingAction() != null) {
-            map.put("pendingAction", message.getPendingAction());
-        }
-
-        return map;
+    private MessageResponse toMessageResponse(ChatMessage message) {
+        return new MessageResponse(
+                message.getId(),
+                message.getRole().name(),
+                message.getContent(),
+                message.getPendingAction(),
+                message.getCreatedAt()
+        );
     }
 }

@@ -22,6 +22,10 @@ public enum CommonErrorCode implements ErrorCode {
 
     // 409 Conflict
     DUPLICATE_RESOURCE("COMMON_004", "Resource already exists", 409),
+    RESOURCE_CONFLICT("COMMON_008", "Resource conflict", 409),
+
+    // 422 Unprocessable Entity
+    BUSINESS_RULE_VIOLATION("COMMON_009", "Business rule violated", 422),
 
     // 500 Internal Server Error
     INTERNAL_ERROR("COMMON_005", "Internal server error", 500);

@@ -6,6 +6,7 @@ import com.lumie.content.application.dto.response.ReservationResponse;
 import com.lumie.content.application.service.ReservationCommandService;
 import com.lumie.content.application.service.ReservationQueryService;
 import com.lumie.content.domain.vo.ReservationStatus;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,9 +28,9 @@ public class ReservationController {
     private final ReservationQueryService queryService;
 
     @GetMapping
-    public ResponseEntity<Page<ReservationResponse>> listReservations(
+    public ResponseEntity<PageResponse<ReservationResponse>> listReservations(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.listReservations(pageable));
+        return ResponseEntity.ok(PageResponse.from(queryService.listReservations(pageable)));
     }
 
     @GetMapping("/student/{studentId}")

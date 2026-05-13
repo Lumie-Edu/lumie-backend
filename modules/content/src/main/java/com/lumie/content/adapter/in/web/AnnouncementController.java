@@ -5,6 +5,7 @@ import com.lumie.content.application.dto.request.UpdateAnnouncementRequest;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.application.service.AnnouncementCommandService;
 import com.lumie.content.application.service.AnnouncementQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,10 +27,10 @@ public class AnnouncementController {
     private final AnnouncementQueryService queryService;
 
     @GetMapping
-    public ResponseEntity<Page<AnnouncementResponse>> listAnnouncements(
+    public ResponseEntity<PageResponse<AnnouncementResponse>> listAnnouncements(
             @RequestParam(required = false) Boolean isAsset,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.listAnnouncements(isAsset, pageable));
+        return ResponseEntity.ok(PageResponse.from(queryService.listAnnouncements(isAsset, pageable)));
     }
 
     @GetMapping("/important")

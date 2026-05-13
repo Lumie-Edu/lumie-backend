@@ -7,6 +7,7 @@ import com.lumie.content.application.dto.response.ReviewResponse;
 import com.lumie.content.application.service.ReviewCommandService;
 import com.lumie.content.application.service.ReviewPopupSettingService;
 import com.lumie.content.application.service.ReviewQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,9 +35,9 @@ public class ReviewController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ReviewResponse>> listReviews(
+    public ResponseEntity<PageResponse<ReviewResponse>> listReviews(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.listReviews(pageable));
+        return ResponseEntity.ok(PageResponse.from(queryService.listReviews(pageable)));
     }
 
     @DeleteMapping("/{id}")

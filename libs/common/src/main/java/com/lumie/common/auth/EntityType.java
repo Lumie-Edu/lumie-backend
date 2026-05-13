@@ -33,7 +33,6 @@ public enum EntityType {
     CONVERSATION,
     CHAT,
     FILE,
-    SCHEDULED_TASK,
     STATISTICS,
     REPORT,
     RESULT,

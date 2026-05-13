@@ -7,6 +7,7 @@ import com.lumie.exam.application.dto.response.ExamDetailResponse;
 import com.lumie.exam.application.dto.response.ExamResponse;
 import com.lumie.exam.application.service.ExamCommandService;
 import com.lumie.exam.application.service.ExamQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,9 +28,9 @@ public class ExamController {
 
     @GetMapping
     @AllowedSortFields({"createdAt", "name", "category"})
-    public ResponseEntity<Page<ExamResponse>> listExams(
+    public ResponseEntity<PageResponse<ExamResponse>> listExams(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(examQueryService.listExams(pageable));
+        return ResponseEntity.ok(PageResponse.from(examQueryService.listExams(pageable)));
     }
 
     @PostMapping

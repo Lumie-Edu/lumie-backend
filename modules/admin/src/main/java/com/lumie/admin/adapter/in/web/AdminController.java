@@ -10,6 +10,7 @@ import com.lumie.admin.application.dto.ChangeLoginIdResponse;
 import com.lumie.admin.application.dto.SetPermissionsRequest;
 import com.lumie.admin.application.service.AdminCommandService;
 import com.lumie.admin.application.service.AdminQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -43,16 +44,16 @@ public class AdminController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<AdminResponse>> getAllAdmins(
+    public ResponseEntity<PageResponse<AdminResponse>> getAllAdmins(
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         AdminFilterRequest filter = new AdminFilterRequest(isActive, search);
         Page<AdminResponse> response = adminQueryService.getAllAdmins(filter, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<AdminResponse> updateAdmin(
             @PathVariable Long id,
             @Valid @RequestBody AdminUpdateRequest request) {

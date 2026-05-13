@@ -30,11 +30,11 @@ public class QnaQueryService {
     private final StudentService studentService;
     private final AdminService adminService;
 
-    public Page<QnaBoardResponse> listQnas(Boolean isItAnswered, Pageable pageable) {
-        log.debug("Listing Q&As with pagination, isItAnswered={}", isItAnswered);
+    public Page<QnaBoardResponse> listQnas(Boolean isAnswered, Pageable pageable) {
+        log.debug("Listing Q&As with pagination, isAnswered={}", isAnswered);
 
-        Page<QnaBoard> page = isItAnswered != null
-                ? qnaBoardRepository.findByIsItAnswered(isItAnswered, pageable)
+        Page<QnaBoard> page = isAnswered != null
+                ? qnaBoardRepository.findByIsAnswered(isAnswered, pageable)
                 : qnaBoardRepository.findAll(pageable);
 
         return enrichWithUserNames(page);
@@ -50,7 +50,7 @@ public class QnaQueryService {
     public Page<QnaBoardResponse> listUnansweredQnas(Pageable pageable) {
         log.debug("Listing unanswered Q&As");
 
-        Page<QnaBoard> page = qnaBoardRepository.findByIsItAnsweredFalse(pageable);
+        Page<QnaBoard> page = qnaBoardRepository.findByIsAnsweredFalse(pageable);
         return enrichWithUserNames(page);
     }
 

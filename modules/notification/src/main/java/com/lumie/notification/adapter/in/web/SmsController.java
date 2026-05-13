@@ -7,6 +7,7 @@ import com.lumie.notification.application.service.SmsCommandService;
 import com.lumie.notification.application.service.SmsQueryService;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,14 +35,14 @@ public class SmsController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<Page<SmsMessageResponse>> listMessages(
+    public ResponseEntity<PageResponse<SmsMessageResponse>> listMessages(
             @RequestParam(required = false) SmsStatus status,
             @RequestParam(required = false) RecipientType recipientType,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<SmsMessageResponse> response = queryService.listMessages(
             status, recipientType, search, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 
     @GetMapping("/history/{id}")

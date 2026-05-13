@@ -5,6 +5,7 @@ import com.lumie.assignment.application.dto.SubmissionResponse;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
 import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.application.service.AssignmentQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,11 +25,11 @@ public class AssignmentSubmissionController {
     private final AssignmentQueryService queryService;
 
     @GetMapping
-    public ResponseEntity<Page<SubmissionResponse>> getSubmissions(
+    public ResponseEntity<PageResponse<SubmissionResponse>> getSubmissions(
             @PathVariable Long assignmentId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<SubmissionResponse> response = queryService.getSubmissions(assignmentId, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 
     @PostMapping
@@ -49,11 +50,11 @@ public class AssignmentSubmissionController {
     }
 
     @GetMapping("/student/{studentId}")
-    public ResponseEntity<Page<SubmissionResponse>> getStudentSubmissions(
+    public ResponseEntity<PageResponse<SubmissionResponse>> getStudentSubmissions(
             @PathVariable Long assignmentId,
             @PathVariable Long studentId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<SubmissionResponse> response = queryService.getStudentSubmissions(assignmentId, studentId, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 }

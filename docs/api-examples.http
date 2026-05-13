@@ -1,0 +1,97 @@
+### Lumie API Examples
+### Compatible with IntelliJ HTTP Client and VS Code REST Client
+### Replace {{host}} and {{token}} with actual values, or define in http-client.env.json
+
+@host = http://localhost:8080
+@token = <your-jwt-here>
+@tenant = dev
+
+### Auth — Login
+POST {{host}}/v1/login
+Content-Type: application/json
+X-Tenant-Slug: {{tenant}}
+
+{
+  "loginId": "admin@lumie.kr",
+  "password": "secret"
+}
+
+### Auth — Get active sessions
+GET {{host}}/v1/me/sessions
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+
+### Auth — Revoke all other sessions
+DELETE {{host}}/v1/me/sessions?exclude=current
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+
+### Auth — Revoke single session
+DELETE {{host}}/v1/me/sessions/{{sid}}
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+
+### Classes — List (paginated)
+GET {{host}}/v1/classes?page=0&size=20&sort=createdAt,desc
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+
+### Students — List
+GET {{host}}/v1/students?page=0&size=20
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+
+### Exams — List results
+GET {{host}}/v1/exams/{{examId}}/results
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+
+### Exams — Update a single question answer (flat URL, replaces deep nested path)
+PATCH {{host}}/v1/question-results/{{questionResultId}}
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+Content-Type: application/json
+
+{
+  "selectedChoice": "3"
+}
+
+### Exams — Export results as CSV
+GET {{host}}/v1/exams/results/export.csv
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+Accept: text/csv
+
+### SMS — List templates
+GET {{host}}/v1/sms-templates?page=0&size=20
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+
+### SMS — Create template
+POST {{host}}/v1/sms-templates
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+Content-Type: application/json
+
+{
+  "name": "입금 안내",
+  "content": "[루미] 수강료 납부 안내입니다."
+}
+
+### Activity Logs — List
+GET {{host}}/v1/activity-logs?page=0&size=50
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+
+### Files — Upload (multipart)
+POST {{host}}/v1/files/upload
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="homework.pdf"
+Content-Type: application/pdf
+
+< ./homework.pdf
+--boundary--

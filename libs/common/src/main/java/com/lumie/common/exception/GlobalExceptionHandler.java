@@ -1,6 +1,7 @@
 package com.lumie.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,10 +44,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
-        log.warn("Illegal state: {}", e.getMessage());
+        log.warn("Business rule violation: {}", e.getMessage());
         return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(ErrorResponse.of("ILLEGAL_STATE", e.getMessage()));
+            .status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(ErrorResponse.of("BUSINESS_RULE_VIOLATION", e.getMessage()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.warn("Data integrity violation: {}", e.getMessage());
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(ErrorResponse.of("RESOURCE_CONFLICT", "Resource conflict — a duplicate or constraint violation occurred"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

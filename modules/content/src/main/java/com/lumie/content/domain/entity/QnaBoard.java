@@ -30,8 +30,11 @@ public class QnaBoard extends TenantScopedEntity {
     @Column(name = "qna_content", nullable = false, columnDefinition = "TEXT")
     private String qnaContent;
 
-    @Column(name = "is_it_answered", nullable = false)
-    private Boolean isItAnswered;
+    @Version
+    private Long version;
+
+    @Column(name = "is_answered", nullable = false)
+    private Boolean isAnswered;
 
     // @BatchSize avoids N+1 lazy-load when a Page<QnaBoard> iterates over comments.
     // Fetch joining via @EntityGraph would force in-memory pagination (HHH000104),
@@ -46,7 +49,7 @@ public class QnaBoard extends TenantScopedEntity {
         this.qnaUserId = qnaUserId;
         this.qnaTitle = qnaTitle;
         this.qnaContent = qnaContent;
-        this.isItAnswered = false;
+        this.isAnswered = false;
     }
 
     public static QnaBoard create(Long qnaUserId, String qnaTitle, String qnaContent) {
@@ -67,16 +70,16 @@ public class QnaBoard extends TenantScopedEntity {
     }
 
     public void markAsAnswered() {
-        this.isItAnswered = true;
+        this.isAnswered = true;
     }
 
     public void markAsUnanswered() {
-        this.isItAnswered = false;
+        this.isAnswered = false;
     }
 
     public void addComment(QnaComment comment) {
         this.comments.add(comment);
-        if (!this.isItAnswered && comment.getUserId() != null) {
+        if (!this.isAnswered && comment.getUserId() != null) {
             this.markAsAnswered();
         }
     }

@@ -13,7 +13,7 @@ public record QnaDetailResponse(
         String qnaUserName,
         String qnaTitle,
         String qnaContent,
-        Boolean isItAnswered,
+        Boolean isAnswered,
         List<QnaCommentResponse> comments,
         Instant createdAt,
         Instant updatedAt
@@ -31,7 +31,7 @@ public record QnaDetailResponse(
                 qnaUserName,
                 qnaBoard.getQnaTitle(),
                 qnaBoard.getQnaContent(),
-                qnaBoard.getIsItAnswered(),
+                qnaBoard.getIsAnswered(),
                 commentResponses,
                 qnaBoard.getCreatedAt(),
                 qnaBoard.getUpdatedAt()

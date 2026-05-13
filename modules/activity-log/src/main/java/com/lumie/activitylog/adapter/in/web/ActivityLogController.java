@@ -3,6 +3,7 @@ package com.lumie.activitylog.adapter.in.web;
 import com.lumie.activitylog.application.dto.ActivityLogFilterRequest;
 import com.lumie.activitylog.application.dto.ActivityLogResponse;
 import com.lumie.activitylog.application.service.ActivityLogQueryService;
+import com.lumie.common.api.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,7 +26,7 @@ public class ActivityLogController {
     private final ActivityLogQueryService activityLogQueryService;
 
     @GetMapping
-    public ResponseEntity<Page<ActivityLogResponse>> getLogs(
+    public ResponseEntity<PageResponse<ActivityLogResponse>> getLogs(
             @RequestParam(required = false) Long actorId,
             @RequestParam(required = false) String entityType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -34,6 +35,6 @@ public class ActivityLogController {
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         ActivityLogFilterRequest filter = new ActivityLogFilterRequest(actorId, entityType, startDate, endDate, search);
         Page<ActivityLogResponse> response = activityLogQueryService.getLogs(filter, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 }

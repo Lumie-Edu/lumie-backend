@@ -5,6 +5,8 @@ import com.lumie.notification.application.dto.SmsTemplateResponse;
 import com.lumie.notification.application.dto.UpdateTemplateRequest;
 import com.lumie.notification.application.service.SmsCommandService;
 import com.lumie.notification.application.service.SmsQueryService;
+import com.lumie.common.api.AllowedSortFields;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping("/v1/sms/templates")
+@RequestMapping("/v1/sms-templates")
 @RequiredArgsConstructor
 public class SmsTemplateController {
 
@@ -25,10 +27,11 @@ public class SmsTemplateController {
     private final SmsQueryService queryService;
 
     @GetMapping
-    public ResponseEntity<Page<SmsTemplateResponse>> listTemplates(
+    @AllowedSortFields({"createdAt", "name"})
+    public ResponseEntity<PageResponse<SmsTemplateResponse>> listTemplates(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<SmsTemplateResponse> response = queryService.listTemplates(pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 
     @PostMapping

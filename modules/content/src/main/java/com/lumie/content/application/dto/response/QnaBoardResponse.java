@@ -9,7 +9,7 @@ public record QnaBoardResponse(
         Long qnaUserId,
         String qnaUserName,
         String qnaTitle,
-        Boolean isItAnswered,
+        Boolean isAnswered,
         Integer commentCount,
         Instant createdAt,
         Instant updatedAt
@@ -20,7 +20,7 @@ public record QnaBoardResponse(
                 qnaBoard.getQnaUserId(),
                 qnaUserName,
                 qnaBoard.getQnaTitle(),
-                qnaBoard.getIsItAnswered(),
+                qnaBoard.getIsAnswered(),
                 qnaBoard.getComments() != null ? qnaBoard.getComments().size() : 0,
                 qnaBoard.getCreatedAt(),
                 qnaBoard.getUpdatedAt()

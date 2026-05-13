@@ -5,6 +5,7 @@ import com.lumie.classroom.application.dto.CreateClassRequest;
 import com.lumie.classroom.application.dto.UpdateClassRequest;
 import com.lumie.classroom.application.service.ClassCommandService;
 import com.lumie.classroom.application.service.ClassQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,12 +33,12 @@ public class ClassController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ClassResponse>> listClasses(
+    public ResponseEntity<PageResponse<ClassResponse>> listClasses(
             @RequestParam(required = false) Long teacherId,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<ClassResponse> response = queryService.listClasses(teacherId, search, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 
     @GetMapping("/{id}")
@@ -61,18 +62,18 @@ public class ClassController {
     }
 
     @GetMapping("/teacher/{teacherId}")
-    public ResponseEntity<Page<ClassResponse>> getClassesByTeacher(
+    public ResponseEntity<PageResponse<ClassResponse>> getClassesByTeacher(
             @PathVariable Long teacherId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<ClassResponse> response = queryService.getClassesByTeacher(teacherId, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 
     @GetMapping("/student/{studentId}")
-    public ResponseEntity<Page<ClassResponse>> getClassesByStudent(
+    public ResponseEntity<PageResponse<ClassResponse>> getClassesByStudent(
             @PathVariable Long studentId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<ClassResponse> response = queryService.getClassesByStudent(studentId, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 }

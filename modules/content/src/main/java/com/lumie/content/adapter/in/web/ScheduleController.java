@@ -5,6 +5,7 @@ import com.lumie.content.application.dto.request.UpdateScheduleRequest;
 import com.lumie.content.application.dto.response.ScheduleResponse;
 import com.lumie.content.application.service.ScheduleCommandService;
 import com.lumie.content.application.service.ScheduleQueryService;
+import com.lumie.common.api.PageResponse;
 import com.lumie.common.tenant.UserContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +30,9 @@ public class ScheduleController {
     private final ScheduleQueryService queryService;
 
     @GetMapping
-    public ResponseEntity<Page<ScheduleResponse>> listSchedules(
+    public ResponseEntity<PageResponse<ScheduleResponse>> listSchedules(
             @PageableDefault(size = 20, sort = "date", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(queryService.listSchedules(pageable));
+        return ResponseEntity.ok(PageResponse.from(queryService.listSchedules(pageable)));
     }
 
     @GetMapping("/range")

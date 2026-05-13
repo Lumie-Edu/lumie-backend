@@ -7,6 +7,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.student.application.dto.*;
 import com.lumie.student.application.service.StudentCommandService;
 import com.lumie.student.application.service.StudentQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,7 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -57,12 +58,12 @@ public class StudentController {
 
     @GetMapping
     @AllowedSortFields({"createdAt", "name", "phone", "studentHighschool", "studentBirthYear"})
-    public ResponseEntity<Page<StudentResponse>> getStudents(
+    public ResponseEntity<PageResponse<StudentResponse>> getStudents(
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<StudentResponse> response = studentQueryService.searchStudents(isActive, search, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 
     @PatchMapping("/{id}")
@@ -108,19 +109,19 @@ public class StudentController {
     @PostMapping("/batch/deactivate")
     public ResponseEntity<BatchOperationResult> batchDeactivate(@RequestBody BatchOperationRequest request) {
         BatchOperationResult result = studentCommandService.batchDeactivate(request.ids());
-        return ResponseEntity.ok(result);
+        return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result);
     }
 
     @PostMapping("/batch/reactivate")
     public ResponseEntity<BatchOperationResult> batchReactivate(@RequestBody BatchOperationRequest request) {
         BatchOperationResult result = studentCommandService.batchReactivate(request.ids());
-        return ResponseEntity.ok(result);
+        return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result);
     }
 
     @PostMapping("/batch/delete")
     public ResponseEntity<BatchOperationResult> batchDelete(@RequestBody BatchOperationRequest request) {
         BatchOperationResult result = studentCommandService.batchDelete(request.ids());
-        return ResponseEntity.ok(result);
+        return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result);
     }
 
     /**
@@ -161,23 +162,18 @@ public class StudentController {
     }
 
     @GetMapping(value = "/export.csv", produces = "text/csv;charset=UTF-8")
-    public ResponseEntity<byte[]> exportStudentsCsv() {
+    public ResponseEntity<StreamingResponseBody> exportStudentsCsv() {
         AuthorizationGuard.requireOwner();
         String filename = "%s_students_%s.csv".formatted(
             TenantContextHolder.getRequiredTenant(),
             LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
         );
 
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        studentQueryService.writeCsv(buffer);
-        byte[] body = buffer.toByteArray();
-
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
             .header(HttpHeaders.CONTENT_DISPOSITION,
                 ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString())
-            .contentLength(body.length)
-            .body(body);
+            .body(studentQueryService::writeCsv);
     }
 
     private record BulkUploadFingerprint(String filename, long size) {}

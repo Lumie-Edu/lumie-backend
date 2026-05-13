@@ -5,6 +5,7 @@ import com.lumie.classroom.application.dto.EnrollStudentsRequest;
 import com.lumie.classroom.application.dto.UpdateEnrollmentRequest;
 import com.lumie.classroom.application.service.ClassCommandService;
 import com.lumie.classroom.application.service.ClassQueryService;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,11 +27,11 @@ public class ClassEnrollmentController {
     private final ClassQueryService queryService;
 
     @GetMapping
-    public ResponseEntity<Page<ClassEnrollmentResponse>> getEnrollments(
+    public ResponseEntity<PageResponse<ClassEnrollmentResponse>> getEnrollments(
             @PathVariable Long classId,
             @PageableDefault(size = 20, sort = "enrolledAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<ClassEnrollmentResponse> response = queryService.getEnrollments(classId, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 
     @PostMapping

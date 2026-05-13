@@ -28,6 +28,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.lumie.ai.application.dto.ChatReplyResponse;
+
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -178,7 +180,7 @@ public class ChatService {
     // ── Non-streaming endpoint (backward compat) ────────────────────────
 
     @Transactional
-    public Map<String, Object> chat(Long conversationId, String userMessage) {
+    public ChatReplyResponse chat(Long conversationId, String userMessage) {
         Long userId = UserContextHolder.getRequiredUserId();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
@@ -202,10 +204,7 @@ public class ChatService {
 
             logUsageIfPresent(response);
 
-            return Map.of(
-                    "conversationId", ctx.conversation.getId(),
-                    "message", content != null ? content : ""
-            );
+            return ChatReplyResponse.of(ctx.conversation.getId(), content != null ? content : "");
         } catch (PendingActionRequiredException e) {
             return handlePendingActionSync(ctx.conversation, e);
         }
@@ -214,7 +213,7 @@ public class ChatService {
     // ── Confirm endpoint ────────────────────────────────────────────────
 
     @Transactional
-    public Map<String, Object> confirm(Long messageId, boolean confirmed) {
+    public ChatReplyResponse confirm(Long messageId, boolean confirmed) {
         Long userId = UserContextHolder.getRequiredUserId();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
@@ -243,10 +242,7 @@ public class ChatService {
                     .content("작업이 취소되었습니다.")
                     .build());
 
-            return Map.of(
-                    "conversationId", conversation.getId(),
-                    "message", "작업이 취소되었습니다."
-            );
+            return ChatReplyResponse.of(conversation.getId(), "작업이 취소되었습니다.");
         }
 
         Tool tool = toolRegistry.getTool(action.toolName())
@@ -282,10 +278,7 @@ public class ChatService {
                     .content(content)
                     .build());
 
-            return Map.of(
-                    "conversationId", conversation.getId(),
-                    "message", content != null ? content : ""
-            );
+            return ChatReplyResponse.of(conversation.getId(), content != null ? content : "");
         } catch (PendingActionRequiredException e) {
             return handlePendingActionSync(conversation, e);
         }
@@ -350,8 +343,8 @@ public class ChatService {
         return messages;
     }
 
-    private Map<String, Object> handlePendingActionSync(Conversation conversation,
-                                                         PendingActionRequiredException e) {
+    private ChatReplyResponse handlePendingActionSync(Conversation conversation,
+                                                       PendingActionRequiredException e) {
         PendingAction pendingAction = new PendingAction(
                 UUID.randomUUID().toString(), e.getToolName(),
                 e.getToolDescription(), e.getArguments());
@@ -363,22 +356,28 @@ public class ChatService {
             pendingJson = null;
         }
 
-        ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
+        chatMessageRepository.save(ChatMessage.builder()
                 .conversationId(conversation.getId())
                 .role(MessageRole.ASSISTANT)
                 .content(buildConfirmationMessage(e.getToolName(), e.getArguments()))
                 .pendingAction(pendingJson)
                 .build());
 
-        return Map.of(
-                "conversationId", conversation.getId(),
-                "message", buildConfirmationMessage(e.getToolName(), e.getArguments()),
-                "pendingAction", Map.of(
-                        "messageId", saved.getId(),
-                        "toolName", e.getToolName(),
-                        "description", e.getToolDescription(),
-                        "arguments", e.getArguments()
-                )
+        String pendingActionSummary;
+        try {
+            pendingActionSummary = objectMapper.writeValueAsString(Map.of(
+                    "toolName", e.getToolName(),
+                    "description", e.getToolDescription(),
+                    "arguments", e.getArguments()
+            ));
+        } catch (JsonProcessingException ex) {
+            pendingActionSummary = null;
+        }
+
+        return ChatReplyResponse.withPendingAction(
+                conversation.getId(),
+                buildConfirmationMessage(e.getToolName(), e.getArguments()),
+                pendingActionSummary
         );
     }
 

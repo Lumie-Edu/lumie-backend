@@ -42,4 +42,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
         """)
     int linkUnregisteredByPhone(@Param("phoneNumber") String phoneNumber,
                                 @Param("studentId") Long studentId);
+
+    @EntityGraph(attributePaths = {"exam", "questionResults"})
+    @Query("SELECT r FROM ExamResult r JOIN r.questionResults qr WHERE qr.id = :questionResultId")
+    Optional<ExamResult> findByQuestionResultId(@Param("questionResultId") Long questionResultId);
 }

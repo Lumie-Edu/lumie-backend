@@ -7,6 +7,7 @@ import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.application.service.AssignmentQueryService;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentType;
+import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -33,14 +34,14 @@ public class AssignmentController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<AssignmentResponse>> listAssignments(
+    public ResponseEntity<PageResponse<AssignmentResponse>> listAssignments(
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) AssignmentType type,
             @RequestParam(required = false) AssignmentStatus status,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<AssignmentResponse> response = queryService.listAssignments(classId, type, status, search, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 
     @GetMapping("/{id}")
@@ -64,10 +65,10 @@ public class AssignmentController {
     }
 
     @GetMapping("/class/{classId}")
-    public ResponseEntity<Page<AssignmentResponse>> getAssignmentsByClass(
+    public ResponseEntity<PageResponse<AssignmentResponse>> getAssignmentsByClass(
             @PathVariable Long classId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<AssignmentResponse> response = queryService.getAssignmentsByClass(classId, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.from(response));
     }
 }

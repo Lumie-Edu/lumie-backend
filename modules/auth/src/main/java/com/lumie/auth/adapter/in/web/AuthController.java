@@ -111,7 +111,7 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/me/sessions/revoke-others")
+    @DeleteMapping("/me/sessions")
     public ResponseEntity<Void> revokeOtherSessions() {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
@@ -149,36 +149,24 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(
-            @CookieValue(name = "lumie_refresh_token", required = false) String refreshTokenFromCookie,
-            @RequestBody(required = false) RefreshTokenRequest request
+            @CookieValue(name = "lumie_refresh_token", required = false) String refreshTokenFromCookie
     ) {
-        String refreshToken = refreshTokenFromCookie;
-        if (refreshToken == null && request != null) {
-            refreshToken = request.refreshToken();
-        }
-
-        if (refreshToken == null) {
+        if (refreshTokenFromCookie == null) {
             return ResponseEntity.status(401).build();
         }
 
         TokenResponse response = authSessionService.refresh(
-                RefreshTokenRequest.builder().refreshToken(refreshToken).build()
+                RefreshTokenRequest.builder().refreshToken(refreshTokenFromCookie).build()
         );
         return buildTokenRefreshResponse(response);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-            @CookieValue(name = "lumie_access_token", required = false) String accessTokenFromCookie,
-            @RequestHeader(value = "Authorization", required = false) String authHeader
+            @CookieValue(name = "lumie_access_token", required = false) String accessTokenFromCookie
     ) {
-        String token = accessTokenFromCookie;
-        if (token == null && authHeader != null) {
-            token = extractToken(authHeader);
-        }
-
-        if (token != null) {
-            authSessionService.logout(token);
+        if (accessTokenFromCookie != null) {
+            authSessionService.logout(accessTokenFromCookie);
         }
 
         return buildLogoutResponse();
@@ -186,16 +174,10 @@ public class AuthController {
 
     @PostMapping("/logout-all")
     public ResponseEntity<Void> logoutAll(
-            @CookieValue(name = "lumie_access_token", required = false) String accessTokenFromCookie,
-            @RequestHeader(value = "Authorization", required = false) String authHeader
+            @CookieValue(name = "lumie_access_token", required = false) String accessTokenFromCookie
     ) {
-        String token = accessTokenFromCookie;
-        if (token == null && authHeader != null) {
-            token = extractToken(authHeader);
-        }
-
-        if (token != null) {
-            authSessionService.logoutAll(token);
+        if (accessTokenFromCookie != null) {
+            authSessionService.logoutAll(accessTokenFromCookie);
         }
 
         return buildLogoutResponse();
@@ -222,10 +204,4 @@ public class AuthController {
                 .build();
     }
 
-    private String extractToken(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7);
-        }
-        return null;
-    }
 }
