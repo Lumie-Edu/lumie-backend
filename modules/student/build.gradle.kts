@@ -16,11 +16,6 @@ dependencies {
     // Apache POI for Excel bulk import
     implementation("org.apache.poi:poi-ooxml:5.2.5")
 
-    // MapStruct
-    implementation("org.mapstruct:mapstruct:${property("mapstructVersion")}")
-    annotationProcessor("org.mapstruct:mapstruct-processor:${property("mapstructVersion")}")
-    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
-
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")
 }

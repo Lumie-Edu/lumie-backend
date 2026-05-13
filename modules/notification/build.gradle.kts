@@ -13,11 +13,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-security")
 
-    // MapStruct
-    implementation("org.mapstruct:mapstruct:${property("mapstructVersion")}")
-    annotationProcessor("org.mapstruct:mapstruct-processor:${property("mapstructVersion")}")
-    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
-
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")
 }

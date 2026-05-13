@@ -19,11 +19,6 @@ dependencies {
     // MinIO (for tenant logo storage)
     implementation("io.minio:minio:8.5.14")
 
-    // MapStruct
-    implementation("org.mapstruct:mapstruct:${property("mapstructVersion")}")
-    annotationProcessor("org.mapstruct:mapstruct-processor:${property("mapstructVersion")}")
-    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
-
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")
 }
