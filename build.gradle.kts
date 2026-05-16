@@ -12,6 +12,15 @@ plugins {
     alias(libs.plugins.errorprone) apply false
 }
 
+// Version-catalog accessors are only available in the root script's own
+// scope (and the plugins {} block) — NOT inside allprojects/subprojects
+// closures, where `libs` resolves to a per-subproject extension lookup that
+// doesn't exist. Capture the values here, reference them below.
+val javaLanguageVersion = libs.versions.java.get()
+val springBootBomVersion = libs.versions.spring.boot.get()
+val errorproneCoreDep = libs.errorprone.core
+val lombokDep = libs.lombok
+
 allprojects {
     group = "com.lumie"
     version = "0.1.0"
@@ -29,7 +38,7 @@ subprojects {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get().toInt()))
+            languageVersion.set(JavaLanguageVersion.of(javaLanguageVersion.toInt()))
         }
     }
 
@@ -38,19 +47,19 @@ subprojects {
     // dependencyManagement {} blocks.
     configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
         imports {
-            mavenBom("org.springframework.boot:spring-boot-dependencies:${libs.versions.spring.boot.get()}")
+            mavenBom("org.springframework.boot:spring-boot-dependencies:$springBootBomVersion")
         }
     }
 
     dependencies {
-        "errorprone"(libs.errorprone.core)
+        "errorprone"(errorproneCoreDep)
 
         // Lombok: universal across every subproject (incl. libs/internal-api,
         // which gets compile-only annotations cost-free).
-        "compileOnly"(libs.lombok)
-        "annotationProcessor"(libs.lombok)
-        "testCompileOnly"(libs.lombok)
-        "testAnnotationProcessor"(libs.lombok)
+        "compileOnly"(lombokDep)
+        "annotationProcessor"(lombokDep)
+        "testCompileOnly"(lombokDep)
+        "testAnnotationProcessor"(lombokDep)
 
         // Spring Boot test starter: universal (JUnit5 + AssertJ + Mockito).
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
