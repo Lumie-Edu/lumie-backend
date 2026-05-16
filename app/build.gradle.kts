@@ -5,8 +5,8 @@ plugins {
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.ai:spring-ai-bom:1.0.0")
-        mavenBom("org.springframework.modulith:spring-modulith-bom:1.4.4")
+        mavenBom(libs.spring.ai.bom.get().toString())
+        mavenBom(libs.spring.modulith.bom.get().toString())
     }
 }
 
@@ -48,26 +48,26 @@ dependencies {
 
     // ShedLock — distributed lock for @Scheduled methods. JDBC provider pins the
     // shedlock table to the public schema (cross-tenant). DDL in Flyway V14.
-    implementation("net.javacrumbs.shedlock:shedlock-spring:5.16.0")
-    implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0")
+    implementation(libs.shedlock.spring)
+    implementation(libs.shedlock.provider.jdbc)
 
     // springdoc-openapi — exposes /v3/api-docs (OpenAPI 3.1 JSON) and
     // /swagger-ui. The JSON spec is the contract source of truth that
     // lumie-frontend consumes via openapi-typescript codegen.
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
+    implementation(libs.springdoc.openapi.webmvc)
 
     // Bucket4j — token-bucket rate limiter (in-memory per pod).
     // Future enhancement: redis-backed distributed bucket for accurate
     // multi-pod limits; for now per-pod limits are deliberate (a single
     // attacker IP hitting one pod is bounded).
-    implementation("com.bucket4j:bucket4j-core:8.10.1")
+    implementation(libs.bucket4j.core)
 
     // Runtime
     runtimeOnly("org.postgresql:postgresql")
 
     // Lombok
-    compileOnly("org.projectlombok:lombok:${property("lombokVersion")}")
-    annotationProcessor("org.projectlombok:lombok:${property("lombokVersion")}")
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")

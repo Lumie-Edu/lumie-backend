@@ -14,7 +14,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
 
     // Apache POI for Excel bulk import
-    implementation("org.apache.poi:poi-ooxml:5.2.5")
+    implementation(libs.apache.poi.ooxml)
 
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")

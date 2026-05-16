@@ -5,11 +5,11 @@ import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
     java
-    id("org.springframework.boot") version "3.4.13" apply false
-    id("io.spring.dependency-management") version "1.1.7" apply false
-    id("com.github.jk1.dependency-license-report") version "2.9"
-    id("com.diffplug.spotless") version "6.25.0" apply false
-    id("net.ltgt.errorprone") version "3.1.0" apply false
+    alias(libs.plugins.spring.boot) apply false
+    alias(libs.plugins.spring.dependency.mgmt) apply false
+    alias(libs.plugins.dependency.license.report)
+    alias(libs.plugins.spotless) apply false
+    alias(libs.plugins.errorprone) apply false
 }
 
 allprojects {
@@ -29,7 +29,7 @@ subprojects {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(property("javaVersion").toString().toInt()))
+            languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get().toInt()))
         }
     }
 
@@ -38,19 +38,19 @@ subprojects {
     // dependencyManagement {} blocks.
     configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
         imports {
-            mavenBom("org.springframework.boot:spring-boot-dependencies:${property("springBootVersion")}")
+            mavenBom("org.springframework.boot:spring-boot-dependencies:${libs.versions.spring.boot.get()}")
         }
     }
 
     dependencies {
-        "errorprone"("com.google.errorprone:error_prone_core:2.27.1")
+        "errorprone"(libs.errorprone.core)
 
         // Lombok: universal across every subproject (incl. libs/internal-api,
         // which gets compile-only annotations cost-free).
-        "compileOnly"("org.projectlombok:lombok:${property("lombokVersion")}")
-        "annotationProcessor"("org.projectlombok:lombok:${property("lombokVersion")}")
-        "testCompileOnly"("org.projectlombok:lombok:${property("lombokVersion")}")
-        "testAnnotationProcessor"("org.projectlombok:lombok:${property("lombokVersion")}")
+        "compileOnly"(libs.lombok)
+        "annotationProcessor"(libs.lombok)
+        "testCompileOnly"(libs.lombok)
+        "testAnnotationProcessor"(libs.lombok)
 
         // Spring Boot test starter: universal (JUnit5 + AssertJ + Mockito).
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")

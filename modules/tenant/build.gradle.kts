@@ -17,7 +17,7 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
 
     // MinIO (for tenant logo storage)
-    implementation("io.minio:minio:8.5.14")
+    implementation(libs.minio)
 
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")

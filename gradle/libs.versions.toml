@@ -1,0 +1,63 @@
+[versions]
+java                       = "21"
+spring-boot                = "3.4.13"
+spring-dependency-mgmt     = "1.1.7"
+spring-ai                  = "1.0.0"
+spring-modulith            = "1.4.4"
+lombok                     = "1.18.36"
+errorprone                 = "3.1.0"
+errorprone-core            = "2.27.1"
+spotless                   = "6.25.0"
+dependency-license-report  = "2.9"
+foojay-resolver            = "0.8.0"
+shedlock                   = "5.16.0"
+springdoc-openapi           = "2.7.0"
+bucket4j                   = "8.10.1"
+logstash-logback           = "8.0"
+minio                      = "8.5.14"
+jjwt                       = "0.12.5"
+apache-poi                 = "5.2.5"
+
+[libraries]
+# ShedLock
+shedlock-spring            = { module = "net.javacrumbs.shedlock:shedlock-spring",                        version.ref = "shedlock" }
+shedlock-provider-jdbc     = { module = "net.javacrumbs.shedlock:shedlock-provider-jdbc-template",        version.ref = "shedlock" }
+
+# OpenAPI docs
+springdoc-openapi-webmvc   = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui",              version.ref = "springdoc-openapi" }
+
+# Rate limiting
+bucket4j-core              = { module = "com.bucket4j:bucket4j-core",                                     version.ref = "bucket4j" }
+
+# Logging
+logstash-logback-encoder   = { module = "net.logstash.logback:logstash-logback-encoder",                  version.ref = "logstash-logback" }
+
+# Object storage
+minio                      = { module = "io.minio:minio",                                                  version.ref = "minio" }
+
+# JWT
+jjwt-api                   = { module = "io.jsonwebtoken:jjwt-api",                                        version.ref = "jjwt" }
+jjwt-impl                  = { module = "io.jsonwebtoken:jjwt-impl",                                       version.ref = "jjwt" }
+jjwt-jackson               = { module = "io.jsonwebtoken:jjwt-jackson",                                    version.ref = "jjwt" }
+
+# Excel import
+apache-poi-ooxml            = { module = "org.apache.poi:poi-ooxml",                                       version.ref = "apache-poi" }
+
+# Error-prone
+errorprone-core            = { module = "com.google.errorprone:error_prone_core",                          version.ref = "errorprone-core" }
+
+# Lombok
+lombok                     = { module = "org.projectlombok:lombok",                                        version.ref = "lombok" }
+
+# BOMs (used in dependencyManagement imports)
+spring-modulith-bom        = { module = "org.springframework.modulith:spring-modulith-bom",                version.ref = "spring-modulith" }
+spring-modulith-events-api = { module = "org.springframework.modulith:spring-modulith-events-api",         version.ref = "spring-modulith" }
+spring-ai-bom              = { module = "org.springframework.ai:spring-ai-bom",                            version.ref = "spring-ai" }
+
+[plugins]
+spring-boot                = { id = "org.springframework.boot",                            version.ref = "spring-boot" }
+spring-dependency-mgmt     = { id = "io.spring.dependency-management",                    version.ref = "spring-dependency-mgmt" }
+dependency-license-report  = { id = "com.github.jk1.dependency-license-report",           version.ref = "dependency-license-report" }
+spotless                   = { id = "com.diffplug.spotless",                               version.ref = "spotless" }
+errorprone                 = { id = "net.ltgt.errorprone",                                 version.ref = "errorprone" }
+foojay-resolver            = { id = "org.gradle.toolchains.foojay-resolver-convention",   version.ref = "foojay-resolver" }

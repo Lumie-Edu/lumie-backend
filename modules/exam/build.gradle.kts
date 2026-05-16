@@ -16,7 +16,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
 
     // MinIO SDK
-    implementation("io.minio:minio:8.5.14")
+    implementation(libs.minio)
 
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")

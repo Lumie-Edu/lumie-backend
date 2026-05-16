@@ -5,7 +5,6 @@ plugins {
 dependencies {
     implementation(project(":libs:common"))
     implementation(project(":libs:internal-api"))
-    implementation(project(":libs:messaging"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
