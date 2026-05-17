@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 @Slf4j
 @Service
@@ -22,7 +23,7 @@ public class UsageTrackingService {
         log.debug("Recording usage for tenant: {}, metricType: {}, value: {}",
                 tenantSlug, metricType, value);
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
         UsageLog usageLog = usageLogPersistencePort
                 .findByTenantIdAndMetricTypeAndRecordedDate(tenantId, metricType, today)
                 .map(existing -> {
@@ -40,17 +41,12 @@ public class UsageTrackingService {
         log.debug("Incrementing usage for tenant: {}, metricType: {}, delta: {}",
                 tenantSlug, metricType, delta);
 
-        LocalDate today = LocalDate.now();
-        UsageLog usageLog = usageLogPersistencePort
-                .findByTenantIdAndMetricTypeAndRecordedDate(tenantId, metricType, today)
-                .map(existing -> {
-                    existing.incrementValue(delta);
-                    return existing;
-                })
-                .orElseGet(() -> UsageLog.record(tenantId, tenantSlug, metricType, delta));
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        // Single atomic DB operation: inserts on first call of the day, increments on subsequent calls.
+        // No application-level lock or retry needed — ON CONFLICT handles both cases atomically.
+        usageLogPersistencePort.atomicIncrement(tenantId, tenantSlug, metricType, delta, today);
 
-        usageLogPersistencePort.save(usageLog);
-        log.debug("Usage incremented: tenantSlug={}, metricType={}, newValue={}",
-                tenantSlug, metricType, usageLog.getValue());
+        log.debug("Usage incremented: tenantSlug={}, metricType={}, delta={}",
+                tenantSlug, metricType, delta);
     }
 }

@@ -34,6 +34,12 @@ public class UsageLogPersistenceAdapter implements UsageLogPersistencePort {
     }
 
     @Override
+    public void atomicIncrement(Long tenantId, String tenantSlug, MetricType metricType,
+                                long delta, LocalDate date) {
+        usageLogJpaRepository.atomicIncrement(tenantId, tenantSlug, metricType.name(), delta, date);
+    }
+
+    @Override
     public List<UsageLog> findByTenantIdAndMetricType(Long tenantId, MetricType metricType) {
         return usageLogJpaRepository.findByTenantIdAndMetricType(tenantId, metricType);
     }

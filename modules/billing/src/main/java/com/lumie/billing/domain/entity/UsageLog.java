@@ -9,12 +9,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 @Entity
-@Table(name = "usage_logs", indexes = {
-        @Index(name = "idx_usage_logs_tenant_date", columnList = "tenant_id, recorded_date"),
-        @Index(name = "idx_usage_logs_tenant_metric", columnList = "tenant_id, metric_type")
-})
+@Table(name = "usage_logs",
+        indexes = {
+                @Index(name = "idx_usage_logs_tenant_date", columnList = "tenant_id, recorded_date"),
+                @Index(name = "idx_usage_logs_tenant_metric", columnList = "tenant_id, metric_type")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_usage_logs_tenant_metric_date",
+                        columnNames = {"tenant_id", "metric_type", "recorded_date"})
+        })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UsageLog extends BaseEntity {
@@ -22,6 +28,11 @@ public class UsageLog extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Safety net for non-upsert update paths (e.g. recordUsage). Does not guard
+    // incrementUsage — that path uses an atomic ON CONFLICT DO UPDATE instead.
+    @Version
+    private Long version;
 
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
@@ -46,7 +57,7 @@ public class UsageLog extends BaseEntity {
         this.tenantSlug = tenantSlug;
         this.metricType = metricType;
         this.value = value;
-        this.recordedDate = recordedDate != null ? recordedDate : LocalDate.now();
+        this.recordedDate = recordedDate != null ? recordedDate : LocalDate.now(ZoneOffset.UTC);
     }
 
     public static UsageLog record(Long tenantId, String tenantSlug, MetricType metricType, long value) {
@@ -55,7 +66,7 @@ public class UsageLog extends BaseEntity {
                 .tenantSlug(tenantSlug)
                 .metricType(metricType)
                 .value(value)
-                .recordedDate(LocalDate.now())
+                .recordedDate(LocalDate.now(ZoneOffset.UTC))
                 .build();
     }
 

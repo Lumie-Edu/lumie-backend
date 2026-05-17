@@ -12,6 +12,7 @@ public interface UsageLogPersistencePort {
     Optional<UsageLog> findById(Long id);
     Optional<UsageLog> findByTenantIdAndMetricTypeAndRecordedDate(
             Long tenantId, MetricType metricType, LocalDate recordedDate);
+    void atomicIncrement(Long tenantId, String tenantSlug, MetricType metricType, long delta, LocalDate date);
     List<UsageLog> findByTenantIdAndMetricType(Long tenantId, MetricType metricType);
     List<UsageLog> findByTenantIdAndRecordedDateBetween(
             Long tenantId, LocalDate startDate, LocalDate endDate);
