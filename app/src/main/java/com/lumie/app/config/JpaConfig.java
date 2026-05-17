@@ -4,7 +4,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.Ordered;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -30,7 +29,6 @@ import javax.sql.DataSource;
  * interceptor here is the only way to land custom advice inside the tx.
  */
 @Configuration
-@EnableJpaAuditing
 @EntityScan(basePackages = "com.lumie")
 @EnableJpaRepositories(basePackages = "com.lumie")
 @EnableTransactionManagement(order = Ordered.HIGHEST_PRECEDENCE)

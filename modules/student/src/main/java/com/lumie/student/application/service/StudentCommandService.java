@@ -14,6 +14,7 @@ import com.lumie.student.domain.exception.QuotaExceededException;
 import com.lumie.student.domain.exception.StudentErrorCode;
 import com.lumie.student.domain.exception.StudentNotFoundException;
 import com.lumie.student.domain.repository.StudentRepository;
+import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.persistence.EntityManager;
@@ -52,7 +53,7 @@ public class StudentCommandService {
         AuthService.CreateUserResult userResult = authService.createUser(
                 request.name(),
                 request.phone(),
-                "STUDENT",
+                Role.STUDENT.name(),
                 tenantId
         );
 
@@ -309,7 +310,7 @@ public class StudentCommandService {
                 AuthService.CreateUserResult userResult = authService.createUser(
                         row.name(),
                         row.phone(),
-                        "STUDENT",
+                        Role.STUDENT.name(),
                         tenantId
                 );
 
