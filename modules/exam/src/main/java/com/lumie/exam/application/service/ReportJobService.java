@@ -1,6 +1,6 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.exam.application.dto.message.ReportGenerationMessage;
+import com.lumie.exam.application.event.ReportGenerationRequestedEvent;
 import com.lumie.exam.application.dto.request.ReportCallbackRequest;
 import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
 import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
@@ -12,10 +12,9 @@ import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.messaging.config.RabbitMqConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +33,7 @@ public class ReportJobService {
     private final ReportGenerationJobRepository jobRepository;
     private final OmrStoragePort storagePort;
     private final CallbackDeduplicationPort callbackDeduplication;
-    private final RabbitTemplate rabbitTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public Long createBatchJob(Long examId, List<Long> studentIds) {
@@ -48,23 +47,16 @@ public class ReportJobService {
         ReportGenerationJob job = ReportGenerationJob.create(exam, tenantSlug, studentIds);
         ReportGenerationJob savedJob = jobRepository.save(job);
 
-        org.springframework.transaction.support.TransactionSynchronizationManager
-                .registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        for (int i = 0; i < studentIds.size(); i++) {
-                            ReportGenerationMessage message = new ReportGenerationMessage(
-                                    savedJob.getId(), examId, studentIds.get(i),
-                                    tenantSlug, i, studentIds.size(), 1);
-                            rabbitTemplate.convertAndSend(
-                                    RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE,
-                                    RabbitMqConstants.REPORT_REQUEST_ROUTING_KEY,
-                                    message);
-                        }
-                        log.info("Batch report job submitted: jobId={}, reports={}",
-                                savedJob.getId(), studentIds.size());
-                    }
-                });
+        // Outbox: each event is persisted to event_publication in THIS transaction,
+        // atomically with the job row, then forwarded to RabbitMQ after commit by
+        // GradingRequestForwarder. Closes the commit→broker gap.
+        for (int i = 0; i < studentIds.size(); i++) {
+            eventPublisher.publishEvent(new ReportGenerationRequestedEvent(
+                    savedJob.getId(), examId, studentIds.get(i),
+                    tenantSlug, i, studentIds.size()));
+        }
+        log.info("Batch report job queued: jobId={}, reports={}",
+                savedJob.getId(), studentIds.size());
 
         return savedJob.getId();
     }

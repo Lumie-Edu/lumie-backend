@@ -1,6 +1,6 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.exam.application.dto.message.OmrGradingImageMessage;
+import com.lumie.exam.application.event.OmrGradingRequestedEvent;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
 import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
@@ -23,10 +23,9 @@ import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.service.GradeCalculator;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.messaging.config.RabbitMqConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -45,7 +44,7 @@ public class ResultCommandService {
     private final BillingService billingService;
     private final OmrServicePort omrService;
     private final OmrStoragePort storagePort;
-    private final RabbitTemplate rabbitTemplate;
+    private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
 
     public ExamResultResponse processOmrGrading(Long examId, Long studentId, byte[] imageData) {
@@ -137,23 +136,16 @@ public class ResultCommandService {
         OmrGradingJob job = OmrGradingJob.create(exam, tenantSlug, imageKeys.size(), imageKeys);
         OmrGradingJob savedJob = jobRepository.save(job);
 
-        org.springframework.transaction.support.TransactionSynchronizationManager
-                .registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        for (int i = 0; i < imageKeys.size(); i++) {
-                            OmrGradingImageMessage message = new OmrGradingImageMessage(
-                                    savedJob.getId(), examId, tenantSlug,
-                                    imageKeys.get(i), i, imageKeys.size(), 1);
-                            rabbitTemplate.convertAndSend(
-                                    RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE,
-                                    RabbitMqConstants.GRADING_OMR_REQUEST_ROUTING_KEY,
-                                    message);
-                        }
-                        log.info("Async OMR grading job submitted: jobId={}, images={}",
-                                savedJob.getId(), imageKeys.size());
-                    }
-                });
+        // Outbox: each event is persisted to event_publication in THIS transaction,
+        // atomically with the job row, then forwarded to RabbitMQ after commit by
+        // GradingRequestForwarder. Closes the commit→broker gap.
+        for (int i = 0; i < imageKeys.size(); i++) {
+            eventPublisher.publishEvent(new OmrGradingRequestedEvent(
+                    savedJob.getId(), examId, tenantSlug,
+                    imageKeys.get(i), i, imageKeys.size()));
+        }
+        log.info("Async OMR grading job queued: jobId={}, images={}",
+                savedJob.getId(), imageKeys.size());
 
         return new OmrJobResponse(savedJob.getId());
     }
