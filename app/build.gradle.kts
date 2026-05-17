@@ -74,6 +74,11 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
+    // Flyway Java API for the migration-chain integration test. Present at
+    // runtime transitively (Spring Boot Flyway autoconfig); declared here so
+    // it is on the test *compile* classpath too. Versions via Spring Boot BOM.
+    testImplementation("org.flywaydb:flyway-core")
+    testImplementation("org.flywaydb:flyway-database-postgresql")
 }
 
 tasks.bootJar {
