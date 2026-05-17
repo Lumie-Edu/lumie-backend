@@ -3,6 +3,7 @@ package com.lumie.exam.application.service;
 import com.lumie.exam.application.dto.message.ReportGenerationMessage;
 import com.lumie.exam.application.dto.request.ReportCallbackRequest;
 import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
+import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
@@ -32,6 +33,7 @@ public class ReportJobService {
     private final ExamRepository examRepository;
     private final ReportGenerationJobRepository jobRepository;
     private final OmrStoragePort storagePort;
+    private final CallbackDeduplicationPort callbackDeduplication;
     private final RabbitTemplate rabbitTemplate;
 
     @Transactional
@@ -53,7 +55,7 @@ public class ReportJobService {
                         for (int i = 0; i < studentIds.size(); i++) {
                             ReportGenerationMessage message = new ReportGenerationMessage(
                                     savedJob.getId(), examId, studentIds.get(i),
-                                    tenantSlug, i, studentIds.size());
+                                    tenantSlug, i, studentIds.size(), 1);
                             rabbitTemplate.convertAndSend(
                                     RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE,
                                     RabbitMqConstants.REPORT_REQUEST_ROUTING_KEY,
@@ -93,17 +95,24 @@ public class ReportJobService {
         return storagePort.getObject(job.getZipFileKey());
     }
 
-    @Transactional
     public void processCallback(ReportCallbackRequest request) {
         log.info("Processing report callback: jobId={}, studentId={}, success={}",
                 request.jobId(), request.studentId(), request.success());
+
+        String dedupKey = "report:cb:" + request.jobId() + ":" + request.reportIndex();
+        if (!callbackDeduplication.markIfAbsent(dedupKey)) {
+            log.warn("Duplicate report callback skipped: jobId={}, reportIndex={}",
+                    request.jobId(), request.reportIndex());
+            return;
+        }
 
         jobRepository.startProcessingIfPending(request.jobId());
 
         if (request.success()) {
             byte[] jpgBytes = Base64.getDecoder().decode(request.reportBytes());
-            String tenantId = extractTenantId(request.tenantSlug());
+            String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
             String fileKey = "tmp/" + tenantId + "/reports/" + request.examId() + "/" + request.studentId() + ".jpg";
+            // storage call outside any @Transactional boundary
             storagePort.putObject(fileKey, jpgBytes, "image/jpeg");
             jobRepository.incrementSuccess(request.jobId());
         } else {
@@ -123,7 +132,7 @@ public class ReportJobService {
             ReportGenerationJob job = jobRepository.findById(jobId)
                     .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
 
-            String tenantId = extractTenantId(job.getTenantSlug());
+            String tenantId = TenantContextHolder.toStorageTenantId(job.getTenantSlug());
             Long examId = job.getExam().getId();
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -151,10 +160,4 @@ public class ReportJobService {
         }
     }
 
-    private String extractTenantId(String tenantSlug) {
-        if (tenantSlug.startsWith("inst-")) {
-            return tenantSlug.substring(5);
-        }
-        return tenantSlug;
-    }
 }

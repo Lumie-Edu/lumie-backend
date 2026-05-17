@@ -3,6 +3,7 @@ package com.lumie.exam.application.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
+import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.student.api.StudentService;
@@ -18,6 +19,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import com.lumie.exam.domain.exception.DuplicateExamResultException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,36 +30,71 @@ import java.util.*;
 @RequiredArgsConstructor
 public class OmrGradingJobProcessor {
 
-    private final ExamRepository examRepository;
-    private final ExamResultRepository resultRepository;
-    private final ResultCommandService resultCommandService;
+    private static final String DEDUP_KEY_PREFIX = "omr:cb:";
+
     private final OmrStoragePort storagePort;
-    private final StudentService studentService;
+    private final CallbackDeduplicationPort callbackDeduplication;
     private final OmrGradingJobRepository jobRepository;
     private final ObjectMapper objectMapper;
+    private final Tx tx;
 
-    @Transactional
     public void processGradingCallback(OmrGradingCallbackRequest request) {
         log.info("Processing grading callback: jobId={}, imageIndex={}/{}, success={}",
                 request.jobId(), request.imageIndex() + 1, request.totalImages(), request.success());
 
-        // Tenant context is set by RequestContextFilter from X-Tenant-Slug header
-        jobRepository.startProcessingIfPending(request.jobId());
+        String dedupKey = DEDUP_KEY_PREFIX + request.jobId() + ":" + request.imageIndex();
+        if (!callbackDeduplication.markIfAbsent(dedupKey)) {
+            log.warn("Duplicate OMR callback skipped: jobId={}, imageIndex={}",
+                    request.jobId(), request.imageIndex());
+            return;
+        }
+
+        tx.markProcessing(request.jobId());
 
         Map<String, Object> resultMap = new LinkedHashMap<>();
-        String fileName = extractFileName(request.imageKey());
-        resultMap.put("fileName", fileName);
+        resultMap.put("fileName", extractFileName(request.imageKey()));
 
         if (request.success()) {
-            processSuccessResult(request, resultMap);
-            jobRepository.incrementSuccess(request.jobId());
+            // Phase 1 (read tx): resolve in-memory ExamResult + compute storage key
+            Tx.SuccessPrep prep = tx.prepareSuccess(request);
+
+            // Phase 2 (no tx): copy image in MinIO
+            String permanentKey = copyImage(request, prep.permanentKey());
+            if (permanentKey != null) {
+                prep.examResult().setOmrImageKey(permanentKey);
+            }
+
+            // Phase 3 (write tx): save result + update counters
+            Long savedResultId = tx.saveSuccess(request, prep, resultMap);
+
+            resultMap.put("success", true);
+            resultMap.put("saved", true);
+            resultMap.put("phoneNumber", request.phoneNumber());
+            resultMap.put("totalScore", request.totalScore());
+            resultMap.put("grade", request.grade());
+            resultMap.put("resultId", savedResultId);
         } else {
             resultMap.put("success", false);
             resultMap.put("saved", false);
             resultMap.put("error", request.error());
-            jobRepository.incrementFail(request.jobId());
+            tx.recordFail(request.jobId());
         }
 
+        appendAndMaybeComplete(request, resultMap);
+    }
+
+    private String copyImage(OmrGradingCallbackRequest request, String permanentKey) {
+        try {
+            byte[] imageData = storagePort.getObject(request.imageKey());
+            storagePort.putObject(permanentKey, imageData, "image/png");
+            return permanentKey;
+        } catch (Exception e) {
+            log.warn("Failed to copy OMR image to permanent path: {}", permanentKey, e);
+            return null;
+        }
+    }
+
+    private void appendAndMaybeComplete(OmrGradingCallbackRequest request, Map<String, Object> resultMap) {
         try {
             String json = objectMapper.writeValueAsString(List.of(resultMap));
             jobRepository.appendResult(request.jobId(), json);
@@ -71,70 +108,6 @@ public class OmrGradingJobProcessor {
             log.info("OMR grading job completed: jobId={}", request.jobId());
             cleanupImages(request.jobId());
         }
-    }
-
-    private void processSuccessResult(OmrGradingCallbackRequest request, Map<String, Object> resultMap) {
-        Exam exam = examRepository.findById(request.examId())
-                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
-
-        OmrServicePort.OmrGradingResult omrResult = toOmrGradingResult(request);
-
-        String fullPhone = "010" + request.phoneNumber();
-        String tenantSlug = TenantContextHolder.getRequiredTenant();
-        Optional<StudentService.StudentData> studentOpt =
-                studentService.getStudentByPhone(tenantSlug, fullPhone);
-
-        ExamResult examResult;
-        if (studentOpt.isPresent()) {
-            StudentService.StudentData student = studentOpt.get();
-            examResult = resultCommandService.resolveResult(exam, student.id(), omrResult);
-            resultMap.put("studentId", student.id());
-            resultMap.put("studentName", student.studentName());
-        } else {
-            examResult = resultCommandService.resolveResultForUnregistered(exam, fullPhone, omrResult);
-        }
-
-        String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
-        String imageId = studentOpt.map(s -> String.valueOf(s.id())).orElse(fullPhone);
-        String permanentKey = tenantId + "/omr/" + request.examId() + "/" + imageId;
-        try {
-            byte[] imageData = storagePort.getObject(request.imageKey());
-            storagePort.putObject(permanentKey, imageData, "image/png");
-            examResult.setOmrImageKey(permanentKey);
-        } catch (Exception e) {
-            log.warn("Failed to copy OMR image to permanent path: {}", permanentKey, e);
-        }
-
-        ExamResult savedResult;
-        try {
-            savedResult = resultRepository.save(examResult);
-        } catch (DuplicateExamResultException e) {
-            log.warn("Duplicate result detected, retrying with existing record: jobId={}", request.jobId());
-            if (studentOpt.isPresent()) {
-                examResult = resultCommandService.resolveResult(exam, studentOpt.get().id(), omrResult);
-            } else {
-                examResult = resultCommandService.resolveResultForUnregistered(exam, fullPhone, omrResult);
-            }
-            savedResult = resultRepository.save(examResult);
-        }
-        // Quota consumption is recorded by billing-svc usage tracking.
-
-        resultMap.put("success", true);
-        resultMap.put("saved", true);
-        resultMap.put("phoneNumber", request.phoneNumber());
-        resultMap.put("totalScore", request.totalScore());
-        resultMap.put("grade", request.grade());
-        resultMap.put("resultId", savedResult.getId());
-    }
-
-    private OmrServicePort.OmrGradingResult toOmrGradingResult(OmrGradingCallbackRequest request) {
-        List<OmrServicePort.OmrQuestionResult> questions = request.results().stream()
-                .map(q -> new OmrServicePort.OmrQuestionResult(
-                        q.questionNumber(), q.studentAnswer(), q.correctAnswer(),
-                        q.score(), q.earnedScore(), q.questionType()))
-                .toList();
-        return new OmrServicePort.OmrGradingResult(
-                request.totalScore(), request.grade(), request.phoneNumber(), questions);
     }
 
     private void cleanupImages(Long jobId) {
@@ -152,5 +125,93 @@ public class OmrGradingJobProcessor {
     private String extractFileName(String objectKey) {
         int lastSlash = objectKey.lastIndexOf('/');
         return lastSlash >= 0 ? objectKey.substring(lastSlash + 1) : objectKey;
+    }
+
+    /** All DB-touching operations, each in their own transaction scope. */
+    @Component
+    @RequiredArgsConstructor
+    static class Tx {
+
+        record SuccessPrep(
+                Exam exam,
+                Optional<StudentService.StudentData> studentOpt,
+                ExamResult examResult,
+                String permanentKey
+        ) {}
+
+        private final ExamRepository examRepository;
+        private final ExamResultRepository resultRepository;
+        private final ResultCommandService resultCommandService;
+        private final OmrGradingJobRepository jobRepository;
+        private final StudentService studentService;
+
+        @Transactional
+        public void markProcessing(Long jobId) {
+            jobRepository.startProcessingIfPending(jobId);
+        }
+
+        @Transactional(readOnly = true)
+        public SuccessPrep prepareSuccess(OmrGradingCallbackRequest request) {
+            Exam exam = examRepository.findById(request.examId())
+                    .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+
+            String fullPhone = "010" + request.phoneNumber();
+            String tenantSlug = TenantContextHolder.getRequiredTenant();
+            Optional<StudentService.StudentData> studentOpt =
+                    studentService.getStudentByPhone(tenantSlug, fullPhone);
+
+            OmrServicePort.OmrGradingResult omrResult = toOmrGradingResult(request);
+            ExamResult examResult = studentOpt.isPresent()
+                    ? resultCommandService.resolveResult(exam, studentOpt.get().id(), omrResult)
+                    : resultCommandService.resolveResultForUnregistered(exam, fullPhone, omrResult);
+
+            String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
+            String imageId = studentOpt.map(s -> String.valueOf(s.id())).orElse(fullPhone);
+            String permanentKey = tenantId + "/omr/" + request.examId() + "/" + imageId;
+
+            return new SuccessPrep(exam, studentOpt, examResult, permanentKey);
+        }
+
+        @Transactional
+        public Long saveSuccess(OmrGradingCallbackRequest request, SuccessPrep prep,
+                                Map<String, Object> resultMap) {
+            OmrServicePort.OmrGradingResult omrResult = toOmrGradingResult(request);
+            ExamResult examResult = prep.examResult();
+
+            ExamResult savedResult;
+            try {
+                savedResult = resultRepository.save(examResult);
+            } catch (DuplicateExamResultException e) {
+                log.warn("Duplicate result detected, retrying with existing record: jobId={}", request.jobId());
+                String fullPhone = "010" + request.phoneNumber();
+                examResult = prep.studentOpt().isPresent()
+                        ? resultCommandService.resolveResult(prep.exam(), prep.studentOpt().get().id(), omrResult)
+                        : resultCommandService.resolveResultForUnregistered(prep.exam(), fullPhone, omrResult);
+                savedResult = resultRepository.save(examResult);
+            }
+
+            if (prep.studentOpt().isPresent()) {
+                resultMap.put("studentId", prep.studentOpt().get().id());
+                resultMap.put("studentName", prep.studentOpt().get().studentName());
+            }
+
+            jobRepository.incrementSuccess(request.jobId());
+            return savedResult.getId();
+        }
+
+        @Transactional
+        public void recordFail(Long jobId) {
+            jobRepository.incrementFail(jobId);
+        }
+
+        private OmrServicePort.OmrGradingResult toOmrGradingResult(OmrGradingCallbackRequest request) {
+            List<OmrServicePort.OmrQuestionResult> questions = request.results().stream()
+                    .map(q -> new OmrServicePort.OmrQuestionResult(
+                            q.questionNumber(), q.studentAnswer(), q.correctAnswer(),
+                            q.score(), q.earnedScore(), q.questionType()))
+                    .toList();
+            return new OmrServicePort.OmrGradingResult(
+                    request.totalScore(), request.grade(), request.phoneNumber(), questions);
+        }
     }
 }

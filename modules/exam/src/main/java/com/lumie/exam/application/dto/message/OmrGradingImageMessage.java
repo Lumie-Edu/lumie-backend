@@ -8,6 +8,7 @@ public record OmrGradingImageMessage(
         String tenantSlug,
         String imageKey,
         int imageIndex,
-        int totalImages
+        int totalImages,
+        int schemaVersion
 ) implements Serializable {
 }

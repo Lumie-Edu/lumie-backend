@@ -8,6 +8,7 @@ public record ReportGenerationMessage(
         Long studentId,
         String tenantSlug,
         int reportIndex,
-        int totalReports
+        int totalReports,
+        int schemaVersion
 ) implements Serializable {
 }

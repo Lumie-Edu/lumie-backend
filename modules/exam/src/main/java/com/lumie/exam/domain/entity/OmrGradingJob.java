@@ -22,6 +22,9 @@ public class OmrGradingJob extends TenantScopedEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    private Long version;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exam_id", nullable = false)
     private Exam exam;
@@ -70,29 +73,4 @@ public class OmrGradingJob extends TenantScopedEntity {
         return job;
     }
 
-    public void startProcessing() {
-        this.status = JobStatus.PROCESSING;
-    }
-
-    public void incrementProcessed(boolean success, boolean saved) {
-        this.processedImages++;
-        if (success) {
-            this.successCount++;
-            if (saved) {
-                this.savedCount++;
-            }
-        } else {
-            this.failCount++;
-        }
-    }
-
-    public void complete(List<Map<String, Object>> results) {
-        this.status = JobStatus.COMPLETED;
-        this.results = results;
-    }
-
-    public void fail(List<Map<String, Object>> results) {
-        this.status = JobStatus.FAILED;
-        this.results = results;
-    }
 }

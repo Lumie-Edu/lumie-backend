@@ -144,7 +144,7 @@ public class ResultCommandService {
                         for (int i = 0; i < imageKeys.size(); i++) {
                             OmrGradingImageMessage message = new OmrGradingImageMessage(
                                     savedJob.getId(), examId, tenantSlug,
-                                    imageKeys.get(i), i, imageKeys.size());
+                                    imageKeys.get(i), i, imageKeys.size(), 1);
                             rabbitTemplate.convertAndSend(
                                     RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE,
                                     RabbitMqConstants.GRADING_OMR_REQUEST_ROUTING_KEY,

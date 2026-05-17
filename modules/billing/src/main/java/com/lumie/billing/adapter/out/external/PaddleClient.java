@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -19,8 +20,9 @@ public class PaddleClient implements PaddleGatewayPort {
 
     private final RestClient restClient;
 
-    public PaddleClient(PaddleConfig config) {
+    public PaddleClient(PaddleConfig config, ClientHttpRequestFactory requestFactory) {
         this.restClient = RestClient.builder()
+                .requestFactory(requestFactory)
                 .baseUrl(config.getApiBaseUrl())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + config.getApiKey())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)

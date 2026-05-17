@@ -1,7 +1,9 @@
 package com.lumie.exam.adapter.out.config;
 
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -16,8 +18,14 @@ public class RestClientConfig {
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
 
     @Bean
-    public RestClient.Builder restClientBuilder() {
-        return RestClient.builder().requestFactory(defaultRequestFactory());
+    public ClientHttpRequestFactory clientHttpRequestFactory() {
+        return defaultRequestFactory();
+    }
+
+    @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public RestClient.Builder restClientBuilder(ClientHttpRequestFactory requestFactory) {
+        return RestClient.builder().requestFactory(requestFactory);
     }
 
     private static ClientHttpRequestFactory defaultRequestFactory() {
