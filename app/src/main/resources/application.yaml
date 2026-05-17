@@ -8,10 +8,16 @@ spring:
     password: ${DB_PASSWORD:lumie}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
+      # Behind PgBouncer the app-side pool should stay small — PgBouncer
+      # multiplexes to Postgres. keepalive probes idle conns; max-lifetime
+      # stays under PgBouncer's default server_lifetime (3600s) so Hikari
+      # retires a connection before the pooler closes it underneath us.
+      maximum-pool-size: 8
+      minimum-idle: 2
       connection-timeout: 30000
       idle-timeout: 600000
+      keepalive-time: 30000
+      max-lifetime: 1500000
 
   jpa:
     hibernate:

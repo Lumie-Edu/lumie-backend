@@ -55,7 +55,7 @@ public class ExamResult extends TenantScopedEntity {
         this.grade = grade;
     }
 
-    public void setOmrImageKey(String omrImageKey) {
+    public void assignOmrImage(String omrImageKey) {
         this.omrImageKey = omrImageKey;
     }
 

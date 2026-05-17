@@ -17,7 +17,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     Optional<ExamResult> findByExamIdAndPhoneNumber(Long examId, String phoneNumber);
 
-    @EntityGraph(attributePaths = {"exam"})
+    @EntityGraph(attributePaths = {"exam", "questionResults"})
     List<ExamResult> findByExamId(Long examId);
 
     /**
@@ -28,7 +28,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     List<ExamResult> findByExamIdAndStudentIdIsNotNull(Long examId);
 
-    @EntityGraph(attributePaths = {"exam"})
+    @EntityGraph(attributePaths = {"exam", "questionResults"})
     List<ExamResult> findByStudentId(Long studentId);
 
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);

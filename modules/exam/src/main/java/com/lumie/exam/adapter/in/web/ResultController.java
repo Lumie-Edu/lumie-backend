@@ -37,6 +37,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ResultController {
 
+    private static final String OMR_SINGLE_SCOPE = "POST /v1/exams/{examId}/results/omr";
     private static final String OMR_BATCH_CONFIRM_SCOPE = "POST /v1/exams/{examId}/results/omr/batch/confirm";
 
     private final ResultCommandService resultCommandService;
@@ -48,8 +49,18 @@ public class ResultController {
     public ResponseEntity<ExamResultResponse> processOmrGrading(
             @PathVariable Long examId,
             @RequestParam Long studentId,
-            @RequestParam("image") MultipartFile image) throws IOException {
+            @RequestParam("image") MultipartFile image,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
         byte[] imageData = image.getBytes();
+        if (idempotencyKey != null) {
+            return idempotencyService.executeOnce(
+                    idempotencyKey,
+                    OMR_SINGLE_SCOPE,
+                    java.util.Map.of("examId", examId, "studentId", studentId),
+                    () -> ResponseEntity.status(HttpStatus.CREATED)
+                            .body(resultCommandService.processOmrGrading(examId, studentId, imageData))
+            );
+        }
         ExamResultResponse response = resultCommandService.processOmrGrading(examId, studentId, imageData);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

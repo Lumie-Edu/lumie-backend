@@ -2,6 +2,8 @@ import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryHtmlReportRenderer
 import com.github.jk1.license.render.JsonReportRenderer
 import net.ltgt.gradle.errorprone.errorprone
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     java
@@ -32,6 +34,7 @@ allprojects {
 
 subprojects {
     apply(plugin = "java")
+    apply(plugin = "jacoco")
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "net.ltgt.errorprone")
     apply(plugin = "io.spring.dependency-management")
@@ -107,6 +110,35 @@ subprojects {
 
     tasks.named("check") {
         dependsOn("spotlessCheck")
+    }
+
+    // JaCoCo: coverage report generated after every test run. The 30%
+    // verification rule is defined but intentionally NOT wired into `check`
+    // yet — same ramp philosophy as errorprone (allErrorsAsWarnings) and
+    // spotless (hygiene-only): introduce the tooling without breaking builds
+    // while module coverage climbs from ~0%. Run explicitly via
+    // `./gradlew jacocoTestCoverageVerification`; promote it onto `check`
+    // alongside the CI informational-gate flip once baseline modules clear 30%.
+    tasks.named<JacocoReport>("jacocoTestReport") {
+        dependsOn(tasks.named<Test>("test"))
+        reports {
+            xml.required.set(true)
+            html.required.set(true)
+        }
+    }
+
+    tasks.named<Test>("test") {
+        finalizedBy(tasks.named("jacocoTestReport"))
+    }
+
+    tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+        violationRules {
+            rule {
+                limit {
+                    minimum = "0.30".toBigDecimal()
+                }
+            }
+        }
     }
 }
 

@@ -61,7 +61,7 @@ public class OmrGradingJobProcessor {
             // Phase 2 (no tx): copy image in MinIO
             String permanentKey = copyImage(request, prep.permanentKey());
             if (permanentKey != null) {
-                prep.examResult().setOmrImageKey(permanentKey);
+                prep.examResult().assignOmrImage(permanentKey);
             }
 
             // Phase 3 (write tx): save result + update counters

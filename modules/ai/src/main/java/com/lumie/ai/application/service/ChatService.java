@@ -30,41 +30,19 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.lumie.ai.application.dto.ChatReplyResponse;
 
+import org.springframework.core.task.AsyncTaskExecutor;
+
 import java.util.*;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatService {
 
-    private static final String SYSTEM_PROMPT_PREFIX = """
-            You are Lumie AI, a Korean academy (학원) management assistant. Respond in Korean.
-
-            EFFICIENCY: Answer every data question in exactly ONE generalQuery call. \
-            Combine JOINs, subqueries, CASE, window functions, and aggregation into a single SQL. \
-            Never split into multiple queries what can be done in one.
-
-            ANALYSIS: When asked to analyze data, provide genuine insight — not just a list of numbers.
-            - Identify trends (improving, declining, stable)
-            - Compare to class averages or peers when possible
-            - Highlight strengths and areas for improvement
-            - Give a brief actionable recommendation at the end
-            For example, "98→89→94→98점" is not analysis. \
-            "전반적으로 90점 이상의 우수한 성적을 유지하며, 3회에서 소폭 하락 후 꾸준히 회복하는 \
-            상승 추세입니다." is analysis.
-
-            RULES:
-            - Never mention SQL, tables, columns, or any technical details.
-            - JSONB columns are queryable with ->, ->>, jsonb_array_elements, etc.
-            - Always try a query before saying data is unavailable.
-
-            """;
-
     private static final String SYSTEM_PROMPT_SCHEMA_HEADER = "\nTenant schema (tables and columns):\n%s";
 
-    private final Executor executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final AsyncTaskExecutor aiChatExecutor;
+    private final ChatSystemPrompt chatSystemPrompt;
 
     private final ChatClient chatClient;
     private final LumieReadTools readTools;
@@ -83,12 +61,18 @@ public class ChatService {
     public SseEmitter chatStreamEmitter(Long conversationId, String userMessage) {
         Long userId = UserContextHolder.getRequiredUserId();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
+        // aiChatExecutor is a plain (non-Spring-decorated) executor, so the
+        // request-thread tenant context does not propagate automatically.
+        // Capture tenantId too — setTenant(slug) alone leaves RLS rows
+        // invisible on the SSE thread's tenant-scoped writes (HARD_RULES).
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
 
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
 
-        executor.execute(() -> {
+        aiChatExecutor.execute(() -> {
             try {
                 TenantContextHolder.setTenant(tenantSlug);
+                TenantContextHolder.setTenantId(tenantId);
                 UserContextHolder.setUserId(userId);
 
                 StreamContext ctx = prepareContext(conversationId, userMessage, userId, tenantSlug);
@@ -259,7 +243,7 @@ public class ChatService {
                 .build());
 
         String schemaInfo = schemaDiscoveryService.getSchemaDescription(tenantSlug);
-        String systemPrompt = SYSTEM_PROMPT_PREFIX + String.format(SYSTEM_PROMPT_SCHEMA_HEADER, schemaInfo);
+        String systemPrompt = chatSystemPrompt.prefix() + String.format(SYSTEM_PROMPT_SCHEMA_HEADER, schemaInfo);
         List<Message> history = buildSpringAiHistory(conversation.getId());
 
         try {
@@ -313,7 +297,7 @@ public class ChatService {
                 .build());
 
         String schemaInfo = schemaDiscoveryService.getSchemaDescription(tenantSlug);
-        String systemPrompt = SYSTEM_PROMPT_PREFIX + String.format(SYSTEM_PROMPT_SCHEMA_HEADER, schemaInfo);
+        String systemPrompt = chatSystemPrompt.prefix() + String.format(SYSTEM_PROMPT_SCHEMA_HEADER, schemaInfo);
         List<Message> history = buildSpringAiHistory(conversation.getId());
 
         return new StreamContext(conversation, systemPrompt, history);
