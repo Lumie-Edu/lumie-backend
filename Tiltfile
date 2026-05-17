@@ -20,7 +20,9 @@ COMMON_ENV = {
     # RabbitMQ (dev-only instance)
     'RABBITMQ_HOST': 'rabbitmq-dev.lumie-dev.svc.cluster.local',
     'RABBITMQ_PORT': '5672',
-    'RABBITMQ_USERNAME': 'lumie',
+    # RABBITMQ_USERNAME/PASSWORD come from the Topology-Operator-generated
+    # `lumie-user-credentials` secret (operator-managed app user) —
+    # see secretKeyRef env below. No literal username, no Vault path.
     # Redis (Bitnami Helm chart standalone)
     'REDIS_HOST': 'redis-dev-master.lumie-dev.svc.cluster.local',
     'REDIS_PORT': '6379',
@@ -115,10 +117,15 @@ spec:
             secretKeyRef:
               name: lumie-dev-app-db-secrets
               key: password
+        - name: RABBITMQ_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: lumie-user-credentials
+              key: username
         - name: RABBITMQ_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-rabbitmq-secrets
+              name: lumie-user-credentials
               key: password
         - name: JWT_SECRET_KEY
           valueFrom:
