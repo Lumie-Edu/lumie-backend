@@ -12,8 +12,9 @@ INSERT INTO tenants (slug, name, display_name, status, owner_email, plan_id, ins
 VALUES ('demo', 'Demo Academy', '데모 학원', 'ACTIVE', 'demo@lumie-edu.com', 'FREE', '데모학원')
 ON CONFLICT (slug) DO UPDATE SET plan_id = EXCLUDED.plan_id;
 
--- Domain demo data, scoped to the demo tenant. Guard makes the whole
--- block a no-op once seeded (repeatable migration re-run safety).
+-- Domain demo data, scoped to the demo tenant. Converging seed: every
+-- re-run wipes and re-inserts the demo tenant's domain rows so file
+-- edits always reflect (no skip-guard, no duplicate rows).
 -- Enum string values verified against backend VO enums:
 --   Role(OWNER|MANAGER|INSTRUCTOR|STUDENT) · UserStatus(ACTIVE|INACTIVE)
 --   EmploymentStatus(ACTIVE|...) · ExamCategory(GRADED|PASS_FAIL)
@@ -24,10 +25,20 @@ DECLARE
   pw     text := '$2y$10$v.IkS0w0PAb/xPMHk/rVzONyW7roCm49CxQOUZ5vqNjQEqN0VfDSW';
 BEGIN
   SELECT id INTO t_id FROM tenants WHERE slug = 'demo';
-  IF EXISTS (SELECT 1 FROM users WHERE tenant_id = t_id) THEN
-    RAISE NOTICE 'demo domain seed already present — skipping';
-    RETURN;
+  IF t_id IS NULL THEN
+    RAISE EXCEPTION 'demo tenant not found — tenants upsert must run first';
   END IF;
+
+  -- Converge: wipe demo-tenant domain rows (FK-safe order) then
+  -- re-insert from this file. Dev-only, demo-tenant-scoped.
+  DELETE FROM exam_results  WHERE tenant_id = t_id;
+  DELETE FROM classes       WHERE tenant_id = t_id;
+  DELETE FROM exams         WHERE tenant_id = t_id;
+  DELETE FROM reviews       WHERE tenant_id = t_id;
+  DELETE FROM announcements WHERE tenant_id = t_id;
+  DELETE FROM students      WHERE tenant_id = t_id;
+  DELETE FROM admins        WHERE tenant_id = t_id;
+  DELETE FROM users         WHERE tenant_id = t_id;
 
   -- Users: 1 owner + 1 manager + 1 instructor + 8 students.
   INSERT INTO users (user_login_id, password_hash, name, phone, email, role, status, tenant_id) VALUES
@@ -148,6 +159,6 @@ BEGIN
          true, true, t_id
   FROM users u WHERE u.user_login_id = 'demo-owner' AND u.tenant_id = t_id;
 
-  RAISE NOTICE 'demo domain seed inserted for tenant %', t_id;
+  RAISE NOTICE 'demo domain seed reapplied for tenant %', t_id;
 END
 $seed$;
