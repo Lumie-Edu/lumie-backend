@@ -12,14 +12,12 @@ import java.util.Optional;
 
 /**
  * Implementation of {@link UserDirectoryPort} using raw JDBC against
- * {@code public.users}. Bypasses Hibernate multi-tenancy entirely so that
- * directory queries hit the public schema regardless of the request's
- * {@code TenantContextHolder} state.
+ * {@code public.owner_directory} — the RLS-exempt platform identity-routing
+ * table (login id &rarr; tenant). It is queried at login time BEFORE any
+ * tenant context exists, so it must not be the RLS-guarded {@code public.users}
+ * table (which returns zero rows without {@code app.tenant_id} set).
  *
- * <p>This adapter only reads/writes the slim columns retained on the directory
- * row: {@code id}, {@code user_login_id}, {@code tenant_id}, {@code role}, {@code email}.
- * The remaining columns (password, name, etc.) move to {@code tenant_*.users}
- * in V34 of the public migration sequence.
+ * <p>Columns: {@code id}, {@code user_login_id}, {@code tenant_id}, {@code email}.
  */
 @Slf4j
 @Component
@@ -41,8 +39,8 @@ public class UserDirectoryPersistenceAdapter implements UserDirectoryPort {
         try {
             DirectoryEntry entry = jdbcTemplate.queryForObject(
                     "SELECT id, user_login_id, tenant_id, email " +
-                            "FROM public.users " +
-                            "WHERE user_login_id = ? AND role = 'OWNER'",
+                            "FROM public.owner_directory " +
+                            "WHERE user_login_id = ?",
                     ROW_MAPPER,
                     userLoginId
             );
@@ -58,8 +56,8 @@ public class UserDirectoryPersistenceAdapter implements UserDirectoryPort {
         try {
             DirectoryEntry entry = jdbcTemplate.queryForObject(
                     "SELECT id, user_login_id, tenant_id, email " +
-                            "FROM public.users " +
-                            "WHERE id = ? AND role = 'OWNER'",
+                            "FROM public.owner_directory " +
+                            "WHERE id = ?",
                     ROW_MAPPER,
                     userId
             );
@@ -73,8 +71,8 @@ public class UserDirectoryPersistenceAdapter implements UserDirectoryPort {
     public void createDirectoryEntry(Long userId, String userLoginId, Long tenantId, String email) {
         log.info("Creating directory entry: id={}, userLoginId={}, tenantId={}", userId, userLoginId, tenantId);
         jdbcTemplate.update(
-                "INSERT INTO public.users (id, user_login_id, tenant_id, role, email) " +
-                        "VALUES (?, ?, ?, 'OWNER', ?) " +
+                "INSERT INTO public.owner_directory (id, user_login_id, tenant_id, email) " +
+                        "VALUES (?, ?, ?, ?) " +
                         "ON CONFLICT (id) DO NOTHING",
                 userId, userLoginId, tenantId, email
         );
@@ -83,7 +81,7 @@ public class UserDirectoryPersistenceAdapter implements UserDirectoryPort {
     @Override
     public void updateEmail(Long userId, String email) {
         jdbcTemplate.update(
-                "UPDATE public.users SET email = ? WHERE id = ? AND role = 'OWNER'",
+                "UPDATE public.owner_directory SET email = ? WHERE id = ?",
                 email, userId
         );
     }
@@ -91,7 +89,7 @@ public class UserDirectoryPersistenceAdapter implements UserDirectoryPort {
     @Override
     public void updateLoginId(Long userId, String newLoginId) {
         jdbcTemplate.update(
-                "UPDATE public.users SET user_login_id = ? WHERE id = ? AND role = 'OWNER'",
+                "UPDATE public.owner_directory SET user_login_id = ? WHERE id = ?",
                 newLoginId, userId
         );
     }
@@ -100,7 +98,7 @@ public class UserDirectoryPersistenceAdapter implements UserDirectoryPort {
     public void deleteDirectoryEntry(Long userId) {
         log.info("Deleting directory entry: id={}", userId);
         jdbcTemplate.update(
-                "DELETE FROM public.users WHERE id = ? AND role = 'OWNER'",
+                "DELETE FROM public.owner_directory WHERE id = ?",
                 userId
         );
     }
