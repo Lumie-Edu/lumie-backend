@@ -84,14 +84,14 @@ BEGIN
   -- Classes taught by the instructor / manager.
   INSERT INTO classes (name, teacher_id, schedule_pattern, description, tenant_id)
   SELECT '수능영어 정규반', a.id,
-         '{"days":["MON","WED","FRI"],"start":"19:00","end":"21:00"}'::jsonb,
+         '{"days":["MON","WED","FRI"],"startTime":"19:00","endTime":"21:00"}'::jsonb,
          '수능 영어 정규 커리큘럼반', t_id
   FROM admins a JOIN users u ON u.id = a.user_id
   WHERE u.user_login_id = 'demo_inst' AND a.tenant_id = t_id;
 
   INSERT INTO classes (name, teacher_id, schedule_pattern, description, tenant_id)
   SELECT '수능 파이널 실전반', a.id,
-         '{"days":["TUE","THU"],"start":"18:00","end":"22:00"}'::jsonb,
+         '{"days":["TUE","THU"],"startTime":"18:00","endTime":"22:00"}'::jsonb,
          '수능 직전 실전 모의고사반', t_id
   FROM admins a JOIN users u ON u.id = a.user_id
   WHERE u.user_login_id = 'demo_mgr' AND a.tenant_id = t_id;
