@@ -42,17 +42,17 @@ BEGIN
 
   -- Users: 1 owner + 1 manager + 1 instructor + 8 students.
   INSERT INTO users (user_login_id, password_hash, name, phone, email, role, status, tenant_id) VALUES
-    ('demo-owner', pw, '김민준',  '010-0000-0001', 'owner@demo.lumie-edu.com', 'OWNER',      'ACTIVE', t_id),
-    ('demo-mgr',   pw, '박서연',  '010-0000-0002', NULL,                        'MANAGER',    'ACTIVE', t_id),
-    ('demo-inst',  pw, '이도윤',  '010-0000-0003', NULL,                        'INSTRUCTOR', 'ACTIVE', t_id),
-    ('demo-stu-01', pw, '강하준', '010-0000-1001', NULL, 'STUDENT', 'ACTIVE', t_id),
-    ('demo-stu-02', pw, '윤지우', '010-0000-1002', NULL, 'STUDENT', 'ACTIVE', t_id),
-    ('demo-stu-03', pw, '임서진', '010-0000-1003', NULL, 'STUDENT', 'ACTIVE', t_id),
-    ('demo-stu-04', pw, '한예은', '010-0000-1004', NULL, 'STUDENT', 'ACTIVE', t_id),
-    ('demo-stu-05', pw, '오시윤', '010-0000-1005', NULL, 'STUDENT', 'ACTIVE', t_id),
-    ('demo-stu-06', pw, '배준호', '010-0000-1006', NULL, 'STUDENT', 'ACTIVE', t_id),
-    ('demo-stu-07', pw, '신가람', '010-0000-1007', NULL, 'STUDENT', 'ACTIVE', t_id),
-    ('demo-stu-08', pw, '류하은', '010-0000-1008', NULL, 'STUDENT', 'ACTIVE', t_id);
+    ('demo_owner', pw, '김민준',  '010-0000-0001', 'owner@demo.lumie-edu.com', 'OWNER',      'ACTIVE', t_id),
+    ('demo_mgr',   pw, '박서연',  '010-0000-0002', NULL,                        'MANAGER',    'ACTIVE', t_id),
+    ('demo_inst',  pw, '이도윤',  '010-0000-0003', NULL,                        'INSTRUCTOR', 'ACTIVE', t_id),
+    ('demo_stu_01', pw, '강하준', '010-0000-1001', NULL, 'STUDENT', 'ACTIVE', t_id),
+    ('demo_stu_02', pw, '윤지우', '010-0000-1002', NULL, 'STUDENT', 'ACTIVE', t_id),
+    ('demo_stu_03', pw, '임서진', '010-0000-1003', NULL, 'STUDENT', 'ACTIVE', t_id),
+    ('demo_stu_04', pw, '한예은', '010-0000-1004', NULL, 'STUDENT', 'ACTIVE', t_id),
+    ('demo_stu_05', pw, '오시윤', '010-0000-1005', NULL, 'STUDENT', 'ACTIVE', t_id),
+    ('demo_stu_06', pw, '배준호', '010-0000-1006', NULL, 'STUDENT', 'ACTIVE', t_id),
+    ('demo_stu_07', pw, '신가람', '010-0000-1007', NULL, 'STUDENT', 'ACTIVE', t_id),
+    ('demo_stu_08', pw, '류하은', '010-0000-1008', NULL, 'STUDENT', 'ACTIVE', t_id);
 
   -- Students (structure/score profile mirrors a real cohort; identities synthetic).
   INSERT INTO students (user_id, student_highschool, student_birth_year, student_memo, is_active,
@@ -61,14 +61,14 @@ BEGIN
          u.phone, '010-0000-20'||right(u.user_login_id, 2), t_id
   FROM users u
   JOIN (VALUES
-    ('demo-stu-01','상암고등학교',2007),
-    ('demo-stu-02','한가람고등학교',2007),
-    ('demo-stu-03','대일고등학교',2007),
-    ('demo-stu-04','김포고등학교',2005),
-    ('demo-stu-05','경인고등학교',2007),
-    ('demo-stu-06','여의도고등학교',2007),
-    ('demo-stu-07','관악고등학교',2007),
-    ('demo-stu-08','광영여자고등학교',2007)
+    ('demo_stu_01','상암고등학교',2007),
+    ('demo_stu_02','한가람고등학교',2007),
+    ('demo_stu_03','대일고등학교',2007),
+    ('demo_stu_04','김포고등학교',2005),
+    ('demo_stu_05','경인고등학교',2007),
+    ('demo_stu_06','여의도고등학교',2007),
+    ('demo_stu_07','관악고등학교',2007),
+    ('demo_stu_08','광영여자고등학교',2007)
   ) AS v(login, hs, by) ON v.login = u.user_login_id
   WHERE u.tenant_id = t_id;
 
@@ -87,14 +87,14 @@ BEGIN
          '{"days":["MON","WED","FRI"],"start":"19:00","end":"21:00"}'::jsonb,
          '수능 영어 정규 커리큘럼반', t_id
   FROM admins a JOIN users u ON u.id = a.user_id
-  WHERE u.user_login_id = 'demo-inst' AND a.tenant_id = t_id;
+  WHERE u.user_login_id = 'demo_inst' AND a.tenant_id = t_id;
 
   INSERT INTO classes (name, teacher_id, schedule_pattern, description, tenant_id)
   SELECT '수능 파이널 실전반', a.id,
          '{"days":["TUE","THU"],"start":"18:00","end":"22:00"}'::jsonb,
          '수능 직전 실전 모의고사반', t_id
   FROM admins a JOIN users u ON u.id = a.user_id
-  WHERE u.user_login_id = 'demo-mgr' AND a.tenant_id = t_id;
+  WHERE u.user_login_id = 'demo_mgr' AND a.tenant_id = t_id;
 
   -- Exams: 3 mock exams (graded / relative 9-grade). Answer keys are not PII.
   INSERT INTO exams (name, category, total_questions, correct_answers, question_scores,
@@ -119,18 +119,18 @@ BEGIN
   INSERT INTO exam_results (exam_id, student_id, total_score, grade, phone_number, tenant_id)
   SELECT e.id, s.id, r.score, r.grade, NULL, t_id
   FROM (VALUES
-    ('모의고사 1회','demo-stu-02',77,3),
-    ('모의고사 1회','demo-stu-03',83,2),
-    ('모의고사 1회','demo-stu-05',87,2),
-    ('모의고사 1회','demo-stu-01',74,3),
-    ('모의고사 1회','demo-stu-07',97,1),
-    ('모의고사 1회','demo-stu-08',89,2),
-    ('모의고사 2회','demo-stu-05',79,3),
-    ('모의고사 2회','demo-stu-04',55,5),
-    ('모의고사 2회','demo-stu-06',57,5),
-    ('모의고사 2회','demo-stu-01',77,3),
-    ('모의고사 2회','demo-stu-07',88,2),
-    ('모의고사 2회','demo-stu-02',70,3)
+    ('모의고사 1회','demo_stu_02',77,3),
+    ('모의고사 1회','demo_stu_03',83,2),
+    ('모의고사 1회','demo_stu_05',87,2),
+    ('모의고사 1회','demo_stu_01',74,3),
+    ('모의고사 1회','demo_stu_07',97,1),
+    ('모의고사 1회','demo_stu_08',89,2),
+    ('모의고사 2회','demo_stu_05',79,3),
+    ('모의고사 2회','demo_stu_04',55,5),
+    ('모의고사 2회','demo_stu_06',57,5),
+    ('모의고사 2회','demo_stu_01',77,3),
+    ('모의고사 2회','demo_stu_07',88,2),
+    ('모의고사 2회','demo_stu_02',70,3)
   ) AS r(exam_name, stu_login, score, grade)
   JOIN exams e   ON e.name = r.exam_name AND e.tenant_id = t_id
   JOIN students s ON s.user_login_id = r.stu_login AND s.tenant_id = t_id;
@@ -150,14 +150,14 @@ BEGIN
   SELECT u.id, 'Q&A 이용 안내',
          'Q&A 게시판 이용 규칙을 반드시 숙지한 뒤 질문을 등록해 주세요. 늘 응원합니다!',
          false, true, t_id
-  FROM users u WHERE u.user_login_id = 'demo-owner' AND u.tenant_id = t_id;
+  FROM users u WHERE u.user_login_id = 'demo_owner' AND u.tenant_id = t_id;
 
   INSERT INTO announcements (author_id, announcement_title, announcement_content,
                              is_it_asset_announcement, is_it_important_announcement, tenant_id)
   SELECT u.id, '수능특강 영어 FINAL 자료 안내',
          '내신·수능 대비 FINAL 자료는 학원 내부 자료실에서 배포됩니다. 자세한 사항은 담당 강사에게 문의해 주세요.',
          true, true, t_id
-  FROM users u WHERE u.user_login_id = 'demo-owner' AND u.tenant_id = t_id;
+  FROM users u WHERE u.user_login_id = 'demo_owner' AND u.tenant_id = t_id;
 
   RAISE NOTICE 'demo domain seed reapplied for tenant %', t_id;
 END
