@@ -1,6 +1,7 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.exam.test.ExamFixtures;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.billing.api.BillingService;
@@ -14,9 +15,6 @@ import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.service.GradeCalculator;
-import com.lumie.exam.domain.vo.ExamCategory;
-import com.lumie.exam.domain.vo.GradeScale;
-import com.lumie.exam.domain.vo.GradingType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -86,17 +84,7 @@ class ResultCommandServiceTest {
     }
 
     private Exam buildExam() {
-        return Exam.create(
-                "테스트 시험",
-                ExamCategory.GRADED,
-                GradingType.ABSOLUTE,
-                GradeScale.NINE_GRADE,
-                5,
-                Map.of("1", "1", "2", "2", "3", "3", "4", "4", "5", "5"),
-                Map.of("1", 20, "2", 20, "3", 20, "4", 20, "5", 20),
-                Map.of("1", "SHORT", "2", "SHORT", "3", "SHORT", "4", "SHORT", "5", "SHORT"),
-                null
-        );
+        return ExamFixtures.aGradedExam();
     }
 
     private OmrServicePort.OmrGradingResult buildOmrResult(int totalScore) {

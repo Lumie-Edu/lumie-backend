@@ -7,9 +7,7 @@ import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.service.StatisticsCalculator;
-import com.lumie.exam.domain.vo.ExamCategory;
-import com.lumie.exam.domain.vo.GradeScale;
-import com.lumie.exam.domain.vo.GradingType;
+import com.lumie.exam.test.ExamFixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,34 +34,11 @@ class ItemAnalysisQueryServiceTest {
 
     private static final Long EXAM_ID = 1L;
 
-    private Exam buildGradedExam() {
-        return Exam.create(
-                "수학 모의고사",
-                ExamCategory.GRADED,
-                GradingType.ABSOLUTE,
-                GradeScale.NINE_GRADE,
-                5,
-                Map.of("1", "1", "2", "2", "3", "3", "4", "4", "5", "5"),
-                Map.of("1", 20, "2", 20, "3", 20, "4", 20, "5", 20),
-                Map.of("1", "단답", "2", "단답", "3", "단답", "4", "단답", "5", "단답"),
-                null
-        );
-    }
-
-    private ExamResult resultWith(Exam exam, Long studentId, int score, List<Boolean> corrects) {
-        ExamResult r = ExamResult.create(exam, studentId, score);
-        for (int i = 0; i < corrects.size(); i++) {
-            String correctAnswer = String.valueOf(i + 1);
-            String selected = corrects.get(i) ? correctAnswer : "0";
-            r.addQuestionResult(QuestionResult.create(i + 1, selected, correctAnswer, 20));
-        }
-        return r;
-    }
 
     @Test
     @DisplayName("문항 분석: 각 문항의 p값과 변별도, quadrant가 올바르게 계산된다")
     void getItemAnalysis_basicQuadrants() {
-        Exam exam = buildGradedExam();
+        Exam exam = ExamFixtures.aGradedExam();
 
         List<ExamResult> results = new ArrayList<>();
         int[] scores = {100, 90, 80, 70, 60, 50, 40, 30, 20, 10};
@@ -104,10 +78,10 @@ class ItemAnalysisQueryServiceTest {
     @Test
     @DisplayName("문항 분석: 표본이 10명 미만이면 reliabilityWarning=true")
     void getItemAnalysis_smallSampleWarning() {
-        Exam exam = buildGradedExam();
+        Exam exam = ExamFixtures.aGradedExam();
         List<ExamResult> results = new ArrayList<>();
         for (int i = 0; i < 8; i++) {
-            results.add(resultWith(exam, (long) (i + 1), 60, List.of(true, true, true, false, false)));
+            results.add(ExamFixtures.anExamResult(exam, (long) (i + 1), 60, List.of(true, true, true, false, false)));
         }
         given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
         given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
@@ -121,7 +95,7 @@ class ItemAnalysisQueryServiceTest {
     @Test
     @DisplayName("문항 분석: 응시자 0명이면 빈 결과 + warning=true")
     void getItemAnalysis_empty() {
-        Exam exam = buildGradedExam();
+        Exam exam = ExamFixtures.aGradedExam();
         given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
         given(resultRepository.findByExamId(EXAM_ID)).willReturn(List.of());
 

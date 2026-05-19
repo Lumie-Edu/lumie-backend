@@ -1,5 +1,6 @@
 plugins {
     id("java-library")
+    id("java-test-fixtures")
 }
 
 // libs/internal-api is a pure-interfaces library with no deps — safe to pull
@@ -50,4 +51,10 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-web")
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc")
     testRuntimeOnly("org.postgresql:postgresql")
+
+    // Test fixtures — shared utilities consumed via testFixtures(project(":libs:common"))
+    // ReflectionTestUtils: no extra deps (java.lang.reflect only)
+    // TenantContextExtension: JUnit 5 API (from spring-boot-starter-test on the test classpath)
+    testFixturesImplementation("org.junit.jupiter:junit-jupiter-api")
+    testFixturesImplementation(project(":libs:common"))
 }

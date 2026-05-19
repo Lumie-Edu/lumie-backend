@@ -16,9 +16,8 @@ import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.common.tenant.TenantContextHolder;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import com.lumie.common.test.ReflectionTestUtils;
+import com.lumie.common.test.TenantContextExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,7 +26,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,7 +37,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, TenantContextExtension.class})
 @DisplayName("ClassCommandService 테스트")
 class ClassCommandServiceTest {
 
@@ -47,17 +45,6 @@ class ClassCommandServiceTest {
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private AdminService adminService;
     @InjectMocks private ClassCommandService commandService;
-
-    @BeforeEach
-    void setUpTenant() {
-        TenantContextHolder.setTenantId(1L);
-        TenantContextHolder.setTenant("test-tenant");
-    }
-
-    @AfterEach
-    void clearTenant() {
-        TenantContextHolder.clear();
-    }
 
     @Nested
     @DisplayName("createClass")
@@ -76,7 +63,7 @@ class ClassCommandServiceTest {
             given(classRepository.save(any(ClassEntity.class)))
                     .willAnswer(inv -> {
                         ClassEntity entity = inv.getArgument(0);
-                        setField(entity, "id", 1L);
+                        ReflectionTestUtils.setField(entity, "id", 1L);
                         return entity;
                     });
 
@@ -163,7 +150,7 @@ class ClassCommandServiceTest {
                     .willAnswer(inv -> {
                         List<ClassEnrollment> enrollments = inv.getArgument(0);
                         for (int i = 0; i < enrollments.size(); i++) {
-                            setField(enrollments.get(i), "id", (long) (i + 1));
+                            ReflectionTestUtils.setField(enrollments.get(i), "id", (long) (i + 1));
                         }
                         return enrollments;
                     });
@@ -195,7 +182,7 @@ class ClassCommandServiceTest {
         void removeEnrollment_success() throws Exception {
             ClassEntity classEntity = buildClassEntity(1L);
             ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 100L);
-            setField(enrollment, "id", 10L);
+            ReflectionTestUtils.setField(enrollment, "id", 10L);
 
             given(enrollmentRepository.findById(10L)).willReturn(Optional.of(enrollment));
 
@@ -209,7 +196,7 @@ class ClassCommandServiceTest {
         void removeEnrollment_wrongClassId_throwsException() throws Exception {
             ClassEntity classEntity = buildClassEntity(1L);
             ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 100L);
-            setField(enrollment, "id", 10L);
+            ReflectionTestUtils.setField(enrollment, "id", 10L);
 
             given(enrollmentRepository.findById(10L)).willReturn(Optional.of(enrollment));
 
@@ -227,7 +214,7 @@ class ClassCommandServiceTest {
         void updateEnrollmentStatus_toDrop_success() throws Exception {
             ClassEntity classEntity = buildClassEntity(1L);
             ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 100L);
-            setField(enrollment, "id", 10L);
+            ReflectionTestUtils.setField(enrollment, "id", 10L);
 
             given(enrollmentRepository.findById(10L)).willReturn(Optional.of(enrollment));
             given(enrollmentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
@@ -243,7 +230,7 @@ class ClassCommandServiceTest {
         void updateEnrollmentStatus_invalidStatus_throwsException() throws Exception {
             ClassEntity classEntity = buildClassEntity(1L);
             ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 100L);
-            setField(enrollment, "id", 10L);
+            ReflectionTestUtils.setField(enrollment, "id", 10L);
 
             given(enrollmentRepository.findById(10L)).willReturn(Optional.of(enrollment));
 
@@ -258,21 +245,8 @@ class ClassCommandServiceTest {
     private ClassEntity buildClassEntity(Long id) throws Exception {
         ClassEntity entity = ClassEntity.create(
                 "수학 기초반", 10L, null, "설명");
-        setField(entity, "id", id);
+        ReflectionTestUtils.setField(entity, "id", id);
         return entity;
     }
 
-    private void setField(Object target, String fieldName, Object value) throws Exception {
-        Class<?> clazz = target.getClass();
-        while (clazz != null) {
-            try {
-                Field field = clazz.getDeclaredField(fieldName);
-                field.setAccessible(true);
-                field.set(target, value);
-                return;
-            } catch (NoSuchFieldException e) {
-                clazz = clazz.getSuperclass();
-            }
-        }
-    }
 }

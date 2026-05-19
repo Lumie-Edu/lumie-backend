@@ -1,7 +1,7 @@
 package com.lumie.exam.application.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.test.TenantContextExtension;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.student.api.StudentService;
@@ -10,9 +10,7 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
-import com.lumie.exam.domain.vo.ExamCategory;
-import com.lumie.exam.domain.vo.GradeScale;
-import com.lumie.exam.domain.vo.GradingType;
+import com.lumie.exam.test.ExamFixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -29,7 +26,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, TenantContextExtension.class})
 @DisplayName("OmrGradingJobProcessor 단위 테스트")
 class OmrGradingJobProcessorTest {
 
@@ -51,30 +48,6 @@ class OmrGradingJobProcessorTest {
     @InjectMocks
     private OmrGradingJobProcessor processor;
 
-    @org.junit.jupiter.api.BeforeEach
-    void setupTenant() {
-        TenantContextHolder.setTenant("test-tenant");
-    }
-
-    @org.junit.jupiter.api.AfterEach
-    void clearTenant() {
-        TenantContextHolder.clear();
-    }
-
-    private Exam buildExam() {
-        return Exam.create(
-                "배치 테스트 시험",
-                ExamCategory.GRADED,
-                GradingType.ABSOLUTE,
-                GradeScale.NINE_GRADE,
-                3,
-                Map.of("1", "1", "2", "2", "3", "3"),
-                Map.of("1", 30, "2", 30, "3", 40),
-                Map.of("1", "SHORT", "2", "SHORT", "3", "SHORT"),
-                null
-        );
-    }
-
     private OmrGradingCallbackRequest buildSuccessCallback() {
         return new OmrGradingCallbackRequest(
                 1L, 10L, "inst-abc123",
@@ -93,7 +66,7 @@ class OmrGradingJobProcessorTest {
     @Test
     @DisplayName("콜백 성공 시 결과를 저장하고 incrementSuccess를 호출한다")
     void processGradingCallback_success() {
-        Exam exam = buildExam();
+        Exam exam = ExamFixtures.aGradedExam(3);
         OmrGradingCallbackRequest request = buildSuccessCallback();
         Long studentId = 200L;
         StudentService.StudentData student = new StudentService.StudentData(

@@ -7,7 +7,8 @@ import com.lumie.assignment.application.dto.SubmissionResponse;
 import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
 import com.lumie.assignment.domain.entity.Assignment;
-import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.test.ReflectionTestUtils;
+import com.lumie.common.test.TenantContextExtension;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
@@ -27,7 +28,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -40,7 +40,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, TenantContextExtension.class})
 @DisplayName("AssignmentCommandService 테스트")
 class AssignmentCommandServiceTest {
 
@@ -48,16 +48,6 @@ class AssignmentCommandServiceTest {
     @Mock private AssignmentSubmissionRepository submissionRepository;
     @Mock private ClassService classService;
     @InjectMocks private AssignmentCommandService commandService;
-
-    @org.junit.jupiter.api.BeforeEach
-    void setupTenant() {
-        TenantContextHolder.setTenant("test-tenant");
-    }
-
-    @org.junit.jupiter.api.AfterEach
-    void clearTenant() {
-        TenantContextHolder.clear();
-    }
 
     @Nested
     @DisplayName("createAssignment")
@@ -76,7 +66,7 @@ class AssignmentCommandServiceTest {
             given(assignmentRepository.save(any(Assignment.class)))
                     .willAnswer(inv -> {
                         Assignment entity = inv.getArgument(0);
-                        setField(entity, "id", 1L);
+                        ReflectionTestUtils.setField(entity, "id", 1L);
                         return entity;
                     });
 
@@ -178,7 +168,7 @@ class AssignmentCommandServiceTest {
             given(submissionRepository.save(any(AssignmentSubmission.class)))
                     .willAnswer(inv -> {
                         AssignmentSubmission sub = inv.getArgument(0);
-                        setField(sub, "id", 1L);
+                        ReflectionTestUtils.setField(sub, "id", 1L);
                         return sub;
                     });
 
@@ -211,7 +201,7 @@ class AssignmentCommandServiceTest {
         void updateSubmission_grade_success() throws Exception {
             AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
             submission.submit("답안", null);
-            setField(submission, "id", 10L);
+            ReflectionTestUtils.setField(submission, "id", 10L);
 
             UpdateSubmissionRequest request = new UpdateSubmissionRequest(85, "잘했습니다.", "GRADED");
 
@@ -229,7 +219,7 @@ class AssignmentCommandServiceTest {
         @DisplayName("다른 과제의 submission 수정 시 SubmissionNotFoundException이 발생한다")
         void updateSubmission_wrongAssignment_throwsException() throws Exception {
             AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-            setField(submission, "id", 10L);
+            ReflectionTestUtils.setField(submission, "id", 10L);
 
             given(submissionRepository.findById(10L)).willReturn(Optional.of(submission));
 
@@ -246,21 +236,8 @@ class AssignmentCommandServiceTest {
                 1L, "수학 숙제", "1장 풀기",
                 AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(java.time.ZoneOffset.UTC),
                 100, null);
-        setField(entity, "id", id);
+        ReflectionTestUtils.setField(entity, "id", id);
         return entity;
     }
 
-    private void setField(Object target, String fieldName, Object value) throws Exception {
-        Class<?> clazz = target.getClass();
-        while (clazz != null) {
-            try {
-                Field field = clazz.getDeclaredField(fieldName);
-                field.setAccessible(true);
-                field.set(target, value);
-                return;
-            } catch (NoSuchFieldException e) {
-                clazz = clazz.getSuperclass();
-            }
-        }
-    }
 }

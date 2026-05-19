@@ -10,10 +10,9 @@ import com.lumie.admin.api.AdminService;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.ClassSearchCriteria;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
-import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.test.ReflectionTestUtils;
+import com.lumie.common.test.TenantContextExtension;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +24,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,7 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, TenantContextExtension.class})
 @DisplayName("ClassQueryService 테스트")
 class ClassQueryServiceTest {
 
@@ -43,17 +41,6 @@ class ClassQueryServiceTest {
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private AdminService adminService;
     @InjectMocks private ClassQueryService queryService;
-
-    @BeforeEach
-    void setUpTenantContext() {
-        TenantContextHolder.setTenantId(1L);
-        TenantContextHolder.setTenant("test-tenant");
-    }
-
-    @AfterEach
-    void clearTenantContext() {
-        TenantContextHolder.clear();
-    }
 
     @Test
     @DisplayName("getClass 성공 시 ClassResponse를 반환한다")
@@ -122,7 +109,7 @@ class ClassQueryServiceTest {
     void getClassesByStudent_success() throws Exception {
         ClassEntity classEntity = buildClassEntity(1L);
         ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 42L);
-        setField(enrollment, "id", 10L);
+        ReflectionTestUtils.setField(enrollment, "id", 10L);
 
         Pageable pageable = PageRequest.of(0, 20);
         Page<ClassEnrollment> page = new PageImpl<>(List.of(enrollment), pageable, 1);
@@ -139,7 +126,7 @@ class ClassQueryServiceTest {
     void getEnrollments_success() throws Exception {
         ClassEntity classEntity = buildClassEntity(1L);
         ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 42L);
-        setField(enrollment, "id", 10L);
+        ReflectionTestUtils.setField(enrollment, "id", 10L);
 
         Pageable pageable = PageRequest.of(0, 20);
         Page<ClassEnrollment> page = new PageImpl<>(List.of(enrollment), pageable, 1);
@@ -157,21 +144,7 @@ class ClassQueryServiceTest {
     private ClassEntity buildClassEntity(Long id) throws Exception {
         ClassEntity entity = ClassEntity.create(
                 "수학 기초반", 10L, null, "설명");
-        setField(entity, "id", id);
+        ReflectionTestUtils.setField(entity, "id", id);
         return entity;
-    }
-
-    private void setField(Object target, String fieldName, Object value) throws Exception {
-        Class<?> clazz = target.getClass();
-        while (clazz != null) {
-            try {
-                Field field = clazz.getDeclaredField(fieldName);
-                field.setAccessible(true);
-                field.set(target, value);
-                return;
-            } catch (NoSuchFieldException e) {
-                clazz = clazz.getSuperclass();
-            }
-        }
     }
 }

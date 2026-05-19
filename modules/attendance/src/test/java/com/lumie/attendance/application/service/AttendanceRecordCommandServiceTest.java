@@ -22,7 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.lang.reflect.Field;
+import com.lumie.common.test.ReflectionTestUtils;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -57,30 +57,15 @@ class AttendanceRecordCommandServiceTest {
         StudentReadModel student = new StudentReadModel() {};
         // StudentReadModel has package-private no-args constructor via Lombok
         // Use reflection to set private fields
-        setField(student, "id", id);
-        setField(student, "name", "홍길동");
-        setField(student, "userId", userId);
-        setField(student, "isActive", true);
+        ReflectionTestUtils.setField(student, "id", id);
+        ReflectionTestUtils.setField(student, "name", "홍길동");
+        ReflectionTestUtils.setField(student, "userId", userId);
+        ReflectionTestUtils.setField(student, "isActive", true);
         return student;
     }
 
     private AttendanceSession buildOpenSession(String code) {
         return AttendanceSession.create("수업", LocalDate.now(), null, null, 10);
-    }
-
-    private void setField(Object target, String fieldName, Object value) throws Exception {
-        Class<?> clazz = target.getClass();
-        while (clazz != null) {
-            try {
-                Field field = clazz.getDeclaredField(fieldName);
-                field.setAccessible(true);
-                field.set(target, value);
-                return;
-            } catch (NoSuchFieldException e) {
-                clazz = clazz.getSuperclass();
-            }
-        }
-        throw new NoSuchFieldException(fieldName + " not found in hierarchy of " + target.getClass());
     }
 
     // ------------------------------------------------------------------

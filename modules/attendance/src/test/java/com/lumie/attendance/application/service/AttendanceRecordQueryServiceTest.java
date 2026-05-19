@@ -15,7 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.lang.reflect.Field;
+import com.lumie.common.test.ReflectionTestUtils;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -36,35 +36,20 @@ class AttendanceRecordQueryServiceTest {
     @InjectMocks
     private AttendanceRecordQueryService queryService;
 
-    private void setField(Object target, String fieldName, Object value) throws Exception {
-        Class<?> clazz = target.getClass();
-        while (clazz != null) {
-            try {
-                Field field = clazz.getDeclaredField(fieldName);
-                field.setAccessible(true);
-                field.set(target, value);
-                return;
-            } catch (NoSuchFieldException e) {
-                clazz = clazz.getSuperclass();
-            }
-        }
-        throw new NoSuchFieldException(fieldName + " not found in hierarchy of " + target.getClass());
-    }
-
     private StudentReadModel buildStudent(Long id, String name) throws Exception {
         StudentReadModel student = new StudentReadModel() {};
-        setField(student, "id", id);
-        setField(student, "name", name);
-        setField(student, "isActive", true);
-        setField(student, "userId", id + 100L);
+        ReflectionTestUtils.setField(student, "id", id);
+        ReflectionTestUtils.setField(student, "name", name);
+        ReflectionTestUtils.setField(student, "isActive", true);
+        ReflectionTestUtils.setField(student, "userId", id + 100L);
         return student;
     }
 
     private AttendanceRecord buildRecord(Long studentId, AttendanceStatus status) throws Exception {
         AttendanceSession session = AttendanceSession.create("수업", LocalDate.now(), null, null, 10);
-        setField(session, "id", 1L);
+        ReflectionTestUtils.setField(session, "id", 1L);
         AttendanceRecord record = AttendanceRecord.create(session, studentId);
-        setField(record, "id", studentId * 10L);
+        ReflectionTestUtils.setField(record, "id", studentId * 10L);
         record.checkIn(status, 1L);
         return record;
     }
