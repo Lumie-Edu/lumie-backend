@@ -3,21 +3,37 @@ package com.lumie.activitylog.domain.entity;
 import com.lumie.common.auth.ActionType;
 import com.lumie.common.auth.EntityType;
 import com.lumie.common.auth.Role;
+import com.lumie.common.domain.AppendOnlyEntity;
 import com.lumie.common.tenant.TenantContextHolder;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.Instant;
-
+/**
+ * Append-only audit record for tenant activity.
+ *
+ * <p>{@code created_at} is provided by {@link AppendOnlyEntity}. There is no
+ * {@code updated_at} — activity logs are never mutated after insert.
+ *
+ * <p>{@code tenant_id} is owned explicitly here (not via
+ * {@link com.lumie.common.domain.TenantScopedEntity}) because this entity does
+ * not need {@code updated_at} and extending {@code TenantScopedEntity →
+ * BaseEntity} would add that redundant column to an append-only table.
+ */
 @Entity
 @Table(name = "activity_logs")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ActivityLog {
+public class ActivityLog extends AppendOnlyEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -53,12 +69,8 @@ public class ActivityLog {
     @Column(name = "tenant_id", nullable = false, updatable = false)
     private Long tenantId;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
     @PrePersist
-    protected void onCreate() {
-        this.createdAt = Instant.now();
+    private void initTenantId() {
         if (this.tenantId == null) {
             this.tenantId = TenantContextHolder.getRequiredTenantId();
         }

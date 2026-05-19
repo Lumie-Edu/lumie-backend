@@ -1,8 +1,8 @@
 package com.lumie.auth.domain.entity;
 
 import com.lumie.common.auth.Role;
-import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.auth.domain.vo.UserStatus;
+import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,7 +10,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.AccessLevel;
@@ -30,12 +29,15 @@ import lombok.NoArgsConstructor;
  * has been slimmed down to an OWNER-only directory; access it via
  * {@link com.lumie.auth.application.port.out.UserDirectoryPort}, NOT via this
  * entity.
+ *
+ * <p>Audit timestamps ({@code created_at}, {@code updated_at}) and
+ * {@code tenant_id} binding are provided by {@link TenantScopedEntity}.
  */
 @Entity
 @Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User {
+public class User extends TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -70,16 +72,6 @@ public class User {
 
     @Column(name = "avatar_seed", length = 50)
     private String avatarSeed;
-
-    @Column(name = "tenant_id", nullable = false, updatable = false)
-    private Long tenantId;
-
-    @PrePersist
-    private void initTenantId() {
-        if (this.tenantId == null) {
-            this.tenantId = TenantContextHolder.getRequiredTenantId();
-        }
-    }
 
     private User(String userLoginId, String passwordHash, String name, String phone, Role role, UserStatus status) {
         this.userLoginId = userLoginId;
