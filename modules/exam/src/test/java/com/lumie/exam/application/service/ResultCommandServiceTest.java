@@ -122,7 +122,7 @@ class ResultCommandServiceTest {
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
         given(billingService.checkQuota(any(), eq("OMR_GRADING"))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, "OMR_GRADING", "ok"));
-        given(omrService.gradeOmrImage(any(), any(), any(), any())).willReturn(buildOmrResult(100));
+        given(omrService.gradeOmrImage(any(), any(), any(), any(), any())).willReturn(buildOmrResult(100));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
         given(resultRepository.save(any(ExamResult.class))).willReturn(savedResult);
 
@@ -149,7 +149,7 @@ class ResultCommandServiceTest {
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
         given(billingService.checkQuota(any(), eq("OMR_GRADING"))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, "OMR_GRADING", "ok"));
-        given(omrService.gradeOmrImage(any(), any(), any(), any())).willReturn(buildOmrResult(100));
+        given(omrService.gradeOmrImage(any(), any(), any(), any(), any())).willReturn(buildOmrResult(100));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.of(existingResult));
         given(resultRepository.save(any(ExamResult.class))).willReturn(existingResult);
 
@@ -202,7 +202,7 @@ class ResultCommandServiceTest {
         given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
         given(studentService.validateStudent(any(), eq(100L))).willReturn(new StudentService.ValidateStudentResult(true, "ok", 100L));
         given(billingService.checkQuota(any(), eq("OMR_GRADING"))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, "OMR_GRADING", "ok"));
-        given(omrService.gradeOmrImage(any(), any(), any(), any()))
+        given(omrService.gradeOmrImage(any(), any(), any(), any(), any()))
                 .willThrow(new RuntimeException("OMR service unavailable"));
 
         assertThatThrownBy(() -> resultCommandService.processOmrGrading(1L, 100L, new byte[]{1}))
@@ -222,7 +222,7 @@ class ResultCommandServiceTest {
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
         given(billingService.checkQuota(any(), eq("OMR_GRADING"))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, "OMR_GRADING", "ok"));
-        given(omrService.gradeOmrImage(any(), any(), any(), any())).willReturn(buildOmrResult(100));
+        given(omrService.gradeOmrImage(any(), any(), any(), any(), any())).willReturn(buildOmrResult(100));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
         given(resultRepository.save(any(ExamResult.class))).willReturn(savedResult);
 

@@ -69,6 +69,7 @@ public class ResultCommandService {
         try {
             omrResult = omrService.gradeOmrImage(
                     imageData,
+                    tenantSlug,
                     exam.getCorrectAnswers(),
                     exam.getQuestionScores(),
                     exam.getQuestionTypes()

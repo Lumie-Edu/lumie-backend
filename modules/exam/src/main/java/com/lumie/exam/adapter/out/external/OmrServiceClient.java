@@ -43,6 +43,7 @@ public class OmrServiceClient implements OmrServicePort {
 
     @Override
     public OmrGradingResult gradeOmrImage(byte[] imageData,
+                                           String tenantSlug,
                                            Map<String, String> correctAnswers,
                                            Map<String, Integer> questionScores,
                                            Map<String, String> questionTypes) {
@@ -63,6 +64,7 @@ public class OmrServiceClient implements OmrServicePort {
             ResponseEntity<OmrResponse> response = restClient.post()
                     .uri(gradingServiceUrl + "/api/omr/grade")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .header("X-Tenant-Slug", tenantSlug)
                     .body(body)
                     .retrieve()
                     .toEntity(OmrResponse.class);

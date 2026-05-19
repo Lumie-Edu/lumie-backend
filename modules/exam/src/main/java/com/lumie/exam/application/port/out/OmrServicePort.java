@@ -6,6 +6,7 @@ import java.util.Map;
 public interface OmrServicePort {
 
     OmrGradingResult gradeOmrImage(byte[] imageData,
+                                    String tenantSlug,
                                     Map<String, String> correctAnswers,
                                     Map<String, Integer> questionScores,
                                     Map<String, String> questionTypes);
