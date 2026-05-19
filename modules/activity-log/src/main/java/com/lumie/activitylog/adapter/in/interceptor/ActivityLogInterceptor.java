@@ -1,6 +1,6 @@
 package com.lumie.activitylog.adapter.in.interceptor;
 
-import com.lumie.activitylog.application.service.ActivityLogContext;
+import com.lumie.common.activitylog.ActivityLogContext;
 import com.lumie.common.auth.ActionType;
 import com.lumie.common.auth.EntityType;
 import com.lumie.common.tenant.TenantContextHolder;

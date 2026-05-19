@@ -18,11 +18,10 @@ import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import com.lumie.classroom.domain.vo.SchedulePattern;
+import com.lumie.common.activitylog.LogActivity;
 import com.lumie.common.auth.ActionType;
 import com.lumie.common.auth.EntityType;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.activitylog.api.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,8 +38,8 @@ public class ClassCommandService {
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
     private final AdminService adminService;
-    private final ActivityLogService activityLogService;
 
+    @LogActivity(action = ActionType.CREATE, entity = EntityType.CLASS)
     public ClassResponse createClass(CreateClassRequest request) {
         if (request.teacherId() != null) {
             adminService.getAdmin(TenantContextHolder.getRequiredTenant(), request.teacherId())
@@ -60,13 +59,13 @@ public class ClassCommandService {
         ClassEntity saved = classRepository.save(entity);
 
         log.info("Class created: {}", saved.getId());
-        logActivity(ActionType.CREATE, EntityType.CLASS, saved.getId(), saved.getName(), null);
         String teacherName = saved.getTeacherId() != null
             ? adminService.getAdmin(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(AdminService.AdminData::name).orElse(null)
             : null;
         return ClassResponse.from(saved, teacherName);
     }
 
+    @LogActivity(action = ActionType.UPDATE, entity = EntityType.CLASS, entityIdArg = "id")
     public ClassResponse updateClass(Long id, UpdateClassRequest request) {
         ClassEntity entity = classRepository.findById(id)
             .orElseThrow(() -> new ClassNotFoundException(id));
@@ -83,24 +82,23 @@ public class ClassCommandService {
         ClassEntity saved = classRepository.save(entity);
 
         log.info("Class updated: {}", saved.getId());
-        logActivity(ActionType.UPDATE, EntityType.CLASS, saved.getId(), saved.getName(), null);
         String updatedTeacherName = saved.getTeacherId() != null
             ? adminService.getAdmin(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(AdminService.AdminData::name).orElse(null)
             : null;
         return ClassResponse.from(saved, updatedTeacherName);
     }
 
+    @LogActivity(action = ActionType.DELETE, entity = EntityType.CLASS, entityIdArg = "id")
     public void deleteClass(Long id) {
         ClassEntity entity = classRepository.findById(id)
             .orElseThrow(() -> new ClassNotFoundException(id));
 
-        String className = entity.getName();
         classRepository.delete(entity);
 
         log.info("Class deleted: {}", id);
-        logActivity(ActionType.DELETE, EntityType.CLASS, id, className, null);
     }
 
+    @LogActivity(action = ActionType.ENROLL, entity = EntityType.CLASS, entityIdArg = "classId")
     public List<ClassEnrollmentResponse> enrollStudents(Long classId, EnrollStudentsRequest request) {
         ClassEntity classEntity = classRepository.findByIdWithLock(classId)
             .orElseThrow(() -> new ClassNotFoundException(classId));
@@ -119,13 +117,12 @@ public class ClassCommandService {
         List<ClassEnrollment> saved = enrollmentRepository.saveAll(enrollments);
 
         log.info("Enrolled {} students in class: {}", saved.size(), classId);
-        logActivity(ActionType.ENROLL, EntityType.CLASS, classId, classEntity.getName(),
-                saved.size() + " students enrolled");
         return saved.stream()
             .map(ClassEnrollmentResponse::from)
             .toList();
     }
 
+    @LogActivity(action = ActionType.DROP, entity = EntityType.CLASS, entityIdArg = "classId")
     public void removeEnrollment(Long classId, Long enrollmentId) {
         ClassEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
             .orElseThrow(() -> new EnrollmentNotFoundException(enrollmentId));
@@ -137,9 +134,9 @@ public class ClassCommandService {
         enrollmentRepository.delete(enrollment);
 
         log.info("Enrollment {} removed from class: {}", enrollmentId, classId);
-        logActivity(ActionType.DROP, EntityType.CLASS, classId, enrollment.getClassEntity().getName(), null);
     }
 
+    @LogActivity(action = ActionType.DROP, entity = EntityType.CLASS, entityIdArg = "classId")
     public void removeEnrollmentByStudent(Long classId, Long studentId) {
         ClassEnrollment enrollment = enrollmentRepository.findByClassEntityIdAndStudentId(classId, studentId)
             .orElseThrow(() -> new EnrollmentNotFoundException(classId, studentId));
@@ -147,7 +144,6 @@ public class ClassCommandService {
         enrollmentRepository.delete(enrollment);
 
         log.info("Student {} removed from class: {}", studentId, classId);
-        logActivity(ActionType.DROP, EntityType.CLASS, classId, enrollment.getClassEntity().getName(), null);
     }
 
     public ClassEnrollmentResponse updateEnrollmentStatus(Long classId, Long enrollmentId,
@@ -229,20 +225,6 @@ public class ClassCommandService {
         }
         return a.startTime().compareTo(b.endTime()) < 0
                 && a.endTime().compareTo(b.startTime()) > 0;
-    }
-
-    private void logActivity(ActionType action, EntityType entityType, Long entityId,
-                             String entityName, String description) {
-        try {
-            Long userId = UserContextHolder.getRequiredUserId();
-            com.lumie.common.auth.Role role = UserContextHolder.getUserRole();
-            adminService.getAdminByUserId(TenantContextHolder.getRequiredTenant(), userId).ifPresent(actor ->
-                activityLogService.log(actor.id(), actor.name(), role == null ? null : role.name(),
-                    action.name(), entityType.name(), entityId, entityName, description)
-            );
-        } catch (Exception e) {
-            log.warn("Failed to log activity: {}", e.getMessage());
-        }
     }
 
     private EnrollmentStatus parseEnrollmentStatus(String status) {

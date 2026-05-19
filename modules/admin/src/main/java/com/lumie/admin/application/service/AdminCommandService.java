@@ -14,6 +14,7 @@ import com.lumie.admin.domain.exception.QuotaExceededException;
 import com.lumie.admin.domain.repository.AdminPermissionRepository;
 import com.lumie.admin.domain.repository.AdminRepository;
 import com.lumie.admin.domain.vo.AccessLevel;
+import com.lumie.common.activitylog.LogActivity;
 import com.lumie.common.auth.ActionType;
 import com.lumie.common.auth.EntityType;
 import com.lumie.common.auth.Role;
@@ -22,7 +23,6 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.activitylog.api.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -46,8 +46,8 @@ public class AdminCommandService {
     private final AdminPermissionRepository adminPermissionRepository;
     private final AuthService authService;
     private final BillingService billingService;
-    private final ActivityLogService activityLogService;
 
+    @LogActivity(action = ActionType.CREATE, entity = EntityType.ADMIN)
     public AdminResponse registerAdmin(AdminRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Long tenantId = TenantContextHolder.getRequiredTenantId();
@@ -86,10 +86,10 @@ public class AdminCommandService {
         Admin saved = adminRepository.save(admin);
 
         log.info("Admin registered: {} (role={}) in tenant: {}", saved.getUserLoginId(), requestedRole, tenantSlug);
-        logActivity(ActionType.CREATE, EntityType.ADMIN, saved.getId(), saved.getName(), null);
         return AdminResponse.from(saved);
     }
 
+    @LogActivity(action = ActionType.UPDATE, entity = EntityType.ADMIN, entityIdArg = "id")
     public AdminResponse updateAdmin(Long id, AdminUpdateRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
@@ -108,11 +108,11 @@ public class AdminCommandService {
         Admin updated = adminRepository.save(admin);
 
         log.info("Admin updated: {} in tenant: {}", id, tenantSlug);
-        logActivity(ActionType.UPDATE, EntityType.ADMIN, updated.getId(), updated.getName(), null);
         return AdminResponse.from(updated);
     }
 
     @CacheEvict(value = CacheConfig.CACHE_ADMIN_PERMISSIONS, key = "#adminId")
+    @LogActivity(action = ActionType.UPDATE, entity = EntityType.PERMISSION, entityIdArg = "adminId")
     public void setAdminPermissions(Long adminId, Map<String, AccessLevel> permissions) {
         Admin admin = adminRepository.findById(adminId)
                 .orElseThrow(() -> new AdminNotFoundException(adminId));
@@ -127,9 +127,9 @@ public class AdminCommandService {
         adminPermissionRepository.saveAll(entries);
 
         log.info("Admin {} permissions updated: {} entries", adminId, entries.size());
-        logActivity(ActionType.UPDATE, EntityType.PERMISSION, adminId, null, entries.size() + " permissions updated");
     }
 
+    @LogActivity(action = ActionType.DEACTIVATE, entity = EntityType.ADMIN, entityIdArg = "id")
     public void deactivateAdmin(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Admin admin = adminRepository.findById(id)
@@ -138,9 +138,9 @@ public class AdminCommandService {
         admin.deactivate();
         adminRepository.save(admin);
         log.info("Admin deactivated: {} in tenant: {}", id, tenantSlug);
-        logActivity(ActionType.DEACTIVATE, EntityType.ADMIN, id, admin.getName(), null);
     }
 
+    @LogActivity(action = ActionType.REACTIVATE, entity = EntityType.ADMIN, entityIdArg = "id")
     public void reactivateAdmin(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         checkAdminQuota(tenantSlug);
@@ -150,9 +150,9 @@ public class AdminCommandService {
         admin.activate();
         adminRepository.save(admin);
         log.info("Admin reactivated: {} in tenant: {}", id, tenantSlug);
-        logActivity(ActionType.REACTIVATE, EntityType.ADMIN, id, admin.getName(), null);
     }
 
+    @LogActivity(action = ActionType.TERMINATE, entity = EntityType.ADMIN, entityIdArg = "id")
     public void terminateAdmin(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Admin admin = adminRepository.findById(id)
@@ -161,9 +161,9 @@ public class AdminCommandService {
         admin.terminate();
         adminRepository.save(admin);
         log.info("Admin terminated: {} in tenant: {}", id, tenantSlug);
-        logActivity(ActionType.TERMINATE, EntityType.ADMIN, id, admin.getName(), null);
     }
 
+    @LogActivity(action = ActionType.RESET_PASSWORD, entity = EntityType.ADMIN, entityIdArg = "id")
     public void resetAdminPassword(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
@@ -179,9 +179,9 @@ public class AdminCommandService {
         }
 
         log.info("Password reset for admin: {} in tenant: {}", id, tenantSlug);
-        logActivity(ActionType.RESET_PASSWORD, EntityType.ADMIN, id, admin.getName(), null);
     }
 
+    @LogActivity(action = ActionType.CHANGE_LOGIN_ID, entity = EntityType.ADMIN, entityIdArg = "id")
     public String changeAdminLoginId(Long id, String newLoginId) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
@@ -200,10 +200,10 @@ public class AdminCommandService {
         adminRepository.save(admin);
 
         log.info("Login ID changed for admin: {} in tenant: {}", id, tenantSlug);
-        logActivity(ActionType.CHANGE_LOGIN_ID, EntityType.ADMIN, id, admin.getName(), null);
         return result.newLoginId();
     }
 
+    @LogActivity(action = ActionType.DELETE, entity = EntityType.ADMIN, entityIdArg = "id")
     public void deleteAdmin(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Admin admin = adminRepository.findById(id)
@@ -213,28 +213,12 @@ public class AdminCommandService {
             throw new IllegalStateException("Cannot delete active admin. Deactivate first.");
         }
         Long userId = admin.getUserId();
-        String adminName = admin.getName();
         adminRepository.delete(admin);
         AuthService.DeleteUserResult deleteResult = authService.deleteUser(userId);
         if (!deleteResult.success()) {
             log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
         }
         log.info("Admin permanently deleted: {} in tenant: {}", id, tenantSlug);
-        logActivity(ActionType.DELETE, EntityType.ADMIN, id, adminName, null);
-    }
-
-    private void logActivity(ActionType action, EntityType entityType, Long entityId,
-                             String entityName, String description) {
-        try {
-            Long userId = UserContextHolder.getRequiredUserId();
-            Role role = UserContextHolder.getUserRole();
-            adminRepository.findByUserId(userId).ifPresent(actor ->
-                activityLogService.log(actor.getId(), actor.getName(), role == null ? null : role.name(),
-                    action.name(), entityType.name(), entityId, entityName, description)
-            );
-        } catch (Exception e) {
-            log.warn("Failed to log activity: {}", e.getMessage());
-        }
     }
 
     private void validateActorAuthority(Admin target, String action) {
