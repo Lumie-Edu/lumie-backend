@@ -17,6 +17,10 @@ public class Announcement extends TenantScopedEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "author_id")
     private Long authorId;
 

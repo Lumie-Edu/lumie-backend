@@ -17,6 +17,10 @@ public class Review extends TenantScopedEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "reviewer_name", nullable = false, length = 100)
     private String reviewerName;
 

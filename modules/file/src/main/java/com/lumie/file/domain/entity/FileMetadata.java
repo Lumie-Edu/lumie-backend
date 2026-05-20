@@ -20,6 +20,10 @@ public class FileMetadata extends TenantScopedEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "entity_type", nullable = false, length = 20)
     private EntityType entityType;

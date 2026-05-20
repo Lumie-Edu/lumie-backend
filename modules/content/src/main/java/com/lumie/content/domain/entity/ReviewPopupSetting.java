@@ -15,6 +15,10 @@ public class ReviewPopupSetting extends TenantScopedEntity {
     @Id
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "is_review_popup_on", nullable = false)
     private Boolean isReviewPopupOn;
 

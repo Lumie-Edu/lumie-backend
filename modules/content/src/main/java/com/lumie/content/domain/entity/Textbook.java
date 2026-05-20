@@ -20,6 +20,10 @@ public class Textbook extends TenantScopedEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 
