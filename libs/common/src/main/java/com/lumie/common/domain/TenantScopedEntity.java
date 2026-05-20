@@ -23,9 +23,12 @@ import lombok.Getter;
  * {@code paddle_webhook_events}) continue to extend {@link BaseEntity}
  * directly and have no {@code tenant_id} column.
  *
- * <p>{@link PrePersist} callbacks fire superclass-first per JPA spec, so
- * {@link BaseEntity#onCreate()} runs before {@link #initTenantId()};
- * audit timestamps are populated by the time tenant binding executes.
+ * <p>Per the JPA spec, {@code EntityListener} callbacks fire before
+ * entity-method {@code @PrePersist} callbacks. {@link BaseEntity}'s
+ * {@code AuditingEntityListener} therefore populates
+ * {@code createdAt}/{@code updatedAt} before {@link #initTenantId()}
+ * executes — audit timestamps are guaranteed set by the time tenant
+ * binding runs.
  */
 @Getter
 @MappedSuperclass

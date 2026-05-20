@@ -21,6 +21,12 @@ import java.time.Instant;
  * directly) because tenant scoping is orthogonal to the append-only contract.
  * {@code ActivityLog} extends this class and owns its own {@code tenant_id}
  * column to remain explicit about RLS column ownership.
+ *
+ * <p>Intentionally NOT migrated to Spring Data JPA Auditing (which
+ * {@link BaseEntity} now uses): the append-only contract guarantees no
+ * {@code @LastModifiedDate} path will ever fire, so the lighter manual
+ * {@code @PrePersist} avoids importing the {@code AuditingEntityListener}
+ * coupling for zero behavioral benefit.
  */
 @Getter
 @MappedSuperclass
