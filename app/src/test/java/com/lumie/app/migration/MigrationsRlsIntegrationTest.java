@@ -3,6 +3,7 @@ package com.lumie.app.migration;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -38,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * dedicated restricted role created below — without that, this test would
  * pass even with isolation completely broken.
  */
+@Tag("integration")
 @Testcontainers
 class MigrationsRlsIntegrationTest {
 

@@ -38,6 +38,12 @@
     { "moduleLicense": "Unlicense" },
     { "moduleLicense": "Universal Permissive License, Version 1.0" },
     { "moduleLicense": "UPL-1.0" },
-    { "moduleLicense": "Go License" }
+    { "moduleLicense": "Go License" },
+    { "moduleLicense": "The BSD License" },
+    { "moduleLicense": "BSD licence" },
+    { "moduleLicense": "GNU LESSER GENERAL PUBLIC LICENSE, Version 2.1" },
+    { "moduleLicense": "Creative Commons Legal Code" },
+    { "moduleLicense": "PUBLIC DOMAIN" },
+    { "moduleLicense": "MIT-0" }
   ]
 }

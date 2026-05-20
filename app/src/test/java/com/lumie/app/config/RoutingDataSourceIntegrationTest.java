@@ -1,5 +1,6 @@
 package com.lumie.app.config;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -101,6 +102,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         classes = RoutingDataSourceIntegrationTest.TestApp.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE
 )
+@Tag("integration")
 @Testcontainers
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class RoutingDataSourceIntegrationTest {

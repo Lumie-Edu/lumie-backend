@@ -85,8 +85,25 @@ subprojects {
         }
     }
 
-    tasks.withType<Test> {
-        useJUnitPlatform()
+    // Integration tests (TestContainers + Spring `@SpringBootTest`) are
+    // tagged `@Tag("integration")`. Default `test` skips them so dev builds
+    // stay fast; CI or explicit `./gradlew integrationTest` runs the full
+    // suite. Opt into a single combined run via `-Pintegration`.
+    val runIntegration = project.hasProperty("integration")
+
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform {
+            if (!runIntegration && name == "test") {
+                excludeTags("integration")
+            }
+        }
+    }
+
+    tasks.register<Test>("integrationTest") {
+        description = "Runs @Tag(\"integration\") tests (TestContainers + Spring boot slice)."
+        group = "verification"
+        useJUnitPlatform { includeTags("integration") }
+        shouldRunAfter("test")
     }
 
     // Spotless: hygiene-only (no full Google-Java-Format reflow yet).
@@ -170,4 +187,16 @@ licenseReport {
 
 tasks.named("check") {
     dependsOn("checkLicense")
+}
+
+// jk1.license plugin's tasks aren't config-cache compatible (they retain
+// Project references). Mark them explicitly so the rest of the build can
+// still benefit from the config cache. Until upstream adds support, these
+// three tasks always re-execute from scratch.
+listOf("checkLicensePreparation", "checkLicense", "generateLicenseReport").forEach { taskName ->
+    tasks.named(taskName) {
+        notCompatibleWithConfigurationCache(
+            "jk1.license plugin retains Project references (upstream issue)."
+        )
+    }
 }

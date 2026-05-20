@@ -65,8 +65,8 @@ class ClassEnrollmentControllerTest {
 
         mockMvc.perform(get("/v1/classes/1/enrollments"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(10))
-                .andExpect(jsonPath("$.content[0].studentId").value(42));
+                .andExpect(jsonPath("$.items[0].id").value(10))
+                .andExpect(jsonPath("$.items[0].studentId").value(42));
     }
 
     @Test

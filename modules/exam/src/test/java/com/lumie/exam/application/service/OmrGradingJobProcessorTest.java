@@ -3,6 +3,7 @@ package com.lumie.exam.application.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.common.test.TenantContextExtension;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
+import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.student.api.StudentService;
 import com.lumie.exam.domain.entity.Exam;
@@ -11,10 +12,10 @@ import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.test.ExamFixtures;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -39,14 +40,22 @@ class OmrGradingJobProcessorTest {
     @Mock
     private OmrStoragePort storagePort;
     @Mock
+    private CallbackDeduplicationPort callbackDeduplication;
+    @Mock
     private StudentService studentService;
     @Mock
     private OmrGradingJobRepository jobRepository;
     @Mock
     private ObjectMapper objectMapper;
 
-    @InjectMocks
     private OmrGradingJobProcessor processor;
+
+    @BeforeEach
+    void setUp() {
+        OmrGradingJobProcessor.Tx tx = new OmrGradingJobProcessor.Tx(
+                examRepository, resultRepository, resultCommandService, jobRepository, studentService);
+        processor = new OmrGradingJobProcessor(storagePort, callbackDeduplication, jobRepository, objectMapper, tx);
+    }
 
     private OmrGradingCallbackRequest buildSuccessCallback() {
         return new OmrGradingCallbackRequest(
@@ -73,6 +82,7 @@ class OmrGradingJobProcessorTest {
                 studentId, 1000L, "홍길동", "01012345678", true, null, null);
         ExamResult resolvedResult = ExamResult.create(exam, studentId, 100);
 
+        given(callbackDeduplication.markIfAbsent(any())).willReturn(true);
         given(examRepository.findById(10L)).willReturn(Optional.of(exam));
         given(studentService.getStudentByPhone(any(), eq("01012345678"))).willReturn(Optional.of(student));
         given(resultCommandService.resolveResult(eq(exam), eq(studentId), any())).willReturn(resolvedResult);
@@ -98,6 +108,7 @@ class OmrGradingJobProcessorTest {
                 null, 0, 0, null
         );
 
+        given(callbackDeduplication.markIfAbsent(any())).willReturn(true);
         given(jobRepository.tryComplete(1L, 1)).willReturn(true);
 
         processor.processGradingCallback(request);

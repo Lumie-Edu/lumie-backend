@@ -73,8 +73,8 @@ class SmsCommandServiceTest {
                     List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                     "제목", "내용", null);
 
-            given(staffService.getAdmin(anyString(), eq(10L)))
-                    .willReturn(Optional.of(new StaffService.AdminData(
+            given(staffService.getStaff(anyString(), eq(10L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(messageRepository.save(any(SmsMessage.class)))
                     .willAnswer(inv -> {
@@ -97,8 +97,8 @@ class SmsCommandServiceTest {
                     10L, RecipientType.STUDENT,
                     List.of(), "제목", "내용", null);
 
-            given(staffService.getAdmin(anyString(), eq(10L)))
-                    .willReturn(Optional.of(new StaffService.AdminData(
+            given(staffService.getStaff(anyString(), eq(10L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
 
             assertThatThrownBy(() -> commandService.sendSms(request))
@@ -113,7 +113,7 @@ class SmsCommandServiceTest {
                     List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
                     "제목", "내용", null);
 
-            given(staffService.getAdmin(anyString(), eq(999L))).willReturn(Optional.empty());
+            given(staffService.getStaff(anyString(), eq(999L))).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.sendSms(request))
                     .isInstanceOf(BusinessException.class);
@@ -129,8 +129,8 @@ class SmsCommandServiceTest {
         void sendToClass_success() {
             SendToClassRequest request = new SendToClassRequest(10L, "제목", "내용", null);
 
-            given(staffService.getAdmin(anyString(), eq(10L)))
-                    .willReturn(Optional.of(new StaffService.AdminData(
+            given(staffService.getStaff(anyString(), eq(10L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(classService.getClass(anyString(), eq(5L)))
                     .willReturn(Optional.of(new ClassService.ClassData(
@@ -162,8 +162,8 @@ class SmsCommandServiceTest {
         void sendToClass_noStudents_throwsException() {
             SendToClassRequest request = new SendToClassRequest(10L, "제목", "내용", null);
 
-            given(staffService.getAdmin(anyString(), eq(10L)))
-                    .willReturn(Optional.of(new StaffService.AdminData(
+            given(staffService.getStaff(anyString(), eq(10L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(classService.getClass(anyString(), eq(5L)))
                     .willReturn(Optional.of(new ClassService.ClassData(

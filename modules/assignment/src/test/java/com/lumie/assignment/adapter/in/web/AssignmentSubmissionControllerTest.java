@@ -64,8 +64,8 @@ class AssignmentSubmissionControllerTest {
 
         mockMvc.perform(get("/v1/assignments/1/submissions"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(10))
-                .andExpect(jsonPath("$.content[0].studentId").value(42));
+                .andExpect(jsonPath("$.items[0].id").value(10))
+                .andExpect(jsonPath("$.items[0].studentId").value(42));
     }
 
     @Test
@@ -142,7 +142,7 @@ class AssignmentSubmissionControllerTest {
 
         mockMvc.perform(get("/v1/assignments/1/submissions/student/42"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(10));
+                .andExpect(jsonPath("$.items[0].id").value(10));
     }
 
     private SubmissionResponse buildSubmissionResponse(Long id) {

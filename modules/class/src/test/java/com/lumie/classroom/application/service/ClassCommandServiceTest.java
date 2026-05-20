@@ -57,7 +57,7 @@ class ClassCommandServiceTest {
             CreateClassRequest request = new CreateClassRequest(
                     "수학 기초반", 10L, null, "설명");
 
-            given(staffService.getAdmin(any(), eq(10L)))
+            given(staffService.getStaff(any(), eq(10L)))
                     .willReturn(Optional.of(new StaffService.StaffData(
                             10L, 100L, "kim", "김선생", null, null, true, "ACTIVE", null, null)));
             given(classRepository.save(any(ClassEntity.class)))
@@ -80,7 +80,7 @@ class ClassCommandServiceTest {
             CreateClassRequest request = new CreateClassRequest(
                     "수학반", 999L, null, null);
 
-            given(staffService.getAdmin(any(), eq(999L))).willReturn(Optional.empty());
+            given(staffService.getStaff(any(), eq(999L))).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.createClass(request))
                     .isInstanceOf(BusinessException.class);

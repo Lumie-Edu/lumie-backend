@@ -87,8 +87,8 @@ class AssignmentControllerTest {
 
         mockMvc.perform(get("/v1/assignments"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(1))
-                .andExpect(jsonPath("$.content[0].title").value("수학 숙제"));
+                .andExpect(jsonPath("$.items[0].id").value(1))
+                .andExpect(jsonPath("$.items[0].title").value("수학 숙제"));
     }
 
     @Test
@@ -156,7 +156,7 @@ class AssignmentControllerTest {
 
         mockMvc.perform(get("/v1/assignments/class/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(1));
+                .andExpect(jsonPath("$.items[0].id").value(1));
     }
 
     private AssignmentResponse buildAssignmentResponse(Long id) {

@@ -73,12 +73,12 @@ class HomepageControllerTest {
     }
 
     @Test
-    @DisplayName("GET /v1/homepage - 설정 없을 때 null body 반환")
+    @DisplayName("GET /v1/homepage - 미공개 시 404 반환")
     void getCurrent_returnsNullBody_whenNoConfig() throws Exception {
         when(homepageQueryService.getCurrent()).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/v1/homepage"))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -162,12 +162,12 @@ class HomepageControllerTest {
     }
 
     @Test
-    @DisplayName("GET /v1/homepage/public/by-custom-id/{customId} - 미공개 시 null body 반환")
+    @DisplayName("GET /v1/homepage/public/by-custom-id/{customId} - 미공개 시 404 반환")
     void getPublicByCustomId_returnsNullBody_whenUnpublished() throws Exception {
         when(homepageQueryService.getPublicByCustomId("my-academy")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/v1/homepage/public/by-custom-id/my-academy"))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
     }
 
     private HomepageConfigResponse buildResponse(boolean published) {

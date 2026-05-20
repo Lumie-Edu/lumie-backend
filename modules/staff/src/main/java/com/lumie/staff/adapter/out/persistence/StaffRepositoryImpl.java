@@ -4,7 +4,6 @@ import com.lumie.staff.domain.entity.Staff;
 import com.lumie.staff.domain.repository.StaffRepositoryCustom;
 import com.lumie.staff.domain.vo.StaffFilter;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.support.JpaEntityInformationSupport;

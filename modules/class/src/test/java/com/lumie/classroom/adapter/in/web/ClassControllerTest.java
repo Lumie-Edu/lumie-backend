@@ -81,8 +81,8 @@ class ClassControllerTest {
 
         mockMvc.perform(get("/v1/classes"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(1))
-                .andExpect(jsonPath("$.content[0].name").value("수학 기초반"));
+                .andExpect(jsonPath("$.items[0].id").value(1))
+                .andExpect(jsonPath("$.items[0].name").value("수학 기초반"));
     }
 
     @Test

@@ -5,7 +5,6 @@ import com.lumie.lecture.application.dto.response.WatchResponse;
 import com.lumie.lecture.application.service.LectureQueryService;
 import com.lumie.common.api.PageResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;

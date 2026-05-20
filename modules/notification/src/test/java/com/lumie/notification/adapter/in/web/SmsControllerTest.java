@@ -82,8 +82,8 @@ class SmsControllerTest {
 
         mockMvc.perform(get("/v1/sms/history"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(1))
-                .andExpect(jsonPath("$.content[0].status").value("SENT"));
+                .andExpect(jsonPath("$.items[0].id").value(1))
+                .andExpect(jsonPath("$.items[0].status").value("SENT"));
     }
 
     @Test

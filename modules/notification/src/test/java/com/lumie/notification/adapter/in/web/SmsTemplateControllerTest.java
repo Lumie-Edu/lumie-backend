@@ -56,21 +56,21 @@ class SmsTemplateControllerTest {
     }
 
     @Test
-    @DisplayName("GET /v1/sms/templates - 템플릿 목록 조회 시 200을 반환한다")
+    @DisplayName("GET /v1/sms-templates - 템플릿 목록 조회 시 200을 반환한다")
     void listTemplates_returns200() throws Exception {
         SmsTemplateResponse response = buildTemplateResponse(1L);
         Page<SmsTemplateResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1);
 
         given(queryService.listTemplates(any())).willReturn(page);
 
-        mockMvc.perform(get("/v1/sms/templates"))
+        mockMvc.perform(get("/v1/sms-templates"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(1))
-                .andExpect(jsonPath("$.content[0].name").value("출석 알림"));
+                .andExpect(jsonPath("$.items[0].id").value(1))
+                .andExpect(jsonPath("$.items[0].name").value("출석 알림"));
     }
 
     @Test
-    @DisplayName("POST /v1/sms/templates - 템플릿 생성 시 201을 반환한다")
+    @DisplayName("POST /v1/sms-templates - 템플릿 생성 시 201을 반환한다")
     void createTemplate_returns201() throws Exception {
         SmsTemplateResponse response = buildTemplateResponse(1L);
         given(commandService.createTemplate(any(CreateTemplateRequest.class))).willReturn(response);
@@ -78,7 +78,7 @@ class SmsTemplateControllerTest {
         CreateTemplateRequest request = new CreateTemplateRequest(
                 "출석 알림", "{학생명}님이 출석했습니다.", TemplateCategory.ATTENDANCE);
 
-        mockMvc.perform(post("/v1/sms/templates")
+        mockMvc.perform(post("/v1/sms-templates")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -87,14 +87,14 @@ class SmsTemplateControllerTest {
     }
 
     @Test
-    @DisplayName("PATCH /v1/sms/templates/{id} - 템플릿 수정 시 200을 반환한다")
+    @DisplayName("PATCH /v1/sms-templates/{id} - 템플릿 수정 시 200을 반환한다")
     void updateTemplate_returns200() throws Exception {
         SmsTemplateResponse response = buildTemplateResponse(1L);
         given(commandService.updateTemplate(eq(1L), any(UpdateTemplateRequest.class))).willReturn(response);
 
         UpdateTemplateRequest request = new UpdateTemplateRequest("변경된 이름", null, null);
 
-        mockMvc.perform(patch("/v1/sms/templates/1")
+        mockMvc.perform(patch("/v1/sms-templates/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -102,20 +102,20 @@ class SmsTemplateControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /v1/sms/templates/{id} - 템플릿 삭제 시 204를 반환한다")
+    @DisplayName("DELETE /v1/sms-templates/{id} - 템플릿 삭제 시 204를 반환한다")
     void deleteTemplate_returns204() throws Exception {
         doNothing().when(commandService).deleteTemplate(1L);
 
-        mockMvc.perform(delete("/v1/sms/templates/1"))
+        mockMvc.perform(delete("/v1/sms-templates/1"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    @DisplayName("DELETE /v1/sms/templates/{id} - 존재하지 않는 템플릿 삭제 시 404를 반환한다")
+    @DisplayName("DELETE /v1/sms-templates/{id} - 존재하지 않는 템플릿 삭제 시 404를 반환한다")
     void deleteTemplate_notFound_returns404() throws Exception {
         doThrow(new SmsTemplateNotFoundException(999L)).when(commandService).deleteTemplate(999L);
 
-        mockMvc.perform(delete("/v1/sms/templates/999"))
+        mockMvc.perform(delete("/v1/sms-templates/999"))
                 .andExpect(status().isNotFound());
     }
 
