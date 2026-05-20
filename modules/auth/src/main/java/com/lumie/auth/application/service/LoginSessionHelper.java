@@ -2,6 +2,8 @@ package com.lumie.auth.application.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lumie.auth.application.exception.AuthErrors.SessionSerializationFailedException;
+import com.lumie.auth.application.exception.AuthErrors.TokenIssuanceFailedException;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.TokenProviderPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
@@ -46,9 +48,9 @@ public class LoginSessionHelper {
         TokenPair tokenPair = generateTokenPair(user, tenantSlug, tenantId, sid);
 
         TokenClaims refreshClaims = tokenProvider.parseToken(tokenPair.refreshToken())
-                .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
+                .orElseThrow(() -> new TokenIssuanceFailedException("Failed to parse generated refresh token"));
         TokenClaims accessClaims = tokenProvider.parseToken(tokenPair.accessToken())
-                .orElseThrow(() -> new IllegalStateException("Failed to parse generated access token"));
+                .orElseThrow(() -> new TokenIssuanceFailedException("Failed to parse generated access token"));
 
         saveRefreshToken(user.id(), tenantSlug, tenantId, user.role(), refreshClaims);
         saveSessionData(tenantSlug, user.id(), sid, accessClaims.jti(), refreshClaims.jti(), metadata);
@@ -95,7 +97,7 @@ public class LoginSessionHelper {
             long ttl = tokenProvider.getRefreshTokenExpiration();
             tokenPersistencePort.saveSession(tenantSlug, sid, json, ttl);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to update session metadata for sid: " + sid, e);
+            throw new SessionSerializationFailedException(e);
         }
     }
 
@@ -169,7 +171,7 @@ public class LoginSessionHelper {
             tokenPersistencePort.saveSession(tenantSlug, sid, json, ttl);
             tokenPersistencePort.addSessionToIndex(tenantSlug, userId, sid);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize session data", e);
+            throw new SessionSerializationFailedException(e);
         }
     }
 

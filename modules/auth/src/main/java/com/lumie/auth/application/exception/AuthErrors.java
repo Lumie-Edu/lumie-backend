@@ -46,4 +46,64 @@ public final class AuthErrors {
             super(AuthErrorCode.LOGIN_ID_GENERATION_FAILED);
         }
     }
+
+    /** Unsupported OAuth2 provider name supplied by the caller — maps to 400. */
+    public static class UnsupportedOAuth2ProviderException extends BusinessException {
+        public UnsupportedOAuth2ProviderException(String message) {
+            super(AuthErrorCode.UNSUPPORTED_OAUTH_PROVIDER, message);
+        }
+    }
+
+    /** Token signing succeeded but the resulting JWT could not be re-parsed — maps to 500. */
+    public static class TokenIssuanceFailedException extends BusinessException {
+        public TokenIssuanceFailedException(String message) {
+            super(AuthErrorCode.TOKEN_ISSUANCE_FAILED, message);
+        }
+    }
+
+    /** Session data could not be serialized to / deserialized from the store — maps to 500. */
+    public static class SessionSerializationFailedException extends BusinessException {
+        public SessionSerializationFailedException(Throwable cause) {
+            super(AuthErrorCode.SESSION_SERIALIZATION_FAILED, cause);
+        }
+    }
+
+    /** Supplied current password does not match the stored hash — maps to 401. */
+    public static class CurrentPasswordIncorrectException extends BusinessException {
+        public CurrentPasswordIncorrectException(String message) {
+            super(AuthErrorCode.CURRENT_PASSWORD_INCORRECT, message);
+        }
+    }
+
+    /** New password is identical to the current password — maps to 422. */
+    public static class PasswordUnchangedException extends BusinessException {
+        public PasswordUnchangedException(String message) {
+            super(AuthErrorCode.PASSWORD_UNCHANGED, message);
+        }
+    }
+
+    /** User account has been disabled by an administrator — maps to 403. */
+    public static class UserDisabledException extends BusinessException {
+        public UserDisabledException(String message) {
+            super(AuthErrorCode.USER_DISABLED, message);
+        }
+    }
+
+    /** Tenant is not in an active state for this operation — maps to 403. */
+    public static class TenantInactiveException extends BusinessException {
+        public TenantInactiveException(String message) {
+            super(AuthErrorCode.TENANT_INACTIVE, message);
+        }
+    }
+
+    /** OAuth2 state parameter is missing, malformed, or expired — maps to 400. */
+    public static class InvalidStateException extends BusinessException {
+        public InvalidStateException(String message) {
+            super(AuthErrorCode.INVALID_STATE, message);
+        }
+
+        public InvalidStateException(String message, Throwable cause) {
+            super(AuthErrorCode.INVALID_STATE, cause);
+        }
+    }
 }

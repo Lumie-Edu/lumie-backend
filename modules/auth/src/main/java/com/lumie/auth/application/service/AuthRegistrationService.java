@@ -4,6 +4,7 @@ import com.lumie.auth.application.dto.request.OwnerRegisterRequest;
 import com.lumie.auth.application.dto.request.RegisterRequest;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.exception.AuthErrors.TenantCreationFailedException;
+import com.lumie.auth.application.exception.AuthErrors.TenantInactiveException;
 import com.lumie.auth.application.exception.AuthErrors.UserLoginIdAlreadyExistsException;
 import com.lumie.auth.application.port.out.UserDirectoryPort;
 import com.lumie.auth.application.port.out.UserLookupPort;
@@ -46,7 +47,7 @@ public class AuthRegistrationService {
         TenantData tenant = tenantService.getTenantBySlug(request.tenantSlug())
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", request.tenantSlug()));
         if (!tenant.isActive()) {
-            throw new IllegalStateException("Tenant is not active: " + request.tenantSlug());
+            throw new TenantInactiveException("Tenant is not active: " + request.tenantSlug());
         }
 
         return TenantContextHolder.withinContext(tenant.slug(), tenant.id(), () -> {

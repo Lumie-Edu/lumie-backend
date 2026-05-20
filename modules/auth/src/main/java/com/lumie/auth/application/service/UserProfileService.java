@@ -3,6 +3,8 @@ package com.lumie.auth.application.service;
 import com.lumie.auth.application.dto.request.ChangePasswordRequest;
 import com.lumie.auth.application.dto.request.UpdateProfileRequest;
 import com.lumie.auth.application.dto.response.UserResponse;
+import com.lumie.auth.application.exception.AuthErrors.CurrentPasswordIncorrectException;
+import com.lumie.auth.application.exception.AuthErrors.PasswordUnchangedException;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
@@ -46,10 +48,10 @@ public class UserProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
 
         if (!passwordEncoder.matches(request.currentPassword(), user.passwordHash())) {
-            throw new IllegalStateException("Current password is incorrect");
+            throw new CurrentPasswordIncorrectException("Current password is incorrect");
         }
         if (passwordEncoder.matches(request.newPassword(), user.passwordHash())) {
-            throw new IllegalArgumentException("New password must differ from the current password");
+            throw new PasswordUnchangedException("New password must differ from the current password");
         }
 
         String newHash = passwordEncoder.encode(request.newPassword());

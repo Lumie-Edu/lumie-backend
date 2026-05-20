@@ -3,6 +3,11 @@ package com.lumie.auth.application.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.dto.response.LoginResponse;
+import com.lumie.auth.application.exception.AuthErrors.InvalidStateException;
+import com.lumie.auth.application.exception.AuthErrors.SessionSerializationFailedException;
+import com.lumie.auth.application.exception.AuthErrors.TenantInactiveException;
+import com.lumie.auth.application.exception.AuthErrors.TokenIssuanceFailedException;
+import com.lumie.auth.application.exception.AuthErrors.UnsupportedOAuth2ProviderException;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.api.TenantService.TenantData;
@@ -15,6 +20,7 @@ import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.domain.vo.TokenPair;
 import com.lumie.auth.adapter.out.config.OAuth2Config;
 import com.lumie.auth.application.port.out.TokenProviderPort;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -94,16 +100,16 @@ public class OAuth2AuthService {
         String nonce = stateParts[1];
 
         String storedTenantSlug = tokenPersistencePort.consumeOAuth2Nonce(nonce)
-                .orElseThrow(() -> new IllegalStateException("Invalid or expired OAuth2 state"));
+                .orElseThrow(() -> new InvalidStateException("Invalid or expired OAuth2 state"));
         if (!storedTenantSlug.equals(tenantSlug)) {
-            throw new IllegalStateException("OAuth2 state tenant mismatch");
+            throw new InvalidStateException("OAuth2 state tenant mismatch");
         }
 
         TenantData tenant = tenantService.getTenantBySlug(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
 
         if (!tenant.isActive()) {
-            throw new IllegalStateException("Tenant is not active: " + tenantSlug);
+            throw new TenantInactiveException("Tenant is not active: " + tenantSlug);
         }
 
         OAuth2Config.ProviderConfig config = getProviderConfig(provider);
@@ -128,9 +134,9 @@ public class OAuth2AuthService {
         TokenPair tokenPair = generateTokenPair(user, tenantSlug, tenant.id(), sid);
 
         TokenClaims refreshClaims = tokenProvider.parseToken(tokenPair.refreshToken())
-                .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
+                .orElseThrow(() -> new TokenIssuanceFailedException("Failed to parse generated refresh token"));
         TokenClaims accessClaims = tokenProvider.parseToken(tokenPair.accessToken())
-                .orElseThrow(() -> new IllegalStateException("Failed to parse generated access token"));
+                .orElseThrow(() -> new TokenIssuanceFailedException("Failed to parse generated access token"));
 
         saveRefreshToken(user.id(), tenantSlug, tenant.id(), user.role(), refreshClaims);
         saveSessionData(tenantSlug, user.id(), sid, accessClaims.jti(), refreshClaims.jti(), metadata);
@@ -156,11 +162,13 @@ public class OAuth2AuthService {
             String decoded = new String(Base64.getUrlDecoder().decode(state), StandardCharsets.UTF_8);
             String[] parts = decoded.split(":", 2);
             if (parts.length != 2) {
-                throw new IllegalArgumentException("Invalid state format");
+                throw new InvalidStateException("Invalid state format");
             }
             return parts;
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to decode state parameter", e);
+            throw new InvalidStateException("Failed to decode state parameter", e);
         }
     }
 
@@ -169,7 +177,7 @@ public class OAuth2AuthService {
             case "google" -> oAuth2Config.getGoogle();
             case "kakao" -> oAuth2Config.getKakao();
             case "naver" -> oAuth2Config.getNaver();
-            default -> throw new IllegalArgumentException("Unsupported OAuth2 provider: " + provider);
+            default -> throw new UnsupportedOAuth2ProviderException("Unsupported OAuth2 provider: " + provider);
         };
     }
 
@@ -225,7 +233,7 @@ public class OAuth2AuthService {
                                 naverProfile.getOrDefault("nickname", "Unknown"))
                 );
             }
-            default -> throw new IllegalArgumentException("Unsupported provider: " + provider);
+            default -> throw new UnsupportedOAuth2ProviderException("Unsupported provider: " + provider);
         };
     }
 
@@ -276,7 +284,7 @@ public class OAuth2AuthService {
             tokenPersistencePort.saveSession(tenantSlug, sid, json, ttl);
             tokenPersistencePort.addSessionToIndex(tenantSlug, userId, sid);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize session data", e);
+            throw new SessionSerializationFailedException(e);
         }
     }
 

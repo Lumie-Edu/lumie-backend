@@ -8,6 +8,9 @@ import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
 import com.lumie.auth.application.exception.AuthErrors.InvalidCredentialsException;
 import com.lumie.auth.application.exception.AuthErrors.InvalidTokenException;
+import com.lumie.auth.application.exception.AuthErrors.TenantInactiveException;
+import com.lumie.auth.application.exception.AuthErrors.TokenIssuanceFailedException;
+import com.lumie.auth.application.exception.AuthErrors.UserDisabledException;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.TokenProviderPort;
 import com.lumie.tenant.api.TenantService;
@@ -62,7 +65,7 @@ public class AuthSessionService {
                     .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
 
             if (!user.enabled()) {
-                throw new IllegalStateException("User account is disabled");
+                throw new UserDisabledException("User account is disabled");
             }
             if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
                 throw new InvalidCredentialsException("Invalid user login ID or password");
@@ -81,7 +84,7 @@ public class AuthSessionService {
             TenantData tenant = tenantService.getTenantBySlug(headerSlug)
                     .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
             if (!tenant.isActive()) {
-                throw new IllegalStateException("Tenant is not active");
+                throw new TenantInactiveException("Tenant is not active");
             }
             return tenant;
         }
@@ -93,7 +96,7 @@ public class AuthSessionService {
         TenantData tenant = tenantService.getTenant(entry.tenantId())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
         if (!tenant.isActive()) {
-            throw new IllegalStateException("Tenant is not active");
+            throw new TenantInactiveException("Tenant is not active");
         }
         return tenant;
     }
@@ -136,14 +139,14 @@ public class AuthSessionService {
         TenantData tenant = tenantService.getTenantBySlug(claims.tenantSlug())
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", claims.tenantSlug()));
         if (!tenant.isActive()) {
-            throw new IllegalStateException("Tenant is not active");
+            throw new TenantInactiveException("Tenant is not active");
         }
 
         UserData user = TenantContextHolder.withinContext(tenant.slug(), tenant.id(),
                 () -> userLookupPort.findById(claims.getUserId())
                         .orElseThrow(() -> new ResourceNotFoundException("User", claims.sub())));
         if (!user.enabled()) {
-            throw new IllegalStateException("User account is disabled");
+            throw new UserDisabledException("User account is disabled");
         }
 
         tokenPersistencePort.deleteRefreshToken(claims.getUserId(), claims.jti());
@@ -151,9 +154,9 @@ public class AuthSessionService {
         String sid = claims.sid();
         TokenPair newTokenPair = loginSessionHelper.generateTokenPair(user, tenant.slug(), tenant.id(), sid);
         TokenClaims newRefreshClaims = tokenProvider.parseToken(newTokenPair.refreshToken())
-                .orElseThrow(() -> new IllegalStateException("Failed to parse generated refresh token"));
+                .orElseThrow(() -> new TokenIssuanceFailedException("Failed to parse generated refresh token"));
         TokenClaims newAccessClaims = tokenProvider.parseToken(newTokenPair.accessToken())
-                .orElseThrow(() -> new IllegalStateException("Failed to parse generated access token"));
+                .orElseThrow(() -> new TokenIssuanceFailedException("Failed to parse generated access token"));
 
         loginSessionHelper.saveRefreshToken(user.id(), tenant.slug(), tenant.id(), user.role(), newRefreshClaims);
         loginSessionHelper.updateSessionTokenJtis(tenant.slug(), sid, newAccessClaims.jti(), newRefreshClaims.jti());
