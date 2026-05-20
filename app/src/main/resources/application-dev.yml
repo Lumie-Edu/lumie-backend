@@ -6,3 +6,14 @@ spring:
     # Adds dev seed location on top of platform migrations.
     # R__dev_seed.sql re-runs on checksum change (safe — uses INSERT ... ON CONFLICT DO NOTHING).
     locations: classpath:db/migration/public,classpath:db/seed
+
+# Cross-site cookie policy for local FE (http://localhost:3000) talking to
+# dev backend (https://dev.lumie-infra.com). With the standard architecture
+# of FE-local + BE-cluster, every auth cookie traverses a cross-site
+# boundary; SameSite=Lax (the default) would only attach the cookie on
+# top-level GET navigations, not on the fetch() / XHR calls the FE actually
+# makes. SameSite=None requires Secure=true (already on by default).
+# In prod, FE and BE share the same registrable domain (lumie-edu.com), so
+# the application.yaml default of Lax is correct — this override is dev-only.
+cookie:
+  sameSite: None
