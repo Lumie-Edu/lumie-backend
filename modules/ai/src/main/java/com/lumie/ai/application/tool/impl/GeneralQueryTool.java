@@ -2,7 +2,7 @@ package com.lumie.ai.application.tool.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.ai.application.tool.*;
-import com.lumie.ai.domain.service.SqlValidator;
+import com.lumie.ai.application.service.SqlValidator;
 import com.lumie.ai.adapter.out.config.ReadOnlyDataSourceConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

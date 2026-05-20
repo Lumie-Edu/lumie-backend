@@ -2,9 +2,9 @@ package com.lumie.assignment.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.lumie.assignment.application.dto.CreateSubmissionRequest;
-import com.lumie.assignment.application.dto.SubmissionResponse;
-import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
+import com.lumie.assignment.application.dto.request.CreateSubmissionRequest;
+import com.lumie.assignment.application.dto.request.UpdateSubmissionRequest;
+import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.application.service.AssignmentQueryService;
 import com.lumie.assignment.domain.exception.DuplicateSubmissionException;

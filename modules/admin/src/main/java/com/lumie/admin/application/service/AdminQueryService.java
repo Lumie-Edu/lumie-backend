@@ -1,9 +1,9 @@
 package com.lumie.admin.application.service;
 
-import com.lumie.admin.adapter.out.persistence.AdminSpecification;
-import com.lumie.admin.application.dto.AdminFilterRequest;
-import com.lumie.admin.application.dto.AdminPermissionResponse;
-import com.lumie.admin.application.dto.AdminResponse;
+import com.lumie.admin.application.dto.request.AdminFilterRequest;
+import com.lumie.admin.application.dto.response.AdminPermissionResponse;
+import com.lumie.admin.domain.vo.AdminFilter;
+import com.lumie.admin.application.dto.response.AdminResponse;
 import com.lumie.admin.domain.entity.Admin;
 import com.lumie.admin.domain.exception.AdminNotFoundException;
 import com.lumie.admin.domain.repository.AdminPermissionRepository;
@@ -45,7 +45,7 @@ public class AdminQueryService {
 
     public Page<AdminResponse> getAllAdmins(AdminFilterRequest filter, Pageable pageable) {
         Page<Admin> page = (filter != null && hasAnyFilter(filter))
-                ? adminRepository.findAll(AdminSpecification.withFilters(filter), pageable)
+                ? adminRepository.findAllByFilter(new AdminFilter(filter.isActive(), filter.search()), pageable)
                 : adminRepository.findAll(pageable);
         Map<Long, String> seeds = avatarSeedsFor(page.getContent());
         return page.map(a -> AdminResponse.from(a, seeds.get(a.getUserId())));

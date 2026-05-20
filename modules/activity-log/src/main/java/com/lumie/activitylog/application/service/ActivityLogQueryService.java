@@ -1,7 +1,7 @@
 package com.lumie.activitylog.application.service;
 
-import com.lumie.activitylog.application.dto.ActivityLogFilterRequest;
-import com.lumie.activitylog.application.dto.ActivityLogResponse;
+import com.lumie.activitylog.application.dto.request.ActivityLogFilterRequest;
+import com.lumie.activitylog.application.dto.response.ActivityLogResponse;
 import com.lumie.activitylog.domain.entity.ActivityLog;
 import com.lumie.activitylog.domain.exception.ActivityLogErrorCode;
 import com.lumie.activitylog.domain.repository.ActivityLogRepository;

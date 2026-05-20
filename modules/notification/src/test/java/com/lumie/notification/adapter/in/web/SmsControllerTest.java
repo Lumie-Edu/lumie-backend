@@ -2,8 +2,8 @@ package com.lumie.notification.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.lumie.notification.application.dto.SendSmsRequest;
-import com.lumie.notification.application.dto.SmsMessageResponse;
+import com.lumie.notification.application.dto.request.SendSmsRequest;
+import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.service.SmsCommandService;
 import com.lumie.notification.application.service.SmsQueryService;
 import com.lumie.notification.domain.exception.SmsMessageNotFoundException;

@@ -1,6 +1,6 @@
 package com.lumie.admin.adapter.in.web;
 
-import com.lumie.admin.application.dto.PermissionResponse;
+import com.lumie.admin.application.dto.response.PermissionResponse;
 import com.lumie.admin.application.service.PermissionQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

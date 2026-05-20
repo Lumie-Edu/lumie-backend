@@ -1,6 +1,6 @@
 package com.lumie.admin.application.service;
 
-import com.lumie.admin.application.dto.PermissionResponse;
+import com.lumie.admin.application.dto.response.PermissionResponse;
 import com.lumie.admin.domain.repository.PermissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

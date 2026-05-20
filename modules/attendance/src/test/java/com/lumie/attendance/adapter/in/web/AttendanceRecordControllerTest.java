@@ -1,9 +1,9 @@
 package com.lumie.attendance.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lumie.attendance.application.dto.AttendanceRecordResponse;
-import com.lumie.attendance.application.dto.BulkUpdateStatusRequest;
-import com.lumie.attendance.application.dto.UpdateAttendanceStatusRequest;
+import com.lumie.attendance.application.dto.request.BulkUpdateStatusRequest;
+import com.lumie.attendance.application.dto.request.UpdateAttendanceStatusRequest;
+import com.lumie.attendance.application.dto.response.AttendanceRecordResponse;
 import com.lumie.attendance.application.service.AttendanceRecordCommandService;
 import com.lumie.attendance.application.service.AttendanceRecordQueryService;
 import com.lumie.attendance.domain.vo.AttendanceStatus;

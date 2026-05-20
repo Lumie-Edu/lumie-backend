@@ -1,8 +1,8 @@
 package com.lumie.notification.adapter.in.web;
 
-import com.lumie.notification.application.dto.SendSmsRequest;
-import com.lumie.notification.application.dto.SendToClassRequest;
-import com.lumie.notification.application.dto.SmsMessageResponse;
+import com.lumie.notification.application.dto.request.SendSmsRequest;
+import com.lumie.notification.application.dto.request.SendToClassRequest;
+import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.service.SmsCommandService;
 import com.lumie.notification.application.service.SmsQueryService;
 import com.lumie.notification.domain.vo.RecipientType;

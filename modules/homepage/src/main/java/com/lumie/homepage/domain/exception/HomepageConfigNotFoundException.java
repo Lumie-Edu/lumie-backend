@@ -1,7 +1,7 @@
 package com.lumie.homepage.domain.exception;
 
 import com.lumie.common.exception.BusinessException;
-import com.lumie.homepage.infrastructure.exception.HomepageErrorCode;
+import com.lumie.homepage.domain.exception.HomepageErrorCode;
 
 public class HomepageConfigNotFoundException extends BusinessException {
 

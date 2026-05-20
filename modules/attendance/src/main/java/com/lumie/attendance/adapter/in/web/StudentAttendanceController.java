@@ -1,7 +1,7 @@
 package com.lumie.attendance.adapter.in.web;
 
-import com.lumie.attendance.application.dto.StudentAttendanceRecordResponse;
-import com.lumie.attendance.application.dto.StudentAttendanceStatisticsResponse;
+import com.lumie.attendance.application.dto.response.StudentAttendanceRecordResponse;
+import com.lumie.attendance.application.dto.response.StudentAttendanceStatisticsResponse;
 import com.lumie.attendance.application.service.AttendanceRecordQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -2,7 +2,7 @@ package com.lumie.auth.adapter.out.security;
 
 import com.lumie.auth.application.port.out.TokenProviderPort;
 import com.lumie.auth.domain.vo.TokenClaims;
-import com.lumie.auth.infrastructure.security.JwtTokenProvider;
+import com.lumie.auth.adapter.out.security.JwtTokenProvider;
 import com.lumie.common.auth.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

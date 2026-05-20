@@ -8,7 +8,7 @@ import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
 import com.lumie.auth.domain.vo.TokenClaims;
-import com.lumie.auth.infrastructure.security.JwtTokenProvider;
+import com.lumie.auth.adapter.out.security.JwtTokenProvider;
 import com.lumie.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

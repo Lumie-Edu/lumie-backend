@@ -1,11 +1,11 @@
 package com.lumie.assignment.application.service;
 
-import com.lumie.assignment.application.dto.AssignmentResponse;
-import com.lumie.assignment.application.dto.CreateAssignmentRequest;
-import com.lumie.assignment.application.dto.CreateSubmissionRequest;
-import com.lumie.assignment.application.dto.SubmissionResponse;
-import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
-import com.lumie.assignment.application.dto.UpdateSubmissionRequest;
+import com.lumie.assignment.application.dto.request.CreateAssignmentRequest;
+import com.lumie.assignment.application.dto.request.CreateSubmissionRequest;
+import com.lumie.assignment.application.dto.request.UpdateAssignmentRequest;
+import com.lumie.assignment.application.dto.request.UpdateSubmissionRequest;
+import com.lumie.assignment.application.dto.response.AssignmentResponse;
+import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.classroom.api.ClassService;

@@ -1,8 +1,8 @@
 package com.lumie.lecture.application.service;
 
-import com.lumie.lecture.application.dto.CreateLectureRequest;
-import com.lumie.lecture.application.dto.LectureResponse;
-import com.lumie.lecture.application.dto.UpdateLectureRequest;
+import com.lumie.lecture.application.dto.request.CreateLectureRequest;
+import com.lumie.lecture.application.dto.request.UpdateLectureRequest;
+import com.lumie.lecture.application.dto.response.LectureResponse;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.exception.LectureNotFoundException;
 import com.lumie.lecture.domain.repository.LectureRepository;

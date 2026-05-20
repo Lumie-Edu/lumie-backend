@@ -13,9 +13,9 @@ import com.lumie.ai.domain.repository.ChatMessageRepository;
 import com.lumie.ai.domain.repository.ConversationRepository;
 import com.lumie.ai.domain.vo.MessageRole;
 import com.lumie.ai.domain.vo.PendingAction;
-import com.lumie.ai.infrastructure.ai.LumieReadTools;
-import com.lumie.ai.infrastructure.ai.LumieWriteTools;
-import com.lumie.ai.infrastructure.ai.PendingActionRequiredException;
+import com.lumie.ai.adapter.out.ai.LumieReadTools;
+import com.lumie.ai.adapter.out.ai.LumieWriteTools;
+import com.lumie.ai.domain.exception.PendingActionRequiredException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.lumie.ai.application.dto.ChatReplyResponse;
+import com.lumie.ai.application.dto.response.ChatReplyResponse;
 
 import org.springframework.core.task.AsyncTaskExecutor;
 

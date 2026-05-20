@@ -1,6 +1,8 @@
 package com.lumie.lecture.adapter.in.web;
 
-import com.lumie.lecture.application.dto.*;
+import com.lumie.lecture.application.dto.request.CreateLectureRequest;
+import com.lumie.lecture.application.dto.request.UpdateLectureRequest;
+import com.lumie.lecture.application.dto.response.LectureResponse;
 import com.lumie.lecture.application.service.LectureCommandService;
 import com.lumie.lecture.application.service.LectureQueryService;
 import com.lumie.common.api.PageResponse;

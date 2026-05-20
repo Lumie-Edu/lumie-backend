@@ -1,7 +1,7 @@
 package com.lumie.notification.application.service;
 
-import com.lumie.notification.application.dto.SmsMessageResponse;
-import com.lumie.notification.application.dto.SmsTemplateResponse;
+import com.lumie.notification.application.dto.response.SmsMessageResponse;
+import com.lumie.notification.application.dto.response.SmsTemplateResponse;
 import com.lumie.notification.domain.entity.SmsMessage;
 import com.lumie.notification.domain.exception.SmsMessageNotFoundException;
 import com.lumie.notification.domain.repository.SmsMessageRepository;

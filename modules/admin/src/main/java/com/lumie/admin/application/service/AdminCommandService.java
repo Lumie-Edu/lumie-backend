@@ -1,8 +1,8 @@
 package com.lumie.admin.application.service;
 
-import com.lumie.admin.application.dto.AdminRequest;
-import com.lumie.admin.application.dto.AdminResponse;
-import com.lumie.admin.application.dto.AdminUpdateRequest;
+import com.lumie.admin.application.dto.request.AdminRequest;
+import com.lumie.admin.application.dto.request.AdminUpdateRequest;
+import com.lumie.admin.application.dto.response.AdminResponse;
 import com.lumie.auth.api.AuthService;
 import com.lumie.billing.api.BillingService;
 import com.lumie.admin.domain.entity.Admin;

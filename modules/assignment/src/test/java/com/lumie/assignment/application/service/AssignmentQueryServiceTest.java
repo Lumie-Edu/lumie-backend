@@ -1,7 +1,7 @@
 package com.lumie.assignment.application.service;
 
-import com.lumie.assignment.application.dto.AssignmentResponse;
-import com.lumie.assignment.application.dto.SubmissionResponse;
+import com.lumie.assignment.application.dto.response.AssignmentResponse;
+import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.exception.AssignmentNotFoundException;

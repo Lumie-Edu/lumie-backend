@@ -1,13 +1,13 @@
 package com.lumie.admin.adapter.in.web;
 
-import com.lumie.admin.application.dto.AdminFilterRequest;
-import com.lumie.admin.application.dto.AdminPermissionResponse;
-import com.lumie.admin.application.dto.AdminRequest;
-import com.lumie.admin.application.dto.AdminResponse;
-import com.lumie.admin.application.dto.AdminUpdateRequest;
-import com.lumie.admin.application.dto.ChangeLoginIdRequest;
-import com.lumie.admin.application.dto.ChangeLoginIdResponse;
-import com.lumie.admin.application.dto.SetPermissionsRequest;
+import com.lumie.admin.application.dto.request.AdminFilterRequest;
+import com.lumie.admin.application.dto.request.AdminRequest;
+import com.lumie.admin.application.dto.request.AdminUpdateRequest;
+import com.lumie.admin.application.dto.request.ChangeLoginIdRequest;
+import com.lumie.admin.application.dto.request.SetPermissionsRequest;
+import com.lumie.admin.application.dto.response.AdminPermissionResponse;
+import com.lumie.admin.application.dto.response.AdminResponse;
+import com.lumie.admin.application.dto.response.ChangeLoginIdResponse;
 import com.lumie.admin.application.service.AdminCommandService;
 import com.lumie.admin.application.service.AdminQueryService;
 import com.lumie.common.api.PageResponse;

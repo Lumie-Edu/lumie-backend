@@ -1,10 +1,10 @@
 package com.lumie.student.application.service;
 
-import com.lumie.student.application.dto.BatchOperationResult;
-import com.lumie.student.application.dto.BulkImportResult;
-import com.lumie.student.application.dto.StudentRequest;
-import com.lumie.student.application.dto.StudentResponse;
-import com.lumie.student.application.dto.StudentUpdateRequest;
+import com.lumie.student.application.dto.request.StudentRequest;
+import com.lumie.student.application.dto.request.StudentUpdateRequest;
+import com.lumie.student.application.dto.response.BatchOperationResult;
+import com.lumie.student.application.dto.response.BulkImportResult;
+import com.lumie.student.application.dto.response.StudentResponse;
 import com.lumie.auth.api.AuthService;
 import com.lumie.billing.api.BillingService;
 import com.lumie.student.api.StudentRegisteredEvent;

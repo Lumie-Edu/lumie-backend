@@ -1,8 +1,8 @@
 package com.lumie.ai.application.service;
 
-import com.lumie.ai.application.dto.ConversationDetailResponse;
-import com.lumie.ai.application.dto.ConversationSummaryResponse;
-import com.lumie.ai.application.dto.MessageResponse;
+import com.lumie.ai.application.dto.response.ConversationDetailResponse;
+import com.lumie.ai.application.dto.response.ConversationSummaryResponse;
+import com.lumie.ai.application.dto.response.MessageResponse;
 import com.lumie.ai.domain.entity.ChatMessage;
 import com.lumie.ai.domain.entity.Conversation;
 import com.lumie.ai.domain.exception.AiErrorCode;

@@ -1,9 +1,9 @@
 package com.lumie.attendance.application.service;
 
-import com.lumie.attendance.application.dto.BulkUpdateStatusRequest;
-import com.lumie.attendance.application.dto.CheckInRequest;
-import com.lumie.attendance.application.dto.CheckInResponse;
-import com.lumie.attendance.application.dto.UpdateAttendanceStatusRequest;
+import com.lumie.attendance.application.dto.request.BulkUpdateStatusRequest;
+import com.lumie.attendance.application.dto.request.CheckInRequest;
+import com.lumie.attendance.application.dto.request.UpdateAttendanceStatusRequest;
+import com.lumie.attendance.application.dto.response.CheckInResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;

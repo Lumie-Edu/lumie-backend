@@ -1,7 +1,7 @@
 package com.lumie.app.config;
 
 import com.lumie.app.config.internal.InternalHmacAuthFilter;
-import com.lumie.auth.infrastructure.security.JwtAuthenticationFilter;
+import com.lumie.auth.adapter.in.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

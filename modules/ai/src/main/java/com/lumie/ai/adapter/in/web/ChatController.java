@@ -1,6 +1,6 @@
 package com.lumie.ai.adapter.in.web;
 
-import com.lumie.ai.application.dto.ChatReplyResponse;
+import com.lumie.ai.application.dto.response.ChatReplyResponse;
 import com.lumie.ai.application.service.ChatService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;

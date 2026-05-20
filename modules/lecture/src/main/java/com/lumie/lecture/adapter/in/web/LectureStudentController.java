@@ -1,7 +1,7 @@
 package com.lumie.lecture.adapter.in.web;
 
-import com.lumie.lecture.application.dto.LectureResponse;
-import com.lumie.lecture.application.dto.WatchResponse;
+import com.lumie.lecture.application.dto.response.LectureResponse;
+import com.lumie.lecture.application.dto.response.WatchResponse;
 import com.lumie.lecture.application.service.LectureQueryService;
 import com.lumie.common.api.PageResponse;
 import lombok.RequiredArgsConstructor;

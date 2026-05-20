@@ -1,7 +1,7 @@
 package com.lumie.admin.adapter.out.persistence;
 
-import com.lumie.admin.application.dto.AdminFilterRequest;
 import com.lumie.admin.domain.entity.Admin;
+import com.lumie.admin.domain.vo.AdminFilter;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -12,7 +12,7 @@ public final class AdminSpecification {
 
     private AdminSpecification() {}
 
-    public static Specification<Admin> withFilters(AdminFilterRequest filter) {
+    public static Specification<Admin> withFilters(AdminFilter filter) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 

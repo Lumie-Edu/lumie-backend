@@ -14,6 +14,8 @@ Behavioral invariants. Java-specific. Read with `.claude/knowledge/HARD_RULES_CR
 - ❌ Spring annotations in `domain/` layer. Domain stays pure.
 - ❌ Controllers returning `Page<T>` directly. Wrap in `PageResponse<T>`.
 - ❌ Cross-module `*.domain.entity` import. Use `libs/internal-api`.
+- ❌ Create an `adapter/internal/` sibling package. Inter-module synchronous incoming calls (libs/internal-api impls) go in `adapter/in/internal/`, not a top-level `adapter/internal/`.
+- ❌ Create an `infrastructure/` package in any module. Framework `@Configuration`/`@Bean` → `adapter/out/config/`. Spring Security filters and web utilities → `adapter/in/security/` or `adapter/in/web/`. Domain error codes → `domain/exception/`. There is no `infrastructure/` layer in this codebase's hexagonal layout.
 
 ## ALWAYS
 
@@ -35,7 +37,7 @@ modules/{module}/
 └── src/main/java/com/lumie/{module}/
     ├── domain/{entity,vo,repository,exception}/
     ├── application/{service,port/out,dto/{request,response}}/
-    └── adapter/{in/web,in/messaging,out/persistence,out/external,internal}/
+    └── adapter/{in/web,in/messaging,in/internal,out/persistence,out/external}/
 ```
 
 ## References

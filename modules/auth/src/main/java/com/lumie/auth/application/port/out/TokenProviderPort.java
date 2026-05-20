@@ -9,8 +9,8 @@ import java.util.Optional;
  * Outgoing port for issuing and parsing access/refresh tokens.
  *
  * <p>Lets the application layer talk to a token-generation contract instead
- * of pulling in the {@link com.lumie.auth.infrastructure.security.JwtTokenProvider}
- * infrastructure class. The implementation is an adapter that delegates to
+ * of pulling in the {@link com.lumie.auth.adapter.out.security.JwtTokenProvider}
+ * adapter class. The implementation is an adapter that delegates to
  * the JWT provider; tests can swap a fake.
  */
 public interface TokenProviderPort {

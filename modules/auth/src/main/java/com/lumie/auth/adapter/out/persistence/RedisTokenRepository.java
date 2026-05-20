@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.domain.entity.AuthToken;
 import com.lumie.auth.domain.repository.TokenRepository;
-import com.lumie.auth.infrastructure.exception.AuthErrorCode;
+import com.lumie.auth.application.exception.AuthErrorCode;
 import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;

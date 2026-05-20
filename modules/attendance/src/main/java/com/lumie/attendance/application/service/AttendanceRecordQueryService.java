@@ -1,11 +1,11 @@
 package com.lumie.attendance.application.service;
 
-import com.lumie.attendance.application.dto.AttendanceRecordResponse;
-import com.lumie.attendance.application.dto.ClassAttendanceStatisticsResponse;
-import com.lumie.attendance.application.dto.ClassAttendanceStatisticsResponse.WeeklyRate;
-import com.lumie.attendance.application.dto.ClassStudentAttendanceResponse;
-import com.lumie.attendance.application.dto.StudentAttendanceRecordResponse;
-import com.lumie.attendance.application.dto.StudentAttendanceStatisticsResponse;
+import com.lumie.attendance.application.dto.response.AttendanceRecordResponse;
+import com.lumie.attendance.application.dto.response.ClassAttendanceStatisticsResponse;
+import com.lumie.attendance.application.dto.response.ClassAttendanceStatisticsResponse.WeeklyRate;
+import com.lumie.attendance.application.dto.response.ClassStudentAttendanceResponse;
+import com.lumie.attendance.application.dto.response.StudentAttendanceRecordResponse;
+import com.lumie.attendance.application.dto.response.StudentAttendanceStatisticsResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;

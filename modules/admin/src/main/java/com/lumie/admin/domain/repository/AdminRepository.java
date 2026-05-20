@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface AdminRepository extends JpaRepository<Admin, Long>, JpaSpecificationExecutor<Admin> {
+public interface AdminRepository extends JpaRepository<Admin, Long>, JpaSpecificationExecutor<Admin>, AdminRepositoryCustom {
 
     Optional<Admin> findByUserId(Long userId);
 

@@ -13,7 +13,7 @@ modules/{module}/
 └── src/main/java/com/lumie/{module}/
     ├── domain/{entity,vo,repository,exception}/
     ├── application/{service,port/in,port/out,dto/{request,response}}/
-    └── adapter/{in/web,in/messaging,out/persistence,out/external,internal}/
+    └── adapter/{in/web,in/messaging,in/internal,out/persistence,out/external}/
 ```
 
 ## Multi-tenancy
@@ -22,7 +22,7 @@ Postgres RLS-based isolation: every tenant-scoped table has a `tenant_id BIGINT 
 
 ## Inter-module / external
 
-- Internal: only via `libs/internal-api` interfaces. Implementations in `adapter/internal/`.
+- Internal: only via `libs/internal-api` interfaces. Implementations in `adapter/in/internal/` (inter-module synchronous incoming calls).
 - External (worker): `adapter/out/external/<Name>Client.java`. Always forward `X-Tenant-Slug`.
 
 ## Commands

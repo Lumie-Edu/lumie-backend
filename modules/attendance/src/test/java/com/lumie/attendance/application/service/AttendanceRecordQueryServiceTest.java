@@ -1,7 +1,7 @@
 package com.lumie.attendance.application.service;
 
-import com.lumie.attendance.application.dto.AttendanceRecordResponse;
-import com.lumie.attendance.application.dto.StudentAttendanceStatisticsResponse;
+import com.lumie.attendance.application.dto.response.AttendanceRecordResponse;
+import com.lumie.attendance.application.dto.response.StudentAttendanceStatisticsResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;

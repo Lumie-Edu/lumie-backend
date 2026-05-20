@@ -1,7 +1,7 @@
 package com.lumie.ai.adapter.in.web;
 
-import com.lumie.ai.application.dto.ConversationDetailResponse;
-import com.lumie.ai.application.dto.ConversationSummaryResponse;
+import com.lumie.ai.application.dto.response.ConversationDetailResponse;
+import com.lumie.ai.application.dto.response.ConversationSummaryResponse;
 import com.lumie.ai.application.service.ConversationQueryService;
 import com.lumie.common.api.PageResponse;
 import lombok.RequiredArgsConstructor;

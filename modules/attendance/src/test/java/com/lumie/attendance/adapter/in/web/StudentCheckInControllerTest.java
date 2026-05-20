@@ -1,8 +1,8 @@
 package com.lumie.attendance.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lumie.attendance.application.dto.CheckInRequest;
-import com.lumie.attendance.application.dto.CheckInResponse;
+import com.lumie.attendance.application.dto.request.CheckInRequest;
+import com.lumie.attendance.application.dto.response.CheckInResponse;
 import com.lumie.attendance.application.service.AttendanceRecordCommandService;
 import com.lumie.attendance.domain.exception.InvalidCodeException;
 import com.lumie.attendance.domain.vo.AttendanceStatus;

@@ -1,8 +1,8 @@
 package com.lumie.assignment.adapter.in.web;
 
-import com.lumie.assignment.application.dto.AssignmentResponse;
-import com.lumie.assignment.application.dto.CreateAssignmentRequest;
-import com.lumie.assignment.application.dto.UpdateAssignmentRequest;
+import com.lumie.assignment.application.dto.request.CreateAssignmentRequest;
+import com.lumie.assignment.application.dto.request.UpdateAssignmentRequest;
+import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.application.service.AssignmentQueryService;
 import com.lumie.assignment.domain.vo.AssignmentStatus;

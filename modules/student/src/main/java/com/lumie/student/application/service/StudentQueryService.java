@@ -2,8 +2,8 @@ package com.lumie.student.application.service;
 
 import com.lumie.common.csv.CsvWriter;
 import com.lumie.auth.api.AuthService;
-import com.lumie.student.application.dto.EnrollmentTrendResponse;
-import com.lumie.student.application.dto.StudentResponse;
+import com.lumie.student.application.dto.response.EnrollmentTrendResponse;
+import com.lumie.student.application.dto.response.StudentResponse;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.StudentNotFoundException;
 import com.lumie.student.domain.repository.StudentRepository;

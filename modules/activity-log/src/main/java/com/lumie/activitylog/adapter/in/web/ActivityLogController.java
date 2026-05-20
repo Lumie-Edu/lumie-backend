@@ -1,7 +1,7 @@
 package com.lumie.activitylog.adapter.in.web;
 
-import com.lumie.activitylog.application.dto.ActivityLogFilterRequest;
-import com.lumie.activitylog.application.dto.ActivityLogResponse;
+import com.lumie.activitylog.application.dto.request.ActivityLogFilterRequest;
+import com.lumie.activitylog.application.dto.response.ActivityLogResponse;
 import com.lumie.activitylog.application.service.ActivityLogQueryService;
 import com.lumie.common.api.CursorResponse;
 import lombok.RequiredArgsConstructor;

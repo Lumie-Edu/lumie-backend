@@ -1,6 +1,6 @@
 package com.lumie.attendance.application.service;
 
-import com.lumie.attendance.application.dto.AttendanceSessionResponse;
+import com.lumie.attendance.application.dto.response.AttendanceSessionResponse;
 import com.lumie.attendance.domain.exception.SessionNotFoundException;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import lombok.RequiredArgsConstructor;

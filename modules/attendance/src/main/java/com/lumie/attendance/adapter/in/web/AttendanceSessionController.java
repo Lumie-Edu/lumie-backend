@@ -1,7 +1,7 @@
 package com.lumie.attendance.adapter.in.web;
 
-import com.lumie.attendance.application.dto.AttendanceSessionRequest;
-import com.lumie.attendance.application.dto.AttendanceSessionResponse;
+import com.lumie.attendance.application.dto.request.AttendanceSessionRequest;
+import com.lumie.attendance.application.dto.response.AttendanceSessionResponse;
 import com.lumie.attendance.application.service.AttendanceSessionCommandService;
 import com.lumie.attendance.application.service.AttendanceSessionQueryService;
 import com.lumie.common.api.PageResponse;
