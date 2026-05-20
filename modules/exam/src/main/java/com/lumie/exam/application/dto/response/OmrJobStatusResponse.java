@@ -3,8 +3,6 @@ package com.lumie.exam.application.dto.response;
 import com.lumie.exam.domain.entity.OmrGradingJob;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 
 public record OmrJobStatusResponse(
         Long jobId,
@@ -15,7 +13,6 @@ public record OmrJobStatusResponse(
         int successCount,
         int failCount,
         int savedCount,
-        List<Map<String, Object>> results,
         Instant createdAt
 ) {
     public static OmrJobStatusResponse from(OmrGradingJob job) {
@@ -28,7 +25,6 @@ public record OmrJobStatusResponse(
                 job.getSuccessCount(),
                 job.getFailCount(),
                 job.getSavedCount(),
-                job.getResults(),
                 job.getCreatedAt()
         );
     }

@@ -10,7 +10,6 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.util.List;
-import java.util.Map;
 
 @Entity
 @Table(name = "omr_grading_jobs")
@@ -54,10 +53,6 @@ public class OmrGradingJob extends TenantScopedEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "image_keys", columnDefinition = "jsonb")
     private List<String> imageKeys;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "results", columnDefinition = "jsonb")
-    private List<Map<String, Object>> results;
 
     public static OmrGradingJob create(Exam exam, String tenantSlug, int totalImages, List<String> imageKeys) {
         OmrGradingJob job = new OmrGradingJob();
