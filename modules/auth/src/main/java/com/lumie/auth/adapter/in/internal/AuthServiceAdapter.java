@@ -1,6 +1,7 @@
 package com.lumie.auth.adapter.in.internal;
 
 import com.lumie.auth.adapter.out.persistence.UserJpaRepository;
+import com.lumie.auth.application.exception.AuthErrors;
 import com.lumie.auth.application.service.AuthQueryService;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.common.auth.Role;
@@ -110,7 +111,7 @@ public class AuthServiceAdapter implements AuthService {
                 return loginId;
             }
         }
-        throw new IllegalStateException("Failed to generate unique login ID after " + MAX_LOGIN_ID_ATTEMPTS + " attempts");
+        throw new AuthErrors.LoginIdGenerationFailedException();
     }
 
     @Override

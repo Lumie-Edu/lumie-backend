@@ -18,7 +18,7 @@ modules/{module}/
 
 ## Multi-tenancy
 
-Postgres RLS-based isolation: every tenant-scoped table has a `tenant_id BIGINT NOT NULL` column + RLS policy `USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::bigint)`. The tenant id is read from JWT (HTTP path) or message payload (RabbitListener path), set into `TenantContextHolder.setTenantId(Long)`, and bound to the active transaction by `RlsTenantContextAspect` (libs/common). When crossing tenants in adapters, use `TenantContextHolder.withinContext(slug, tenantId, action)` — `setTenant` alone leaves rows invisible. See `.claude/knowledge/ARCHITECTURE_INTENT.md` for the full why.
+Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NOT NULL`, enforced by `FORCE ROW LEVEL SECURITY` against the `lumie_app` runtime role. When crossing tenants in adapters, use `TenantContextHolder.withinContext(slug, tenantId, action)` — `setTenant` alone leaves rows invisible. See `.claude/knowledge/ARCHITECTURE_INTENT.md` "Multi-tenancy" for the full mechanism (aspect ordering, RabbitListener path, known costs).
 
 ## Inter-module / external
 

@@ -26,17 +26,24 @@ public final class AuthErrors {
         }
     }
 
-    /** Login id already in use during registration. */
-    public static class UserLoginIdAlreadyExistsException extends RuntimeException {
+    /** Login id already in use during registration — maps to 409. */
+    public static class UserLoginIdAlreadyExistsException extends BusinessException {
         public UserLoginIdAlreadyExistsException(String message) {
-            super(message);
+            super(AuthErrorCode.LOGIN_ID_ALREADY_EXISTS, message);
         }
     }
 
-    /** Owner registration could not provision a new tenant. */
-    public static class TenantCreationFailedException extends RuntimeException {
+    /** Owner registration could not provision a new tenant — maps to 500. */
+    public static class TenantCreationFailedException extends BusinessException {
         public TenantCreationFailedException(String message) {
-            super(message);
+            super(AuthErrorCode.TENANT_CREATION_FAILED, message);
+        }
+    }
+
+    /** Login ID generation exhausted all retry attempts — maps to 500. */
+    public static class LoginIdGenerationFailedException extends BusinessException {
+        public LoginIdGenerationFailedException() {
+            super(AuthErrorCode.LOGIN_ID_GENERATION_FAILED);
         }
     }
 }

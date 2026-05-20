@@ -15,7 +15,10 @@ public enum AuthErrorCode implements ErrorCode {
     TENANT_INACTIVE("AUTH_005", "Tenant is not active", 403),
     OAUTH_PROVIDER_ERROR("AUTH_006", "OAuth provider error", 502),
     INVALID_STATE("AUTH_007", "Invalid OAuth state parameter", 400),
-    TOKEN_PERSISTENCE_FAILED("AUTH_008", "Failed to persist auth token", 500);
+    TOKEN_PERSISTENCE_FAILED("AUTH_008", "Failed to persist auth token", 500),
+    LOGIN_ID_ALREADY_EXISTS("AUTH_009", "Login ID is already in use", 409),
+    TENANT_CREATION_FAILED("AUTH_010", "Failed to provision tenant during registration", 500),
+    LOGIN_ID_GENERATION_FAILED("AUTH_011", "Failed to generate a unique login ID", 500);
 
     private final String code;
     private final String message;

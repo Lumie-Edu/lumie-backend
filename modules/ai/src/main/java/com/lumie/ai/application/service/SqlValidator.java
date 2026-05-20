@@ -4,8 +4,10 @@ import com.lumie.ai.domain.exception.AiErrorCode;
 import com.lumie.ai.domain.exception.AiException;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Component
 public class SqlValidator {
@@ -15,6 +17,12 @@ public class SqlValidator {
             "TRUNCATE", "GRANT", "REVOKE", "EXECUTE", "EXEC",
             "INTO", "COPY", "VACUUM", "REINDEX", "CLUSTER"
     );
+
+    private static final Map<String, Pattern> FORBIDDEN_KEYWORD_PATTERNS =
+            FORBIDDEN_KEYWORDS.stream().collect(Collectors.toUnmodifiableMap(
+                    kw -> kw,
+                    kw -> Pattern.compile("\\b" + kw + "\\b", Pattern.CASE_INSENSITIVE)
+            ));
 
     private static final Pattern SEMICOLON_PATTERN = Pattern.compile(";");
     private static final Pattern PG_CATALOG_PATTERN = Pattern.compile(
@@ -44,11 +52,10 @@ public class SqlValidator {
                     "Only SELECT (or WITH ... SELECT) queries are allowed");
         }
 
-        for (String keyword : FORBIDDEN_KEYWORDS) {
-            if (Pattern.compile("\\b" + keyword + "\\b", Pattern.CASE_INSENSITIVE)
-                    .matcher(trimmed).find()) {
+        for (Map.Entry<String, Pattern> entry : FORBIDDEN_KEYWORD_PATTERNS.entrySet()) {
+            if (entry.getValue().matcher(trimmed).find()) {
                 throw new AiException(AiErrorCode.INVALID_SQL,
-                        "Forbidden keyword detected: " + keyword);
+                        "Forbidden keyword detected: " + entry.getKey());
             }
         }
 
