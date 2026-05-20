@@ -1,7 +1,7 @@
 package com.lumie.notification.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.admin.api.AdminService;
+import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.student.api.StudentService;
 import com.lumie.notification.application.dto.request.SendSmsRequest;
@@ -35,12 +35,12 @@ public class SmsCommandService {
     private final SmsMessageRepository messageRepository;
     private final SmsTemplateRepository templateRepository;
     private final StudentService studentService;
-    private final AdminService adminService;
+    private final StaffService staffService;
     private final ClassService classService;
 
     public SmsMessageResponse sendSms(SendSmsRequest request) {
         String slug = TenantContextHolder.getRequiredTenant();
-        adminService.getAdmin(slug, request.senderId())
+        staffService.getStaff(slug, request.senderId())
             .orElseThrow(() -> new BusinessException(SmsErrorCode.SENDER_NOT_FOUND,
                 "Sender not found with id: " + request.senderId()));
 
@@ -68,7 +68,7 @@ public class SmsCommandService {
 
     public SmsMessageResponse sendToClass(Long classId, SendToClassRequest request) {
         String slug = TenantContextHolder.getRequiredTenant();
-        adminService.getAdmin(slug, request.senderId())
+        staffService.getStaff(slug, request.senderId())
             .orElseThrow(() -> new BusinessException(SmsErrorCode.SENDER_NOT_FOUND,
                 "Sender not found with id: " + request.senderId()));
 

@@ -8,7 +8,7 @@ import com.lumie.classroom.application.dto.UpdateClassRequest;
 import com.lumie.classroom.application.dto.UpdateEnrollmentRequest;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.admin.api.AdminService;
+import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.classroom.domain.exception.ClassErrorCode;
 import com.lumie.classroom.domain.exception.ClassNotFoundException;
@@ -37,12 +37,12 @@ public class ClassCommandService {
 
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
-    private final AdminService adminService;
+    private final StaffService staffService;
 
     @LogActivity(action = ActionType.CREATE, entity = EntityType.CLASS)
     public ClassResponse createClass(CreateClassRequest request) {
         if (request.teacherId() != null) {
-            adminService.getAdmin(TenantContextHolder.getRequiredTenant(), request.teacherId())
+            staffService.getStaff(TenantContextHolder.getRequiredTenant(), request.teacherId())
                 .orElseThrow(() -> new BusinessException(ClassErrorCode.TEACHER_NOT_FOUND,
                     "Teacher not found with id: " + request.teacherId()));
         }
@@ -60,7 +60,7 @@ public class ClassCommandService {
 
         log.info("Class created: {}", saved.getId());
         String teacherName = saved.getTeacherId() != null
-            ? adminService.getAdmin(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(AdminService.AdminData::name).orElse(null)
+            ? staffService.getStaff(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(StaffService.StaffData::name).orElse(null)
             : null;
         return ClassResponse.from(saved, teacherName);
     }
@@ -83,7 +83,7 @@ public class ClassCommandService {
 
         log.info("Class updated: {}", saved.getId());
         String updatedTeacherName = saved.getTeacherId() != null
-            ? adminService.getAdmin(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(AdminService.AdminData::name).orElse(null)
+            ? staffService.getStaff(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(StaffService.StaffData::name).orElse(null)
             : null;
         return ClassResponse.from(saved, updatedTeacherName);
     }

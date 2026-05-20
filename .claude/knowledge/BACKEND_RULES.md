@@ -19,6 +19,7 @@ Behavioral invariants. Java-specific. Read with `.claude/knowledge/HARD_RULES_CR
   - Framework `@Configuration`/`@Bean` → `adapter/out/config/`
   - Spring Security filters and web utilities → `adapter/in/security/` or `adapter/in/web/`
   - Domain error codes → `domain/exception/`
+- ❌ Create `application/port/in/*UseCase.java` interfaces. Controllers depend on application service classes directly (see ALWAYS list). All 16 modules follow this pattern.
 
 ## ALWAYS
 

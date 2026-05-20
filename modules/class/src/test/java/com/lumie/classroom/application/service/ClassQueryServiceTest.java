@@ -6,7 +6,7 @@ import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.classroom.domain.exception.ClassNotFoundException;
 import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
-import com.lumie.admin.api.AdminService;
+import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.ClassSearchCriteria;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
@@ -39,7 +39,7 @@ class ClassQueryServiceTest {
 
     @Mock private ClassRepository classRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
-    @Mock private AdminService adminService;
+    @Mock private StaffService staffService;
     @InjectMocks private ClassQueryService queryService;
 
     @Test

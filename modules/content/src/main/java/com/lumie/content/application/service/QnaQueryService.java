@@ -4,7 +4,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.application.dto.response.QnaBoardResponse;
 import com.lumie.content.application.dto.response.QnaDetailResponse;
 import com.lumie.content.domain.entity.QnaBoard;
-import com.lumie.admin.api.AdminService;
+import com.lumie.staff.api.StaffService;
 import com.lumie.student.api.StudentService;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
@@ -28,7 +28,7 @@ public class QnaQueryService {
 
     private final QnaBoardRepository qnaBoardRepository;
     private final StudentService studentService;
-    private final AdminService adminService;
+    private final StaffService staffService;
 
     public Page<QnaBoardResponse> listQnas(Boolean isAnswered, Pageable pageable) {
         log.debug("Listing Q&As with pagination, isAnswered={}", isAnswered);
@@ -75,8 +75,8 @@ public class QnaQueryService {
                 .collect(Collectors.toList());
 
         Map<Long, String> adminNameMap = userIds.stream()
-                .flatMap(userId -> adminService.getAdminByUserId(tenantSlug, userId)
-                        .map(a -> Map.entry(userId, a.name()))
+                .flatMap(userId -> staffService.getStaffByUserId(tenantSlug, userId)
+                        .map(s -> Map.entry(userId, s.name()))
                         .stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
 

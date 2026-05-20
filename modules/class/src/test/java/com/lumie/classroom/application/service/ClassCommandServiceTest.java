@@ -7,7 +7,7 @@ import com.lumie.classroom.application.dto.EnrollStudentsRequest;
 import com.lumie.classroom.application.dto.UpdateClassRequest;
 import com.lumie.classroom.application.dto.UpdateEnrollmentRequest;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
-import com.lumie.admin.api.AdminService;
+import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.classroom.domain.exception.ClassNotFoundException;
 import com.lumie.classroom.domain.exception.DuplicateEnrollmentException;
@@ -43,7 +43,7 @@ class ClassCommandServiceTest {
 
     @Mock private ClassRepository classRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
-    @Mock private AdminService adminService;
+    @Mock private StaffService staffService;
     @InjectMocks private ClassCommandService commandService;
 
     @Nested
@@ -57,8 +57,8 @@ class ClassCommandServiceTest {
             CreateClassRequest request = new CreateClassRequest(
                     "수학 기초반", 10L, null, "설명");
 
-            given(adminService.getAdmin(any(), eq(10L)))
-                    .willReturn(Optional.of(new AdminService.AdminData(
+            given(staffService.getAdmin(any(), eq(10L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
                             10L, 100L, "kim", "김선생", null, null, true, "ACTIVE", null, null)));
             given(classRepository.save(any(ClassEntity.class)))
                     .willAnswer(inv -> {
@@ -80,7 +80,7 @@ class ClassCommandServiceTest {
             CreateClassRequest request = new CreateClassRequest(
                     "수학반", 999L, null, null);
 
-            given(adminService.getAdmin(any(), eq(999L))).willReturn(Optional.empty());
+            given(staffService.getAdmin(any(), eq(999L))).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.createClass(request))
                     .isInstanceOf(BusinessException.class);

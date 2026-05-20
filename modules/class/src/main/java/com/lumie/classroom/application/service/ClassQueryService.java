@@ -4,7 +4,7 @@ import com.lumie.classroom.application.dto.ClassEnrollmentResponse;
 import com.lumie.classroom.application.dto.ClassResponse;
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.admin.api.AdminService;
+import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.exception.ClassNotFoundException;
 import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.classroom.domain.repository.ClassRepository;
@@ -32,7 +32,7 @@ public class ClassQueryService {
 
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
-    private final AdminService adminService;
+    private final StaffService staffService;
 
     public ClassResponse getClass(Long id) {
         ClassEntity entity = classRepository.findById(id)
@@ -74,8 +74,8 @@ public class ClassQueryService {
     private String resolveTeacherName(Long teacherId) {
         if (teacherId == null) return null;
         String slug = TenantContextHolder.getRequiredTenant();
-        return adminService.getAdmin(slug, teacherId)
-            .map(AdminService.AdminData::name)
+        return staffService.getStaff(slug, teacherId)
+            .map(StaffService.StaffData::name)
             .orElse(null);
     }
 

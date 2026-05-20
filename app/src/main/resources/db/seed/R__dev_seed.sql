@@ -37,7 +37,7 @@ BEGIN
   DELETE FROM reviews       WHERE tenant_id = t_id;
   DELETE FROM announcements WHERE tenant_id = t_id;
   DELETE FROM students      WHERE tenant_id = t_id;
-  DELETE FROM admins        WHERE tenant_id = t_id;
+  DELETE FROM staff         WHERE tenant_id = t_id;
   DELETE FROM users         WHERE tenant_id = t_id;
 
   -- Users: 1 owner + 1 manager + 1 instructor + 8 students.
@@ -72,9 +72,9 @@ BEGIN
   ) AS v(login, hs, by) ON v.login = u.user_login_id
   WHERE u.tenant_id = t_id;
 
-  -- Staff (admins table).
-  INSERT INTO admins (user_id, admin_memo, user_login_id, name, phone, is_active, email,
-                       employment_status, tenant_id)
+  -- Staff (staff table).
+  INSERT INTO staff (user_id, staff_memo, user_login_id, name, phone, is_active, email,
+                      employment_status, tenant_id)
   SELECT u.id,
          CASE u.role WHEN 'OWNER' THEN '원장' WHEN 'MANAGER' THEN '총괄 매니저' ELSE '영어 강사' END,
          u.user_login_id, u.name, u.phone, true, u.email, 'ACTIVE', t_id
@@ -86,14 +86,14 @@ BEGIN
   SELECT '수능영어 정규반', a.id,
          '{"days":["MON","WED","FRI"],"startTime":"19:00","endTime":"21:00"}'::jsonb,
          '수능 영어 정규 커리큘럼반', t_id
-  FROM admins a JOIN users u ON u.id = a.user_id
+  FROM staff a JOIN users u ON u.id = a.user_id
   WHERE u.user_login_id = 'demo_inst' AND a.tenant_id = t_id;
 
   INSERT INTO classes (name, teacher_id, schedule_pattern, description, tenant_id)
   SELECT '수능 파이널 실전반', a.id,
          '{"days":["TUE","THU"],"startTime":"18:00","endTime":"22:00"}'::jsonb,
          '수능 직전 실전 모의고사반', t_id
-  FROM admins a JOIN users u ON u.id = a.user_id
+  FROM staff a JOIN users u ON u.id = a.user_id
   WHERE u.user_login_id = 'demo_mgr' AND a.tenant_id = t_id;
 
   -- Exams: 3 mock exams (graded / relative 9-grade). Answer keys are not PII.

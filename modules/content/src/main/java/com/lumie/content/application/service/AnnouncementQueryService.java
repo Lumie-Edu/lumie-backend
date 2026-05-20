@@ -3,7 +3,7 @@ package com.lumie.content.application.service;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.domain.entity.Announcement;
-import com.lumie.admin.api.AdminService;
+import com.lumie.staff.api.StaffService;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.AnnouncementRepository;
@@ -27,7 +27,7 @@ public class AnnouncementQueryService {
     private static final String DELETED_USER_NAME = "삭제된 유저";
 
     private final AnnouncementRepository announcementRepository;
-    private final AdminService adminService;
+    private final StaffService staffService;
 
     public Page<AnnouncementResponse> listAnnouncements(Boolean isAsset, Pageable pageable) {
         log.debug("Listing announcements with pagination, isAsset={}", isAsset);
@@ -73,8 +73,8 @@ public class AnnouncementQueryService {
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         return authorIds.stream()
-                .flatMap(authorId -> adminService.getAdminByUserId(tenantSlug, authorId)
-                        .map(admin -> Map.entry(authorId, admin.name()))
+                .flatMap(authorId -> staffService.getStaffByUserId(tenantSlug, authorId)
+                        .map(staff -> Map.entry(authorId, staff.name()))
                         .stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
     }
