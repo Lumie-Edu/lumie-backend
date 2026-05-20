@@ -1,66 +1,93 @@
 # lumie-backend
 
-Spring Boot **monolith** (Gradle multi-module, hexagonal architecture) — single deployable from `app/`, with domain modules in `modules/*` and shared libs in `libs/*`.
+Spring Boot monolith for the Lumie LMS platform — handles all business logic (auth, billing, class management, student records, AI features, and more).
 
 ## Stack
 
-- Java 21 + Spring Boot 3.4
-- Gradle 8 multi-module (root + `app/` + 16 modules + 3 libs)
-- Spring Data JPA + Postgres (RLS-based multi-tenancy)
-- Spring AMQP (RabbitMQ for worker callbacks)
-- **Format**: Spotless (hygiene mode — `removeUnusedImports` + whitespace)
-- **Static analysis**: ErrorProne (warning mode while baseline cleaned)
+- **Java**: 21 (Gradle toolchain-managed, auto-downloads via Foojay)
+- **Spring Boot**: 3.4.13
+- **Build**: Gradle 8 multi-module, Kotlin DSL, version catalog (`gradle/libs.versions.toml`)
+- **Persistence**: Spring Data JPA + Postgres (RLS-based multi-tenancy)
+- **Messaging**: Spring AMQP / RabbitMQ (worker callbacks)
+- **Key libs**: Spring AI 1.0.0, Spring Modulith 1.4.4, JJWT 0.12.5, ShedLock 5.16.0, Bucket4j 8.10.1, springdoc-openapi 2.7.0, MinIO 8.5.14, Apache POI 5.2.5, Lombok 1.18.36
+- **Format**: Spotless (hygiene mode — unused imports + whitespace; `spotlessApply` to fix)
+- **Static analysis**: ErrorProne (warning mode while baseline violations are cleared)
 - **Tests**: JUnit 5 + Mockito + MockMvc; TestContainers Postgres for integration
 
 ## Architecture
 
-Hexagonal per module:
-
-```
-modules/{module}/src/main/java/com/lumie/{module}/
-├── domain/{entity,vo,repository,exception}/
-├── application/{service,port/in,port/out,dto/{request,response}}/
-└── adapter/{in/web,in/messaging,out/persistence,out/external,internal}/
-```
-
-Inter-module communication: ONLY via `libs/internal-api` interfaces. No HTTP/gRPC inside the monolith; direct bean injection.
-
-## Multi-tenancy
-
-Postgres RLS — every tenant-scoped table has `tenant_id BIGINT NOT NULL` + an `RLS USING (tenant_id = current_setting('app.tenant_id'))` policy. The tenant id is read from JWT (HTTP) or message payload (RabbitListener), set into `TenantContextHolder`, and bound by `RlsTenantContextAspect`. Runtime app connects as `lumie_app` (NOSUPERUSER, NOBYPASSRLS); Flyway as `postgres`.
+Modular monolith with hexagonal architecture per module. Each module under `modules/` owns a `domain/` layer (pure Java, no Spring), an `application/` layer (services, ports, DTOs), and an `adapter/` layer (web controllers, JPA persistence, AMQP listeners, external HTTP clients). Cross-module calls are only permitted through interfaces declared in `libs/internal-api`; no direct entity imports across modules. Multi-tenancy is enforced via Postgres RLS: every tenant-scoped table carries `tenant_id`, set from JWT (HTTP) or message payload (RabbitListener) into `TenantContextHolder`, and bound to the active transaction by `RlsTenantContextAspect` in `libs/common`. Runtime app connects as `lumie_app` (NOSUPERUSER, NOBYPASSRLS); Flyway migrates as `postgres`.
 
 ## Prerequisites
 
-- JDK 21 (Gradle auto-downloads via toolchain)
-- Docker (for TestContainers + Tilt)
+- JDK 21 (or let Gradle toolchain download it)
+- Docker (for TestContainers integration tests and Tilt)
+- SSH access to the dev k3s cluster (host alias `k3s`)
 - Access to Gitea (`github.lumie-infra.com/Lumie-Edu/lumie-backend`)
 
 ## Setup
 
+The backend runs on the dev k3s cluster (not locally). Stateful services (Postgres, RabbitMQ, Redis, MinIO) are deployed via Tilt. Run from the workspace root:
+
 ```bash
-./gradlew build           # compile + test
-cp .env.example .env      # fill in DB/MQ/MinIO URLs
-./gradlew bootRun         # http://localhost:8080
-tilt up                   # full k3s dev stack
+bash .github/tilt-up.sh   # opens SSH tunnel to k3s API, then runs tilt up
+```
+
+The frontend runs locally at `http://localhost:3000` and proxies `/api/v1/*` to `https://dev.lumie-infra.com`.
+
+For local tests only (no cluster needed — TestContainers handles Postgres):
+
+```bash
+./gradlew test
 ```
 
 ## Common commands
 
 ```bash
-./gradlew build                      # compile + test + spotlessCheck + checkLicense
-./gradlew :modules:student:test      # per-module test
-./gradlew spotlessApply              # auto-format
-./gradlew compileJava                # ErrorProne warnings surface here
-./gradlew :app:bootJar               # production jar
-./gradlew :app:dependencies          # resolution graph
+./gradlew build                           # compile + spotlessCheck + test + checkLicense
+./gradlew test                            # all tests (TestContainers spins up Postgres)
+./gradlew :modules:<module>:test          # single module, e.g. :modules:student:test
+./gradlew spotlessApply                   # fix import/whitespace issues
+./gradlew compileJava                     # surface ErrorProne warnings
+./gradlew :app:bootJar                    # production JAR
+./gradlew jacocoTestCoverageVerification  # explicit coverage gate (30% minimum, not in check yet)
+./gradlew checkLicense                    # verify dependency licenses against allowlist
 ```
 
-Configuration-cache is enabled (`org.gradle.configuration-cache=true`) — incremental builds are 20–40% faster.
+Configuration cache is enabled (`org.gradle.configuration-cache=true`) — incremental builds are faster.
 
-## References
+## Module map
 
-- Workspace rules: `../.claude/CLAUDE.md`
-- Per-repo AI rules: `./CLAUDE.md`
-- Hard rules: `.claude/knowledge/BACKEND_RULES.md`
-- Architecture intent (workspace): `../.claude/knowledge/ARCHITECTURE_INTENT.md`
-- Path-scoped rules: `.claude/rules/{controllers,entities,services,migrations}.md`
+| Module | Purpose |
+|---|---|
+| `activity-log` | Audit trail — records user actions across the platform |
+| `admin` | Admin-facing management operations (tenant provisioning, system config) |
+| `ai` | AI feature integrations (Spring AI; tutoring, content generation) |
+| `assignment` | Assignment creation, submission, and grading workflows |
+| `attendance` | Attendance tracking per class session |
+| `auth` | Authentication and authorization — JWT issuance, Spring Security config |
+| `billing` | Subscription, payment, and invoice management |
+| `class` | Class and cohort lifecycle management |
+| `content` | Learning content (materials, videos, attachments) |
+| `exam` | Exam creation, delivery, and scoring |
+| `file` | File upload/download via MinIO object storage |
+| `homepage` | Tenant-branded homepage and marketing page data |
+| `lecture` | Lecture scheduling and session records |
+| `notification` | In-app and push notification dispatch |
+| `student` | Student profile, enrollment, and progress tracking |
+| `tenant` | Tenant onboarding and per-tenant configuration |
+
+## Libraries
+
+| Library | Purpose |
+|---|---|
+| `libs/common` | Shared utilities — `BaseEntity`, `TenantContextHolder`, `RlsTenantContextAspect`, `AllowedSortFields`, `PageResponse` |
+| `libs/internal-api` | Cross-module service interfaces (the only permitted inter-module call boundary) |
+| `libs/messaging` | AMQP wiring and shared message schemas |
+
+## Where to look next
+
+- `CLAUDE.md` — AI assistant conventions and command references (not for human contributors)
+- `modules/<module>/` — each module is self-contained; no per-module READMEs exist yet
+- `.claude/knowledge/ARCHITECTURE_INTENT.md` — reasoning behind architectural decisions
+- Workspace `.claude/CLAUDE.md` — cross-repo rules and full repo map
