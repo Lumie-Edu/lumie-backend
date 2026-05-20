@@ -2,24 +2,15 @@ spring:
   application:
     name: lumie-backend
 
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:lumie}?prepareThreshold=0
-    username: ${DB_USERNAME:lumie}
-    password: ${DB_PASSWORD:lumie}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      # Behind PgBouncer the app-side pool should stay small — PgBouncer
-      # multiplexes to Postgres. keepalive probes idle conns; max-lifetime
-      # stays under PgBouncer's default server_lifetime (3600s) so Hikari
-      # retires a connection before the pooler closes it underneath us.
-      maximum-pool-size: 8
-      minimum-idle: 2
-      connection-timeout: 30000
-      idle-timeout: 600000
-      keepalive-time: 30000
-      max-lifetime: 1500000
-
   jpa:
+    # LazyConnectionDataSourceProxy (RoutingDataSourceConfig) returns a stub
+    # DatabaseMetaData on getConnection() pre-first-statement, so Hibernate
+    # cannot auto-detect the dialect at boot — pin it explicitly. This was
+    # also the most likely (mis-attributed) root cause of the D.7 v1/v2
+    # production crashes; the "jpaSharedEM_entityManagerFactory unresolved"
+    # the reverters logged was the downstream symptom of EMF creation
+    # failing here.
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: none
     show-sql: false
@@ -97,6 +88,53 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
+# Read/write split (D.7). Two HikariCP pools under app.datasource.* so
+# DataSourceAutoConfiguration (which binds spring.datasource.url) backs
+# off cleanly; RoutingDataSourceConfig wires the @Primary routing DS.
+# @Transactional(readOnly=true) services route to the readonly pool;
+# write tx + non-transactional code route to primary.
+app:
+  datasource:
+    primary:
+      url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:lumie}?prepareThreshold=0
+      username: ${DB_USERNAME:lumie}
+      password: ${DB_PASSWORD:lumie}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        # Behind PgBouncer the app-side pool stays small — PgBouncer
+        # multiplexes to Postgres. max-lifetime stays under PgBouncer's
+        # server_lifetime (3600s) so Hikari retires before the pooler
+        # closes underneath us.
+        pool-name: PrimaryHikariPool
+        maximum-pool-size: 8
+        minimum-idle: 2
+        connection-timeout: 30000
+        idle-timeout: 600000
+        keepalive-time: 30000
+        max-lifetime: 1500000
+        # Tags every physical connection so pg_stat_activity attributes
+        # load to the pool and the routing test can verify which pool
+        # served a given @Transactional method.
+        connection-init-sql: "SET app.pool_id = 'primary'"
+    readonly:
+      # RO_DB_* env unset (dev/local, single-node dev CNPG) falls back to
+      # primary host. Same lumie_app role (NOSUPERUSER NOBYPASSRLS) — RLS
+      # binds on this pool too.
+      url: jdbc:postgresql://${RO_DB_HOST:${DB_HOST:localhost}}:${RO_DB_PORT:${DB_PORT:5432}}/${RO_DB_NAME:${DB_NAME:lumie}}?prepareThreshold=0
+      username: ${RO_DB_USERNAME:${DB_USERNAME:lumie}}
+      password: ${RO_DB_PASSWORD:${DB_PASSWORD:lumie}}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        pool-name: ReadOnlyHikariPool
+        maximum-pool-size: 5
+        minimum-idle: 2
+        connection-timeout: 10000
+        idle-timeout: 600000
+        keepalive-time: 30000
+        max-lifetime: 1500000
+        read-only: true
+        connection-init-sql: "SET app.pool_id = 'readonly'"
+
 # JWT (auth module)
 jwt:
   secret-key: ${JWT_SECRET_KEY:?JWT_SECRET_KEY env var required (Vault → VSO → K8s Secret)}
@@ -157,16 +195,6 @@ minio:
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
   bucket-name: ${MINIO_BUCKET_NAME:lumie-files}
-
-# Read-only datasource (ai module)
-readonly-datasource:
-  jdbc-url: jdbc:postgresql://${RO_DB_HOST:${DB_HOST:localhost}}:${RO_DB_PORT:${DB_PORT:5432}}/${RO_DB_NAME:${DB_NAME:lumie}}?prepareThreshold=0
-  username: ${RO_DB_USERNAME:openclaw}
-  password: ${RO_DB_PASSWORD:openclaw}
-  driver-class-name: org.postgresql.Driver
-  maximum-pool-size: 5
-  minimum-idle: 2
-  connection-timeout: 10000
 
 # Gemini via Spring AI (OpenAI-compat endpoint)
 # Spring AI appends completions-path to base-url. Default is /v1/chat/completions,
