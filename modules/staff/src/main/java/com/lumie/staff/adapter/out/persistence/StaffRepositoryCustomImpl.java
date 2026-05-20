@@ -9,11 +9,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.support.JpaEntityInformationSupport;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 
-public class StaffRepositoryImpl implements StaffRepositoryCustom {
+public class StaffRepositoryCustomImpl implements StaffRepositoryCustom {
 
     private final SimpleJpaRepository<Staff, Long> base;
 
-    public StaffRepositoryImpl(EntityManager entityManager) {
+    public StaffRepositoryCustomImpl(EntityManager entityManager) {
         this.base = new SimpleJpaRepository<>(
                 JpaEntityInformationSupport.getEntityInformation(Staff.class, entityManager),
                 entityManager);

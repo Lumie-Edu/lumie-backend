@@ -1,6 +1,5 @@
 package com.lumie.app.config;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -102,7 +101,11 @@ import static org.assertj.core.api.Assertions.assertThat;
         classes = RoutingDataSourceIntegrationTest.TestApp.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE
 )
-@Tag("integration")
+// Smoke/context-load tier — runs in default `./gradlew test`. Boots a focused
+// Spring slice (DataSource + JPA + EntityManagerFactory + repositoryScan) so
+// repository-method derivation, bean wiring, and fragment-impl discovery
+// failures fail loudly at build time instead of in production. The heavy
+// migration suite (`MigrationsRlsIntegrationTest`) keeps `@Tag("integration")`.
 @Testcontainers
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class RoutingDataSourceIntegrationTest {
