@@ -43,6 +43,12 @@ public class StudentGradeQueryService {
      * default {@code rank ASC} when no sort is specified. Rank is computed in-memory from
      * {@link ExamResult} rows because it is a derived value, not a DB column.
      *
+     * <p>Both paged and unpaged {@link Pageable} instances are supported. When
+     * {@link Pageable#isUnpaged()} is {@code true}, the full sorted list is returned as a
+     * {@link PageImpl} with {@link Pageable#unpaged()} so that {@code Page<T>} consumers
+     * (e.g. inter-module callers via {@code libs/internal-api}) receive a valid page without
+     * triggering {@link UnsupportedOperationException} from {@link Pageable#getOffset()}.
+     *
      * <p>For {@link ExamCategory#PASS_FAIL} exams the {@code isPassed} flag is applied as a
      * secondary tiebreaker after the primary sort field, preserving the conventional view of
      * passed students above failed ones when ranks or scores are equal.
@@ -92,6 +98,10 @@ public class StudentGradeQueryService {
                 .sorted(buildComparator(pageable.getSort(), exam.getCategory()))
                 .toList();
 
+        if (!pageable.isPaged()) {
+            return new PageImpl<>(grades, Pageable.unpaged(), grades.size());
+        }
+
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), grades.size());
         List<StudentGradeResponse> pageContent = grades.subList(start, end);
@@ -103,7 +113,9 @@ public class StudentGradeQueryService {
      * Builds a {@link Comparator} that honours the first {@link Sort.Order} from the given
      * {@link Sort}. Allowed primary fields are {@code rank} (default ASC — lower is better) and
      * {@code totalScore} (default DESC — higher is better). Any other / absent field falls back to
-     * {@code rank ASC}.
+     * {@code rank ASC} — the incoming direction is ignored for unknown fields so that the
+     * {@code SortFieldAllowlistInterceptor} bypass path always produces a predictable, best-first
+     * result rather than silently inheriting the caller-supplied direction.
      *
      * <p>For {@link ExamCategory#PASS_FAIL} exams, a secondary tiebreaker on {@code isPassed}
      * (passed first) followed by {@code score} descending is appended after the primary key.
@@ -112,20 +124,27 @@ public class StudentGradeQueryService {
         Sort.Order order = sort.iterator().hasNext() ? sort.iterator().next() : null;
 
         String field = (order != null) ? order.getProperty() : "rank";
-        boolean ascending = (order == null) || order.getDirection().isAscending();
 
         Comparator<StudentGradeResponse> primary;
         if ("totalScore".equals(field)) {
             // "totalScore" in the allowlist maps to the DTO's `score` component.
             // Direction is honoured literally: ASC = lowest score first, DESC = highest score first.
+            boolean ascending = (order != null) && order.getDirection().isAscending();
             primary = ascending
                     ? Comparator.comparingInt(StudentGradeResponse::score)
                     : Comparator.comparingInt(StudentGradeResponse::score).reversed();
-        } else {
-            // "rank" (default): lower rank number = better, so ASC = best-rank-first.
+        } else if ("rank".equals(field)) {
+            // "rank": lower rank number = better, so ASC = best-rank-first.
+            // Direction is honoured literally for the known "rank" field.
+            boolean ascending = (order == null) || order.getDirection().isAscending();
             primary = ascending
                     ? Comparator.comparingInt(StudentGradeResponse::rank)
                     : Comparator.comparingInt(StudentGradeResponse::rank).reversed();
+        } else {
+            // Unknown field (should be rejected by SortFieldAllowlistInterceptor before reaching
+            // here, but this code path exists as a safety net). Always fall back to rank ASC
+            // regardless of the incoming direction — principle of least surprise; Javadoc contract.
+            primary = Comparator.comparingInt(StudentGradeResponse::rank);
         }
 
         if (category == ExamCategory.PASS_FAIL) {

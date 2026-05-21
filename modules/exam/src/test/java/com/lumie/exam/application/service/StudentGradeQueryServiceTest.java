@@ -118,8 +118,6 @@ class StudentGradeQueryServiceTest {
         given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
         stubStudentService(results);
 
-        // Use PageRequest with large page size so all results fit on page 0 without Pageable.unpaged()
-        // (Unpaged throws UnsupportedOperationException at getOffset() since the service slices in-memory)
         Page<StudentGradeResponse> page = service.getStudentGrades(
                 EXAM_ID, PageRequest.of(0, Integer.MAX_VALUE));
 
@@ -223,8 +221,8 @@ class StudentGradeQueryServiceTest {
     }
 
     @Test
-    @DisplayName("getStudentGrades: 허용 목록 외 필드 지정 시 해당 방향의 rank 정렬로 폴백된다")
-    void getStudentGrades_unknownSortFieldDesc_fallsBackToRankDesc() {
+    @DisplayName("getStudentGrades: 허용 목록 외 필드 지정 시 방향 무시하고 rank ASC로 폴백된다")
+    void getStudentGrades_unknownSortFieldDesc_fallsBackToRankAsc() {
         Exam exam = gradedExam();
         List<ExamResult> results = List.of(
                 ExamResult.create(exam, 1L, 50),
@@ -235,14 +233,59 @@ class StudentGradeQueryServiceTest {
         given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
         stubStudentService(results);
 
-        // "studentName" is not "rank" or "totalScore" → falls into the rank branch,
-        // but direction is honoured literally (DESC) → rank DESC (worst-rank first)
+        // "studentName" is not in the known dispatch set → falls back to rank ASC,
+        // ignoring the DESC direction (principle of least surprise; Javadoc contract).
         Sort sort = Sort.by(Sort.Direction.DESC, "studentName");
         Page<StudentGradeResponse> page = service.getStudentGrades(EXAM_ID, PageRequest.of(0, 10, sort));
 
-        // rank DESC: lowest score (50) has rank 3 → appears first
-        assertThat(page.getContent().get(0).rank()).isEqualTo(3);
-        assertThat(page.getContent().get(0).score()).isEqualTo(50);
+        // rank ASC: highest scorer (90) has rank 1 → appears first
+        assertThat(page.getContent().get(0).rank()).isEqualTo(1);
+        assertThat(page.getContent().get(0).score()).isEqualTo(90);
+    }
+
+    @Test
+    @DisplayName("getStudentGrades: Pageable.unpaged() 시 전체 결과를 단일 페이지로 반환하며 예외가 발생하지 않는다")
+    void getStudentGrades_unpagedPageable_returnsAllResultsAsSinglePage() {
+        Exam exam = gradedExam();
+        List<ExamResult> results = List.of(
+                ExamResult.create(exam, 1L, 50),
+                ExamResult.create(exam, 2L, 90),
+                ExamResult.create(exam, 3L, 70),
+                ExamResult.create(exam, 4L, 80),
+                ExamResult.create(exam, 5L, 60)
+        );
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        stubStudentService(results);
+
+        // Pageable.unpaged() must NOT throw UnsupportedOperationException at getOffset()
+        Page<StudentGradeResponse> page = service.getStudentGrades(EXAM_ID, Pageable.unpaged());
+
+        assertThat(page.getContent()).hasSize(results.size());
+        assertThat(page.getTotalElements()).isEqualTo(results.size());
+    }
+
+    @Test
+    @DisplayName("getStudentGrades: 허용 목록 외 필드+DESC 지정 시 rank ASC(1위 먼저)로 폴백된다")
+    void getStudentGrades_unknownSortFieldWithDesc_fallsBackToRankAsc() {
+        Exam exam = gradedExam();
+        // scores: 70→rank1, 50→rank2, 30→rank3 (three distinct scores for clear rank ordering)
+        List<ExamResult> results = List.of(
+                ExamResult.create(exam, 1L, 30),
+                ExamResult.create(exam, 2L, 70),
+                ExamResult.create(exam, 3L, 50)
+        );
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        stubStudentService(results);
+
+        Sort unknownDesc = Sort.by(Sort.Direction.DESC, "studentName");
+        Page<StudentGradeResponse> page = service.getStudentGrades(EXAM_ID, PageRequest.of(0, 10, unknownDesc));
+
+        // Fallback must be rank ASC regardless of DESC direction: rank 1 student (score 70) first
+        List<Integer> ranks = page.getContent().stream().map(StudentGradeResponse::rank).toList();
+        assertThat(ranks).containsExactly(1, 2, 3);
+        assertThat(page.getContent().get(0).score()).isEqualTo(70);
     }
 
     // ---------------------------------------------------------------------------
