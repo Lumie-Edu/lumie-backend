@@ -91,6 +91,10 @@ public class IdempotencyService {
             Object requestBody,
             Supplier<ResponseEntity<T>> action
     ) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            // Caller chose not to enable idempotency (header missing or empty).
+            return action.get();
+        }
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         String fingerprint = fingerprint(requestBody);
 

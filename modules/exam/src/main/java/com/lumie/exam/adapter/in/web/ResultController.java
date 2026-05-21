@@ -38,6 +38,7 @@ import java.util.List;
 public class ResultController {
 
     private static final String OMR_SINGLE_SCOPE = "POST /v1/exams/{examId}/results/omr";
+    private static final String OMR_BATCH_PRESIGN_SCOPE = "POST /v1/exams/{examId}/results/omr/batch/presign";
     private static final String OMR_BATCH_CONFIRM_SCOPE = "POST /v1/exams/{examId}/results/omr/batch/confirm";
 
     private final ResultCommandService resultCommandService;
@@ -65,10 +66,19 @@ public class ResultController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-@PostMapping("/exams/{examId}/results/omr/batch/presign")
+    @PostMapping("/exams/{examId}/results/omr/batch/presign")
     public ResponseEntity<OmrPresignResponse> requestPresignedUrls(
             @PathVariable Long examId,
-            @Valid @RequestBody OmrPresignRequest request) {
+            @Valid @RequestBody OmrPresignRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        if (idempotencyKey != null) {
+            return idempotencyService.executeOnce(
+                    idempotencyKey,
+                    OMR_BATCH_PRESIGN_SCOPE,
+                    java.util.Map.of("examId", examId, "request", request),
+                    () -> ResponseEntity.ok(resultCommandService.generatePresignedUrls(examId, request))
+            );
+        }
         OmrPresignResponse response = resultCommandService.generatePresignedUrls(examId, request);
         return ResponseEntity.ok(response);
     }

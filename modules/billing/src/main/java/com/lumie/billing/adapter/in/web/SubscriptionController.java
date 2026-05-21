@@ -7,6 +7,7 @@ import com.lumie.billing.application.dto.response.SubscriptionResponse;
 import com.lumie.billing.application.service.SubscriptionCommandService;
 import com.lumie.billing.application.service.SubscriptionQueryService;
 import com.lumie.billing.domain.vo.MetricType;
+import com.lumie.common.idempotency.IdempotencyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,12 +19,24 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class SubscriptionController {
 
+    private static final String CREATE_SUBSCRIPTION_SCOPE = "POST /v1/subscriptions";
+
     private final SubscriptionCommandService subscriptionCommandService;
     private final SubscriptionQueryService subscriptionQueryService;
+    private final IdempotencyService idempotencyService;
 
     @PostMapping
     public ResponseEntity<SubscriptionResponse> createSubscription(
-            @Valid @RequestBody CreateSubscriptionRequest request) {
+            @Valid @RequestBody CreateSubscriptionRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        if (idempotencyKey != null) {
+            return idempotencyService.executeOnce(
+                    idempotencyKey,
+                    CREATE_SUBSCRIPTION_SCOPE,
+                    request,
+                    () -> ResponseEntity.status(HttpStatus.CREATED).body(subscriptionCommandService.createSubscription(request))
+            );
+        }
         SubscriptionResponse response = subscriptionCommandService.createSubscription(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
