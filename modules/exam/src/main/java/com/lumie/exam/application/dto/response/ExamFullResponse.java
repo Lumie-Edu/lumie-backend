@@ -6,7 +6,7 @@ import com.lumie.exam.domain.vo.ExamCategory;
 import java.time.Instant;
 import java.util.Map;
 
-public record ExamDetailResponse(
+public record ExamFullResponse(
         Long id,
         String name,
         ExamCategory category,
@@ -19,8 +19,8 @@ public record ExamDetailResponse(
         Instant createdAt,
         Instant updatedAt
 ) {
-    public static ExamDetailResponse from(Exam exam) {
-        return new ExamDetailResponse(
+    public static ExamFullResponse from(Exam exam) {
+        return new ExamFullResponse(
                 exam.getId(),
                 exam.getName(),
                 exam.getCategory(),

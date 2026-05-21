@@ -3,7 +3,7 @@ package com.lumie.exam.adapter.in.web;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
 import com.lumie.exam.application.dto.request.UpdateExamRequest;
-import com.lumie.exam.application.dto.response.ExamDetailResponse;
+import com.lumie.exam.application.dto.response.ExamFullResponse;
 import com.lumie.exam.application.dto.response.ExamResponse;
 import com.lumie.exam.application.service.ExamCommandService;
 import com.lumie.exam.application.service.ExamQueryService;
@@ -44,7 +44,7 @@ public class ExamController {
     }
 
     @GetMapping("/{id}/full")
-    public ResponseEntity<ExamDetailResponse> getExamFull(@PathVariable Long id) {
+    public ResponseEntity<ExamFullResponse> getExamFull(@PathVariable Long id) {
         return ResponseEntity.ok(examQueryService.getExamFull(id));
     }
 

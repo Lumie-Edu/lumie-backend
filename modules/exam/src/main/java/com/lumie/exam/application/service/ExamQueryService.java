@@ -1,6 +1,6 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.exam.application.dto.response.ExamDetailResponse;
+import com.lumie.exam.application.dto.response.ExamFullResponse;
 import com.lumie.exam.application.dto.response.ExamResponse;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.exception.ExamErrorCode;
@@ -30,13 +30,13 @@ public class ExamQueryService {
         return ExamResponse.from(exam);
     }
 
-    public ExamDetailResponse getExamFull(Long examId) {
+    public ExamFullResponse getExamFull(Long examId) {
         log.debug("Getting exam full (admin): {}", examId);
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
 
-        return ExamDetailResponse.from(exam);
+        return ExamFullResponse.from(exam);
     }
 
     public Page<ExamResponse> listExams(Pageable pageable) {

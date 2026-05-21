@@ -1,6 +1,6 @@
 package com.lumie.exam.adapter.in.web;
 
-import com.lumie.exam.application.dto.response.ExamDetailResponse;
+import com.lumie.exam.application.dto.response.ExamFullResponse;
 import com.lumie.exam.application.service.ExamQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ public class InternalOmrController {
     private final ExamQueryService examQueryService;
 
     @GetMapping("/exams/{id}/full")
-    public ResponseEntity<ExamDetailResponse> getExamFull(@PathVariable Long id) {
+    public ResponseEntity<ExamFullResponse> getExamFull(@PathVariable Long id) {
         return ResponseEntity.ok(examQueryService.getExamFull(id));
     }
 }
