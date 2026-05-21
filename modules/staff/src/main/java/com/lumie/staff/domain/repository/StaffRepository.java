@@ -1,11 +1,16 @@
 package com.lumie.staff.domain.repository;
 
 import com.lumie.staff.domain.entity.Staff;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,5 +35,24 @@ public interface StaffRepository extends JpaRepository<Staff, Long>, JpaSpecific
     /** Convenience wrapper: counts active staff grouped by role. */
     default List<Object[]> countActiveGroupedByRole() {
         return countGroupedByRoleAndIsActive(true);
+    }
+
+    default Page<Staff> search(Boolean isActive, String search, Pageable pageable) {
+        Specification<Staff> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (isActive != null) {
+                predicates.add(cb.equal(root.get("isActive"), isActive));
+            }
+            if (search != null && !search.isBlank()) {
+                String pattern = "%" + search.toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("name")), pattern),
+                        cb.like(cb.lower(root.get("userLoginId")), pattern),
+                        cb.like(cb.lower(root.get("email")), pattern)
+                ));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return findAll(spec, pageable);
     }
 }
