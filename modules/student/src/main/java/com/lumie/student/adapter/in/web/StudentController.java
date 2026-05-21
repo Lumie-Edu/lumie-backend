@@ -1,6 +1,7 @@
 package com.lumie.student.adapter.in.web;
 
 import com.lumie.common.api.AllowedSortFields;
+import com.lumie.common.api.PageResponse;
 import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -15,7 +16,6 @@ import com.lumie.student.application.dto.response.EnrollmentTrendResponse;
 import com.lumie.student.application.dto.response.StudentResponse;
 import com.lumie.student.application.service.StudentCommandService;
 import com.lumie.student.application.service.StudentQueryService;
-import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

@@ -14,6 +14,7 @@ import com.lumie.student.domain.exception.QuotaExceededException;
 import com.lumie.student.domain.exception.StudentErrorCode;
 import com.lumie.student.domain.exception.StudentNotFoundException;
 import com.lumie.student.domain.repository.StudentRepository;
+import com.lumie.student.domain.vo.PhoneNumber;
 import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -139,7 +140,7 @@ public class StudentCommandService {
                 .orElseThrow(() -> new StudentNotFoundException(id));
 
         if (student.isActive()) {
-            throw new IllegalStateException("Cannot delete active student. Deactivate first.");
+            throw new BusinessException(StudentErrorCode.CANNOT_DELETE_ACTIVE_STUDENT);
         }
 
         Long userId = student.getUserId();
@@ -295,16 +296,30 @@ public class StudentCommandService {
             throw new BusinessException(StudentErrorCode.EXCEL_PARSE_FAILED, "Failed to read Excel file: " + e.getMessage());
         }
 
+        // ── Pass 1: validate all rows upfront, collecting every error ──────────
+        // Phone uniqueness is checked against the DB state at request time; within-file
+        // duplicate detection is intentionally omitted here (the duplicate will surface
+        // as a BULK_IMPORT_DUPLICATE_PHONE error on the second row that conflicts).
         List<BulkImportResult.RowError> errors = new ArrayList<>();
+        for (StudentExcelParser.StudentRow row : rows) {
+            validateBulkRow(row, errors);
+        }
+
+        // ── Pass 2: insert only the rows that passed validation ───────────────
         int successCount = 0;
+        boolean quotaExhausted = false;
 
         for (StudentExcelParser.StudentRow row : rows) {
-            try {
-                if (row.name() == null || row.name().isBlank()) {
-                    errors.add(new BulkImportResult.RowError(row.rowNumber(), "name", "Name is required"));
-                    continue;
-                }
+            boolean rowHasError = errors.stream().anyMatch(e -> e.rowNumber() == row.rowNumber());
+            if (rowHasError) continue;
 
+            if (quotaExhausted) {
+                errors.add(rowError(row.rowNumber(), "quota", null,
+                        StudentErrorCode.BULK_IMPORT_QUOTA_EXCEEDED));
+                continue;
+            }
+
+            try {
                 checkStudentQuota(tenantSlug);
 
                 AuthService.CreateUserResult userResult = authService.createUser(
@@ -315,7 +330,10 @@ public class StudentCommandService {
                 );
 
                 if (!userResult.success()) {
-                    errors.add(new BulkImportResult.RowError(row.rowNumber(), "user", "Failed to create user: " + userResult.message()));
+                    errors.add(rowError(row.rowNumber(), null, null,
+                            StudentErrorCode.BULK_IMPORT_AUTH_FAILED,
+                            StudentErrorCode.BULK_IMPORT_AUTH_FAILED.getMessage()
+                                    + " (" + userResult.message() + ")"));
                     continue;
                 }
 
@@ -333,10 +351,12 @@ public class StudentCommandService {
                 successCount++;
 
             } catch (QuotaExceededException e) {
-                errors.add(new BulkImportResult.RowError(row.rowNumber(), "quota", "Student quota exceeded"));
-                break;
+                quotaExhausted = true;
+                errors.add(rowError(row.rowNumber(), "quota", null,
+                        StudentErrorCode.BULK_IMPORT_QUOTA_EXCEEDED));
             } catch (Exception e) {
-                errors.add(new BulkImportResult.RowError(row.rowNumber(), "unknown", e.getMessage()));
+                errors.add(rowError(row.rowNumber(), null, null,
+                        StudentErrorCode.BULK_IMPORT_UNEXPECTED, e.getMessage()));
             }
         }
 
@@ -344,6 +364,49 @@ public class StudentCommandService {
                  successCount, errors.size(), tenantSlug);
 
         return BulkImportResult.partial(rows.size(), successCount, errors);
+    }
+
+    /**
+     * Validates a single parsed row and appends any validation errors to {@code errors}.
+     * All errors for the row are collected (no early return within the row) so the
+     * teacher sees every problem at once.
+     */
+    private void validateBulkRow(StudentExcelParser.StudentRow row,
+                                  List<BulkImportResult.RowError> errors) {
+        // name: required
+        if (row.name() == null || row.name().isBlank()) {
+            errors.add(rowError(row.rowNumber(), "name", row.name(),
+                    StudentErrorCode.BULK_IMPORT_NAME_REQUIRED));
+        }
+
+        // phone: format + uniqueness (optional field — only validate when present)
+        if (row.phone() != null && !row.phone().isBlank()) {
+            if (!PhoneNumber.isValid(row.phone())) {
+                errors.add(rowError(row.rowNumber(), "phone", row.phone(),
+                        StudentErrorCode.BULK_IMPORT_INVALID_PHONE));
+            } else if (studentRepository.existsByPhoneInAnyField(PhoneNumber.normalize(row.phone()))) {
+                errors.add(rowError(row.rowNumber(), "phone", row.phone(),
+                        StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE));
+            }
+        }
+
+        // parentPhone: format only (no uniqueness constraint required for parent phones)
+        if (row.parentPhone() != null && !row.parentPhone().isBlank()) {
+            if (!PhoneNumber.isValid(row.parentPhone())) {
+                errors.add(rowError(row.rowNumber(), "parentPhone", row.parentPhone(),
+                        StudentErrorCode.BULK_IMPORT_INVALID_PHONE));
+            }
+        }
+    }
+
+    private static BulkImportResult.RowError rowError(
+            int rowNumber, String column, String value, StudentErrorCode code) {
+        return new BulkImportResult.RowError(rowNumber, column, value, code.getCode(), code.getMessage());
+    }
+
+    private static BulkImportResult.RowError rowError(
+            int rowNumber, String column, String value, StudentErrorCode code, String overrideMessage) {
+        return new BulkImportResult.RowError(rowNumber, column, value, code.getCode(), overrideMessage);
     }
 
     private void validatePhoneUniqueness(String phone, String parentPhone, Long excludeId) {

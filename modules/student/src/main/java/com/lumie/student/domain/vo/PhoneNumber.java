@@ -1,5 +1,7 @@
 package com.lumie.student.domain.vo;
 
+import com.lumie.common.exception.BusinessException;
+import com.lumie.student.domain.exception.StudentErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
@@ -31,14 +33,22 @@ public class PhoneNumber {
         }
 
         String normalized = normalize(phone);
-        if (!isValid(normalized)) {
-            throw new IllegalArgumentException("Invalid phone number: " + phone);
+        if (!isValid(phone)) {
+            throw new BusinessException(StudentErrorCode.INVALID_PHONE_NUMBER,
+                    "Invalid phone number: " + phone);
         }
         return new PhoneNumber(normalized);
     }
 
-    private static String normalize(String phone) {
-        String digits = phone.replaceAll("[^0-9]", "");
+    /**
+     * Returns the canonical hyphenated form of {@code raw} (strips non-digits, then reformats
+     * as XX-XXXX-XXXX for 10-digit or XXX-XXXX-XXXX for 11-digit numbers).
+     * Returns {@code null} when {@code raw} is {@code null}.
+     * Does NOT validate — call {@link #isValid(String)} separately when needed.
+     */
+    public static String normalize(String raw) {
+        if (raw == null) return null;
+        String digits = raw.replaceAll("[^0-9]", "");
 
         if (digits.length() == 10) {
             return digits.substring(0, 2) + "-" + digits.substring(2, 6) + "-" + digits.substring(6);
@@ -46,11 +56,16 @@ public class PhoneNumber {
             return digits.substring(0, 3) + "-" + digits.substring(3, 7) + "-" + digits.substring(7);
         }
 
-        return phone;
+        return raw;
     }
 
-    private static boolean isValid(String phone) {
-        return PHONE_PATTERN.matcher(phone).matches();
+    /**
+     * Returns {@code true} if {@code raw} can be parsed into a valid {@link PhoneNumber}.
+     * Null-safe: returns {@code false} for {@code null} or blank input. Does NOT throw.
+     */
+    public static boolean isValid(String raw) {
+        if (raw == null || raw.isBlank()) return false;
+        return PHONE_PATTERN.matcher(normalize(raw)).matches();
     }
 
     @Override
