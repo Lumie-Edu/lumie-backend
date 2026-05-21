@@ -5,6 +5,7 @@ import com.lumie.lecture.application.dto.request.UpdateLectureRequest;
 import com.lumie.lecture.application.dto.response.LectureResponse;
 import com.lumie.lecture.application.service.LectureCommandService;
 import com.lumie.lecture.application.service.LectureQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class LectureController {
     }
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "title", "lectureDate", "status"})
     public ResponseEntity<PageResponse<LectureResponse>> findAll(
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Long teacherId,

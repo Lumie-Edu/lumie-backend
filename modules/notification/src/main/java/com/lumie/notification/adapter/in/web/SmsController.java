@@ -7,6 +7,7 @@ import com.lumie.notification.application.service.SmsCommandService;
 import com.lumie.notification.application.service.SmsQueryService;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class SmsController {
     }
 
     @GetMapping("/history")
+    @AllowedSortFields({"createdAt", "sentAt", "status"})
     public ResponseEntity<PageResponse<SmsMessageResponse>> listMessages(
             @RequestParam(required = false) SmsStatus status,
             @RequestParam(required = false) RecipientType recipientType,

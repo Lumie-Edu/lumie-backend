@@ -5,6 +5,7 @@ import com.lumie.assignment.application.dto.request.UpdateSubmissionRequest;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.application.service.AssignmentQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class AssignmentSubmissionController {
     private final AssignmentQueryService queryService;
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "submittedAt", "status"})
     public ResponseEntity<PageResponse<SubmissionResponse>> getSubmissions(
             @PathVariable Long assignmentId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -50,6 +52,7 @@ public class AssignmentSubmissionController {
     }
 
     @GetMapping("/student/{studentId}")
+    @AllowedSortFields({"createdAt", "submittedAt", "status"})
     public ResponseEntity<PageResponse<SubmissionResponse>> getStudentSubmissions(
             @PathVariable Long assignmentId,
             @PathVariable Long studentId,

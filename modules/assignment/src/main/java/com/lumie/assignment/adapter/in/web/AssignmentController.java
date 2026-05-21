@@ -7,6 +7,7 @@ import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.application.service.AssignmentQueryService;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentType;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AssignmentController {
     }
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "title", "dueDate", "status"})
     public ResponseEntity<PageResponse<AssignmentResponse>> listAssignments(
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) AssignmentType type,
@@ -65,6 +67,7 @@ public class AssignmentController {
     }
 
     @GetMapping("/class/{classId}")
+    @AllowedSortFields({"createdAt", "title", "dueDate", "status"})
     public ResponseEntity<PageResponse<AssignmentResponse>> getAssignmentsByClass(
             @PathVariable Long classId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {

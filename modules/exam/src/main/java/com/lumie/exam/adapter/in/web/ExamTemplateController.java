@@ -5,6 +5,7 @@ import com.lumie.exam.application.dto.request.UpdateExamTemplateRequest;
 import com.lumie.exam.application.dto.response.ExamTemplateResponse;
 import com.lumie.exam.application.service.ExamTemplateCommandService;
 import com.lumie.exam.application.service.ExamTemplateQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class ExamTemplateController {
     private final ExamTemplateQueryService examTemplateQueryService;
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "name", "category"})
     public ResponseEntity<PageResponse<ExamTemplateResponse>> listTemplates(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(PageResponse.from(examTemplateQueryService.listTemplates(pageable)));

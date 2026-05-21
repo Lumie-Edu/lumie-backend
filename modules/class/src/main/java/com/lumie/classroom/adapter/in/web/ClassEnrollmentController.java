@@ -5,6 +5,7 @@ import com.lumie.classroom.application.dto.EnrollStudentsRequest;
 import com.lumie.classroom.application.dto.UpdateEnrollmentRequest;
 import com.lumie.classroom.application.service.ClassCommandService;
 import com.lumie.classroom.application.service.ClassQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class ClassEnrollmentController {
     private final ClassQueryService queryService;
 
     @GetMapping
+    @AllowedSortFields({"enrolledAt", "createdAt", "status"})
     public ResponseEntity<PageResponse<ClassEnrollmentResponse>> getEnrollments(
             @PathVariable Long classId,
             @PageableDefault(size = 20, sort = "enrolledAt", direction = Sort.Direction.DESC) Pageable pageable) {

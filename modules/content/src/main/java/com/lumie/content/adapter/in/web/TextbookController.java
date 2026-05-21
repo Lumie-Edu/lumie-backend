@@ -5,6 +5,7 @@ import com.lumie.content.application.dto.request.UpdateTextbookRequest;
 import com.lumie.content.application.dto.response.TextbookResponse;
 import com.lumie.content.application.service.TextbookCommandService;
 import com.lumie.content.application.service.TextbookQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class TextbookController {
     private final TextbookQueryService queryService;
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "name", "subject"})
     public ResponseEntity<PageResponse<TextbookResponse>> listTextbooks(
             @RequestParam(required = false) String subject,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {

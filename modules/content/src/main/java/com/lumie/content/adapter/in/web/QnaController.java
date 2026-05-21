@@ -8,6 +8,7 @@ import com.lumie.content.application.dto.response.QnaCommentResponse;
 import com.lumie.content.application.dto.response.QnaDetailResponse;
 import com.lumie.content.application.service.QnaCommandService;
 import com.lumie.content.application.service.QnaQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class QnaController {
     private final QnaQueryService queryService;
 
     @GetMapping
+    @AllowedSortFields({"createdAt"})
     public ResponseEntity<PageResponse<QnaBoardResponse>> listQnas(
             @RequestParam(required = false) Boolean isAnswered,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -34,12 +36,14 @@ public class QnaController {
     }
 
     @GetMapping("/unanswered")
+    @AllowedSortFields({"createdAt"})
     public ResponseEntity<PageResponse<QnaBoardResponse>> listUnansweredQnas(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(PageResponse.from(queryService.listUnansweredQnas(pageable)));
     }
 
     @GetMapping("/user/{qnaUserId}")
+    @AllowedSortFields({"createdAt"})
     public ResponseEntity<PageResponse<QnaBoardResponse>> listQnasByUser(
             @PathVariable Long qnaUserId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {

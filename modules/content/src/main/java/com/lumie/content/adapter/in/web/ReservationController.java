@@ -6,6 +6,7 @@ import com.lumie.content.application.dto.response.ReservationResponse;
 import com.lumie.content.application.service.ReservationCommandService;
 import com.lumie.content.application.service.ReservationQueryService;
 import com.lumie.content.domain.vo.ReservationStatus;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class ReservationController {
     private final ReservationQueryService queryService;
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "status"})
     public ResponseEntity<PageResponse<ReservationResponse>> listReservations(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(PageResponse.from(queryService.listReservations(pageable)));

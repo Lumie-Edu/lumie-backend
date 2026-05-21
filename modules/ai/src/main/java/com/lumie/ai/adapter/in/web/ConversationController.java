@@ -3,6 +3,7 @@ package com.lumie.ai.adapter.in.web;
 import com.lumie.ai.application.dto.response.ConversationDetailResponse;
 import com.lumie.ai.application.dto.response.ConversationSummaryResponse;
 import com.lumie.ai.application.service.ConversationQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ public class ConversationController {
     private final ConversationQueryService queryService;
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "updatedAt"})
     public ResponseEntity<PageResponse<ConversationSummaryResponse>> listConversations(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(PageResponse.from(queryService.listConversations(pageable)));

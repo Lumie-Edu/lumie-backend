@@ -4,6 +4,7 @@ import com.lumie.attendance.application.dto.request.AttendanceSessionRequest;
 import com.lumie.attendance.application.dto.response.AttendanceSessionResponse;
 import com.lumie.attendance.application.service.AttendanceSessionCommandService;
 import com.lumie.attendance.application.service.AttendanceSessionQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AttendanceSessionController {
     }
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "sessionDate", "name"})
     public ResponseEntity<PageResponse<AttendanceSessionResponse>> getSessions(
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,

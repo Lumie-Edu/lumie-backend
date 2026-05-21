@@ -5,6 +5,7 @@ import com.lumie.classroom.application.dto.CreateClassRequest;
 import com.lumie.classroom.application.dto.UpdateClassRequest;
 import com.lumie.classroom.application.service.ClassCommandService;
 import com.lumie.classroom.application.service.ClassQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class ClassController {
     }
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "name"})
     public ResponseEntity<PageResponse<ClassResponse>> listClasses(
             @RequestParam(required = false) Long teacherId,
             @RequestParam(required = false) String search,
@@ -62,6 +64,7 @@ public class ClassController {
     }
 
     @GetMapping("/teacher/{teacherId}")
+    @AllowedSortFields({"createdAt", "name"})
     public ResponseEntity<PageResponse<ClassResponse>> getClassesByTeacher(
             @PathVariable Long teacherId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -70,6 +73,7 @@ public class ClassController {
     }
 
     @GetMapping("/student/{studentId}")
+    @AllowedSortFields({"createdAt", "name"})
     public ResponseEntity<PageResponse<ClassResponse>> getClassesByStudent(
             @PathVariable Long studentId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {

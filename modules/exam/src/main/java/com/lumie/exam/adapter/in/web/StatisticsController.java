@@ -8,6 +8,7 @@ import com.lumie.exam.application.service.ExamSummaryStatisticsService;
 import com.lumie.exam.application.service.ItemAnalysisQueryService;
 import com.lumie.exam.application.service.StudentAnalyticsQueryService;
 import com.lumie.exam.application.service.StudentGradeQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class StatisticsController {
     }
 
     @GetMapping("/exams/{examId}/grades")
+    @AllowedSortFields({"rank", "totalScore"})
     public ResponseEntity<PageResponse<StudentGradeResponse>> getStudentGrades(
             @PathVariable Long examId,
             @PageableDefault(size = 20, sort = "rank") Pageable pageable) {

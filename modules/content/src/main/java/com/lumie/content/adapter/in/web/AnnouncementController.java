@@ -5,6 +5,7 @@ import com.lumie.content.application.dto.request.UpdateAnnouncementRequest;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.application.service.AnnouncementCommandService;
 import com.lumie.content.application.service.AnnouncementQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class AnnouncementController {
     private final AnnouncementQueryService queryService;
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "announcementTitle"})
     public ResponseEntity<PageResponse<AnnouncementResponse>> listAnnouncements(
             @RequestParam(required = false) Boolean isAsset,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {

@@ -10,6 +10,7 @@ import com.lumie.staff.application.dto.response.StaffResponse;
 import com.lumie.staff.application.dto.response.ChangeLoginIdResponse;
 import com.lumie.staff.application.service.StaffCommandService;
 import com.lumie.staff.application.service.StaffQueryService;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,7 @@ public class StaffController {
     }
 
     @GetMapping
+    @AllowedSortFields({"createdAt", "name", "employmentStatus"})
     public ResponseEntity<PageResponse<StaffResponse>> getAllStaff(
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String search,
