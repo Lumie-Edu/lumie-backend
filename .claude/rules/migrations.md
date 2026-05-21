@@ -19,7 +19,7 @@ paths: ["lumie-backend/**/db/migration/**/*.sql"]
 - ✅ Naming: `V<n>__<snake_case_description>.sql`.
 - ✅ `created_at TIMESTAMPTZ DEFAULT now()` and `updated_at TIMESTAMPTZ DEFAULT now()`.
 - ✅ Foreign keys explicit, `ON DELETE` policy declared.
-- ✅ For backfills: write companion rollback `.sql` or document irreversibility.
+- ✅ For backfills: document irreversibility with a comment in the migration — forward-only is canonical, no rollback companion required.
 - ✅ Test against TestContainers before considering "ready".
 
 ## Expand / contract for destructive changes

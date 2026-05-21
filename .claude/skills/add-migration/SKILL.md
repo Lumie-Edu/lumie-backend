@@ -1,6 +1,6 @@
 ---
 name: add-migration
-description: Create a new Flyway migration with rollback companion + idempotency guards. Uses `migration` agent.
+description: Create a new Flyway migration with idempotency guards. Uses `migration` agent.
 user-invocable: true
 argument-hint: <description-snake-case> [scope=public|tenant]
 ---
@@ -14,7 +14,7 @@ Create a Flyway migration safely.
 3. Invoke `migration` agent:
    - Generate `V<N>__<description>.sql` in correct schema dir.
    - Use `IF EXISTS` / `IF NOT EXISTS` guards (idempotency).
-   - For destructive ops (DROP/ALTER): generate `_rollback.sql` companion or document irreversibility.
+   - For destructive ops (DROP/ALTER): document irreversibility with a comment (forward-only migrations are canonical — no `_rollback.sql` companion required).
    - Use `TIMESTAMPTZ` for timestamps (NOT `TIMESTAMP WITHOUT TIME ZONE`).
 4. If cross-schema reference (public ↔ tenant), warn about V12/V32 ordering risk; recommend backfill via separate migration.
 5. Cross-check naming: snake_case columns, foreign keys explicit with `ON DELETE`.
