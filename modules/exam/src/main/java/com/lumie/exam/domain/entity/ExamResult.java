@@ -1,6 +1,8 @@
 package com.lumie.exam.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
+import com.lumie.exam.domain.exception.ExamErrorCode;
+import com.lumie.exam.domain.exception.ExamException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -90,7 +92,7 @@ public class ExamResult extends TenantScopedEntity {
 
     public void regrade(Integer newTotalScore, List<OmrQuestionUpdate> updates) {
         if (this.questionResults.size() != updates.size()) {
-            throw new IllegalArgumentException(
+            throw new ExamException(ExamErrorCode.INVALID_ANSWER_DATA,
                     "Question count mismatch: existing=%d, new=%d"
                             .formatted(this.questionResults.size(), updates.size()));
         }
@@ -102,7 +104,7 @@ public class ExamResult extends TenantScopedEntity {
         for (QuestionResult existing : this.questionResults) {
             OmrQuestionUpdate update = updateMap.get(existing.getQuestionNumber());
             if (update == null) {
-                throw new IllegalArgumentException(
+                throw new ExamException(ExamErrorCode.INVALID_ANSWER_DATA,
                         "No update for question number: " + existing.getQuestionNumber());
             }
             existing.update(update.selectedChoice(), update.correctAnswer(), update.maxScore());
@@ -113,7 +115,7 @@ public class ExamResult extends TenantScopedEntity {
         QuestionResult target = this.questionResults.stream()
                 .filter(qr -> qr.getId() != null && qr.getId().equals(questionResultId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new ExamException(ExamErrorCode.INVALID_ANSWER_DATA,
                         "QuestionResult not found: " + questionResultId));
 
         int questionNumber = target.getQuestionNumber();

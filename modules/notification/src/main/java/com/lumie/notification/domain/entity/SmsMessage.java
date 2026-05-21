@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.common.domain.TenantScopedEntity;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.notification.domain.exception.SmsErrorCode;
 import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
@@ -129,7 +131,7 @@ public class SmsMessage extends TenantScopedEntity {
             try {
                 return OBJECT_MAPPER.writeValueAsString(attribute);
             } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException("Failed to convert Recipients to JSON", e);
+                throw new BusinessException(SmsErrorCode.JSON_SERIALIZATION_FAILED, e);
             }
         }
 
@@ -141,7 +143,7 @@ public class SmsMessage extends TenantScopedEntity {
             try {
                 return OBJECT_MAPPER.readValue(dbData, new TypeReference<List<Recipient>>() {});
             } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException("Failed to convert JSON to Recipients", e);
+                throw new BusinessException(SmsErrorCode.JSON_SERIALIZATION_FAILED, e);
             }
         }
     }

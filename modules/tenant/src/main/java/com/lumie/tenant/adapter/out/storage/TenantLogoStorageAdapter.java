@@ -1,6 +1,8 @@
 package com.lumie.tenant.adapter.out.storage;
 
+import com.lumie.common.exception.BusinessException;
 import com.lumie.tenant.application.port.out.TenantLogoStoragePort;
+import com.lumie.tenant.domain.exception.TenantErrorCode;
 import io.minio.GetObjectArgs;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
@@ -36,7 +38,7 @@ public class TenantLogoStorageAdapter implements TenantLogoStoragePort {
                     .build());
         } catch (Exception e) {
             log.error("Failed to upload tenant logo: {}", objectKey, e);
-            throw new IllegalStateException("Logo upload failed", e);
+            throw new BusinessException(TenantErrorCode.LOGO_UPLOAD_FAILED, e);
         }
     }
 
@@ -57,10 +59,10 @@ public class TenantLogoStorageAdapter implements TenantLogoStoragePort {
                 return null;
             }
             log.error("Failed to download tenant logo: {}", objectKey, e);
-            throw new IllegalStateException("Logo download failed", e);
+            throw new BusinessException(TenantErrorCode.LOGO_DOWNLOAD_FAILED, e);
         } catch (Exception e) {
             log.error("Failed to download tenant logo: {}", objectKey, e);
-            throw new IllegalStateException("Logo download failed", e);
+            throw new BusinessException(TenantErrorCode.LOGO_DOWNLOAD_FAILED, e);
         }
     }
 

@@ -2,8 +2,10 @@ package com.lumie.classroom.domain.entity;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lumie.classroom.domain.exception.ClassErrorCode;
 import com.lumie.classroom.domain.vo.SchedulePattern;
 import com.lumie.common.domain.TenantScopedEntity;
+import com.lumie.common.exception.BusinessException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -80,7 +82,7 @@ public class ClassEntity extends TenantScopedEntity {
             try {
                 return OBJECT_MAPPER.writeValueAsString(attribute);
             } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException("Failed to convert SchedulePattern to JSON", e);
+                throw new BusinessException(ClassErrorCode.JSON_SERIALIZATION_FAILED, e);
             }
         }
 
@@ -92,7 +94,7 @@ public class ClassEntity extends TenantScopedEntity {
             try {
                 return OBJECT_MAPPER.readValue(dbData, SchedulePattern.class);
             } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException("Failed to convert JSON to SchedulePattern", e);
+                throw new BusinessException(ClassErrorCode.JSON_SERIALIZATION_FAILED, e);
             }
         }
     }

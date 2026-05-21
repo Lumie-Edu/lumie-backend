@@ -3,8 +3,10 @@ package com.lumie.assignment.domain.entity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
 import com.lumie.common.domain.TenantScopedEntity;
+import com.lumie.common.exception.BusinessException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -117,7 +119,7 @@ public class AssignmentSubmission extends TenantScopedEntity {
             try {
                 return OBJECT_MAPPER.writeValueAsString(attribute);
             } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException("Failed to convert List<Long> to JSON", e);
+                throw new BusinessException(AssignmentErrorCode.JSON_SERIALIZATION_FAILED, e);
             }
         }
 
@@ -129,7 +131,7 @@ public class AssignmentSubmission extends TenantScopedEntity {
             try {
                 return OBJECT_MAPPER.readValue(dbData, new TypeReference<List<Long>>() {});
             } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException("Failed to convert JSON to List<Long>", e);
+                throw new BusinessException(AssignmentErrorCode.JSON_SERIALIZATION_FAILED, e);
             }
         }
     }

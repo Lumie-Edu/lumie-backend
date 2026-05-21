@@ -1,7 +1,9 @@
 package com.lumie.tenant.domain.entity;
 
 import com.lumie.common.domain.BaseEntity;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.tenant.domain.exception.InvalidTenantStateException;
+import com.lumie.tenant.domain.exception.TenantErrorCode;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.domain.vo.TenantSlug;
 import com.lumie.tenant.api.TenantStatus;
@@ -142,11 +144,12 @@ public class Tenant extends BaseEntity {
         }
         String normalized = customId.toLowerCase(java.util.Locale.ROOT).trim();
         if (!CUSTOM_ID_PATTERN.matcher(normalized).matches()) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(TenantErrorCode.INVALID_CUSTOM_ID,
                     "customId는 3-30자의 소문자 영숫자와 하이픈만 사용할 수 있고, 첫 글자와 끝 글자는 영숫자여야 합니다.");
         }
         if (RESERVED_CUSTOM_IDS.contains(normalized)) {
-            throw new IllegalArgumentException("사용할 수 없는 학원 ID입니다: " + normalized);
+            throw new BusinessException(TenantErrorCode.RESERVED_CUSTOM_ID,
+                    "사용할 수 없는 학원 ID입니다: " + normalized);
         }
         this.customId = normalized;
     }
@@ -227,7 +230,8 @@ public class Tenant extends BaseEntity {
             return;
         }
         if (!supportsCustomDomains()) {
-            throw new IllegalStateException("Tenant plan does not support custom domains: plan=" + plan);
+            throw new BusinessException(TenantErrorCode.PLAN_DOES_NOT_SUPPORT_CUSTOM_DOMAIN,
+                    "Tenant plan does not support custom domains: plan=" + plan);
         }
         this.customDomain = domain.toLowerCase(java.util.Locale.ROOT).trim();
     }

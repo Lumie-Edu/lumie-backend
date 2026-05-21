@@ -210,7 +210,7 @@ public class StaffCommandService {
                 .orElseThrow(() -> new StaffNotFoundException(id));
         validateActorAuthority(staff, "delete");
         if (staff.isActive()) {
-            throw new IllegalStateException("Cannot delete active staff. Deactivate first.");
+            throw new BusinessException(StaffErrorCode.CANNOT_DELETE_ACTIVE_STAFF);
         }
         Long userId = staff.getUserId();
         staffRepository.delete(staff);
@@ -238,10 +238,12 @@ public class StaffCommandService {
     private void validateRolePermission(Role creator, String requestedRole) {
         Role requested = Role.fromString(requestedRole);
         if (!CREATABLE_ROLES.contains(requested)) {
-            throw new IllegalArgumentException("Invalid role: " + requestedRole + ". Allowed: MANAGER, INSTRUCTOR");
+            throw new BusinessException(StaffErrorCode.INVALID_ROLE,
+                    "Invalid role: " + requestedRole + ". Allowed: MANAGER, INSTRUCTOR");
         }
         if (!creator.canManage(requested)) {
-            throw new IllegalStateException("Insufficient permission to create " + requested);
+            throw new BusinessException(StaffErrorCode.INSUFFICIENT_PERMISSION,
+                    "Insufficient permission to create " + requested);
         }
     }
 

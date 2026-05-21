@@ -13,7 +13,8 @@ public enum SmsErrorCode implements ErrorCode {
     EMPTY_RECIPIENTS("SMS_003", "Recipients list cannot be empty", 400),
     INVALID_STATUS("SMS_004", "Invalid SMS status value", 400),
     SENDER_NOT_FOUND("SMS_005", "Sender not found", 404),
-    CLASS_NOT_FOUND("SMS_006", "Class not found", 404);
+    CLASS_NOT_FOUND("SMS_006", "Class not found", 404),
+    JSON_SERIALIZATION_FAILED("SMS_007", "Failed to serialize or deserialize JSON field", 500);
 
     private final String code;
     private final String message;

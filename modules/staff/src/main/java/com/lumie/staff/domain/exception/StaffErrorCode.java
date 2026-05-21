@@ -11,6 +11,7 @@ public enum StaffErrorCode implements ErrorCode {
     // 400 Bad Request
     INVALID_PHONE_NUMBER("ADMIN_500", "Invalid phone number format", 400),
     INVALID_EMAIL_FORMAT("ADMIN_501", "Invalid email format", 400),
+    INVALID_ROLE("ADMIN_502", "Invalid or non-creatable role", 400),
 
     // 404 Not Found
     STAFF_NOT_FOUND("ADMIN_510", "Staff not found", 404),
@@ -21,6 +22,7 @@ public enum StaffErrorCode implements ErrorCode {
     DUPLICATE_PERMISSION_CODE("ADMIN_522", "Permission code already exists", 409),
     STAFF_ALREADY_ACTIVE("ADMIN_528", "Staff is already active", 409),
     DUPLICATE_PHONE("ADMIN_529", "이미 사용 중인 전화번호입니다.", 409),
+    CANNOT_DELETE_ACTIVE_STAFF("ADMIN_533", "Cannot delete active staff. Deactivate first.", 409),
 
     // 403 Forbidden
     QUOTA_EXCEEDED("ADMIN_530", "Plan quota exceeded", 403),

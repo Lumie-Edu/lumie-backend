@@ -7,6 +7,8 @@ import com.lumie.homepage.application.dto.response.HomepageConfigResponse;
 import com.lumie.homepage.application.port.out.HomepageConfigPersistencePort;
 import com.lumie.homepage.domain.entity.HomepageConfig;
 import com.lumie.homepage.domain.exception.HomepageConfigNotFoundException;
+import com.lumie.homepage.domain.exception.HomepageErrorCode;
+import com.lumie.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -62,7 +64,7 @@ public class HomepageCommandService {
         try {
             return objectMapper.writeValueAsString(node);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to serialize JSON field", e);
+            throw new BusinessException(HomepageErrorCode.JSON_SERIALIZATION_FAILED, e);
         }
     }
 }

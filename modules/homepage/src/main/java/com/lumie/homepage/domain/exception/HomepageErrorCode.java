@@ -16,7 +16,10 @@ public enum HomepageErrorCode implements ErrorCode {
     INVALID_TEMPLATE_VERSION("HOMEPAGE_003", "Template version must be positive", 400),
 
     // 422 Unprocessable Entity
-    NOT_READY_TO_PUBLISH("HOMEPAGE_004", "Homepage configuration is not ready to publish: theme or sections is blank", 422);
+    NOT_READY_TO_PUBLISH("HOMEPAGE_004", "Homepage configuration is not ready to publish: theme or sections is blank", 422),
+
+    // 500 Internal Server Error
+    JSON_SERIALIZATION_FAILED("HOMEPAGE_005", "Failed to serialize JSON field", 500);
 
     private final String code;
     private final String message;

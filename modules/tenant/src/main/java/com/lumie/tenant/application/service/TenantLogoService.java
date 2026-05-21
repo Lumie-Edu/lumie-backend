@@ -1,10 +1,12 @@
 package com.lumie.tenant.application.service;
 
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.application.port.out.TenantLogoStoragePort;
 import com.lumie.tenant.application.port.out.TenantLogoStoragePort.LogoStream;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
-import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.domain.entity.Tenant;
+import com.lumie.tenant.domain.exception.TenantErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +37,7 @@ public class TenantLogoService {
             tenantLogoStoragePort.upload(objectKey, file.getInputStream(),
                     file.getSize(), file.getContentType());
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read uploaded logo", e);
+            throw new BusinessException(TenantErrorCode.LOGO_READ_FAILED, e);
         }
         tenant.updateLogoObjectKey(objectKey);
         tenantPersistencePort.save(tenant);
@@ -65,14 +67,15 @@ public class TenantLogoService {
 
     private void validate(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Logo file is empty");
+            throw new BusinessException(TenantErrorCode.LOGO_EMPTY);
         }
         if (file.getSize() > MAX_LOGO_BYTES) {
-            throw new IllegalArgumentException("Logo exceeds 5MB limit");
+            throw new BusinessException(TenantErrorCode.LOGO_TOO_LARGE);
         }
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
-            throw new IllegalArgumentException("Unsupported logo content type: " + contentType);
+            throw new BusinessException(TenantErrorCode.LOGO_UNSUPPORTED_CONTENT_TYPE,
+                    "Unsupported logo content type: " + contentType);
         }
     }
 
