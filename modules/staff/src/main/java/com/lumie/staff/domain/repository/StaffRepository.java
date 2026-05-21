@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface StaffRepository extends JpaRepository<Staff, Long>, JpaSpecificationExecutor<Staff>, StaffRepositoryCustom {
+public interface StaffRepository extends JpaRepository<Staff, Long>, JpaSpecificationExecutor<Staff> {
 
     Optional<Staff> findByUserId(Long userId);
 

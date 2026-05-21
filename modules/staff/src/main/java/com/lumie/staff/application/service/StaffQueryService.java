@@ -1,5 +1,6 @@
 package com.lumie.staff.application.service;
 
+import com.lumie.staff.adapter.out.persistence.StaffSpecification;
 import com.lumie.staff.application.dto.request.StaffFilterRequest;
 import com.lumie.staff.application.dto.response.StaffPermissionResponse;
 import com.lumie.staff.domain.vo.StaffFilter;
@@ -45,7 +46,7 @@ public class StaffQueryService {
 
     public Page<StaffResponse> getAllStaff(StaffFilterRequest filter, Pageable pageable) {
         Page<Staff> page = (filter != null && hasAnyFilter(filter))
-                ? staffRepository.findAllByFilter(new StaffFilter(filter.isActive(), filter.search()), pageable)
+                ? staffRepository.findAll(StaffSpecification.withFilters(new StaffFilter(filter.isActive(), filter.search())), pageable)
                 : staffRepository.findAll(pageable);
         Map<Long, String> seeds = avatarSeedsFor(page.getContent());
         return page.map(s -> StaffResponse.from(s, seeds.get(s.getUserId())));
