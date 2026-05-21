@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,17 @@ public class StudentGradeQueryService {
     private final GradeCalculator gradeCalculator;
     private final StudentService studentService;
 
+    /**
+     * Returns a page of student grade responses for the given exam.
+     *
+     * <p>Honors {@code pageable.getSort()} over the allowlist {@code {rank, totalScore}};
+     * default {@code rank ASC} when no sort is specified. Rank is computed in-memory from
+     * {@link ExamResult} rows because it is a derived value, not a DB column.
+     *
+     * <p>For {@link ExamCategory#PASS_FAIL} exams the {@code isPassed} flag is applied as a
+     * secondary tiebreaker after the primary sort field, preserving the conventional view of
+     * passed students above failed ones when ranks or scores are equal.
+     */
     public Page<StudentGradeResponse> getStudentGrades(Long examId, Pageable pageable) {
         log.debug("Getting student grades for exam: {}", examId);
 
@@ -77,10 +89,7 @@ public class StudentGradeQueryService {
                             result.getId()
                     );
                 })
-                .sorted(exam.getCategory() == ExamCategory.PASS_FAIL
-                        ? Comparator.comparing(StudentGradeResponse::isPassed)
-                                .thenComparingInt(StudentGradeResponse::score)
-                        : Comparator.comparingInt(StudentGradeResponse::rank))
+                .sorted(buildComparator(pageable.getSort(), exam.getCategory()))
                 .toList();
 
         int start = (int) pageable.getOffset();
@@ -88,6 +97,50 @@ public class StudentGradeQueryService {
         List<StudentGradeResponse> pageContent = grades.subList(start, end);
 
         return new PageImpl<>(pageContent, pageable, grades.size());
+    }
+
+    /**
+     * Builds a {@link Comparator} that honours the first {@link Sort.Order} from the given
+     * {@link Sort}. Allowed primary fields are {@code rank} (default ASC — lower is better) and
+     * {@code totalScore} (default DESC — higher is better). Any other / absent field falls back to
+     * {@code rank ASC}.
+     *
+     * <p>For {@link ExamCategory#PASS_FAIL} exams, a secondary tiebreaker on {@code isPassed}
+     * (passed first) followed by {@code score} descending is appended after the primary key.
+     */
+    private static Comparator<StudentGradeResponse> buildComparator(Sort sort, ExamCategory category) {
+        Sort.Order order = sort.iterator().hasNext() ? sort.iterator().next() : null;
+
+        String field = (order != null) ? order.getProperty() : "rank";
+        boolean ascending = (order == null) || order.getDirection().isAscending();
+
+        Comparator<StudentGradeResponse> primary;
+        if ("totalScore".equals(field)) {
+            // "totalScore" in the allowlist maps to the DTO's `score` component.
+            // Direction is honoured literally: ASC = lowest score first, DESC = highest score first.
+            primary = ascending
+                    ? Comparator.comparingInt(StudentGradeResponse::score)
+                    : Comparator.comparingInt(StudentGradeResponse::score).reversed();
+        } else {
+            // "rank" (default): lower rank number = better, so ASC = best-rank-first.
+            primary = ascending
+                    ? Comparator.comparingInt(StudentGradeResponse::rank)
+                    : Comparator.comparingInt(StudentGradeResponse::rank).reversed();
+        }
+
+        if (category == ExamCategory.PASS_FAIL) {
+            // Secondary tiebreaker for pass/fail exams: passed students before failed (reversed
+            // because Boolean natural order is false < true), then score descending within each
+            // pass/fail group. This preserves the behaviour that was hardcoded before this change
+            // for the default (rank ASC) case.
+            Comparator<StudentGradeResponse> passFirst =
+                    Comparator.comparing(StudentGradeResponse::isPassed).reversed();
+            Comparator<StudentGradeResponse> scoreDesc =
+                    Comparator.comparingInt(StudentGradeResponse::score).reversed();
+            return primary.thenComparing(passFirst).thenComparing(scoreDesc);
+        }
+
+        return primary;
     }
 
     public List<StudentResultSummaryResponse> getStudentResultSummaries(Long examId) {
