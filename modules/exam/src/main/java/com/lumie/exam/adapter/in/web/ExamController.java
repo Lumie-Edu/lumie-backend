@@ -43,9 +43,9 @@ public class ExamController {
         return ResponseEntity.ok(examQueryService.getExam(id));
     }
 
-    @GetMapping("/{id}/detail")
-    public ResponseEntity<ExamDetailResponse> getExamDetail(@PathVariable Long id) {
-        return ResponseEntity.ok(examQueryService.getExamDetail(id));
+    @GetMapping("/{id}/full")
+    public ResponseEntity<ExamDetailResponse> getExamFull(@PathVariable Long id) {
+        return ResponseEntity.ok(examQueryService.getExamFull(id));
     }
 
     @PatchMapping("/{id}")

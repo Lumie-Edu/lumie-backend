@@ -12,21 +12,20 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Internal HTTP query endpoints for the OMR domain — used by
- * grading-svc to fetch exam metadata mid-job. The callback path
- * (POST /callback) was retired; results now flow over RabbitMQ
- * (queue {@code grading.omr-callback}) consumed by
+ * grading-svc to fetch exam metadata mid-job. Results flow over
+ * RabbitMQ (queue {@code grading.omr-callback}) consumed by
  * {@code OmrGradingCallbackListener}.
  */
 @Slf4j
 @RestController
 @RequestMapping("/internal/omr")
 @RequiredArgsConstructor
-public class OmrGradingCallbackController {
+public class InternalOmrController {
 
     private final ExamQueryService examQueryService;
 
-    @GetMapping("/exams/{id}/detail")
-    public ResponseEntity<ExamDetailResponse> getExamDetail(@PathVariable Long id) {
-        return ResponseEntity.ok(examQueryService.getExamDetail(id));
+    @GetMapping("/exams/{id}/full")
+    public ResponseEntity<ExamDetailResponse> getExamFull(@PathVariable Long id) {
+        return ResponseEntity.ok(examQueryService.getExamFull(id));
     }
 }

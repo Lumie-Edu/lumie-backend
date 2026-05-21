@@ -30,8 +30,8 @@ public class ExamQueryService {
         return ExamResponse.from(exam);
     }
 
-    public ExamDetailResponse getExamDetail(Long examId) {
-        log.debug("Getting exam detail (admin): {}", examId);
+    public ExamDetailResponse getExamFull(Long examId) {
+        log.debug("Getting exam full (admin): {}", examId);
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
