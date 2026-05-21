@@ -1,6 +1,7 @@
 package com.lumie.common.tenant;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * configuration; this test will catch any future regression of that
  * invariant.
  */
+@Tag("integration")
 @SpringBootTest(
         classes = RlsTenantContextAspectIntegrationTest.TestConfig.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE

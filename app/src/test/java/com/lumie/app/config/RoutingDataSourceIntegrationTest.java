@@ -1,5 +1,6 @@
 package com.lumie.app.config;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -101,11 +102,17 @@ import static org.assertj.core.api.Assertions.assertThat;
         classes = RoutingDataSourceIntegrationTest.TestApp.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE
 )
-// Smoke/context-load tier — runs in default `./gradlew test`. Boots a focused
-// Spring slice (DataSource + JPA + EntityManagerFactory + repositoryScan) so
-// repository-method derivation, bean wiring, and fragment-impl discovery
-// failures fail loudly at build time instead of in production. The heavy
-// migration suite (`MigrationsRlsIntegrationTest`) keeps `@Tag("integration")`.
+// Tagged @Tag("integration") because the test spins up a real Postgres via
+// TestContainers — that needs a Docker socket. Tekton's springboot-ci step
+// runs in a pod with no Docker access, so this test would fail there with
+// DockerClientProviderStrategy.IllegalStateException. Default `./gradlew
+// test` (CI) excludes the tag; `./gradlew integrationTest` (local dev or
+// any Docker-capable runner) includes it. The companion smoke gap — a true
+// `@SpringBootTest(classes = LumieApplication.class)` that catches Spring
+// Data fragment / bean-wiring failures at build time — is tracked in
+// `4_FOLLOWUP_FROM_CLEANUP.md` F-22 and needs a Tekton step with Docker
+// access (DinD or Testcontainers Cloud) to land.
+@Tag("integration")
 @Testcontainers
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class RoutingDataSourceIntegrationTest {
