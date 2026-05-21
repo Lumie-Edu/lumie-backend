@@ -30,6 +30,9 @@ import java.util.*;
 @Transactional(readOnly = true)
 public class StudentGradeQueryService {
 
+    public static final String SORT_FIELD_RANK = "rank";
+    public static final String SORT_FIELD_TOTAL_SCORE = "totalScore";
+
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
     private final StatisticsCalculator statisticsCalculator;
@@ -121,20 +124,21 @@ public class StudentGradeQueryService {
      * (passed first) followed by {@code score} descending is appended after the primary key.
      */
     private static Comparator<StudentGradeResponse> buildComparator(Sort sort, ExamCategory category) {
-        Sort.Order order = sort.iterator().hasNext() ? sort.iterator().next() : null;
+        Iterator<Sort.Order> it = sort.iterator();
+        Sort.Order order = it.hasNext() ? it.next() : null;
 
-        String field = (order != null) ? order.getProperty() : "rank";
+        String field = (order != null) ? order.getProperty() : SORT_FIELD_RANK;
 
         Comparator<StudentGradeResponse> primary;
-        if ("totalScore".equals(field)) {
-            // "totalScore" in the allowlist maps to the DTO's `score` component.
+        if (SORT_FIELD_TOTAL_SCORE.equals(field)) {
+            // SORT_FIELD_TOTAL_SCORE in the allowlist maps to the DTO's `score` component.
             // Direction is honoured literally: ASC = lowest score first, DESC = highest score first.
             boolean ascending = (order != null) && order.getDirection().isAscending();
             primary = ascending
                     ? Comparator.comparingInt(StudentGradeResponse::score)
                     : Comparator.comparingInt(StudentGradeResponse::score).reversed();
-        } else if ("rank".equals(field)) {
-            // "rank": lower rank number = better, so ASC = best-rank-first.
+        } else if (SORT_FIELD_RANK.equals(field)) {
+            // SORT_FIELD_RANK: lower rank number = better, so ASC = best-rank-first.
             // Direction is honoured literally for the known "rank" field.
             boolean ascending = (order == null) || order.getDirection().isAscending();
             primary = ascending

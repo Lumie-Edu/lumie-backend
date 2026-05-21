@@ -37,7 +37,7 @@ public class StatisticsController {
     }
 
     @GetMapping("/exams/{examId}/grades")
-    @AllowedSortFields({"rank", "totalScore"})
+    @AllowedSortFields({StudentGradeQueryService.SORT_FIELD_RANK, StudentGradeQueryService.SORT_FIELD_TOTAL_SCORE})
     public ResponseEntity<PageResponse<StudentGradeResponse>> getStudentGrades(
             @PathVariable Long examId,
             @PageableDefault(size = 20, sort = "rank") Pageable pageable) {
