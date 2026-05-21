@@ -27,7 +27,7 @@ public class ReportController {
     private final ReportJobService reportJobService;
     private final IdempotencyService idempotencyService;
 
-    @PostMapping("/reports/students/{studentId}/exams/{examId}")
+    @GetMapping("/reports/students/{studentId}/exams/{examId}")
     public ResponseEntity<byte[]> generateReport(
             @PathVariable Long studentId,
             @PathVariable Long examId
@@ -41,6 +41,10 @@ public class ReportController {
                 "inline",
                 String.format("report_%d_%d.jpg", studentId, examId)
         );
+        // Generation is expensive (worker call) — prevent browser/proxy re-fetch on every render.
+        // Server-side is naturally idempotent for (studentId, examId), so caching would be safe,
+        // but no-store keeps the simplest contract until a real caching strategy is decided.
+        headers.setCacheControl("no-store");
 
         return ResponseEntity.ok()
                 .headers(headers)
