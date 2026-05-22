@@ -3,6 +3,7 @@ package com.lumie.content.application.dto.response;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lumie.content.domain.entity.Reservation;
 import com.lumie.content.domain.vo.ReservationStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 import java.time.Instant;
@@ -16,7 +17,7 @@ public record ReservationResponse(
         @JsonFormat(pattern = "HH:mm") LocalTime endTime,
         Long studentId,
         Long userId,
-        String consultationContent,
+        @Schema(nullable = true) String consultationContent,
         ReservationStatus status,
         Instant createdAt,
         Instant updatedAt

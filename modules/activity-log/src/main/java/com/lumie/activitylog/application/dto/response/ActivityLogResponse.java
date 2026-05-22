@@ -1,6 +1,7 @@
 package com.lumie.activitylog.application.dto.response;
 
 import com.lumie.activitylog.domain.entity.ActivityLog;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 
@@ -11,9 +12,9 @@ public record ActivityLogResponse(
         String actorRole,
         String action,
         String entityType,
-        Long entityId,
-        String entityName,
-        String description,
+        @Schema(nullable = true) Long entityId,
+        @Schema(nullable = true) String entityName,
+        @Schema(nullable = true) String description,
         Instant createdAt
 ) {
     public static ActivityLogResponse from(ActivityLog entity) {

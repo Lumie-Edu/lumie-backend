@@ -3,6 +3,7 @@ package com.lumie.assignment.application.dto.response;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentType;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.List;
@@ -11,11 +12,11 @@ public record AssignmentResponse(
     Long id,
     Long classId,
     String title,
-    String description,
+    @Schema(nullable = true) String description,
     AssignmentType type,
-    Instant dueDate,
-    Integer maxScore,
-    List<Long> attachments,
+    @Schema(nullable = true) Instant dueDate,
+    @Schema(nullable = true) Integer maxScore,
+    @Schema(nullable = true) List<Long> attachments,
     AssignmentStatus status,
     Instant createdAt,
     Instant updatedAt

@@ -2,12 +2,13 @@ package com.lumie.notification.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.lumie.notification.application.dto.request.RecipientRequest;
 import com.lumie.notification.application.dto.request.SendSmsRequest;
+import com.lumie.notification.application.dto.response.RecipientResponse;
 import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.service.SmsCommandService;
 import com.lumie.notification.application.service.SmsQueryService;
 import com.lumie.notification.domain.exception.SmsMessageNotFoundException;
-import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
@@ -61,7 +62,7 @@ class SmsControllerTest {
 
         SendSmsRequest request = new SendSmsRequest(
                 10L, RecipientType.STUDENT,
-                List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)),
                 "제목", "내용", null);
 
         mockMvc.perform(post("/v1/sms/send")
@@ -110,7 +111,7 @@ class SmsControllerTest {
     private SmsMessageResponse buildSmsResponse(Long id) {
         return new SmsMessageResponse(
                 id, 10L, RecipientType.STUDENT,
-                List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
+                List.of(new RecipientResponse("010-1234-5678", "홍길동", 100L)),
                 "테스트 제목", "테스트 내용", null,
                 Instant.now(), SmsStatus.SENT, 1, 0,
                 Instant.now(), Instant.now());

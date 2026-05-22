@@ -2,6 +2,7 @@ package com.lumie.exam.application.dto.response;
 
 import com.lumie.exam.domain.entity.ExamTemplate;
 import com.lumie.exam.domain.vo.ExamCategory;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.Map;
@@ -13,8 +14,8 @@ public record ExamTemplateResponse(
         Integer totalQuestions,
         Integer totalPossibleScore,
         Map<String, Integer> questionScores,
-        Map<String, String> questionTypes,
-        Integer passScore,
+        @Schema(nullable = true) Map<String, String> questionTypes,
+        @Schema(nullable = true) Integer passScore,
         Instant createdAt,
         Instant updatedAt
 ) {

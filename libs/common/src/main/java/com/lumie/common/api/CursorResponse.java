@@ -1,5 +1,6 @@
 package com.lumie.common.api;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.Objects;
 
@@ -13,7 +14,7 @@ import java.util.Objects;
  * <p>No total count: cursor pagination intentionally avoids the COUNT(*)
  * cost; callers that need a count should use a dedicated stats endpoint.
  */
-public record CursorResponse<T>(List<T> items, String nextCursor, int limit) {
+public record CursorResponse<T>(List<T> items, @Schema(nullable = true) String nextCursor, int limit) {
 
     public CursorResponse {
         Objects.requireNonNull(items, "items must not be null");

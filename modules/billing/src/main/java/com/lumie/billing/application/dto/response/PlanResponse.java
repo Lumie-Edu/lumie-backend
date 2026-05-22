@@ -3,13 +3,14 @@ package com.lumie.billing.application.dto.response;
 import com.lumie.billing.domain.entity.Plan;
 import com.lumie.billing.domain.vo.PlanFeatures;
 import com.lumie.billing.domain.vo.PlanLimits;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 @Builder
 public record PlanResponse(
         String id,
         String name,
-        String description,
+        @Schema(nullable = true) String description,
         long monthlyPrice,
         long yearlyPrice,
         PlanLimits limits,

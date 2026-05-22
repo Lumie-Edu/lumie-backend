@@ -22,6 +22,7 @@ val javaLanguageVersion = libs.versions.java.get()
 val springBootBomVersion = libs.versions.spring.boot.get()
 val errorproneCoreDep = libs.errorprone.core
 val lombokDep = libs.lombok
+val springdocDep = libs.springdoc.openapi.webmvc
 
 allprojects {
     group = "com.lumie"
@@ -63,6 +64,11 @@ subprojects {
         "annotationProcessor"(lombokDep)
         "testCompileOnly"(lombokDep)
         "testAnnotationProcessor"(lombokDep)
+
+        // springdoc (swagger annotations) compile-only & universal: response DTOs
+        // across modules carry @Schema(nullable = …) so the generated FE client
+        // types nullable fields correctly. Runtime springdoc lives on :app only.
+        "compileOnly"(springdocDep)
 
         // Spring Boot test starter: universal (JUnit5 + AssertJ + Mockito).
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")

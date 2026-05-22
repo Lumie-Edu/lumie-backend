@@ -51,9 +51,10 @@ dependencies {
     implementation(libs.shedlock.spring)
     implementation(libs.shedlock.provider.jdbc)
 
-    // springdoc-openapi — exposes /v3/api-docs (OpenAPI 3.1 JSON) and
+    // springdoc-openapi — exposes /v3/api-docs (OpenAPI 3.0 JSON) and
     // /swagger-ui. The JSON spec is the contract source of truth that
-    // lumie-frontend consumes via openapi-typescript codegen.
+    // lumie-frontend consumes via orval codegen. Capture a fresh snapshot with
+    // `./gradlew snapshotOpenApi` (see task below).
     implementation(libs.springdoc.openapi.webmvc)
 
     // Bucket4j — token-bucket rate limiter (in-memory per pod).
@@ -83,4 +84,31 @@ dependencies {
 
 tasks.bootJar {
     archiveFileName.set("lumie-backend.jar")
+}
+
+// Capture the live OpenAPI spec into the FE codegen source of truth
+// (lumie-frontend/openapi.json), replacing the manual `kubectl exec … wget`
+// incantation. Dev runs on the cluster (Tilt), so the spec is pulled from the
+// running backend pod rather than a local bootRun (the monolith needs Postgres/
+// Redis/RabbitMQ to start). Override the cluster coordinates with project props:
+//   ./gradlew snapshotOpenApi -PkubeContext=… -PkubeNamespace=… -PkubeDeploy=…
+// After capture, regenerate the client: (cd ../lumie-frontend && npx orval).
+tasks.register<Exec>("snapshotOpenApi") {
+    group = "documentation"
+    description = "Capture /v3/api-docs from the running dev backend pod into lumie-frontend/openapi.json"
+
+    val kubeContext = (project.findProperty("kubeContext") as String?) ?: "lumie-infra.com-lumie-infra.com"
+    val kubeNamespace = (project.findProperty("kubeNamespace") as String?) ?: "lumie-dev"
+    val kubeDeploy = (project.findProperty("kubeDeploy") as String?) ?: "deploy/lumie-backend"
+    val outputFile = rootProject.layout.projectDirectory.file("../lumie-frontend/openapi.json").asFile
+
+    commandLine(
+        "kubectl", "--context", kubeContext, "-n", kubeNamespace, "exec", kubeDeploy, "--",
+        "sh", "-c", "wget -qO- http://localhost:8080/v3/api-docs",
+    )
+    doFirst {
+        outputFile.parentFile.mkdirs()
+        standardOutput = outputFile.outputStream()
+    }
+    doLast { logger.lifecycle("OpenAPI spec written to ${outputFile.path}") }
 }

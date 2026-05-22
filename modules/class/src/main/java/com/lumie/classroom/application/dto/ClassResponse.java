@@ -1,17 +1,17 @@
 package com.lumie.classroom.application.dto;
 
 import com.lumie.classroom.domain.entity.ClassEntity;
-import com.lumie.classroom.domain.vo.SchedulePattern;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 
 public record ClassResponse(
     Long id,
     String name,
-    Long teacherId,
-    String teacherName,
-    SchedulePattern schedulePattern,
-    String description,
+    @Schema(nullable = true) Long teacherId,
+    @Schema(nullable = true) String teacherName,
+    @Schema(nullable = true) SchedulePatternResponse schedulePattern,
+    @Schema(nullable = true) String description,
     Instant createdAt,
     Instant updatedAt
 ) {
@@ -21,7 +21,7 @@ public record ClassResponse(
             entity.getName(),
             entity.getTeacherId(),
             teacherName,
-            entity.getSchedulePattern(),
+            SchedulePatternResponse.from(entity.getSchedulePattern()),
             entity.getDescription(),
             entity.getCreatedAt(),
             entity.getUpdatedAt()

@@ -2,6 +2,7 @@ package com.lumie.attendance.application.dto.response;
 
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 import java.time.Instant;
@@ -11,10 +12,10 @@ public record AttendanceSessionResponse(
     Long id,
     String name,
     LocalDate sessionDate,
-    Long classId,
-    String className,
+    @Schema(nullable = true) Long classId,
+    @Schema(nullable = true) String className,
     String attendanceCode,
-    Instant codeExpiresAt,
+    @Schema(nullable = true) Instant codeExpiresAt,
     Integer lateThresholdMinutes,
     Instant createdAt,
     Instant updatedAt,

@@ -271,10 +271,13 @@ server:
   port: 8080
   shutdown: graceful
 
-# springdoc — OpenAPI 3.1 spec at /v3/api-docs, Swagger UI at /swagger-ui.html.
+# springdoc — OpenAPI 3.0 spec at /v3/api-docs, Swagger UI at /swagger-ui.html.
 # Disable in prod via SPRINGDOC_API_DOCS_ENABLED=false (the spec endpoint can
 # leak controller surface; CI pulls it during build, prod traffic should not).
 springdoc:
+  # Pageable is flattened to page/size/sort by OpenApiPageableFlattenCustomizer
+  # (not the global default-flat-param-object flag, which also mangles multipart
+  # @RequestPart bodies — springdoc-openapi#2282).
   api-docs:
     enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
     path: /v3/api-docs

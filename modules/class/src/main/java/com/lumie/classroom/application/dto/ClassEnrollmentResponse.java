@@ -2,6 +2,7 @@ package com.lumie.classroom.application.dto;
 
 import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 
@@ -10,7 +11,7 @@ public record ClassEnrollmentResponse(
     Long classId,
     Long studentId,
     Instant enrolledAt,
-    Instant droppedAt,
+    @Schema(nullable = true) Instant droppedAt,
     EnrollmentStatus status,
     Instant createdAt,
     Instant updatedAt

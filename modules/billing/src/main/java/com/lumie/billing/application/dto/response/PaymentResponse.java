@@ -1,28 +1,29 @@
 package com.lumie.billing.application.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.time.Instant;
 
 @Builder
 public record PaymentResponse(
-        String paymentKey,
-        String orderId,
-        String orderName,
+        @Schema(nullable = true) String paymentKey,
+        @Schema(nullable = true) String orderId,
+        @Schema(nullable = true) String orderName,
         String status,
         long totalAmount,
-        String method,
-        Instant requestedAt,
-        Instant approvedAt,
-        CardInfo card,
-        String message
+        @Schema(nullable = true) String method,
+        @Schema(nullable = true) Instant requestedAt,
+        @Schema(nullable = true) Instant approvedAt,
+        @Schema(nullable = true) CardInfo card,
+        @Schema(nullable = true) String message
 ) {
     @Builder
     public record CardInfo(
-            String company,
-            String number,
-            String cardType,
-            String ownerType
+            @Schema(nullable = true) String company,
+            @Schema(nullable = true) String number,
+            @Schema(nullable = true) String cardType,
+            @Schema(nullable = true) String ownerType
     ) {}
 
     public boolean isSuccess() {

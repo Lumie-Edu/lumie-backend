@@ -1,6 +1,6 @@
 package com.lumie.classroom.application.dto;
 
-import com.lumie.classroom.domain.vo.SchedulePattern;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
 public record CreateClassRequest(
@@ -8,7 +8,10 @@ public record CreateClassRequest(
     String name,
 
     Long teacherId,
-    SchedulePattern schedulePattern,
+
+    @Valid
+    SchedulePatternRequest schedulePattern,
+
     String description
 ) {
 }

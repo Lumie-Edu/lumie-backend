@@ -47,12 +47,13 @@ public class ClassCommandService {
                     "Teacher not found with id: " + request.teacherId()));
         }
 
-        validateNoScheduleOverlap(request.teacherId(), request.schedulePattern(), null);
+        SchedulePattern createPattern = request.schedulePattern() != null ? request.schedulePattern().toVo() : null;
+        validateNoScheduleOverlap(request.teacherId(), createPattern, null);
 
         ClassEntity entity = ClassEntity.create(
             request.name(),
             request.teacherId(),
-            request.schedulePattern(),
+            createPattern,
             request.description()
         );
 
@@ -72,7 +73,7 @@ public class ClassCommandService {
 
         String name = request.name() != null ? request.name() : entity.getName();
         Long teacherId = request.teacherId() != null ? request.teacherId() : entity.getTeacherId();
-        var schedulePattern = request.schedulePattern() != null ? request.schedulePattern() : entity.getSchedulePattern();
+        SchedulePattern schedulePattern = request.schedulePattern() != null ? request.schedulePattern().toVo() : entity.getSchedulePattern();
         String description = request.description() != null ? request.description() : entity.getDescription();
 
         validateNoScheduleOverlap(teacherId, schedulePattern, id);

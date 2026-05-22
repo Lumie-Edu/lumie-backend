@@ -2,6 +2,7 @@ package com.lumie.content.application.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lumie.content.domain.entity.Schedule;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 import java.time.Instant;
@@ -13,7 +14,7 @@ public record ScheduleResponse(
         LocalDate date,
         @JsonFormat(pattern = "HH:mm") LocalTime startTime,
         @JsonFormat(pattern = "HH:mm") LocalTime endTime,
-        String description,
+        @Schema(nullable = true) String description,
         Boolean isAvailable,
         Boolean hasReservation,
         Integer confirmedCount,

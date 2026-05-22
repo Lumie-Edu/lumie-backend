@@ -1,6 +1,7 @@
 package com.lumie.exam.application.dto.response;
 
 import com.lumie.exam.domain.entity.ExamResult;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 
@@ -8,11 +9,11 @@ public record ExamResultResponse(
         Long id,
         Long examId,
         String examName,
-        Long studentId,
-        String phoneNumber,
+        @Schema(nullable = true) Long studentId,
+        @Schema(nullable = true) String phoneNumber,
         boolean isRegistered,
         Integer score,
-        Integer grade,
+        @Schema(nullable = true) Integer grade,
         Integer correctCount,
         Integer incorrectCount,
         boolean hasOmrImage,

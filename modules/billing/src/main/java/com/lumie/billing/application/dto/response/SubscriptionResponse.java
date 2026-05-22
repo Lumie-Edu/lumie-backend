@@ -3,6 +3,7 @@ package com.lumie.billing.application.dto.response;
 import com.lumie.billing.domain.entity.Subscription;
 import com.lumie.billing.domain.vo.PlanLimits;
 import com.lumie.billing.domain.vo.SubscriptionStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -16,7 +17,7 @@ public record SubscriptionResponse(
         String planName,
         SubscriptionStatus status,
         Instant startedAt,
-        Instant expiresAt,
+        @Schema(nullable = true) Instant expiresAt,
         PlanLimits limits,
         Instant createdAt,
         Instant updatedAt

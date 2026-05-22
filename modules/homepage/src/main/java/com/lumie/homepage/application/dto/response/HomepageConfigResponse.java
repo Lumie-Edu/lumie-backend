@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.homepage.domain.entity.HomepageConfig;
 import com.lumie.homepage.domain.vo.TemplateId;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,7 @@ public record HomepageConfigResponse(
         int templateVersion,
         boolean published,
         JsonNode sections,
-        Instant updatedAt
+        @Schema(nullable = true) Instant updatedAt
 ) {
 
     private static final Logger log = LoggerFactory.getLogger(HomepageConfigResponse.class);

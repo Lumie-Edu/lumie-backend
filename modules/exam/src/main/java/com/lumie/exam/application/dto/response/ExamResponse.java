@@ -4,6 +4,7 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 
@@ -12,10 +13,10 @@ public record ExamResponse(
         String name,
         ExamCategory category,
         GradingType gradingType,
-        GradeScale gradeScale,
+        @Schema(nullable = true) GradeScale gradeScale,
         Integer totalQuestions,
         Integer totalPossibleScore,
-        Integer passScore,
+        @Schema(nullable = true) Integer passScore,
         Instant createdAt,
         Instant updatedAt
 ) {

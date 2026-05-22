@@ -2,6 +2,7 @@ package com.lumie.staff.application.dto.response;
 
 import com.lumie.staff.domain.entity.Staff;
 import com.lumie.staff.domain.vo.EmploymentStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 
@@ -11,12 +12,12 @@ public record StaffResponse(
     String userLoginId,
     String name,
     String phone,
-    String email,
-    String role,
-    String staffMemo,
+    @Schema(nullable = true) String email,
+    @Schema(nullable = true) String role,
+    @Schema(nullable = true) String staffMemo,
     Boolean isActive,
     EmploymentStatus employmentStatus,
-    String avatarSeed,
+    @Schema(nullable = true) String avatarSeed,
     Instant createdAt,
     Instant updatedAt
 ) {

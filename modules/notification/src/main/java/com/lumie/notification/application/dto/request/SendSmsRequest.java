@@ -1,7 +1,7 @@
 package com.lumie.notification.application.dto.request;
 
-import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.RecipientType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -15,7 +15,8 @@ public record SendSmsRequest(
     RecipientType recipientType,
 
     @NotNull(message = "Recipients are required")
-    List<Recipient> recipients,
+    @Valid
+    List<RecipientRequest> recipients,
 
     String title,
 

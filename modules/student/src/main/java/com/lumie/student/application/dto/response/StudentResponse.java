@@ -6,19 +6,19 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 
 public record StudentResponse(
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Long id,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Long userId,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String userLoginId,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String phone,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String studentHighschool,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) Integer studentBirthYear,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String parentPhone,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String studentMemo,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Boolean isActive,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String avatarSeed,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Instant createdAt,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Instant updatedAt
+    Long id,
+    Long userId,
+    String userLoginId,
+    String name,
+    String phone,
+    @Schema(nullable = true) String studentHighschool,
+    @Schema(nullable = true) Integer studentBirthYear,
+    String parentPhone,
+    @Schema(nullable = true) String studentMemo,
+    Boolean isActive,
+    @Schema(nullable = true) String avatarSeed,
+    Instant createdAt,
+    Instant updatedAt
 ) {
     public static StudentResponse from(Student student) {
         return from(student, null);

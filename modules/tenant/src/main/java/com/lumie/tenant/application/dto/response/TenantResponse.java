@@ -3,6 +3,7 @@ package com.lumie.tenant.application.dto.response;
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.api.TenantStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -12,16 +13,16 @@ public record TenantResponse(
         Long id,
         String slug,
         String name,
-        String displayName,
+        @Schema(nullable = true) String displayName,
         TenantStatus status,
         TenantPlan plan,
-        String ownerEmail,
-        String phone,
-        String address,
-        String instituteName,
-        String businessRegistrationNumber,
-        String logoUrl,
-        String customId,
+        @Schema(nullable = true) String ownerEmail,
+        @Schema(nullable = true) String phone,
+        @Schema(nullable = true) String address,
+        @Schema(nullable = true) String instituteName,
+        @Schema(nullable = true) String businessRegistrationNumber,
+        @Schema(nullable = true) String logoUrl,
+        @Schema(nullable = true) String customId,
         Instant createdAt,
         Instant updatedAt
 ) {

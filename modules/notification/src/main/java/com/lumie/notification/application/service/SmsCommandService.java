@@ -4,6 +4,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.student.api.StudentService;
+import com.lumie.notification.application.dto.request.RecipientRequest;
 import com.lumie.notification.application.dto.request.SendSmsRequest;
 import com.lumie.notification.application.dto.request.SendToClassRequest;
 import com.lumie.notification.application.dto.request.CreateTemplateRequest;
@@ -48,10 +49,14 @@ public class SmsCommandService {
             throw new BusinessException(SmsErrorCode.EMPTY_RECIPIENTS, "Recipients list cannot be empty");
         }
 
+        List<Recipient> recipients = request.recipients().stream()
+            .map(RecipientRequest::toVo)
+            .toList();
+
         SmsMessage message = SmsMessage.create(
             request.senderId(),
             request.recipientType(),
-            request.recipients(),
+            recipients,
             request.title(),
             request.content(),
             request.templateId()

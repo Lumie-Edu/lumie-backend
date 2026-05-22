@@ -1,6 +1,7 @@
 package com.lumie.file.application.dto.response;
 
 import com.lumie.file.domain.entity.TextbookFolder;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -8,7 +9,7 @@ import java.util.UUID;
 public record TextbookFolderResponse(
         UUID id,
         String name,
-        UUID parentId,
+        @Schema(nullable = true) UUID parentId,
         int depth,
         Instant createdAt
 ) {

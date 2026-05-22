@@ -1,9 +1,9 @@
 package com.lumie.notification.application.dto.response;
 
 import com.lumie.notification.domain.entity.SmsMessage;
-import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.List;
@@ -12,11 +12,11 @@ public record SmsMessageResponse(
     Long id,
     Long senderId,
     RecipientType recipientType,
-    List<Recipient> recipients,
-    String title,
+    List<RecipientResponse> recipients,
+    @Schema(nullable = true) String title,
     String content,
-    Long templateId,
-    Instant sentAt,
+    @Schema(nullable = true) Long templateId,
+    @Schema(nullable = true) Instant sentAt,
     SmsStatus status,
     int successCount,
     int failCount,
@@ -28,7 +28,7 @@ public record SmsMessageResponse(
             entity.getId(),
             entity.getSenderId(),
             entity.getRecipientType(),
-            entity.getRecipients(),
+            entity.getRecipients().stream().map(RecipientResponse::from).toList(),
             entity.getTitle(),
             entity.getContent(),
             entity.getTemplateId(),

@@ -1,14 +1,15 @@
 package com.lumie.tenant.application.dto.response;
 
 import com.lumie.tenant.domain.entity.Tenant;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 @Builder
 public record PublicTenantResponse(
         String slug,
         String name,
-        String customId,
-        String logoUrl
+        @Schema(nullable = true) String customId,
+        @Schema(nullable = true) String logoUrl
 ) {
     public static PublicTenantResponse from(Tenant tenant) {
         boolean hasLogo = tenant.getLogoObjectKey() != null

@@ -4,6 +4,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.student.api.StudentService;
+import com.lumie.notification.application.dto.request.RecipientRequest;
 import com.lumie.notification.application.dto.request.SendSmsRequest;
 import com.lumie.notification.application.dto.request.SendToClassRequest;
 import com.lumie.notification.application.dto.request.CreateTemplateRequest;
@@ -15,7 +16,6 @@ import com.lumie.notification.domain.entity.SmsTemplate;
 import com.lumie.notification.domain.exception.SmsTemplateNotFoundException;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.repository.SmsTemplateRepository;
-import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
 import com.lumie.notification.domain.vo.TemplateCategory;
@@ -70,7 +70,7 @@ class SmsCommandServiceTest {
         void sendSms_success() {
             SendSmsRequest request = new SendSmsRequest(
                     10L, RecipientType.STUDENT,
-                    List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
+                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)),
                     "제목", "내용", null);
 
             given(staffService.getStaff(anyString(), eq(10L)))
@@ -110,7 +110,7 @@ class SmsCommandServiceTest {
         void sendSms_senderNotFound_throwsException() {
             SendSmsRequest request = new SendSmsRequest(
                     999L, RecipientType.STUDENT,
-                    List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
+                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)),
                     "제목", "내용", null);
 
             given(staffService.getStaff(anyString(), eq(999L))).willReturn(Optional.empty());

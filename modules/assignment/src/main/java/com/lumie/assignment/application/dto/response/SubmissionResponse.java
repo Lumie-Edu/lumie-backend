@@ -2,6 +2,7 @@ package com.lumie.assignment.application.dto.response;
 
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.List;
@@ -10,12 +11,12 @@ public record SubmissionResponse(
     Long id,
     Long assignmentId,
     Long studentId,
-    String content,
-    List<Long> attachments,
-    Integer score,
-    String feedback,
-    Instant submittedAt,
-    Instant gradedAt,
+    @Schema(nullable = true) String content,
+    @Schema(nullable = true) List<Long> attachments,
+    @Schema(nullable = true) Integer score,
+    @Schema(nullable = true) String feedback,
+    @Schema(nullable = true) Instant submittedAt,
+    @Schema(nullable = true) Instant gradedAt,
     SubmissionStatus status,
     Instant createdAt,
     Instant updatedAt

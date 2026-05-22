@@ -1,11 +1,14 @@
 package com.lumie.classroom.application.dto;
 
-import com.lumie.classroom.domain.vo.SchedulePattern;
+import jakarta.validation.Valid;
 
 public record UpdateClassRequest(
     String name,
     Long teacherId,
-    SchedulePattern schedulePattern,
+
+    @Valid
+    SchedulePatternRequest schedulePattern,
+
     String description
 ) {
 }

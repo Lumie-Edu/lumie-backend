@@ -1,6 +1,7 @@
 package com.lumie.content.application.dto.response;
 
 import com.lumie.content.domain.entity.Announcement;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 
@@ -10,8 +11,8 @@ public record AnnouncementResponse(
         String authorName,
         String announcementTitle,
         String announcementContent,
-        Boolean isItAssetAnnouncement,
-        Boolean isItImportantAnnouncement,
+        @Schema(nullable = true) Boolean isItAssetAnnouncement,
+        @Schema(nullable = true) Boolean isItImportantAnnouncement,
         Instant createdAt,
         Instant updatedAt
 ) {
