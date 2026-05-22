@@ -86,6 +86,13 @@ tasks.bootJar {
     archiveFileName.set("lumie-backend.jar")
 }
 
+// Forward -DupdateOpenApiSnapshot to the forked test JVM so OpenApiSnapshotTest can
+// regenerate its golden (a plain `-D` only reaches the Gradle daemon JVM otherwise).
+tasks.withType<Test>().configureEach {
+    systemProperty("updateOpenApiSnapshot",
+        providers.systemProperty("updateOpenApiSnapshot").getOrElse("false"))
+}
+
 // Capture the live OpenAPI spec into the FE codegen source of truth
 // (lumie-frontend/openapi.json), replacing the manual `kubectl exec … wget`
 // incantation. Dev runs on the cluster (Tilt), so the spec is pulled from the
