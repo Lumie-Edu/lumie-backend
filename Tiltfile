@@ -246,6 +246,7 @@ k8s_resource(
     'lumie-backend',
     port_forwards=['18080:8080'],
     labels=['lumie-dev'],
+    resource_deps=['gradle-build'],
 )
 
 # Gradle build
