@@ -18,6 +18,7 @@ import com.lumie.student.application.service.StudentCommandService;
 import com.lumie.student.application.service.StudentQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -69,7 +70,7 @@ public class StudentController {
     public ResponseEntity<PageResponse<StudentResponse>> getStudents(
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String search,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<StudentResponse> response = studentQueryService.searchStudents(isActive, search, pageable);
         return ResponseEntity.ok(PageResponse.from(response));
     }
