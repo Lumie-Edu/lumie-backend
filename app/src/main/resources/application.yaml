@@ -43,6 +43,14 @@ spring:
     locations: classpath:db/migration/public
     baseline-on-migrate: true
     baseline-version: "0"
+    # V21/V23 use CREATE INDEX CONCURRENTLY, which self-deadlocks against
+    # Flyway's default transactional advisory lock (pg_advisory_xact_lock) on a
+    # from-scratch migrate() — i.e. a fresh deploy / DR rebuild. Session-level
+    # locking avoids it. Existing envs already migrated incrementally and are
+    # unaffected; this protects new environments. Mirrored in
+    # MigrationsRlsIntegrationTest so the test reproduces prod exactly.
+    postgresql:
+      transactional-lock: false
 
   # Spring Modulith outbox — JDBC store, public schema (cross-tenant).
   # schema-initialization disabled because Flyway owns the DDL (V13).
