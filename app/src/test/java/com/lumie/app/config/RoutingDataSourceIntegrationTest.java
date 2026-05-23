@@ -131,6 +131,9 @@ class RoutingDataSourceIntegrationTest {
         registry.add("app.datasource.readonly.url", POSTGRES::getJdbcUrl);
         registry.add("app.datasource.readonly.username", POSTGRES::getUsername);
         registry.add("app.datasource.readonly.password", POSTGRES::getPassword);
+
+        // TestContainers provisions a superuser — the guard is a deployed-env safeguard.
+        registry.add("lumie.security.runtime-role-guard.enabled", () -> "false");
     }
 
     private final ApplicationContext context;

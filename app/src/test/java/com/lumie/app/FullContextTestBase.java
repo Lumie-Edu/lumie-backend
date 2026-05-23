@@ -79,6 +79,10 @@ abstract class FullContextTestBase {
         registry.add("spring.modulith.events.republish-outstanding-events-on-restart", () -> "false");
         registry.add("lumie.rabbitmq.missing-queues-fatal", () -> "false");
 
+        // TestContainers provisions a superuser — the guard is a deployed-env safeguard.
+        // Disable it here so full-context tests are not blocked by the superuser role.
+        registry.add("lumie.security.runtime-role-guard.enabled", () -> "false");
+
         registry.add("spring.autoconfigure.exclude", () -> String.join(",",
                 "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration",
                 "org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration",

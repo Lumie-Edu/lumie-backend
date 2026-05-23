@@ -242,6 +242,12 @@ lumie:
       - http://localhost:3000
   internal:
     hmac-secret: ${LUMIE_INTERNAL_HMAC_SECRET:?LUMIE_INTERNAL_HMAC_SECRET env var required (Vault → VSO → K8s Secret)}
+  # Boot-time guard: refuses to start if the runtime DB role has SUPERUSER/BYPASSRLS (RLS leak risk).
+  # Disable only in TestContainers-backed tests where the DB user is a superuser by default.
+  security:
+    runtime-role-guard:
+      enabled: true
+
   # Per-IP token-bucket rate limits. Rules evaluated in order, first match wins.
   # Per-pod buckets — multi-pod cluster effective limit = capacity × pod count.
   rate-limit:
