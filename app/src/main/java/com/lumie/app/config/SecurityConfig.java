@@ -14,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -47,7 +46,6 @@ public class SecurityConfig {
                         .requestMatchers("/v1/tenants/public/**").permitAll()
                         .requestMatchers("/v1/homepage/public/**").permitAll()
                         .requestMatchers("/v1/files/public/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/v1/telemetry/web-vitals").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

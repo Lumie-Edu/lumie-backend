@@ -274,10 +274,6 @@ lumie:
       - path-pattern: /v1/payments/confirm
         capacity: 30
         window: 1m
-      # Public Web Vitals beacon. Limit is per-pod (effective cluster cap = 120 x replicas).
-      - path-pattern: /v1/telemetry/web-vitals
-        capacity: 120
-        window: 1m
 
 server:
   port: 8080
