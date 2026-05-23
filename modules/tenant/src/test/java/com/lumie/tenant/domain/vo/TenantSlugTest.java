@@ -1,5 +1,6 @@
 package com.lumie.tenant.domain.vo;
 
+import com.lumie.common.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,7 +32,7 @@ class TenantSlugTest {
     @DisplayName("무효한 slug 패턴 거부")
     void invalidSlugPatterns(String value) {
         assertThatThrownBy(() -> TenantSlug.of(value))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Invalid tenant slug");
     }
 
@@ -40,7 +41,7 @@ class TenantSlugTest {
     @DisplayName("예약된 slug 거부")
     void reservedSlugs(String value) {
         assertThatThrownBy(() -> TenantSlug.of(value))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(BusinessException.class);
     }
 
     @Test
