@@ -843,6 +843,7 @@
             "type" : "integer"
           }
         },
+        "required" : [ "messageId" ],
         "type" : "object"
       },
       "ConversationDetailResponse" : {
@@ -873,6 +874,16 @@
           }
         },
         "required" : [ "createdAt", "id", "isActive", "messages", "title", "updatedAt" ],
+        "type" : "object"
+      },
+      "ConversationIdResponse" : {
+        "properties" : {
+          "conversationId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "conversationId" ],
         "type" : "object"
       },
       "ConversationSummaryResponse" : {
@@ -986,6 +997,25 @@
           }
         },
         "required" : [ "commentContent" ],
+        "type" : "object"
+      },
+      "CreateConversationRequest" : {
+        "properties" : {
+          "tenantId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tenantSlug" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
         "type" : "object"
       },
       "CreateExamRequest" : {
@@ -1839,6 +1869,18 @@
         "required" : [ "fiveGrade", "nineGrade" ],
         "type" : "object"
       },
+      "HistoryResponse" : {
+        "properties" : {
+          "messages" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MessageDto"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "messages" ],
+        "type" : "object"
+      },
       "HomepageConfigResponse" : {
         "properties" : {
           "id" : {
@@ -2117,6 +2159,41 @@
           }
         },
         "required" : [ "password", "userLoginId" ],
+        "type" : "object"
+      },
+      "MessageDto" : {
+        "properties" : {
+          "content" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "pendingAction" : {
+            "type" : "string"
+          },
+          "role" : {
+            "type" : "string"
+          },
+          "toolCallId" : {
+            "type" : "string"
+          },
+          "toolCalls" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "content", "id", "pendingAction", "role", "toolCallId", "toolCalls" ],
+        "type" : "object"
+      },
+      "MessageIdResponse" : {
+        "properties" : {
+          "messageId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "messageId" ],
         "type" : "object"
       },
       "MessageResponse" : {
@@ -3346,6 +3423,25 @@
         "required" : [ "comments", "createdAt", "id", "isAnswered", "qnaContent", "qnaTitle", "qnaUserId", "qnaUserName", "updatedAt" ],
         "type" : "object"
       },
+      "QueryRequest" : {
+        "properties" : {
+          "sql" : {
+            "type" : "string"
+          },
+          "tenantId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tenantSlug" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "QuestionChoiceDistribution" : {
         "properties" : {
           "attractiveDistractors" : {
@@ -3689,6 +3785,63 @@
         "required" : [ "code", "column", "message", "rowNumber", "value" ],
         "type" : "object"
       },
+      "SaveMessageRequest" : {
+        "properties" : {
+          "content" : {
+            "type" : "string"
+          },
+          "conversationId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "role" : {
+            "type" : "string"
+          },
+          "tenantId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tenantSlug" : {
+            "type" : "string"
+          },
+          "toolCallId" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "SavePendingActionRequest" : {
+        "properties" : {
+          "arguments" : {
+            "additionalProperties" : {
+              "type" : "object"
+            },
+            "type" : "object"
+          },
+          "conversationId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "tenantId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tenantSlug" : {
+            "type" : "string"
+          },
+          "toolName" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "SchedulePatternRequest" : {
         "properties" : {
           "days" : {
@@ -3770,6 +3923,15 @@
           }
         },
         "required" : [ "confirmedCount", "createdAt", "date", "description", "endTime", "hasReservation", "id", "isAvailable", "startTime", "updatedAt", "userId" ],
+        "type" : "object"
+      },
+      "SchemaResponse" : {
+        "properties" : {
+          "description" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "description" ],
         "type" : "object"
       },
       "ScoreHistory" : {
@@ -4758,6 +4920,43 @@
         "required" : [ "author", "coverImagePath", "createdAt", "description", "gradeLevel", "id", "isbn", "name", "price", "publisher", "status", "subject", "updatedAt" ],
         "type" : "object"
       },
+      "ToolExecuteRequest" : {
+        "properties" : {
+          "arguments" : {
+            "additionalProperties" : {
+              "type" : "object"
+            },
+            "type" : "object"
+          },
+          "tenantId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tenantSlug" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "ToolResultResponse" : {
+        "properties" : {
+          "data" : {
+            "type" : "string"
+          },
+          "error" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "data", "error", "success" ],
+        "type" : "object"
+      },
       "TopIncorrectQuestion" : {
         "properties" : {
           "correctAnswer" : {
@@ -5488,6 +5687,231 @@
   },
   "openapi" : "3.0.1",
   "paths" : {
+    "/internal/chatbot/conversations" : {
+      "post" : {
+        "operationId" : "createConversation",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateConversationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConversationIdResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-chatbot-controller" ]
+      }
+    },
+    "/internal/chatbot/history" : {
+      "get" : {
+        "operationId" : "history",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "tenantSlug",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "tenantId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "conversationId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HistoryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-chatbot-controller" ]
+      }
+    },
+    "/internal/chatbot/pending-action" : {
+      "post" : {
+        "operationId" : "savePendingAction",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SavePendingActionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageIdResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-chatbot-controller" ]
+      }
+    },
+    "/internal/chatbot/query" : {
+      "post" : {
+        "operationId" : "query",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueryRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ToolResultResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-chatbot-controller" ]
+      }
+    },
+    "/internal/chatbot/save-message" : {
+      "post" : {
+        "operationId" : "saveMessage",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveMessageRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageIdResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-chatbot-controller" ]
+      }
+    },
+    "/internal/chatbot/schema" : {
+      "get" : {
+        "operationId" : "schema",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "tenantSlug",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SchemaResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-chatbot-controller" ]
+      }
+    },
+    "/internal/chatbot/tools/{toolName}" : {
+      "post" : {
+        "operationId" : "executeTool",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "toolName",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ToolExecuteRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ToolResultResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-chatbot-controller" ]
+      }
+    },
     "/internal/omr/exams/{id}/full" : {
       "get" : {
         "operationId" : "getExamFull",
