@@ -1,19 +1,15 @@
 package com.lumie.ai.adapter.in.web;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lumie.ai.application.service.ChatService;
 import com.lumie.ai.application.service.SchemaDiscoveryService;
 import com.lumie.ai.application.tool.Tool;
 import com.lumie.ai.application.tool.ToolRegistry;
 import com.lumie.ai.application.tool.ToolResult;
 import com.lumie.ai.application.tool.impl.GeneralQueryTool;
 import com.lumie.ai.domain.entity.ChatMessage;
-import com.lumie.ai.domain.entity.Conversation;
 import com.lumie.ai.domain.exception.AiErrorCode;
 import com.lumie.ai.domain.exception.AiException;
-import com.lumie.ai.domain.repository.ChatMessageRepository;
-import com.lumie.ai.domain.repository.ConversationRepository;
 import com.lumie.ai.domain.vo.MessageRole;
-import com.lumie.ai.domain.vo.PendingAction;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Internal callback surface for the LangGraph chatbot worker (chatbot-svc).
@@ -53,9 +48,7 @@ public class InternalChatbotController {
     private final GeneralQueryTool generalQueryTool;
     private final ToolRegistry toolRegistry;
     private final SchemaDiscoveryService schemaDiscoveryService;
-    private final ChatMessageRepository chatMessageRepository;
-    private final ConversationRepository conversationRepository;
-    private final ObjectMapper objectMapper;
+    private final ChatService chatService;
 
     /** Execute a read-only SQL query (SqlValidator + RLS + read-only pool). */
     @PostMapping("/query")
@@ -105,27 +98,23 @@ public class InternalChatbotController {
             @RequestParam Long tenantId,
             @RequestParam Long conversationId,
             @RequestParam(defaultValue = "20") int limit) {
-        List<MessageDto> messages = TenantContextHolder.withinContext(tenantSlug, tenantId, () -> {
-            List<ChatMessage> all = chatMessageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
-            int from = Math.max(0, all.size() - limit);
-            return all.subList(from, all.size()).stream().map(MessageDto::from).toList();
-        });
+        List<MessageDto> messages = TenantContextHolder.withinContext(
+                tenantSlug,
+                tenantId,
+                () -> chatService.getRecentMessages(conversationId, limit).stream()
+                        .map(MessageDto::from)
+                        .toList());
         return ResponseEntity.ok(new HistoryResponse(messages));
     }
 
     /** Persist a pending write action (LangGraph interrupt) and return its message id. */
     @PostMapping("/pending-action")
     public ResponseEntity<MessageIdResponse> savePendingAction(@RequestBody SavePendingActionRequest req) {
-        Long messageId = TenantContextHolder.withinContext(req.tenantSlug(), req.tenantId(), () -> {
-            PendingAction action = new PendingAction(
-                    UUID.randomUUID().toString(), req.toolName(), req.description(), req.arguments());
-            ChatMessage message = ChatMessage.builder()
-                    .conversationId(req.conversationId())
-                    .role(MessageRole.ASSISTANT)
-                    .pendingAction(writeJson(action))
-                    .build();
-            return chatMessageRepository.save(message).getId();
-        });
+        Long messageId = TenantContextHolder.withinContext(
+                req.tenantSlug(),
+                req.tenantId(),
+                () -> chatService.savePendingAction(
+                        req.conversationId(), req.toolName(), req.description(), req.arguments()));
         return ResponseEntity.ok(new MessageIdResponse(messageId));
     }
 
@@ -133,28 +122,21 @@ public class InternalChatbotController {
     @PostMapping("/save-message")
     public ResponseEntity<MessageIdResponse> saveMessage(@RequestBody SaveMessageRequest req) {
         MessageRole role = parseRole(req.role());
-        Long messageId = TenantContextHolder.withinContext(req.tenantSlug(), req.tenantId(), () -> {
-            ChatMessage message = ChatMessage.builder()
-                    .conversationId(req.conversationId())
-                    .role(role)
-                    .content(req.content())
-                    .toolCallId(req.toolCallId())
-                    .build();
-            return chatMessageRepository.save(message).getId();
-        });
+        Long messageId = TenantContextHolder.withinContext(
+                req.tenantSlug(),
+                req.tenantId(),
+                () -> chatService.saveInternalMessage(
+                        req.conversationId(), role, req.content(), req.toolCallId()));
         return ResponseEntity.ok(new MessageIdResponse(messageId));
     }
 
     /** Create a new conversation and return its id. */
     @PostMapping("/conversations")
     public ResponseEntity<ConversationIdResponse> createConversation(@RequestBody CreateConversationRequest req) {
-        Long conversationId = TenantContextHolder.withinContext(req.tenantSlug(), req.tenantId(), () -> {
-            Conversation conversation = Conversation.builder()
-                    .userId(req.userId())
-                    .title(req.title())
-                    .build();
-            return conversationRepository.save(conversation).getId();
-        });
+        Long conversationId = TenantContextHolder.withinContext(
+                req.tenantSlug(),
+                req.tenantId(),
+                () -> chatService.createConversation(req.userId(), req.title()));
         return ResponseEntity.ok(new ConversationIdResponse(conversationId));
     }
 
@@ -163,14 +145,6 @@ public class InternalChatbotController {
             return MessageRole.valueOf(role);
         } catch (IllegalArgumentException e) {
             throw new AiException(AiErrorCode.INVALID_TOOL, "Unknown message role: " + role);
-        }
-    }
-
-    private String writeJson(Object value) {
-        try {
-            return objectMapper.writeValueAsString(value);
-        } catch (Exception e) {
-            throw new AiException(AiErrorCode.TOOL_EXECUTION_ERROR, "Failed to serialize pending action");
         }
     }
 

@@ -71,6 +71,62 @@ public class ChatService {
                 .orElseThrow(() -> new AiException(AiErrorCode.MESSAGE_NOT_FOUND));
     }
 
+    // ── Internal persistence for the LangGraph worker ──
+    // These run @Transactional so RlsTenantContextAspect sets app.tenant_id on
+    // the insert connection; the controller calls them inside withinContext, so
+    // the tenant context is already populated when the aspect fires. Calling the
+    // repositories directly from the controller skips the aspect and the insert
+    // fails the RLS WITH CHECK policy.
+
+    /** Windowed conversation history (last {@code limit} messages), RLS-scoped. */
+    @Transactional(readOnly = true)
+    public List<ChatMessage> getRecentMessages(Long conversationId, int limit) {
+        List<ChatMessage> all =
+                chatMessageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+        int from = Math.max(0, all.size() - limit);
+        return all.subList(from, all.size());
+    }
+
+    /** Create a conversation under RLS and return its id. */
+    @Transactional
+    public Long createConversation(Long userId, String title) {
+        return conversationRepository.save(Conversation.builder()
+                .userId(userId)
+                .title(title)
+                .build()).getId();
+    }
+
+    /** Persist a completed assistant/tool message under RLS and return its id. */
+    @Transactional
+    public Long saveInternalMessage(Long conversationId, MessageRole role, String content,
+                                    String toolCallId) {
+        return chatMessageRepository.save(ChatMessage.builder()
+                .conversationId(conversationId)
+                .role(role)
+                .content(content)
+                .toolCallId(toolCallId)
+                .build()).getId();
+    }
+
+    /** Persist a pending write action (LangGraph interrupt) under RLS and return its id. */
+    @Transactional
+    public Long savePendingAction(Long conversationId, String toolName, String description,
+                                  Map<String, Object> arguments) {
+        PendingAction action = new PendingAction(
+                UUID.randomUUID().toString(), toolName, description, arguments);
+        String pendingJson;
+        try {
+            pendingJson = objectMapper.writeValueAsString(action);
+        } catch (JsonProcessingException e) {
+            throw new AiException(AiErrorCode.TOOL_EXECUTION_ERROR, "Failed to serialize pending action");
+        }
+        return chatMessageRepository.save(ChatMessage.builder()
+                .conversationId(conversationId)
+                .role(MessageRole.ASSISTANT)
+                .pendingAction(pendingJson)
+                .build()).getId();
+    }
+
     public SseEmitter chatStreamEmitter(Long conversationId, String userMessage) {
         Long userId = UserContextHolder.getRequiredUserId();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
