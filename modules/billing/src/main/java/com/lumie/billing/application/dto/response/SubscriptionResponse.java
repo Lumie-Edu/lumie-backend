@@ -1,7 +1,6 @@
 package com.lumie.billing.application.dto.response;
 
 import com.lumie.billing.domain.entity.Subscription;
-import com.lumie.billing.domain.vo.PlanLimits;
 import com.lumie.billing.domain.vo.SubscriptionStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -18,7 +17,7 @@ public record SubscriptionResponse(
         SubscriptionStatus status,
         Instant startedAt,
         @Schema(nullable = true) Instant expiresAt,
-        PlanLimits limits,
+        PlanLimitsResponse limits,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -32,7 +31,7 @@ public record SubscriptionResponse(
                 .status(subscription.getStatus())
                 .startedAt(subscription.getStartedAt())
                 .expiresAt(subscription.getExpiresAt())
-                .limits(subscription.getLimits())
+                .limits(PlanLimitsResponse.from(subscription.getLimits()))
                 .createdAt(subscription.getCreatedAt())
                 .updatedAt(subscription.getUpdatedAt())
                 .build();

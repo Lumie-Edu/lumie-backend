@@ -1,5 +1,6 @@
 package com.lumie.billing.adapter.in.internal;
 
+import com.lumie.billing.application.dto.response.PlanLimitsResponse;
 import com.lumie.billing.application.dto.response.PlanResponse;
 import com.lumie.billing.application.dto.response.SubscriptionResponse;
 import com.lumie.billing.application.service.PlanQueryService;
@@ -77,7 +78,10 @@ public class BillingServiceAdapter implements BillingService {
         );
     }
 
-    private PlanLimits toPlanLimits(com.lumie.billing.domain.vo.PlanLimits limits) {
+    private PlanLimits toPlanLimits(PlanLimitsResponse limits) {
+        if (limits == null) {
+            return null;
+        }
         return new PlanLimits(
                 limits.maxStudents(), limits.maxAcademies(),
                 limits.maxAdmins(), limits.omrMonthlyQuota()

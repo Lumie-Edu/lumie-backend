@@ -3104,7 +3104,7 @@
         "required" : [ "category", "code", "description", "id", "name" ],
         "type" : "object"
       },
-      "PlanFeatures" : {
+      "PlanFeaturesResponse" : {
         "properties" : {
           "additionalFeatures" : {
             "items" : {
@@ -3131,7 +3131,7 @@
         "required" : [ "additionalFeatures", "advancedAnalytics", "apiAccess", "customDomains", "prioritySupport", "whiteLabeling" ],
         "type" : "object"
       },
-      "PlanLimits" : {
+      "PlanLimitsResponse" : {
         "properties" : {
           "maxAcademies" : {
             "format" : "int32",
@@ -3167,13 +3167,13 @@
             "type" : "integer"
           },
           "features" : {
-            "$ref" : "#/components/schemas/PlanFeatures"
+            "$ref" : "#/components/schemas/PlanFeaturesResponse"
           },
           "id" : {
             "type" : "string"
           },
           "limits" : {
-            "$ref" : "#/components/schemas/PlanLimits"
+            "$ref" : "#/components/schemas/PlanLimitsResponse"
           },
           "monthlyPrice" : {
             "format" : "int64",
@@ -4738,7 +4738,7 @@
             "type" : "integer"
           },
           "limits" : {
-            "$ref" : "#/components/schemas/PlanLimits"
+            "$ref" : "#/components/schemas/PlanLimitsResponse"
           },
           "planId" : {
             "type" : "string"

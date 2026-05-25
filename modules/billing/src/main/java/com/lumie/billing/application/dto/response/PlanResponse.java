@@ -1,8 +1,6 @@
 package com.lumie.billing.application.dto.response;
 
 import com.lumie.billing.domain.entity.Plan;
-import com.lumie.billing.domain.vo.PlanFeatures;
-import com.lumie.billing.domain.vo.PlanLimits;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -13,8 +11,8 @@ public record PlanResponse(
         @Schema(nullable = true) String description,
         long monthlyPrice,
         long yearlyPrice,
-        PlanLimits limits,
-        PlanFeatures features,
+        PlanLimitsResponse limits,
+        PlanFeaturesResponse features,
         int displayOrder,
         boolean active
 ) {
@@ -25,8 +23,8 @@ public record PlanResponse(
                 .description(plan.getDescription())
                 .monthlyPrice(plan.getMonthlyPrice().toLong())
                 .yearlyPrice(plan.getYearlyPrice().toLong())
-                .limits(plan.toLimits())
-                .features(plan.toFeatures())
+                .limits(PlanLimitsResponse.from(plan.toLimits()))
+                .features(PlanFeaturesResponse.from(plan.toFeatures()))
                 .displayOrder(plan.getDisplayOrder())
                 .active(plan.isActive())
                 .build();
