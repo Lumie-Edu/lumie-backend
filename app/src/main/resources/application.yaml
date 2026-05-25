@@ -230,11 +230,18 @@ telegram:
 
 # External Python services (exam module) + CORS
 lumie:
+  ai:
+    langgraph:
+      # When true, ChatController routes chat to the LangGraph chatbot worker
+      # (chatbot-svc); when false, it uses the in-monolith Spring AI path.
+      enabled: ${LUMIE_AI_LANGGRAPH_ENABLED:false}
   services:
     grading:
       url: ${GRADING_SVC_URL:http://localhost:8001}
     report:
       url: ${REPORT_SVC_URL:http://localhost:8002}
+    chatbot:
+      url: ${CHATBOT_SVC_URL:http://localhost:18002}
   cors:
     allowed-origins:
       - https://lumie-edu.com

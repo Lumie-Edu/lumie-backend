@@ -58,6 +58,19 @@ public class ChatService {
     private static final int CHUNK_SIZE = 3;
     private static final long SSE_TIMEOUT = 120_000L; // 2 minutes
 
+    /**
+     * Resolve the conversation a pending message belongs to. Used by the
+     * LangGraph confirm path (the FE only sends {@code messageId}, but the
+     * worker needs {@code conversationId} to rebuild the graph thread id).
+     * RLS-scoped via {@code @Transactional(readOnly = true)}.
+     */
+    @Transactional(readOnly = true)
+    public Long resolveConversationId(Long messageId) {
+        return chatMessageRepository.findById(messageId)
+                .map(ChatMessage::getConversationId)
+                .orElseThrow(() -> new AiException(AiErrorCode.MESSAGE_NOT_FOUND));
+    }
+
     public SseEmitter chatStreamEmitter(Long conversationId, String userMessage) {
         Long userId = UserContextHolder.getRequiredUserId();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
