@@ -9,8 +9,8 @@ NAMESPACE = 'lumie-dev'
 # Environment variables
 COMMON_ENV = {
     'SPRING_PROFILES_ACTIVE': 'dev',
-    # Database via PgBouncer
-    'DB_HOST': 'pgbouncer.lumie-dev.svc.cluster.local',
+    # Database via CNPG native Pooler
+    'DB_HOST': 'lumie-dev-pooler.lumie-dev.svc.cluster.local',
     'DB_PORT': '5432',
     'DB_NAME': 'lumie',
     # Read-only DB
@@ -100,12 +100,12 @@ spec:
         - name: DB_MIGRATOR_USERNAME
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-db-secrets
+              name: lumie-dev-db-superuser
               key: username
         - name: DB_MIGRATOR_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: lumie-dev-db-secrets
+              name: lumie-dev-db-superuser
               key: password
         - name: RO_DB_USERNAME
           valueFrom:
