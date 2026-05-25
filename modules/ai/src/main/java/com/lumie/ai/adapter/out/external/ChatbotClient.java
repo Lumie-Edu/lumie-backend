@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -19,6 +20,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -47,7 +49,14 @@ public class ChatbotClient {
                          @Qualifier("aiChatExecutor") AsyncTaskExecutor aiChatExecutor,
                          ObjectMapper objectMapper,
                          @Value("${lumie.services.chatbot.url}") String chatbotUrl) {
-        this.restClient = restClientBuilder.baseUrl(chatbotUrl).build();
+        // Pin HTTP/1.1: the worker (uvicorn) is HTTP/1.1-only, but the default
+        // JDK HttpClient negotiates HTTP/2 (h2c) over plaintext, which uvicorn
+        // rejects ("Invalid HTTP request received") and the BE→worker call fails.
+        HttpClient http11 = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
+        this.restClient = restClientBuilder
+                .requestFactory(new JdkClientHttpRequestFactory(http11))
+                .baseUrl(chatbotUrl)
+                .build();
         this.aiChatExecutor = aiChatExecutor;
         this.objectMapper = objectMapper;
     }
