@@ -174,6 +174,11 @@ spec:
             secretKeyRef:
               name: lumie-dev-ai-token-secrets
               key: GOOGLE_API_KEY
+        # Phase 4 cutover (dev only): route chat to the LangGraph chatbot-svc.
+        - name: LUMIE_AI_LANGGRAPH_ENABLED
+          value: "true"
+        - name: CHATBOT_SVC_URL
+          value: "http://chatbot-svc.lumie-dev.svc:8000"
         resources:
           requests:
             cpu: 100m
