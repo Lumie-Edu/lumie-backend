@@ -5,7 +5,7 @@ import com.lumie.attendance.application.dto.response.AttendanceSessionResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;
-import com.lumie.attendance.domain.exception.SessionNotFoundException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
@@ -122,7 +122,7 @@ class AttendanceSessionCommandServiceTest {
         given(sessionRepository.findById(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> commandService.regenerateCode(99L))
-            .isInstanceOf(SessionNotFoundException.class);
+            .isInstanceOf(BusinessException.class);
     }
 
     @Test
@@ -142,6 +142,6 @@ class AttendanceSessionCommandServiceTest {
         given(sessionRepository.findById(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> commandService.deleteSession(99L))
-            .isInstanceOf(SessionNotFoundException.class);
+            .isInstanceOf(BusinessException.class);
     }
 }

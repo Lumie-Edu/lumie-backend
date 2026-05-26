@@ -2,7 +2,7 @@ package com.lumie.billing.application.service;
 
 import com.lumie.billing.application.port.out.UsageLogPersistencePort;
 import com.lumie.billing.domain.entity.UsageLog;
-import com.lumie.billing.domain.vo.MetricType;
+import com.lumie.common.quota.MetricType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

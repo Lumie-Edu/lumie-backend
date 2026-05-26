@@ -11,9 +11,6 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.classroom.domain.exception.ClassErrorCode;
-import com.lumie.classroom.domain.exception.ClassNotFoundException;
-import com.lumie.classroom.domain.exception.DuplicateEnrollmentException;
-import com.lumie.classroom.domain.exception.EnrollmentNotFoundException;
 import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
@@ -69,7 +66,8 @@ public class ClassCommandService {
     @LogActivity(action = ActionType.UPDATE, entity = EntityType.CLASS, entityIdArg = "id")
     public ClassResponse updateClass(Long id, UpdateClassRequest request) {
         ClassEntity entity = classRepository.findById(id)
-            .orElseThrow(() -> new ClassNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(ClassErrorCode.CLASS_NOT_FOUND,
+                "Class not found with id: %d".formatted(id)));
 
         String name = request.name() != null ? request.name() : entity.getName();
         Long teacherId = request.teacherId() != null ? request.teacherId() : entity.getTeacherId();
@@ -92,7 +90,8 @@ public class ClassCommandService {
     @LogActivity(action = ActionType.DELETE, entity = EntityType.CLASS, entityIdArg = "id")
     public void deleteClass(Long id) {
         ClassEntity entity = classRepository.findById(id)
-            .orElseThrow(() -> new ClassNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(ClassErrorCode.CLASS_NOT_FOUND,
+                "Class not found with id: %d".formatted(id)));
 
         classRepository.delete(entity);
 
@@ -102,11 +101,13 @@ public class ClassCommandService {
     @LogActivity(action = ActionType.ENROLL, entity = EntityType.CLASS, entityIdArg = "classId")
     public List<ClassEnrollmentResponse> enrollStudents(Long classId, EnrollStudentsRequest request) {
         ClassEntity classEntity = classRepository.findByIdWithLock(classId)
-            .orElseThrow(() -> new ClassNotFoundException(classId));
+            .orElseThrow(() -> new BusinessException(ClassErrorCode.CLASS_NOT_FOUND,
+                "Class not found with id: %d".formatted(classId)));
 
         for (Long studentId : request.studentIds()) {
             if (enrollmentRepository.existsByClassEntityIdAndStudentId(classId, studentId)) {
-                throw new DuplicateEnrollmentException(classId, studentId);
+                throw new BusinessException(ClassErrorCode.DUPLICATE_ENROLLMENT,
+                    "Student %d is already enrolled in class %d".formatted(studentId, classId));
             }
             validateNoStudentScheduleOverlap(studentId, classEntity);
         }
@@ -126,10 +127,12 @@ public class ClassCommandService {
     @LogActivity(action = ActionType.DROP, entity = EntityType.CLASS, entityIdArg = "classId")
     public void removeEnrollment(Long classId, Long enrollmentId) {
         ClassEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
-            .orElseThrow(() -> new EnrollmentNotFoundException(enrollmentId));
+            .orElseThrow(() -> new BusinessException(ClassErrorCode.ENROLLMENT_NOT_FOUND,
+                "Enrollment not found with id: %d".formatted(enrollmentId)));
 
         if (!enrollment.getClassEntity().getId().equals(classId)) {
-            throw new EnrollmentNotFoundException(enrollmentId);
+            throw new BusinessException(ClassErrorCode.ENROLLMENT_NOT_FOUND,
+                "Enrollment not found with id: %d".formatted(enrollmentId));
         }
 
         enrollmentRepository.delete(enrollment);
@@ -140,7 +143,8 @@ public class ClassCommandService {
     @LogActivity(action = ActionType.DROP, entity = EntityType.CLASS, entityIdArg = "classId")
     public void removeEnrollmentByStudent(Long classId, Long studentId) {
         ClassEnrollment enrollment = enrollmentRepository.findByClassEntityIdAndStudentId(classId, studentId)
-            .orElseThrow(() -> new EnrollmentNotFoundException(classId, studentId));
+            .orElseThrow(() -> new BusinessException(ClassErrorCode.ENROLLMENT_NOT_FOUND,
+                "Enrollment not found for class %d and student %d".formatted(classId, studentId)));
 
         enrollmentRepository.delete(enrollment);
 
@@ -150,10 +154,12 @@ public class ClassCommandService {
     public ClassEnrollmentResponse updateEnrollmentStatus(Long classId, Long enrollmentId,
                                                           UpdateEnrollmentRequest request) {
         ClassEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
-            .orElseThrow(() -> new EnrollmentNotFoundException(enrollmentId));
+            .orElseThrow(() -> new BusinessException(ClassErrorCode.ENROLLMENT_NOT_FOUND,
+                "Enrollment not found with id: %d".formatted(enrollmentId)));
 
         if (!enrollment.getClassEntity().getId().equals(classId)) {
-            throw new EnrollmentNotFoundException(enrollmentId);
+            throw new BusinessException(ClassErrorCode.ENROLLMENT_NOT_FOUND,
+                "Enrollment not found with id: %d".formatted(enrollmentId));
         }
 
         EnrollmentStatus newStatus = parseEnrollmentStatus(request.status());

@@ -6,7 +6,7 @@ import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +46,7 @@ public class ResultQueryService {
         log.debug("Getting question results for result: {}", resultId);
 
         ExamResult result = resultRepository.findById(resultId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
         var exam = result.getExam();
         return result.getQuestionResults().stream()
@@ -59,7 +59,7 @@ public class ResultQueryService {
 
         return jobRepository.findById(jobId)
                 .map(OmrJobStatusResponse::from)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
     }
 
     public List<OmrJobStatusResponse> getOmrJobs(Long examId) {
@@ -72,10 +72,10 @@ public class ResultQueryService {
 
     public byte[] getOmrImageData(Long resultId) {
         ExamResult result = resultRepository.findById(resultId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
         if (result.getOmrImageKey() == null) {
-            throw new ExamException(ExamErrorCode.OMR_IMAGE_NOT_FOUND);
+            throw new BusinessException(ExamErrorCode.OMR_IMAGE_NOT_FOUND);
         }
 
         return storagePort.getObject(result.getOmrImageKey());

@@ -1,8 +1,8 @@
 package com.lumie.exam.adapter.out.external;
 
 import com.lumie.exam.application.port.out.ReportServicePort;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -42,13 +42,13 @@ public class ReportServiceClient implements ReportServicePort {
                 return response.getBody();
             }
 
-            throw new ExamException(ExamErrorCode.REPORT_GENERATION_FAILED, "Report service returned error");
+            throw new BusinessException(ExamErrorCode.REPORT_GENERATION_FAILED, "Report service returned error");
 
-        } catch (ExamException e) {
+        } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
             log.error("Report generation failed for student {} exam {}", studentId, examId, e);
-            throw new ExamException(ExamErrorCode.REPORT_GENERATION_FAILED, e.getMessage());
+            throw new BusinessException(ExamErrorCode.REPORT_GENERATION_FAILED, e.getMessage());
         }
     }
 }

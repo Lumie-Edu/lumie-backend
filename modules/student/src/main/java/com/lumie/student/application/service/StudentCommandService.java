@@ -9,10 +9,10 @@ import com.lumie.auth.api.AuthService;
 import com.lumie.billing.api.BillingService;
 import com.lumie.student.api.StudentRegisteredEvent;
 import com.lumie.student.domain.entity.Student;
-import com.lumie.student.domain.exception.DuplicatePhoneException;
-import com.lumie.student.domain.exception.QuotaExceededException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.quota.MetricType;
+import com.lumie.common.exception.QuotaExceededException;
 import com.lumie.student.domain.exception.StudentErrorCode;
-import com.lumie.student.domain.exception.StudentNotFoundException;
 import com.lumie.student.domain.repository.StudentRepository;
 import com.lumie.student.domain.vo.PhoneNumber;
 import com.lumie.common.auth.Role;
@@ -88,7 +88,7 @@ public class StudentCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with id: %d".formatted(id)));
 
         validatePhoneUniqueness(request.phone(), request.parentPhone(), id);
 
@@ -111,7 +111,7 @@ public class StudentCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with id: %d".formatted(id)));
 
         student.deactivate();
         studentRepository.save(student);
@@ -125,7 +125,7 @@ public class StudentCommandService {
         checkStudentQuota(tenantSlug);
 
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with id: %d".formatted(id)));
 
         student.activate();
         studentRepository.save(student);
@@ -137,7 +137,7 @@ public class StudentCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with id: %d".formatted(id)));
 
         if (student.isActive()) {
             throw new BusinessException(StudentErrorCode.CANNOT_DELETE_ACTIVE_STUDENT);
@@ -160,7 +160,7 @@ public class StudentCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with id: %d".formatted(id)));
 
         AuthService.ResetPasswordResult result = authService.resetPassword(student.getUserId());
         if (!result.success()) {
@@ -174,7 +174,7 @@ public class StudentCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with id: %d".formatted(id)));
 
         AuthService.ChangeLoginIdResult result = authService.changeLoginId(student.getUserId(), newLoginId);
         if (!result.success()) {
@@ -411,29 +411,35 @@ public class StudentCommandService {
 
     private void validatePhoneUniqueness(String phone, String parentPhone, Long excludeId) {
         if (phone != null && phone.equals(parentPhone)) {
-            throw new DuplicatePhoneException(phone);
+            throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
         }
         if (excludeId == null) {
             if (phone != null && studentRepository.existsByPhoneInAnyField(phone)) {
-                throw new DuplicatePhoneException(phone);
+                throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
             }
             if (parentPhone != null && studentRepository.existsByPhoneInAnyField(parentPhone)) {
-                throw new DuplicatePhoneException(parentPhone);
+                throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(parentPhone));
             }
         } else {
             if (phone != null && studentRepository.existsByPhoneInAnyFieldExcluding(phone, excludeId)) {
-                throw new DuplicatePhoneException(phone);
+                throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
             }
             if (parentPhone != null && studentRepository.existsByPhoneInAnyFieldExcluding(parentPhone, excludeId)) {
-                throw new DuplicatePhoneException(parentPhone);
+                throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(parentPhone));
             }
         }
     }
 
     private void checkStudentQuota(String tenantSlug) {
-        var result = billingService.checkQuota(tenantSlug, "MAX_STUDENTS");
+        var result = billingService.checkQuota(tenantSlug, MetricType.STUDENTS);
         if (!result.allowed()) {
-            throw new QuotaExceededException("MAX_STUDENTS", result.currentUsage(), result.limit());
+            throw new QuotaExceededException(
+                StudentErrorCode.QUOTA_EXCEEDED,
+                TenantContextHolder.getTenant(),
+                MetricType.STUDENTS,
+                result.currentUsage(),
+                result.limit()
+            );
         }
     }
 }

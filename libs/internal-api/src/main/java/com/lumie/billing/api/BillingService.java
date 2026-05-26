@@ -1,5 +1,7 @@
 package com.lumie.billing.api;
 
+import com.lumie.common.quota.MetricType;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -7,7 +9,7 @@ public interface BillingService {
 
     Optional<SubscriptionData> getSubscription(String tenantSlug);
 
-    QuotaResult checkQuota(String tenantSlug, String metricType);
+    QuotaResult checkQuota(String tenantSlug, MetricType metricType);
 
     Optional<PlanFeaturesData> getPlanFeatures(String planId);
 
@@ -29,7 +31,7 @@ public interface BillingService {
             boolean allowed,
             long currentUsage,
             long limit,
-            String metricType,
+            MetricType metricType,
             String message
     ) {}
 

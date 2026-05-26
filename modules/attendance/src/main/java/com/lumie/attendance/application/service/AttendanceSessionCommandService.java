@@ -5,7 +5,8 @@ import com.lumie.attendance.application.dto.response.AttendanceSessionResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;
-import com.lumie.attendance.domain.exception.SessionNotFoundException;
+import com.lumie.attendance.domain.exception.AttendanceErrorCode;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
@@ -98,7 +99,8 @@ public class AttendanceSessionCommandService {
 
     public AttendanceSessionResponse regenerateCode(Long id) {
         AttendanceSession session = sessionRepository.findById(id)
-            .orElseThrow(() -> new SessionNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(AttendanceErrorCode.SESSION_NOT_FOUND,
+                "Attendance session not found with id: %d".formatted(id)));
 
         session.regenerateCode();
         AttendanceSession saved = sessionRepository.save(session);
@@ -109,7 +111,8 @@ public class AttendanceSessionCommandService {
 
     public void deleteSession(Long id) {
         sessionRepository.findById(id)
-            .orElseThrow(() -> new SessionNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(AttendanceErrorCode.SESSION_NOT_FOUND,
+                "Attendance session not found with id: %d".formatted(id)));
 
         sessionRepository.deleteById(id);
 

@@ -11,9 +11,6 @@ import com.lumie.common.test.ReflectionTestUtils;
 import com.lumie.common.test.TenantContextExtension;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
-import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
-import com.lumie.assignment.domain.exception.DuplicateSubmissionException;
-import com.lumie.assignment.domain.exception.SubmissionNotFoundException;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
@@ -118,7 +115,7 @@ class AssignmentCommandServiceTest {
 
             assertThatThrownBy(() -> commandService.updateAssignment(999L,
                     new UpdateAssignmentRequest(null, null, null, null, null, null, null)))
-                    .isInstanceOf(AssignmentNotFoundException.class);
+                    .isInstanceOf(BusinessException.class);
         }
 
         @Test
@@ -188,7 +185,7 @@ class AssignmentCommandServiceTest {
 
             assertThatThrownBy(() -> commandService.createSubmission(1L,
                     new CreateSubmissionRequest(42L, "답안", null)))
-                    .isInstanceOf(DuplicateSubmissionException.class);
+                    .isInstanceOf(BusinessException.class);
         }
     }
 
@@ -225,7 +222,7 @@ class AssignmentCommandServiceTest {
 
             assertThatThrownBy(() -> commandService.updateSubmission(999L, 10L,
                     new UpdateSubmissionRequest(null, null, null)))
-                    .isInstanceOf(SubmissionNotFoundException.class);
+                    .isInstanceOf(BusinessException.class);
         }
     }
 

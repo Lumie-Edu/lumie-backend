@@ -1,6 +1,6 @@
 package com.lumie.billing.application.dto.response;
 
-import com.lumie.billing.domain.vo.MetricType;
+import com.lumie.common.quota.MetricType;
 import lombok.Builder;
 
 @Builder

@@ -1,7 +1,8 @@
 package com.lumie.attendance.application.service;
 
 import com.lumie.attendance.application.dto.response.AttendanceSessionResponse;
-import com.lumie.attendance.domain.exception.SessionNotFoundException;
+import com.lumie.attendance.domain.exception.AttendanceErrorCode;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,7 +22,8 @@ public class AttendanceSessionQueryService {
     public AttendanceSessionResponse getSession(Long id) {
         return sessionRepository.findById(id)
             .map(AttendanceSessionResponse::from)
-            .orElseThrow(() -> new SessionNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(AttendanceErrorCode.SESSION_NOT_FOUND,
+                "Attendance session not found with id: %d".formatted(id)));
     }
 
     public Page<AttendanceSessionResponse> getSessions(Long classId,

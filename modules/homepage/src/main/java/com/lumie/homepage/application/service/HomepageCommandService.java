@@ -6,9 +6,8 @@ import com.lumie.homepage.application.dto.request.UpdateHomepageConfigRequest;
 import com.lumie.homepage.application.dto.response.HomepageConfigResponse;
 import com.lumie.homepage.application.port.out.HomepageConfigPersistencePort;
 import com.lumie.homepage.domain.entity.HomepageConfig;
-import com.lumie.homepage.domain.exception.HomepageConfigNotFoundException;
-import com.lumie.homepage.domain.exception.HomepageErrorCode;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.homepage.domain.exception.HomepageErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,7 +47,7 @@ public class HomepageCommandService {
         log.info("Toggling homepage publish: published={}", request.published());
 
         HomepageConfig config = homepageConfigPersistencePort.find()
-                .orElseThrow(HomepageConfigNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(HomepageErrorCode.HOMEPAGE_CONFIG_NOT_FOUND));
 
         if (request.published()) {
             config.publish();

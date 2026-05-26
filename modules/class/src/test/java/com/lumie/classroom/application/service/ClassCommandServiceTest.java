@@ -9,9 +9,6 @@ import com.lumie.classroom.application.dto.UpdateEnrollmentRequest;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.entity.ClassEntity;
-import com.lumie.classroom.domain.exception.ClassNotFoundException;
-import com.lumie.classroom.domain.exception.DuplicateEnrollmentException;
-import com.lumie.classroom.domain.exception.EnrollmentNotFoundException;
 import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
@@ -114,7 +111,7 @@ class ClassCommandServiceTest {
 
             assertThatThrownBy(() -> commandService.updateClass(999L,
                     new UpdateClassRequest(null, null, null, null)))
-                    .isInstanceOf(ClassNotFoundException.class);
+                    .isInstanceOf(BusinessException.class);
         }
     }
 
@@ -169,7 +166,7 @@ class ClassCommandServiceTest {
 
             assertThatThrownBy(() -> commandService.enrollStudents(1L,
                     new EnrollStudentsRequest(List.of(100L))))
-                    .isInstanceOf(DuplicateEnrollmentException.class);
+                    .isInstanceOf(BusinessException.class);
         }
     }
 
@@ -201,7 +198,7 @@ class ClassCommandServiceTest {
             given(enrollmentRepository.findById(10L)).willReturn(Optional.of(enrollment));
 
             assertThatThrownBy(() -> commandService.removeEnrollment(999L, 10L))
-                    .isInstanceOf(EnrollmentNotFoundException.class);
+                    .isInstanceOf(BusinessException.class);
         }
     }
 

@@ -3,7 +3,8 @@ package com.lumie.lecture.application.service;
 import com.lumie.lecture.application.dto.response.LectureResponse;
 import com.lumie.lecture.application.dto.response.WatchResponse;
 import com.lumie.lecture.domain.entity.Lecture;
-import com.lumie.lecture.domain.exception.LectureNotFoundException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.lecture.domain.exception.LectureErrorCode;
 import com.lumie.lecture.domain.repository.LectureRepository;
 import com.lumie.lecture.domain.vo.LectureSearchCriteria;
 import com.lumie.lecture.domain.vo.LectureStatus;
@@ -40,7 +41,7 @@ public class LectureQueryService {
 
     public LectureResponse findById(Long id) {
         Lecture lecture = lectureRepository.findById(id)
-                .orElseThrow(LectureNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(LectureErrorCode.LECTURE_NOT_FOUND));
         return LectureResponse.from(lecture);
     }
 
@@ -51,7 +52,7 @@ public class LectureQueryService {
 
     public WatchResponse getWatchUrls(Long lectureId) {
         Lecture lecture = lectureRepository.findById(lectureId)
-                .orElseThrow(LectureNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(LectureErrorCode.LECTURE_NOT_FOUND));
 
         return new WatchResponse(
                 lecture.getId(),

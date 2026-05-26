@@ -6,7 +6,7 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
@@ -34,7 +34,7 @@ public class StudentAnalyticsQueryService {
         log.debug("Getting rank for student: {} in exam: {}", studentId, examId);
 
         ExamResult result = resultRepository.findByExamIdAndStudentId(examId, studentId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
         Exam exam = result.getExam();
         List<ExamResult> allResults = resultRepository.findByExamId(examId);
@@ -205,12 +205,12 @@ public class StudentAnalyticsQueryService {
 
         List<ExamResult> studentResults = resultRepository.findByStudentId(studentId);
         if (studentResults.isEmpty()) {
-            throw new ExamException(ExamErrorCode.RESULT_NOT_FOUND);
+            throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
         }
 
         ExamResult latestResult = studentResults.stream()
                 .max(Comparator.comparing(ExamResult::getCreatedAt))
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
         if (request.baseExamId() != null) {
             latestResult = resultRepository.findByExamIdAndStudentId(request.baseExamId(), studentId)

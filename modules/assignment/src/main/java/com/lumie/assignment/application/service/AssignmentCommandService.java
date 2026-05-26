@@ -11,9 +11,6 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
-import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
-import com.lumie.assignment.domain.exception.DuplicateSubmissionException;
-import com.lumie.assignment.domain.exception.SubmissionNotFoundException;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
@@ -61,7 +58,8 @@ public class AssignmentCommandService {
 
     public AssignmentResponse updateAssignment(Long id, UpdateAssignmentRequest request) {
         Assignment entity = assignmentRepository.findById(id)
-            .orElseThrow(() -> new AssignmentNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
+                "Assignment not found with id: %d".formatted(id)));
 
         String title = request.title() != null ? request.title() : entity.getTitle();
         String description = request.description() != null ? request.description() : entity.getDescription();
@@ -89,7 +87,8 @@ public class AssignmentCommandService {
 
     public void deleteAssignment(Long id) {
         Assignment entity = assignmentRepository.findById(id)
-            .orElseThrow(() -> new AssignmentNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
+                "Assignment not found with id: %d".formatted(id)));
 
         entity.close();
         assignmentRepository.save(entity);
@@ -99,10 +98,12 @@ public class AssignmentCommandService {
 
     public SubmissionResponse createSubmission(Long assignmentId, CreateSubmissionRequest request) {
         assignmentRepository.findById(assignmentId)
-            .orElseThrow(() -> new AssignmentNotFoundException(assignmentId));
+            .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
+                "Assignment not found with id: %d".formatted(assignmentId)));
 
         if (submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, request.studentId())) {
-            throw new DuplicateSubmissionException(assignmentId, request.studentId());
+            throw new BusinessException(AssignmentErrorCode.DUPLICATE_SUBMISSION,
+                "Student %d has already submitted for assignment %d".formatted(request.studentId(), assignmentId));
         }
 
         AssignmentSubmission submission = AssignmentSubmission.create(assignmentId, request.studentId());
@@ -117,10 +118,12 @@ public class AssignmentCommandService {
     public SubmissionResponse updateSubmission(Long assignmentId, Long submissionId,
                                                UpdateSubmissionRequest request) {
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
-            .orElseThrow(() -> new SubmissionNotFoundException(submissionId));
+            .orElseThrow(() -> new BusinessException(AssignmentErrorCode.SUBMISSION_NOT_FOUND,
+                "Submission not found with id: %d".formatted(submissionId)));
 
         if (!submission.getAssignmentId().equals(assignmentId)) {
-            throw new SubmissionNotFoundException(submissionId);
+            throw new BusinessException(AssignmentErrorCode.SUBMISSION_NOT_FOUND,
+                "Submission not found with id: %d".formatted(submissionId));
         }
 
         if (request.status() != null) {

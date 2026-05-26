@@ -6,7 +6,7 @@ import com.lumie.billing.application.dto.response.QuotaCheckResponse;
 import com.lumie.billing.application.dto.response.SubscriptionResponse;
 import com.lumie.billing.application.service.SubscriptionCommandService;
 import com.lumie.billing.application.service.SubscriptionQueryService;
-import com.lumie.billing.domain.vo.MetricType;
+import com.lumie.common.quota.MetricType;
 import com.lumie.common.idempotency.IdempotencyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

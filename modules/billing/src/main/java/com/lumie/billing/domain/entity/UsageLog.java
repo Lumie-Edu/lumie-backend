@@ -1,6 +1,6 @@
 package com.lumie.billing.domain.entity;
 
-import com.lumie.billing.domain.vo.MetricType;
+import com.lumie.common.quota.MetricType;
 import com.lumie.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

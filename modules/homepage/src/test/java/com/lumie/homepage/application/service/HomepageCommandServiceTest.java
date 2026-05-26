@@ -7,8 +7,8 @@ import com.lumie.homepage.application.dto.request.UpdateHomepageConfigRequest;
 import com.lumie.homepage.application.dto.response.HomepageConfigResponse;
 import com.lumie.homepage.application.port.out.HomepageConfigPersistencePort;
 import com.lumie.homepage.domain.entity.HomepageConfig;
-import com.lumie.homepage.domain.exception.HomepageConfigNotFoundException;
-import com.lumie.homepage.domain.exception.HomepageNotReadyToPublishException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.homepage.domain.exception.HomepageErrorCode;
 import com.lumie.homepage.domain.vo.TemplateId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -116,7 +116,9 @@ class HomepageCommandServiceTest {
         when(homepageConfigPersistencePort.find()).thenReturn(Optional.of(config));
 
         assertThatThrownBy(() -> homepageCommandService.publish(new PublishHomepageRequest(true)))
-                .isInstanceOf(HomepageNotReadyToPublishException.class);
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(HomepageErrorCode.NOT_READY_TO_PUBLISH);
     }
 
     @Test
@@ -142,6 +144,8 @@ class HomepageCommandServiceTest {
         when(homepageConfigPersistencePort.find()).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> homepageCommandService.publish(new PublishHomepageRequest(true)))
-                .isInstanceOf(HomepageConfigNotFoundException.class);
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(HomepageErrorCode.HOMEPAGE_CONFIG_NOT_FOUND);
     }
 }

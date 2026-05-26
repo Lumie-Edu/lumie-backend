@@ -3,7 +3,7 @@ package com.lumie.exam.application.service;
 import com.lumie.exam.application.dto.response.ExamTemplateResponse;
 import com.lumie.exam.domain.entity.ExamTemplate;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamTemplateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class ExamTemplateQueryService {
         log.debug("Getting exam template: {}", id);
 
         ExamTemplate template = examTemplateRepository.findById(id)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.TEMPLATE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.TEMPLATE_NOT_FOUND));
 
         return ExamTemplateResponse.from(template);
     }

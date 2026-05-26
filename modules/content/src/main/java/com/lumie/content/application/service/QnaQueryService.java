@@ -6,8 +6,8 @@ import com.lumie.content.application.dto.response.QnaDetailResponse;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.staff.api.StaffService;
 import com.lumie.student.api.StudentService;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.QnaBoardRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +58,7 @@ public class QnaQueryService {
         log.debug("Getting Q&A detail: {}", id);
 
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         String userName = studentService.getStudentsByUserIds(tenantSlug, List.of(qnaBoard.getQnaUserId()))

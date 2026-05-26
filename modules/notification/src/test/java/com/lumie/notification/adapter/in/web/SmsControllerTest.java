@@ -8,7 +8,8 @@ import com.lumie.notification.application.dto.response.RecipientResponse;
 import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.service.SmsCommandService;
 import com.lumie.notification.application.service.SmsQueryService;
-import com.lumie.notification.domain.exception.SmsMessageNotFoundException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.notification.domain.exception.SmsErrorCode;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
@@ -102,7 +103,7 @@ class SmsControllerTest {
     @Test
     @DisplayName("GET /v1/sms/history/{id} - 존재하지 않는 문자 조회 시 404를 반환한다")
     void getMessage_notFound_returns404() throws Exception {
-        given(queryService.getMessage(999L)).willThrow(new SmsMessageNotFoundException(999L));
+        given(queryService.getMessage(999L)).willThrow(new BusinessException(SmsErrorCode.MESSAGE_NOT_FOUND, "SMS message not found with id: 999"));
 
         mockMvc.perform(get("/v1/sms/history/999"))
                 .andExpect(status().isNotFound());

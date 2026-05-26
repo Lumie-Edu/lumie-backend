@@ -7,7 +7,7 @@ import com.lumie.file.application.dto.response.PresignedUploadResponse;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.exception.FileException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.repository.TextbookFolderRepository;
 import com.lumie.file.domain.vo.EntityType;
@@ -70,7 +70,7 @@ public class FileCommandService {
     public FileMetadataResponse uploadFile(EntityType entityType, Long entityId, UUID folderId, MultipartFile file) {
         if (folderId != null) {
             textbookFolderRepository.findById(folderId)
-                    .orElseThrow(() -> new FileException(FileErrorCode.FOLDER_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(FileErrorCode.FOLDER_NOT_FOUND));
         }
 
         UUID fileId = UUID.randomUUID();
@@ -89,7 +89,7 @@ public class FileCommandService {
             storagePort.uploadObject(objectKey, file.getInputStream(), file.getSize(), file.getContentType());
         } catch (IOException e) {
             log.error("Failed to read upload stream for file: {}", saved.getId(), e);
-            throw new FileException(FileErrorCode.STORAGE_ERROR);
+            throw new BusinessException(FileErrorCode.STORAGE_ERROR);
         }
 
         saved.markUploadCompleted();
@@ -101,11 +101,11 @@ public class FileCommandService {
     @Transactional
     public FileMetadataResponse registerUploadCompleted(RegisterUploadRequest request) {
         FileMetadata fileMetadata = fileMetadataRepository.findById(request.fileId())
-                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
         if (!storagePort.objectExists(fileMetadata.getObjectKey())) {
             log.warn("Upload not found in storage for file: {}", request.fileId());
-            throw new FileException(FileErrorCode.FILE_NOT_FOUND, "File not uploaded to storage");
+            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND, "File not uploaded to storage");
         }
 
         fileMetadata.markUploadCompleted();
@@ -117,7 +117,7 @@ public class FileCommandService {
     @Transactional
     public void deleteFile(UUID fileId) {
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
-                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
         storagePort.deleteObject(fileMetadata.getObjectKey());
         fileMetadataRepository.deleteById(fileId);

@@ -4,7 +4,8 @@ import com.lumie.lecture.application.dto.request.CreateLectureRequest;
 import com.lumie.lecture.application.dto.request.UpdateLectureRequest;
 import com.lumie.lecture.application.dto.response.LectureResponse;
 import com.lumie.lecture.domain.entity.Lecture;
-import com.lumie.lecture.domain.exception.LectureNotFoundException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.lecture.domain.exception.LectureErrorCode;
 import com.lumie.lecture.domain.repository.LectureRepository;
 import com.lumie.lecture.domain.vo.LectureStatus;
 import com.lumie.lecture.domain.vo.LectureVisibility;
@@ -46,7 +47,7 @@ public class LectureCommandService {
 
     public LectureResponse update(Long id, UpdateLectureRequest request) {
         Lecture lecture = lectureRepository.findById(id)
-                .orElseThrow(LectureNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(LectureErrorCode.LECTURE_NOT_FOUND));
 
         LectureVisibility visibility = request.visibility() != null
                 ? LectureVisibility.valueOf(request.visibility()) : null;
@@ -61,7 +62,7 @@ public class LectureCommandService {
 
     public void delete(Long id) {
         Lecture lecture = lectureRepository.findById(id)
-                .orElseThrow(LectureNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(LectureErrorCode.LECTURE_NOT_FOUND));
         lecture.close();
         lectureRepository.save(lecture);
     }

@@ -2,8 +2,9 @@ package com.lumie.assignment.application.service;
 
 import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
-import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
+import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
@@ -27,7 +28,8 @@ public class AssignmentQueryService {
     public AssignmentResponse getAssignment(Long id) {
         return assignmentRepository.findById(id)
             .map(AssignmentResponse::from)
-            .orElseThrow(() -> new AssignmentNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
+                "Assignment not found with id: %d".formatted(id)));
     }
 
     public Page<AssignmentResponse> listAssignments(Long classId,

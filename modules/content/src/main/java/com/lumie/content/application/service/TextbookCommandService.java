@@ -4,8 +4,8 @@ import com.lumie.content.application.dto.request.CreateTextbookRequest;
 import com.lumie.content.application.dto.request.UpdateTextbookRequest;
 import com.lumie.content.application.dto.response.TextbookResponse;
 import com.lumie.content.domain.entity.Textbook;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.TextbookRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +46,7 @@ public class TextbookCommandService {
         log.info("Updating textbook: {}", id);
 
         Textbook textbook = textbookRepository.findById(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.TEXTBOOK_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.TEXTBOOK_NOT_FOUND));
 
         textbook.update(
                 request.name(),
@@ -71,7 +71,7 @@ public class TextbookCommandService {
         log.info("Deleting textbook: {}", id);
 
         if (!textbookRepository.existsById(id)) {
-            throw new ContentException(ContentErrorCode.TEXTBOOK_NOT_FOUND);
+            throw new BusinessException(ContentErrorCode.TEXTBOOK_NOT_FOUND);
         }
 
         textbookRepository.deleteById(id);

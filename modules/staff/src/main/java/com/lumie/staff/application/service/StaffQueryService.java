@@ -4,7 +4,8 @@ import com.lumie.staff.application.dto.request.StaffFilterRequest;
 import com.lumie.staff.application.dto.response.StaffPermissionResponse;
 import com.lumie.staff.application.dto.response.StaffResponse;
 import com.lumie.staff.domain.entity.Staff;
-import com.lumie.staff.domain.exception.StaffNotFoundException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.staff.domain.exception.StaffErrorCode;
 import com.lumie.staff.domain.repository.StaffPermissionRepository;
 import com.lumie.staff.domain.repository.StaffRepository;
 import com.lumie.auth.api.AuthService;
@@ -32,13 +33,13 @@ public class StaffQueryService {
 
     public StaffResponse getStaff(Long id) {
         Staff staff = staffRepository.findById(id)
-                .orElseThrow(() -> new StaffNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(id)));
         return enrich(staff);
     }
 
     public StaffResponse getStaffByUserLoginId(String userLoginId) {
         Staff staff = staffRepository.findByUserLoginId(userLoginId)
-                .orElseThrow(() -> new StaffNotFoundException(userLoginId));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with identifier: %s".formatted(userLoginId)));
         return enrich(staff);
     }
 
@@ -63,7 +64,7 @@ public class StaffQueryService {
     @Cacheable(value = CacheConfig.CACHE_ADMIN_PERMISSIONS, key = "#staffId")
     public List<StaffPermissionResponse> getStaffPermissions(Long staffId) {
         staffRepository.findById(staffId)
-                .orElseThrow(() -> new StaffNotFoundException(staffId));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(staffId)));
         return staffPermissionRepository.findByStaffId(staffId).stream()
                 .map(StaffPermissionResponse::from)
                 .toList();

@@ -1,9 +1,13 @@
 package com.lumie.tenant.domain.exception;
 
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.ExtensionProperties;
 import com.lumie.tenant.api.TenantStatus;
 
-public class InvalidTenantStateException extends BusinessException {
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+public class InvalidTenantStateException extends BusinessException implements ExtensionProperties {
 
     private final TenantStatus currentStatus;
     private final TenantStatus requiredStatus;
@@ -22,5 +26,13 @@ public class InvalidTenantStateException extends BusinessException {
 
     public TenantStatus getRequiredStatus() {
         return requiredStatus;
+    }
+
+    @Override
+    public Map<String, Object> extensionProperties() {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("currentStatus", currentStatus);
+        properties.put("requiredStatus", requiredStatus);
+        return properties;
     }
 }

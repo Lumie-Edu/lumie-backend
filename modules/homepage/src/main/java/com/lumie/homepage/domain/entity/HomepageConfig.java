@@ -1,7 +1,8 @@
 package com.lumie.homepage.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
-import com.lumie.homepage.domain.exception.HomepageNotReadyToPublishException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.homepage.domain.exception.HomepageErrorCode;
 import com.lumie.homepage.domain.vo.TemplateId;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -63,12 +64,12 @@ public class HomepageConfig extends TenantScopedEntity {
 
     /**
      * Marks this config as published.
-     * Throws {@link HomepageNotReadyToPublishException} if {@code sections}
+     * Throws {@link BusinessException} with {@link HomepageErrorCode#NOT_READY_TO_PUBLISH} if {@code sections}
      * is null, empty, or a blank JSON object/array ({@code "{}"} / {@code "[]"}).
      */
     public void publish() {
         if (isBlankJson(this.sections)) {
-            throw new HomepageNotReadyToPublishException();
+            throw new BusinessException(HomepageErrorCode.NOT_READY_TO_PUBLISH);
         }
         this.published = true;
     }

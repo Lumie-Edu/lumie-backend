@@ -4,7 +4,7 @@ import com.lumie.file.application.dto.response.TextbookFolderPathResponse;
 import com.lumie.file.application.dto.response.TextbookFolderResponse;
 import com.lumie.file.domain.entity.TextbookFolder;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.exception.FileException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.file.domain.repository.TextbookFolderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ public class TextbookFolderQueryService {
     @Transactional(readOnly = true)
     public TextbookFolderResponse getFolder(UUID folderId) {
         TextbookFolder folder = textbookFolderRepository.findById(folderId)
-                .orElseThrow(() -> new FileException(FileErrorCode.FOLDER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FOLDER_NOT_FOUND));
         return TextbookFolderResponse.from(folder);
     }
 
@@ -48,7 +48,7 @@ public class TextbookFolderQueryService {
                 break; // cycle guard
             }
             TextbookFolder folder = textbookFolderRepository.findById(currentId)
-                    .orElseThrow(() -> new FileException(FileErrorCode.FOLDER_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(FileErrorCode.FOLDER_NOT_FOUND));
             ancestors.add(TextbookFolderResponse.from(folder));
             currentId = folder.getParentId();
         }

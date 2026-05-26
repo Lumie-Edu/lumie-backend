@@ -7,7 +7,8 @@ import com.lumie.assignment.application.dto.request.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.application.service.AssignmentQueryService;
-import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
+import com.lumie.assignment.domain.exception.AssignmentErrorCode;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentType;
 import com.lumie.common.exception.GlobalExceptionHandler;
@@ -106,7 +107,7 @@ class AssignmentControllerTest {
     @Test
     @DisplayName("GET /v1/assignments/{id} - 존재하지 않는 과제 조회 시 404를 반환한다")
     void getAssignment_notFound_returns404() throws Exception {
-        given(queryService.getAssignment(999L)).willThrow(new AssignmentNotFoundException(999L));
+        given(queryService.getAssignment(999L)).willThrow(new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND, "Assignment not found with id: 999"));
 
         mockMvc.perform(get("/v1/assignments/999"))
                 .andExpect(status().isNotFound());
@@ -140,7 +141,7 @@ class AssignmentControllerTest {
     @Test
     @DisplayName("DELETE /v1/assignments/{id} - 존재하지 않는 과제 삭제 시 404를 반환한다")
     void deleteAssignment_notFound_returns404() throws Exception {
-        doThrow(new AssignmentNotFoundException(999L)).when(commandService).deleteAssignment(999L);
+        doThrow(new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND, "Assignment not found with id: 999")).when(commandService).deleteAssignment(999L);
 
         mockMvc.perform(delete("/v1/assignments/999"))
                 .andExpect(status().isNotFound());

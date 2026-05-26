@@ -7,7 +7,8 @@ import com.lumie.classroom.application.dto.EnrollStudentsRequest;
 import com.lumie.classroom.application.dto.UpdateEnrollmentRequest;
 import com.lumie.classroom.application.service.ClassCommandService;
 import com.lumie.classroom.application.service.ClassQueryService;
-import com.lumie.classroom.domain.exception.EnrollmentNotFoundException;
+import com.lumie.classroom.domain.exception.ClassErrorCode;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,7 +99,7 @@ class ClassEnrollmentControllerTest {
     @Test
     @DisplayName("DELETE - 존재하지 않는 enrollment 제거 시 404를 반환한다")
     void removeEnrollment_notFound_returns404() throws Exception {
-        doThrow(new EnrollmentNotFoundException(999L)).when(commandService).removeEnrollment(1L, 999L);
+        doThrow(new BusinessException(ClassErrorCode.ENROLLMENT_NOT_FOUND, "Enrollment not found with id: 999")).when(commandService).removeEnrollment(1L, 999L);
 
         mockMvc.perform(delete("/v1/classes/1/enrollments/999"))
                 .andExpect(status().isNotFound());

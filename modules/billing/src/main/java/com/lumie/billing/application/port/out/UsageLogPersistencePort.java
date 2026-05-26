@@ -1,7 +1,7 @@
 package com.lumie.billing.application.port.out;
 
 import com.lumie.billing.domain.entity.UsageLog;
-import com.lumie.billing.domain.vo.MetricType;
+import com.lumie.common.quota.MetricType;
 
 import java.time.LocalDate;
 import java.util.List;

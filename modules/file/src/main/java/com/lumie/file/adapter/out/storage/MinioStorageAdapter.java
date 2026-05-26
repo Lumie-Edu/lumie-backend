@@ -2,7 +2,7 @@ package com.lumie.file.adapter.out.storage;
 
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.exception.FileException;
+import com.lumie.common.exception.BusinessException;
 import io.minio.*;
 import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +38,7 @@ public class MinioStorageAdapter implements StoragePort {
             return url;
         } catch (Exception e) {
             log.error("Failed to generate presigned upload URL for: {}", objectKey, e);
-            throw new FileException(FileErrorCode.PRESIGNED_URL_GENERATION_FAILED);
+            throw new BusinessException(FileErrorCode.PRESIGNED_URL_GENERATION_FAILED);
         }
     }
 
@@ -57,7 +57,7 @@ public class MinioStorageAdapter implements StoragePort {
             return url;
         } catch (Exception e) {
             log.error("Failed to generate presigned download URL for: {}", objectKey, e);
-            throw new FileException(FileErrorCode.PRESIGNED_URL_GENERATION_FAILED);
+            throw new BusinessException(FileErrorCode.PRESIGNED_URL_GENERATION_FAILED);
         }
     }
 
@@ -75,7 +75,7 @@ public class MinioStorageAdapter implements StoragePort {
             log.debug("Uploaded object: {}", objectKey);
         } catch (Exception e) {
             log.error("Failed to upload object: {}", objectKey, e);
-            throw new FileException(FileErrorCode.STORAGE_ERROR);
+            throw new BusinessException(FileErrorCode.STORAGE_ERROR);
         }
     }
 
@@ -90,7 +90,7 @@ public class MinioStorageAdapter implements StoragePort {
             );
         } catch (Exception e) {
             log.error("Failed to get object: {}", objectKey, e);
-            throw new FileException(FileErrorCode.STORAGE_ERROR);
+            throw new BusinessException(FileErrorCode.STORAGE_ERROR);
         }
     }
 
@@ -106,7 +106,7 @@ public class MinioStorageAdapter implements StoragePort {
             log.debug("Deleted object: {}", objectKey);
         } catch (Exception e) {
             log.error("Failed to delete object: {}", objectKey, e);
-            throw new FileException(FileErrorCode.STORAGE_ERROR);
+            throw new BusinessException(FileErrorCode.STORAGE_ERROR);
         }
     }
 

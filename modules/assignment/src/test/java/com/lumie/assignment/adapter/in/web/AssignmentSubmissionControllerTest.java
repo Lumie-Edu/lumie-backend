@@ -7,8 +7,8 @@ import com.lumie.assignment.application.dto.request.UpdateSubmissionRequest;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.application.service.AssignmentQueryService;
-import com.lumie.assignment.domain.exception.DuplicateSubmissionException;
-import com.lumie.assignment.domain.exception.SubmissionNotFoundException;
+import com.lumie.assignment.domain.exception.AssignmentErrorCode;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,7 +88,7 @@ class AssignmentSubmissionControllerTest {
     @DisplayName("POST /v1/assignments/{assignmentId}/submissions - 중복 제출 시 409를 반환한다")
     void createSubmission_duplicate_returns409() throws Exception {
         given(commandService.createSubmission(eq(1L), any(CreateSubmissionRequest.class)))
-                .willThrow(new DuplicateSubmissionException(1L, 42L));
+                .willThrow(new BusinessException(AssignmentErrorCode.DUPLICATE_SUBMISSION, "Student 42 has already submitted for assignment 1"));
 
         CreateSubmissionRequest request = new CreateSubmissionRequest(42L, "답안", null);
 
@@ -122,7 +122,7 @@ class AssignmentSubmissionControllerTest {
     @DisplayName("PATCH - 존재하지 않는 submission 수정 시 404를 반환한다")
     void updateSubmission_notFound_returns404() throws Exception {
         given(commandService.updateSubmission(eq(1L), eq(999L), any(UpdateSubmissionRequest.class)))
-                .willThrow(new SubmissionNotFoundException(999L));
+                .willThrow(new BusinessException(AssignmentErrorCode.SUBMISSION_NOT_FOUND, "Submission not found with id: 999"));
 
         UpdateSubmissionRequest request = new UpdateSubmissionRequest(null, null, null);
 

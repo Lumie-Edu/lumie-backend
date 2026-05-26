@@ -6,8 +6,8 @@ import com.lumie.content.application.dto.request.CreateReviewRequest;
 import com.lumie.content.application.dto.response.ReviewResponse;
 import com.lumie.content.domain.entity.Review;
 import com.lumie.student.api.StudentService;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,7 @@ public class ReviewCommandService {
                 .stream()
                 .findFirst()
                 .map(StudentService.StudentData::studentName)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.STUDENT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.STUDENT_NOT_FOUND));
 
         Review review = Review.create(reviewerName, request.reviewTitle(), request.reviewContent());
         Review saved = reviewRepository.save(review);
@@ -49,7 +49,7 @@ public class ReviewCommandService {
         log.info("Deleting review: {}", id);
 
         if (!reviewRepository.existsById(id)) {
-            throw new ContentException(ContentErrorCode.REVIEW_NOT_FOUND);
+            throw new BusinessException(ContentErrorCode.REVIEW_NOT_FOUND);
         }
 
         reviewRepository.deleteById(id);

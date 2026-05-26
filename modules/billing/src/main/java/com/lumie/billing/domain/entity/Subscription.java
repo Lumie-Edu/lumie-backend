@@ -1,7 +1,8 @@
 package com.lumie.billing.domain.entity;
 
-import com.lumie.billing.domain.exception.InvalidSubscriptionStateException;
-import com.lumie.billing.domain.vo.MetricType;
+import com.lumie.billing.domain.exception.BillingErrorCode;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.quota.MetricType;
 import com.lumie.billing.domain.vo.PlanLimits;
 import com.lumie.billing.domain.vo.SubscriptionStatus;
 import com.lumie.common.domain.BaseEntity;
@@ -107,7 +108,7 @@ public class Subscription extends BaseEntity {
 
     public void cancel() {
         if (this.status != SubscriptionStatus.ACTIVE && this.status != SubscriptionStatus.PAST_DUE) {
-            throw new InvalidSubscriptionStateException(
+            throw new BusinessException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
                     "Can only cancel active or past_due subscriptions. Current status: " + this.status);
         }
         this.status = SubscriptionStatus.CANCELLED;
@@ -121,7 +122,7 @@ public class Subscription extends BaseEntity {
 
     public void resumeFromPastDue() {
         if (this.status != SubscriptionStatus.PAST_DUE) {
-            throw new InvalidSubscriptionStateException(
+            throw new BusinessException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
                     "Can only resume from past_due state. Current status: " + this.status);
         }
         this.status = SubscriptionStatus.ACTIVE;
@@ -141,7 +142,7 @@ public class Subscription extends BaseEntity {
 
     public void reactivate(Plan plan, Instant newExpiresAt) {
         if (this.status != SubscriptionStatus.CANCELLED && this.status != SubscriptionStatus.EXPIRED) {
-            throw new InvalidSubscriptionStateException(
+            throw new BusinessException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
                     "Can only reactivate cancelled or expired subscriptions");
         }
         this.plan = plan;
@@ -160,7 +161,7 @@ public class Subscription extends BaseEntity {
 
     private void validateActive() {
         if (this.status != SubscriptionStatus.ACTIVE) {
-            throw new InvalidSubscriptionStateException(
+            throw new BusinessException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
                     "Subscription is not active. Current status: " + this.status);
         }
     }

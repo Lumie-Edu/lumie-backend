@@ -7,8 +7,6 @@ import com.lumie.attendance.application.dto.response.CheckInResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;
-import com.lumie.attendance.domain.exception.InvalidCodeException;
-import com.lumie.attendance.domain.exception.RecordNotFoundException;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
@@ -148,7 +146,7 @@ class AttendanceRecordCommandServiceTest {
         // when / then
         assertThatThrownBy(() ->
             commandService.checkInByCode(userId, new CheckInRequest("000000")))
-            .isInstanceOf(InvalidCodeException.class);
+            .isInstanceOf(BusinessException.class);
     }
 
     @Test
@@ -204,7 +202,7 @@ class AttendanceRecordCommandServiceTest {
         // when / then
         assertThatThrownBy(() ->
             commandService.updateStatus(recordId, new UpdateAttendanceStatusRequest(AttendanceStatus.PRESENT, null)))
-            .isInstanceOf(RecordNotFoundException.class);
+            .isInstanceOf(BusinessException.class);
     }
 
     // ------------------------------------------------------------------

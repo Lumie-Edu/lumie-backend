@@ -7,9 +7,6 @@ import com.lumie.attendance.application.dto.response.CheckInResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;
-import com.lumie.attendance.domain.exception.InvalidCodeException;
-import com.lumie.attendance.domain.exception.RecordNotFoundException;
-import com.lumie.attendance.domain.exception.SessionNotFoundException;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
 import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
@@ -40,7 +37,7 @@ public class AttendanceRecordCommandService {
                 "Student not found for user: " + userId));
 
         AttendanceSession session = sessionRepository.findByAttendanceCode(request.code())
-            .orElseThrow(InvalidCodeException::new);
+            .orElseThrow(() -> new BusinessException(AttendanceErrorCode.INVALID_CODE));
 
         if (session.isExpired()) {
             throw new BusinessException(AttendanceErrorCode.CODE_EXPIRED);
@@ -74,7 +71,8 @@ public class AttendanceRecordCommandService {
 
     public void updateStatus(Long recordId, UpdateAttendanceStatusRequest request) {
         AttendanceRecord record = recordRepository.findById(recordId)
-            .orElseThrow(() -> new RecordNotFoundException(recordId));
+            .orElseThrow(() -> new BusinessException(AttendanceErrorCode.RECORD_NOT_FOUND,
+                "Attendance record not found with id: %d".formatted(recordId)));
 
         record.updateStatus(request.status(), request.memo());
         recordRepository.save(record);
@@ -84,7 +82,8 @@ public class AttendanceRecordCommandService {
 
     public void bulkUpdateStatus(Long sessionId, BulkUpdateStatusRequest request) {
         sessionRepository.findById(sessionId)
-            .orElseThrow(() -> new SessionNotFoundException(sessionId));
+            .orElseThrow(() -> new BusinessException(AttendanceErrorCode.SESSION_NOT_FOUND,
+                "Attendance session not found with id: %d".formatted(sessionId)));
 
         List<AttendanceRecord> records = recordRepository.findAllById(request.recordIds());
 

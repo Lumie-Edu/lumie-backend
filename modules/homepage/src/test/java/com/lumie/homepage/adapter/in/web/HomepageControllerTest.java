@@ -8,7 +8,8 @@ import com.lumie.homepage.application.dto.request.UpdateHomepageConfigRequest;
 import com.lumie.homepage.application.dto.response.HomepageConfigResponse;
 import com.lumie.homepage.application.service.HomepageCommandService;
 import com.lumie.homepage.application.service.HomepageQueryService;
-import com.lumie.homepage.domain.exception.HomepageNotReadyToPublishException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.homepage.domain.exception.HomepageErrorCode;
 import com.lumie.homepage.domain.vo.TemplateId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -141,7 +142,7 @@ class HomepageControllerTest {
     @DisplayName("POST /v1/homepage/publish - 빈 config이면 422 반환")
     void publish_returns_422_when_not_ready() throws Exception {
         when(homepageCommandService.publish(any()))
-                .thenThrow(new HomepageNotReadyToPublishException());
+                .thenThrow(new BusinessException(HomepageErrorCode.NOT_READY_TO_PUBLISH));
 
         mockMvc.perform(post("/v1/homepage/publish")
                         .contentType(MediaType.APPLICATION_JSON)

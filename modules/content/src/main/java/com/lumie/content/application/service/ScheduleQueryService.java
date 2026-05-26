@@ -2,8 +2,8 @@ package com.lumie.content.application.service;
 
 import com.lumie.content.application.dto.response.ScheduleResponse;
 import com.lumie.content.domain.entity.Schedule;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,7 @@ public class ScheduleQueryService {
         log.debug("Listing schedules from {} to {}", startDate, endDate);
 
         if (startDate.isAfter(endDate)) {
-            throw new ContentException(ContentErrorCode.INVALID_DATE_RANGE);
+            throw new BusinessException(ContentErrorCode.INVALID_DATE_RANGE);
         }
 
         return scheduleRepository.findByDateBetween(startDate, endDate).stream()
@@ -46,7 +46,7 @@ public class ScheduleQueryService {
         log.debug("Listing available schedules from {} to {}", startDate, endDate);
 
         if (startDate.isAfter(endDate)) {
-            throw new ContentException(ContentErrorCode.INVALID_DATE_RANGE);
+            throw new BusinessException(ContentErrorCode.INVALID_DATE_RANGE);
         }
 
         return scheduleRepository.findByDateBetweenAndIsAvailableTrue(startDate, endDate).stream()
@@ -66,7 +66,7 @@ public class ScheduleQueryService {
         log.debug("Getting schedule: {}", id);
 
         Schedule schedule = scheduleRepository.findByIdWithReservations(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.SCHEDULE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.SCHEDULE_NOT_FOUND));
 
         return ScheduleResponse.from(schedule);
     }

@@ -3,8 +3,8 @@ package com.lumie.exam.adapter.in.messaging;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.ReportCallbackRequest;
 import com.lumie.exam.application.service.ReportJobService;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,14 +30,14 @@ public class ReportGenerationCallbackListener {
     @RabbitListener(queues = "report.generation-callback")
     public void handle(ReportCallbackRequest request) {
         if (request.tenantSlug() == null || request.tenantSlug().isBlank()) {
-            throw new ExamException(
+            throw new BusinessException(
                     ExamErrorCode.MISSING_TENANT_SLUG,
                     "Report callback missing tenantSlug for job " + request.jobId()
             );
         }
         Long tenantId = tenantService.getTenantBySlug(request.tenantSlug())
                 .map(TenantService.TenantData::id)
-                .orElseThrow(() -> new ExamException(
+                .orElseThrow(() -> new BusinessException(
                         ExamErrorCode.MISSING_TENANT_SLUG,
                         "Report callback references unknown tenant " + request.tenantSlug()
                                 + " for job " + request.jobId()

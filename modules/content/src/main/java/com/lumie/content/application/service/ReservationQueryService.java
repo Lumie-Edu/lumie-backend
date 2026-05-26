@@ -2,8 +2,8 @@ package com.lumie.content.application.service;
 
 import com.lumie.content.application.dto.response.ReservationResponse;
 import com.lumie.content.domain.entity.Reservation;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.ReservationRepository;
 import com.lumie.content.domain.vo.ReservationStatus;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +58,7 @@ public class ReservationQueryService {
         log.debug("Getting reservation: {}", id);
 
         Reservation reservation = reservationRepository.findByIdWithSchedule(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.RESERVATION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.RESERVATION_NOT_FOUND));
 
         return ReservationResponse.from(reservation);
     }

@@ -8,7 +8,7 @@ import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -40,7 +40,7 @@ public class ReportJobService {
         log.info("Creating batch report job: examId={}, students={}", examId, studentIds.size());
 
         Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
@@ -63,7 +63,7 @@ public class ReportJobService {
 
     public ReportJobStatusResponse getJobStatus(Long jobId) {
         ReportGenerationJob job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
         return new ReportJobStatusResponse(
                 job.getId(),
@@ -78,10 +78,10 @@ public class ReportJobService {
 
     public byte[] getZipBytes(Long jobId) {
         ReportGenerationJob job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
         if (job.getZipFileKey() == null) {
-            throw new ExamException(ExamErrorCode.RESULT_NOT_FOUND);
+            throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
         }
 
         return storagePort.getObject(job.getZipFileKey());
@@ -122,7 +122,7 @@ public class ReportJobService {
     private void createZipFile(Long jobId) {
         try {
             ReportGenerationJob job = jobRepository.findById(jobId)
-                    .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
             String tenantId = TenantContextHolder.toStorageTenantId(job.getTenantSlug());
             Long examId = job.getExam().getId();

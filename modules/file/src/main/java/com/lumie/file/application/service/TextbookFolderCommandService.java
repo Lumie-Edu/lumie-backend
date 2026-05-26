@@ -7,7 +7,7 @@ import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.TextbookFolder;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.exception.FileException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.repository.TextbookFolderRepository;
 import com.lumie.file.domain.vo.EntityType;
@@ -34,12 +34,12 @@ public class TextbookFolderCommandService {
 
         if (request.parentId() != null) {
             TextbookFolder parent = textbookFolderRepository.findById(request.parentId())
-                    .orElseThrow(() -> new FileException(FileErrorCode.FOLDER_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(FileErrorCode.FOLDER_NOT_FOUND));
             parentDepth = parent.getDepth();
         }
 
         if (textbookFolderRepository.existsByParentIdAndName(request.parentId(), request.name())) {
-            throw new FileException(FileErrorCode.DUPLICATE_FOLDER_NAME);
+            throw new BusinessException(FileErrorCode.DUPLICATE_FOLDER_NAME);
         }
 
         TextbookFolder folder = TextbookFolder.create(request.name(), request.parentId(), parentDepth);
@@ -52,11 +52,11 @@ public class TextbookFolderCommandService {
     @Transactional
     public TextbookFolderResponse renameFolder(UUID folderId, RenameTextbookFolderRequest request) {
         TextbookFolder folder = textbookFolderRepository.findById(folderId)
-                .orElseThrow(() -> new FileException(FileErrorCode.FOLDER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FOLDER_NOT_FOUND));
 
         if (!folder.getName().equals(request.name())
                 && textbookFolderRepository.existsByParentIdAndName(folder.getParentId(), request.name())) {
-            throw new FileException(FileErrorCode.DUPLICATE_FOLDER_NAME);
+            throw new BusinessException(FileErrorCode.DUPLICATE_FOLDER_NAME);
         }
 
         folder.rename(request.name());
@@ -67,7 +67,7 @@ public class TextbookFolderCommandService {
     @Transactional
     public void deleteFolder(UUID folderId) {
         textbookFolderRepository.findById(folderId)
-                .orElseThrow(() -> new FileException(FileErrorCode.FOLDER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FOLDER_NOT_FOUND));
 
         deleteFolderRecursive(folderId);
         log.info("Deleted textbook folder (cascade): {}", folderId);

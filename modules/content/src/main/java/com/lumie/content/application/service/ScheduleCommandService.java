@@ -4,8 +4,8 @@ import com.lumie.content.application.dto.request.CreateScheduleRequest;
 import com.lumie.content.application.dto.request.UpdateScheduleRequest;
 import com.lumie.content.application.dto.response.ScheduleResponse;
 import com.lumie.content.domain.entity.Schedule;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class ScheduleCommandService {
         log.info("Creating schedule for date: {} by admin: {}", request.date(), userId);
 
         if (!request.endTime().isAfter(request.startTime())) {
-            throw new ContentException(ContentErrorCode.INVALID_TIME_RANGE);
+            throw new BusinessException(ContentErrorCode.INVALID_TIME_RANGE);
         }
 
         Schedule schedule = Schedule.create(
@@ -46,7 +46,7 @@ public class ScheduleCommandService {
         log.info("Updating schedule: {}", id);
 
         Schedule schedule = scheduleRepository.findById(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.SCHEDULE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.SCHEDULE_NOT_FOUND));
 
         schedule.update(request.date(), request.startTime(), request.endTime());
 
@@ -69,7 +69,7 @@ public class ScheduleCommandService {
         log.info("Deleting schedule: {}", id);
 
         if (!scheduleRepository.existsById(id)) {
-            throw new ContentException(ContentErrorCode.SCHEDULE_NOT_FOUND);
+            throw new BusinessException(ContentErrorCode.SCHEDULE_NOT_FOUND);
         }
 
         scheduleRepository.deleteById(id);

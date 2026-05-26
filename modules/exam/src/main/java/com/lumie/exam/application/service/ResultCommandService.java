@@ -17,7 +17,8 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.quota.MetricType;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
@@ -55,12 +56,12 @@ public class ResultCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Exam exam = transactionTemplate.execute(status ->
                 examRepository.findById(examId)
-                        .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND)));
+                        .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND)));
         if (!studentService.validateStudent(tenantSlug, studentId).valid()) {
-            throw new ExamException(ExamErrorCode.STUDENT_NOT_FOUND);
+            throw new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND);
         }
-        if (!billingService.checkQuota(tenantSlug, "OMR_GRADING").allowed()) {
-            throw new ExamException(ExamErrorCode.OMR_QUOTA_EXCEEDED);
+        if (!billingService.checkQuota(tenantSlug, MetricType.OMR_MONTHLY).allowed()) {
+            throw new BusinessException(ExamErrorCode.OMR_QUOTA_EXCEEDED);
         }
 
         // Phase 2 — external HTTP grading. No tx held during this call (HARD_RULES).
@@ -75,14 +76,14 @@ public class ResultCommandService {
             );
         } catch (Exception e) {
             log.error("OMR grading failed", e);
-            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED);
         }
 
         // Phase 3 — persist results in a fresh write transaction.
         // Re-fetch exam inside the tx so resolveResult works on a managed entity.
         ExamResultResponse response = transactionTemplate.execute(status -> {
             Exam managedExam = examRepository.findById(examId)
-                    .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
             ExamResult result = resolveResult(examId, managedExam, studentId, omrResult);
             ExamResult saved = resultRepository.save(result);
             return ExamResultResponse.from(saved);
@@ -96,7 +97,7 @@ public class ResultCommandService {
         log.info("Generating presigned URLs for exam: {}, files: {}", examId, request.fileNames().size());
 
         examRepository.findById(examId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         String tenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
@@ -120,7 +121,7 @@ public class ResultCommandService {
         log.info("Confirming batch OMR grading for exam: {}, keys: {}", examId, request.objectKeys().size());
 
         Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         String tenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
@@ -128,7 +129,7 @@ public class ResultCommandService {
         // Validate object keys
         for (String key : request.objectKeys()) {
             if (!key.startsWith("tmp/" + tenantId + "/omr/") || key.contains("..")) {
-                throw new ExamException(ExamErrorCode.INVALID_EXAM_DATA);
+                throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA);
             }
         }
 
@@ -157,7 +158,7 @@ public class ResultCommandService {
                 questionResultId, request.selectedChoice());
 
         ExamResult result = resultRepository.findByQuestionResultId(questionResultId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
         QuestionResult updated = result.updateQuestionAnswer(questionResultId, request.selectedChoice());
         gradeCalculator.calculateAndAssignGradeIfAbsolute(result.getExam(), result);
@@ -175,10 +176,10 @@ public class ResultCommandService {
         log.info("Deleting exam result: examId={}, resultId={}", examId, resultId);
 
         ExamResult result = resultRepository.findById(resultId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.RESULT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
         if (!result.getExam().getId().equals(examId)) {
-            throw new ExamException(ExamErrorCode.RESULT_NOT_FOUND);
+            throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
         }
 
         if (result.getOmrImageKey() != null) {

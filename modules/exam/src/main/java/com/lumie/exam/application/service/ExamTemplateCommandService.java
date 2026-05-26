@@ -5,7 +5,7 @@ import com.lumie.exam.application.dto.request.UpdateExamTemplateRequest;
 import com.lumie.exam.application.dto.response.ExamTemplateResponse;
 import com.lumie.exam.domain.entity.ExamTemplate;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamTemplateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +43,7 @@ public class ExamTemplateCommandService {
         log.info("Updating exam template: {}", id);
 
         ExamTemplate template = examTemplateRepository.findById(id)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.TEMPLATE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.TEMPLATE_NOT_FOUND));
 
         template.update(
                 request.name(),
@@ -65,7 +65,7 @@ public class ExamTemplateCommandService {
         log.info("Deleting exam template: {}", id);
 
         if (!examTemplateRepository.existsById(id)) {
-            throw new ExamException(ExamErrorCode.TEMPLATE_NOT_FOUND);
+            throw new BusinessException(ExamErrorCode.TEMPLATE_NOT_FOUND);
         }
 
         examTemplateRepository.deleteById(id);

@@ -14,7 +14,6 @@ import com.lumie.notification.application.dto.response.SmsTemplateResponse;
 import com.lumie.notification.domain.entity.SmsMessage;
 import com.lumie.notification.domain.entity.SmsTemplate;
 import com.lumie.notification.domain.exception.SmsErrorCode;
-import com.lumie.notification.domain.exception.SmsTemplateNotFoundException;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.repository.SmsTemplateRepository;
 import com.lumie.notification.domain.vo.Recipient;
@@ -129,7 +128,7 @@ public class SmsCommandService {
 
     public SmsTemplateResponse updateTemplate(Long id, UpdateTemplateRequest request) {
         SmsTemplate template = templateRepository.findById(id)
-            .orElseThrow(() -> new SmsTemplateNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(SmsErrorCode.TEMPLATE_NOT_FOUND, "SMS template not found with id: %d".formatted(id)));
 
         String name = request.name() != null ? request.name() : template.getName();
         String content = request.content() != null ? request.content() : template.getContent();
@@ -144,7 +143,7 @@ public class SmsCommandService {
 
     public void deleteTemplate(Long id) {
         templateRepository.findById(id)
-            .orElseThrow(() -> new SmsTemplateNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(SmsErrorCode.TEMPLATE_NOT_FOUND, "SMS template not found with id: %d".formatted(id)));
 
         templateRepository.deleteById(id);
         log.info("SMS template deleted: {}", id);

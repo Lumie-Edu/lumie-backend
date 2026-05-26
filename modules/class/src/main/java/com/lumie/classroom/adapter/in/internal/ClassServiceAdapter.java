@@ -2,7 +2,8 @@ package com.lumie.classroom.adapter.in.internal;
 
 import com.lumie.classroom.application.dto.ClassResponse;
 import com.lumie.classroom.application.service.ClassQueryService;
-import com.lumie.classroom.domain.exception.ClassNotFoundException;
+import com.lumie.classroom.domain.exception.ClassErrorCode;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.classroom.api.ClassService;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,8 @@ public class ClassServiceAdapter implements ClassService {
             try {
                 ClassResponse response = classQueryService.getClass(classId);
                 return Optional.of(toClassData(response, TenantContextHolder.getTenantId()));
-            } catch (ClassNotFoundException e) {
+            } catch (BusinessException e) {
+                if (e.getErrorCode() != ClassErrorCode.CLASS_NOT_FOUND) throw e;
                 return Optional.<ClassData>empty();
             }
         });

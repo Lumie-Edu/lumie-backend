@@ -4,7 +4,7 @@ import com.lumie.classroom.application.dto.ClassEnrollmentResponse;
 import com.lumie.classroom.application.dto.ClassResponse;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.classroom.domain.entity.ClassEntity;
-import com.lumie.classroom.domain.exception.ClassNotFoundException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.repository.ClassRepository;
@@ -60,7 +60,7 @@ class ClassQueryServiceTest {
         given(classRepository.findById(999L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> queryService.getClass(999L))
-                .isInstanceOf(ClassNotFoundException.class);
+                .isInstanceOf(BusinessException.class);
     }
 
     @Test

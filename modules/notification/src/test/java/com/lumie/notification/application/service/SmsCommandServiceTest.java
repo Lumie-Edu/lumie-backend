@@ -13,7 +13,7 @@ import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.dto.response.SmsTemplateResponse;
 import com.lumie.notification.domain.entity.SmsMessage;
 import com.lumie.notification.domain.entity.SmsTemplate;
-import com.lumie.notification.domain.exception.SmsTemplateNotFoundException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.repository.SmsTemplateRepository;
 import com.lumie.notification.domain.vo.RecipientType;
@@ -228,7 +228,7 @@ class SmsCommandServiceTest {
 
             assertThatThrownBy(() -> commandService.updateTemplate(999L,
                     new UpdateTemplateRequest(null, null, null)))
-                    .isInstanceOf(SmsTemplateNotFoundException.class);
+                    .isInstanceOf(BusinessException.class);
         }
     }
 
@@ -254,7 +254,7 @@ class SmsCommandServiceTest {
             given(templateRepository.findById(999L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.deleteTemplate(999L))
-                    .isInstanceOf(SmsTemplateNotFoundException.class);
+                    .isInstanceOf(BusinessException.class);
         }
     }
 

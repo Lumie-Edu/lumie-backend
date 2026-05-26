@@ -7,10 +7,9 @@ import com.lumie.auth.api.AuthService;
 import com.lumie.billing.api.BillingService;
 import com.lumie.staff.domain.entity.Staff;
 import com.lumie.staff.domain.entity.StaffPermission;
+import com.lumie.common.quota.MetricType;
+import com.lumie.common.exception.QuotaExceededException;
 import com.lumie.staff.domain.exception.StaffErrorCode;
-import com.lumie.staff.domain.exception.StaffNotFoundException;
-import com.lumie.staff.domain.exception.DuplicatePhoneException;
-import com.lumie.staff.domain.exception.QuotaExceededException;
 import com.lumie.staff.domain.repository.StaffPermissionRepository;
 import com.lumie.staff.domain.repository.StaffRepository;
 import com.lumie.staff.domain.vo.AccessLevel;
@@ -59,7 +58,7 @@ public class StaffCommandService {
         checkStaffQuota(tenantSlug);
 
         if (request.phone() != null && staffRepository.existsByPhone(request.phone())) {
-            throw new DuplicatePhoneException(request.phone());
+            throw new BusinessException(StaffErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(request.phone()));
         }
 
         AuthService.CreateUserResult userResult = authService.createUser(
@@ -94,12 +93,12 @@ public class StaffCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         Staff staff = staffRepository.findById(id)
-                .orElseThrow(() -> new StaffNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(id)));
 
         validateActorAuthority(staff, "update");
 
         if (request.phone() != null && staffRepository.existsByPhoneAndIdNot(request.phone(), id)) {
-            throw new DuplicatePhoneException(request.phone());
+            throw new BusinessException(StaffErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(request.phone()));
         }
 
         staff.updateInfo(request.name(), request.phone(), request.email(),
@@ -115,7 +114,7 @@ public class StaffCommandService {
     @LogActivity(action = ActionType.UPDATE, entity = EntityType.PERMISSION, entityIdArg = "staffId")
     public void setStaffPermissions(Long staffId, Map<String, AccessLevel> permissions) {
         Staff staff = staffRepository.findById(staffId)
-                .orElseThrow(() -> new StaffNotFoundException(staffId));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(staffId)));
 
         validateActorAuthority(staff, "modify permissions of");
 
@@ -133,7 +132,7 @@ public class StaffCommandService {
     public void deactivateStaff(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Staff staff = staffRepository.findById(id)
-                .orElseThrow(() -> new StaffNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(id)));
         validateActorAuthority(staff, "deactivate");
         staff.deactivate();
         staffRepository.save(staff);
@@ -145,7 +144,7 @@ public class StaffCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         checkStaffQuota(tenantSlug);
         Staff staff = staffRepository.findById(id)
-                .orElseThrow(() -> new StaffNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(id)));
         validateActorAuthority(staff, "reactivate");
         staff.activate();
         staffRepository.save(staff);
@@ -156,7 +155,7 @@ public class StaffCommandService {
     public void terminateStaff(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Staff staff = staffRepository.findById(id)
-                .orElseThrow(() -> new StaffNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(id)));
         validateActorAuthority(staff, "terminate");
         staff.terminate();
         staffRepository.save(staff);
@@ -168,7 +167,7 @@ public class StaffCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         Staff staff = staffRepository.findById(id)
-                .orElseThrow(() -> new StaffNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(id)));
 
         validateActorAuthority(staff, "reset password for");
 
@@ -186,7 +185,7 @@ public class StaffCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
         Staff staff = staffRepository.findById(id)
-                .orElseThrow(() -> new StaffNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(id)));
 
         validateActorAuthority(staff, "change login id for");
 
@@ -207,7 +206,7 @@ public class StaffCommandService {
     public void deleteStaff(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Staff staff = staffRepository.findById(id)
-                .orElseThrow(() -> new StaffNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(id)));
         validateActorAuthority(staff, "delete");
         if (staff.isActive()) {
             throw new BusinessException(StaffErrorCode.CANNOT_DELETE_ACTIVE_STAFF);
@@ -248,9 +247,15 @@ public class StaffCommandService {
     }
 
     private void checkStaffQuota(String tenantSlug) {
-        var result = billingService.checkQuota(tenantSlug, "MAX_ADMINS");
+        var result = billingService.checkQuota(tenantSlug, MetricType.ADMINS);
         if (!result.allowed()) {
-            throw new QuotaExceededException("MAX_ADMINS", result.currentUsage(), result.limit());
+            throw new QuotaExceededException(
+                StaffErrorCode.QUOTA_EXCEEDED,
+                TenantContextHolder.getTenant(),
+                MetricType.ADMINS,
+                result.currentUsage(),
+                result.limit()
+            );
         }
     }
 }

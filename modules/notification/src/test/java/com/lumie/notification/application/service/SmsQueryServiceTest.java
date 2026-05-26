@@ -4,7 +4,7 @@ import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.dto.response.SmsTemplateResponse;
 import com.lumie.notification.domain.entity.SmsMessage;
 import com.lumie.notification.domain.entity.SmsTemplate;
-import com.lumie.notification.domain.exception.SmsMessageNotFoundException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.repository.SmsTemplateRepository;
 import com.lumie.notification.domain.vo.*;
@@ -55,7 +55,7 @@ class SmsQueryServiceTest {
         given(messageRepository.findById(999L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> queryService.getMessage(999L))
-                .isInstanceOf(SmsMessageNotFoundException.class);
+                .isInstanceOf(BusinessException.class);
     }
 
     @Test

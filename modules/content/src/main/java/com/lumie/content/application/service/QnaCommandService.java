@@ -7,8 +7,8 @@ import com.lumie.content.application.dto.response.QnaBoardResponse;
 import com.lumie.content.application.dto.response.QnaCommentResponse;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.QnaBoardRepository;
 import com.lumie.content.domain.repository.QnaCommentRepository;
 import com.lumie.file.api.FileService;
@@ -47,7 +47,7 @@ public class QnaCommandService {
         log.info("Updating Q&A: {}", id);
 
         QnaBoard qnaBoard = qnaBoardRepository.findById(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
 
         qnaBoard.update(request.qnaTitle(), request.qnaContent());
 
@@ -66,7 +66,7 @@ public class QnaCommandService {
         log.info("Deleting Q&A: {}", id);
 
         if (!qnaBoardRepository.existsById(id)) {
-            throw new ContentException(ContentErrorCode.QNA_NOT_FOUND);
+            throw new BusinessException(ContentErrorCode.QNA_NOT_FOUND);
         }
 
         fileService.deleteFilesByEntity("qna", id);
@@ -79,7 +79,7 @@ public class QnaCommandService {
         log.info("Adding comment to Q&A: {}", qnaId);
 
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(qnaId)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
 
         QnaComment comment;
         if (request.userId() != null) {
@@ -101,10 +101,10 @@ public class QnaCommandService {
         log.info("Deleting comment {} from Q&A: {}", commentId, qnaId);
 
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(qnaId)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.QNA_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
 
         if (!qnaCommentRepository.existsById(commentId)) {
-            throw new ContentException(ContentErrorCode.COMMENT_NOT_FOUND);
+            throw new BusinessException(ContentErrorCode.COMMENT_NOT_FOUND);
         }
 
         qnaCommentRepository.deleteById(commentId);

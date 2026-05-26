@@ -1,5 +1,6 @@
 package com.lumie.billing.domain.vo;
 
+import com.lumie.common.quota.MetricType;
 import lombok.Builder;
 
 @Builder

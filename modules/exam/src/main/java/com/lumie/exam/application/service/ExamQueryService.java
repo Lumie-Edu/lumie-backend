@@ -4,7 +4,7 @@ import com.lumie.exam.application.dto.response.ExamFullResponse;
 import com.lumie.exam.application.dto.response.ExamResponse;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ public class ExamQueryService {
         log.debug("Getting exam: {}", examId);
 
         Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
         return ExamResponse.from(exam);
     }
@@ -34,7 +34,7 @@ public class ExamQueryService {
         log.debug("Getting exam full (admin): {}", examId);
 
         Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
         return ExamFullResponse.from(exam);
     }

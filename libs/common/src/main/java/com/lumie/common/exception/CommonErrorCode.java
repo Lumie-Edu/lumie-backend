@@ -10,6 +10,7 @@ public enum CommonErrorCode implements ErrorCode {
     // 400 Bad Request
     INVALID_INPUT("COMMON_001", "Invalid input value", 400),
     INVALID_TYPE("COMMON_002", "Invalid type value", 400),
+    VALIDATION_ERROR("COMMON_010", "Validation failed", 400),
 
     // 401 Unauthorized
     UNAUTHORIZED("COMMON_007", "Unauthorized", 401),
@@ -23,6 +24,7 @@ public enum CommonErrorCode implements ErrorCode {
     // 409 Conflict
     DUPLICATE_RESOURCE("COMMON_004", "Resource already exists", 409),
     RESOURCE_CONFLICT("COMMON_008", "Resource conflict", 409),
+    OPTIMISTIC_LOCK_CONFLICT("COMMON_011", "Resource modified concurrently", 409),
 
     // 422 Unprocessable Entity
     BUSINESS_RULE_VIOLATION("COMMON_009", "Business rule violated", 422),

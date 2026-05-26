@@ -4,7 +4,8 @@ import com.lumie.staff.application.dto.request.StaffFilterRequest;
 import com.lumie.staff.application.dto.response.StaffResponse;
 import com.lumie.staff.application.service.StaffQueryService;
 import com.lumie.staff.domain.entity.Staff;
-import com.lumie.staff.domain.exception.StaffNotFoundException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.staff.domain.exception.StaffErrorCode;
 import com.lumie.staff.domain.repository.StaffPermissionRepository;
 import com.lumie.staff.domain.repository.StaffRepository;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -32,8 +33,11 @@ public class StaffServiceAdapter implements StaffService {
             try {
                 StaffResponse staff = staffQueryService.getStaff(staffId);
                 return Optional.of(toStaffData(staff));
-            } catch (StaffNotFoundException e) {
-                return Optional.<StaffData>empty();
+            } catch (BusinessException e) {
+                if (e.getErrorCode() == StaffErrorCode.STAFF_NOT_FOUND) {
+                    return Optional.<StaffData>empty();
+                }
+                throw e;
             }
         });
     }
@@ -51,8 +55,11 @@ public class StaffServiceAdapter implements StaffService {
             try {
                 staffQueryService.getStaff(staffId);
                 return new ValidateStaffResult(true, "Staff is valid", staffId);
-            } catch (StaffNotFoundException e) {
-                return new ValidateStaffResult(false, "Staff not found", staffId);
+            } catch (BusinessException e) {
+                if (e.getErrorCode() == StaffErrorCode.STAFF_NOT_FOUND) {
+                    return new ValidateStaffResult(false, "Staff not found", staffId);
+                }
+                throw e;
             }
         });
     }
@@ -61,7 +68,7 @@ public class StaffServiceAdapter implements StaffService {
     public StaffPermissionsData getStaffPermissions(String tenantSlug, Long staffId) {
         return TenantContextHolder.withinContext(tenantSlug, () -> {
             Staff staff = staffRepository.findById(staffId)
-                    .orElseThrow(() -> new StaffNotFoundException(staffId));
+                    .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(staffId)));
 
             List<PermissionEntry> permissions = staffPermissionRepository.findByStaffId(staff.getId())
                     .stream()

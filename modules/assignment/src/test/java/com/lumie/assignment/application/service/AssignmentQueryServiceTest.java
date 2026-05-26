@@ -4,7 +4,7 @@ import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
-import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
@@ -58,7 +58,7 @@ class AssignmentQueryServiceTest {
         given(assignmentRepository.findById(999L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> queryService.getAssignment(999L))
-                .isInstanceOf(AssignmentNotFoundException.class);
+                .isInstanceOf(BusinessException.class);
     }
 
     @Test

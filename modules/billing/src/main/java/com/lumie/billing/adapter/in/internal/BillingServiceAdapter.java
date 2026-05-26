@@ -7,6 +7,7 @@ import com.lumie.billing.application.service.PlanQueryService;
 import com.lumie.billing.application.service.SubscriptionCommandService;
 import com.lumie.billing.application.service.SubscriptionQueryService;
 import com.lumie.billing.api.BillingService;
+import com.lumie.common.quota.MetricType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -36,7 +37,7 @@ public class BillingServiceAdapter implements BillingService {
     }
 
     @Override
-    public QuotaResult checkQuota(String tenantSlug, String metricType) {
+    public QuotaResult checkQuota(String tenantSlug, MetricType metricType) {
         // TODO: TossPayments 연동 전까지 모든 quota 체크 자동 통과
         return new QuotaResult(true, 0, Long.MAX_VALUE, metricType,
                 "Billing integration pending - unlimited access granted");

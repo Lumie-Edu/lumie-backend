@@ -7,7 +7,8 @@ import com.lumie.classroom.application.dto.CreateClassRequest;
 import com.lumie.classroom.application.dto.UpdateClassRequest;
 import com.lumie.classroom.application.service.ClassCommandService;
 import com.lumie.classroom.application.service.ClassQueryService;
-import com.lumie.classroom.domain.exception.ClassNotFoundException;
+import com.lumie.classroom.domain.exception.ClassErrorCode;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -100,7 +101,7 @@ class ClassControllerTest {
     @Test
     @DisplayName("GET /v1/classes/{id} - 존재하지 않는 수업 조회 시 404를 반환한다")
     void getClass_notFound_returns404() throws Exception {
-        given(queryService.getClass(999L)).willThrow(new ClassNotFoundException(999L));
+        given(queryService.getClass(999L)).willThrow(new BusinessException(ClassErrorCode.CLASS_NOT_FOUND, "Class not found with id: 999"));
 
         mockMvc.perform(get("/v1/classes/999"))
                 .andExpect(status().isNotFound());
@@ -134,7 +135,7 @@ class ClassControllerTest {
     @Test
     @DisplayName("DELETE /v1/classes/{id} - 존재하지 않는 수업 삭제 시 404를 반환한다")
     void deleteClass_notFound_returns404() throws Exception {
-        doThrow(new ClassNotFoundException(999L)).when(commandService).deleteClass(999L);
+        doThrow(new BusinessException(ClassErrorCode.CLASS_NOT_FOUND, "Class not found with id: 999")).when(commandService).deleteClass(999L);
 
         mockMvc.perform(delete("/v1/classes/999"))
                 .andExpect(status().isNotFound());

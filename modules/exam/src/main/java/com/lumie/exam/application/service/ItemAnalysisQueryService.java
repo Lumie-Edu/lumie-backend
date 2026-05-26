@@ -5,7 +5,7 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +37,7 @@ public class ItemAnalysisQueryService {
         log.debug("Getting item analysis for exam: {}", examId);
 
         Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
         int participantCount = results.size();

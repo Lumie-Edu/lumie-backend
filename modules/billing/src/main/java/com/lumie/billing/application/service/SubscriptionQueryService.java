@@ -5,7 +5,7 @@ import com.lumie.billing.application.dto.response.SubscriptionResponse;
 import com.lumie.billing.application.port.out.SubscriptionPersistencePort;
 import com.lumie.billing.application.port.out.UsageLogPersistencePort;
 import com.lumie.billing.domain.entity.Subscription;
-import com.lumie.billing.domain.vo.MetricType;
+import com.lumie.common.quota.MetricType;
 import com.lumie.billing.domain.vo.PlanLimits;
 import com.lumie.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;

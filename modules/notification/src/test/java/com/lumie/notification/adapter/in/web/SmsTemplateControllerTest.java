@@ -7,7 +7,8 @@ import com.lumie.notification.application.dto.request.UpdateTemplateRequest;
 import com.lumie.notification.application.dto.response.SmsTemplateResponse;
 import com.lumie.notification.application.service.SmsCommandService;
 import com.lumie.notification.application.service.SmsQueryService;
-import com.lumie.notification.domain.exception.SmsTemplateNotFoundException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.notification.domain.exception.SmsErrorCode;
 import com.lumie.notification.domain.vo.TemplateCategory;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -113,7 +114,7 @@ class SmsTemplateControllerTest {
     @Test
     @DisplayName("DELETE /v1/sms-templates/{id} - 존재하지 않는 템플릿 삭제 시 404를 반환한다")
     void deleteTemplate_notFound_returns404() throws Exception {
-        doThrow(new SmsTemplateNotFoundException(999L)).when(commandService).deleteTemplate(999L);
+        doThrow(new BusinessException(SmsErrorCode.TEMPLATE_NOT_FOUND, "SMS template not found with id: 999")).when(commandService).deleteTemplate(999L);
 
         mockMvc.perform(delete("/v1/sms-templates/999"))
                 .andExpect(status().isNotFound());

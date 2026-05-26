@@ -4,8 +4,8 @@ import com.lumie.content.application.dto.request.CreateAnnouncementRequest;
 import com.lumie.content.application.dto.request.UpdateAnnouncementRequest;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.domain.entity.Announcement;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.AnnouncementRepository;
 import com.lumie.file.api.FileService;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +44,7 @@ public class AnnouncementCommandService {
         log.info("Updating announcement: {}", id);
 
         Announcement announcement = announcementRepository.findById(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND));
 
         announcement.update(
                 request.announcementTitle(),
@@ -68,7 +68,7 @@ public class AnnouncementCommandService {
         log.info("Deleting announcement: {}", id);
 
         if (!announcementRepository.existsById(id)) {
-            throw new ContentException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND);
+            throw new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND);
         }
 
         fileService.deleteFilesByEntity("announcement", id);

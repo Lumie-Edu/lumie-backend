@@ -5,7 +5,8 @@ import com.lumie.classroom.application.dto.ClassResponse;
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.staff.api.StaffService;
-import com.lumie.classroom.domain.exception.ClassNotFoundException;
+import com.lumie.classroom.domain.exception.ClassErrorCode;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.ClassSearchCriteria;
@@ -36,7 +37,8 @@ public class ClassQueryService {
 
     public ClassResponse getClass(Long id) {
         ClassEntity entity = classRepository.findById(id)
-            .orElseThrow(() -> new ClassNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(ClassErrorCode.CLASS_NOT_FOUND,
+                "Class not found with id: %d".formatted(id)));
 
         String teacherName = resolveTeacherName(entity.getTeacherId());
         return ClassResponse.from(entity, teacherName);

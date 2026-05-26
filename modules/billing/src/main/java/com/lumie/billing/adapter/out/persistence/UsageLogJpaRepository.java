@@ -1,7 +1,7 @@
 package com.lumie.billing.adapter.out.persistence;
 
 import com.lumie.billing.domain.entity.UsageLog;
-import com.lumie.billing.domain.vo.MetricType;
+import com.lumie.common.quota.MetricType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

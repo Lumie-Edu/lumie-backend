@@ -2,7 +2,8 @@ package com.lumie.assignment.adapter.in.internal;
 
 import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.service.AssignmentQueryService;
-import com.lumie.assignment.domain.exception.AssignmentNotFoundException;
+import com.lumie.assignment.domain.exception.AssignmentErrorCode;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.assignment.api.AssignmentService;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,8 @@ public class AssignmentServiceAdapter implements AssignmentService {
             try {
                 AssignmentResponse response = assignmentQueryService.getAssignment(assignmentId);
                 return Optional.of(toAssignmentData(response));
-            } catch (AssignmentNotFoundException e) {
+            } catch (BusinessException e) {
+                if (e.getErrorCode() != AssignmentErrorCode.ASSIGNMENT_NOT_FOUND) throw e;
                 return Optional.<AssignmentData>empty();
             }
         });

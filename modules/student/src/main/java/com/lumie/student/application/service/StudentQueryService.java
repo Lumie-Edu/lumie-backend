@@ -5,7 +5,8 @@ import com.lumie.auth.api.AuthService;
 import com.lumie.student.application.dto.response.EnrollmentTrendResponse;
 import com.lumie.student.application.dto.response.StudentResponse;
 import com.lumie.student.domain.entity.Student;
-import com.lumie.student.domain.exception.StudentNotFoundException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.student.domain.exception.StudentErrorCode;
 import com.lumie.student.domain.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,7 @@ public class StudentQueryService {
 
     public StudentResponse getStudent(Long id) {
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with id: %d".formatted(id)));
         return enrich(student);
     }
 
@@ -55,13 +56,13 @@ public class StudentQueryService {
 
     public StudentResponse getStudentByUserLoginId(String userLoginId) {
         Student student = studentRepository.findByUserLoginId(userLoginId)
-                .orElseThrow(() -> new StudentNotFoundException(userLoginId));
+                .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with email: %s".formatted(userLoginId)));
         return enrich(student);
     }
 
     public StudentResponse getStudentByPhone(String phone) {
         Student student = studentRepository.findByPhone(phone)
-                .orElseThrow(() -> new StudentNotFoundException("phone: " + phone));
+                .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with email: phone: %s".formatted(phone)));
         return enrich(student);
     }
 

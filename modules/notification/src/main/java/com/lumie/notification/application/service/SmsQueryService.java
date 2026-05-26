@@ -3,7 +3,8 @@ package com.lumie.notification.application.service;
 import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.dto.response.SmsTemplateResponse;
 import com.lumie.notification.domain.entity.SmsMessage;
-import com.lumie.notification.domain.exception.SmsMessageNotFoundException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.notification.domain.exception.SmsErrorCode;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.repository.SmsTemplateRepository;
 import com.lumie.notification.domain.vo.RecipientType;
@@ -27,7 +28,7 @@ public class SmsQueryService {
 
     public SmsMessageResponse getMessage(Long id) {
         SmsMessage message = messageRepository.findById(id)
-            .orElseThrow(() -> new SmsMessageNotFoundException(id));
+            .orElseThrow(() -> new BusinessException(SmsErrorCode.MESSAGE_NOT_FOUND, "SMS message not found with id: %d".formatted(id)));
 
         return SmsMessageResponse.from(message);
     }

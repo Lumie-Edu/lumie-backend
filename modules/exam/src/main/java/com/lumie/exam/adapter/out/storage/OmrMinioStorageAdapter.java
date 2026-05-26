@@ -1,8 +1,8 @@
 package com.lumie.exam.adapter.out.storage;
 
 import com.lumie.exam.application.port.out.OmrStoragePort;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
 import io.minio.*;
 import io.minio.http.Method;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +47,7 @@ public class OmrMinioStorageAdapter implements OmrStoragePort {
             return objectKey;
         } catch (Exception e) {
             log.error("Failed to upload object: {}", objectKey, e);
-            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED);
         }
     }
 
@@ -62,7 +62,7 @@ public class OmrMinioStorageAdapter implements OmrStoragePort {
             return stream.readAllBytes();
         } catch (Exception e) {
             log.error("Failed to download object: {}", objectKey, e);
-            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED);
         }
     }
 
@@ -96,7 +96,7 @@ public class OmrMinioStorageAdapter implements OmrStoragePort {
             );
         } catch (Exception e) {
             log.error("Failed to generate presigned URL for: {}", objectKey, e);
-            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED);
         }
     }
 
@@ -113,7 +113,7 @@ public class OmrMinioStorageAdapter implements OmrStoragePort {
             );
         } catch (Exception e) {
             log.error("Failed to generate presigned PUT URL for: {}", objectKey, e);
-            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED);
         }
     }
 }

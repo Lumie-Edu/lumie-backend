@@ -2,8 +2,8 @@ package com.lumie.content.application.service;
 
 import com.lumie.content.application.dto.response.TextbookResponse;
 import com.lumie.content.domain.entity.Textbook;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.TextbookRepository;
 import com.lumie.content.domain.vo.TextbookStatus;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +49,7 @@ public class TextbookQueryService {
         log.debug("Getting textbook: {}", id);
 
         Textbook textbook = textbookRepository.findById(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.TEXTBOOK_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.TEXTBOOK_NOT_FOUND));
 
         return TextbookResponse.from(textbook);
     }

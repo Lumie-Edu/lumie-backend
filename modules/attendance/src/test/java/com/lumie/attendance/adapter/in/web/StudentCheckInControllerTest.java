@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.attendance.application.dto.request.CheckInRequest;
 import com.lumie.attendance.application.dto.response.CheckInResponse;
 import com.lumie.attendance.application.service.AttendanceRecordCommandService;
-import com.lumie.attendance.domain.exception.InvalidCodeException;
+import com.lumie.attendance.domain.exception.AttendanceErrorCode;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.attendance.domain.vo.AttendanceStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -101,7 +102,7 @@ class StudentCheckInControllerTest {
     @DisplayName("잘못된 코드로 체크인 시 400 Bad Request를 반환한다")
     void checkIn_codeNotFound_returns400() throws Exception {
         // given
-        given(commandService.checkInByCode(any(), any())).willThrow(new InvalidCodeException());
+        given(commandService.checkInByCode(any(), any())).willThrow(new BusinessException(AttendanceErrorCode.INVALID_CODE));
 
         // when / then
         mockMvc.perform(post("/v1/attendance/check-in")

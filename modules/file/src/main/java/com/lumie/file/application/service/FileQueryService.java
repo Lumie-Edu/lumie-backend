@@ -7,7 +7,7 @@ import com.lumie.file.application.dto.response.PresignedDownloadResponse;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.exception.FileException;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import lombok.RequiredArgsConstructor;
@@ -32,10 +32,10 @@ public class FileQueryService {
     @Transactional(readOnly = true)
     public FileDownloadResult downloadFile(UUID fileId) {
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
-                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
         if (!fileMetadata.isUploadCompleted()) {
-            throw new FileException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
+            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
         }
 
         InputStream stream = storagePort.getObject(fileMetadata.getObjectKey());
@@ -57,13 +57,13 @@ public class FileQueryService {
     @Transactional(readOnly = true)
     public FileDownloadResult downloadPublicFile(UUID fileId, java.util.Set<EntityType> allowedTypes) {
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
-                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
         if (!allowedTypes.contains(fileMetadata.getEntityType())) {
-            throw new FileException(FileErrorCode.FILE_NOT_FOUND);
+            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND);
         }
         if (!fileMetadata.isUploadCompleted()) {
-            throw new FileException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
+            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
         }
 
         InputStream stream = storagePort.getObject(fileMetadata.getObjectKey());
@@ -78,10 +78,10 @@ public class FileQueryService {
     @Transactional(readOnly = true)
     public PresignedDownloadResponse generatePresignedDownloadUrl(PresignedDownloadRequest request) {
         FileMetadata fileMetadata = fileMetadataRepository.findById(request.fileId())
-                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
         if (!fileMetadata.isUploadCompleted()) {
-            throw new FileException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
+            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
         }
 
         String downloadUrl = storagePort.generatePresignedDownloadUrl(
@@ -103,7 +103,7 @@ public class FileQueryService {
     @Transactional(readOnly = true)
     public FileMetadataResponse getFileMetadata(UUID fileId) {
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
-                .orElseThrow(() -> new FileException(FileErrorCode.FILE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
         return FileMetadataResponse.from(fileMetadata);
     }

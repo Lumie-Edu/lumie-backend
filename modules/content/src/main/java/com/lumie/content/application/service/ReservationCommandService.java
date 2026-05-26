@@ -5,8 +5,8 @@ import com.lumie.content.application.dto.request.UpdateReservationStatusRequest;
 import com.lumie.content.application.dto.response.ReservationResponse;
 import com.lumie.content.domain.entity.Reservation;
 import com.lumie.content.domain.entity.Schedule;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.exception.ContentException;
 import com.lumie.content.domain.repository.ReservationRepository;
 import com.lumie.content.domain.repository.ScheduleRepository;
 import com.lumie.content.domain.vo.ReservationStatus;
@@ -29,23 +29,23 @@ public class ReservationCommandService {
                 request.scheduleId(), request.studentId());
 
         Schedule schedule = scheduleRepository.findByIdWithReservations(request.scheduleId())
-                .orElseThrow(() -> new ContentException(ContentErrorCode.SCHEDULE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.SCHEDULE_NOT_FOUND));
 
         // Check if schedule is available
         if (!schedule.getIsAvailable()) {
-            throw new ContentException(ContentErrorCode.SCHEDULE_NOT_AVAILABLE);
+            throw new BusinessException(ContentErrorCode.SCHEDULE_NOT_AVAILABLE);
         }
 
         // Check if schedule can accept more reservations
         if (!schedule.canAcceptReservation()) {
-            throw new ContentException(ContentErrorCode.SCHEDULE_FULL);
+            throw new BusinessException(ContentErrorCode.SCHEDULE_FULL);
         }
 
         // Check for duplicate reservation
         boolean hasPendingOrConfirmed = reservationRepository.existsByScheduleIdAndStudentIdAndStatusNot(
                 request.scheduleId(), request.studentId(), ReservationStatus.CANCELLED);
         if (hasPendingOrConfirmed) {
-            throw new ContentException(ContentErrorCode.DUPLICATE_RESERVATION);
+            throw new BusinessException(ContentErrorCode.DUPLICATE_RESERVATION);
         }
 
         Reservation reservation = Reservation.create(
@@ -66,7 +66,7 @@ public class ReservationCommandService {
         log.info("Updating reservation {} status to: {}", id, request.status());
 
         Reservation reservation = reservationRepository.findByIdWithSchedule(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.RESERVATION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.RESERVATION_NOT_FOUND));
 
         ReservationStatus currentStatus = reservation.getStatus();
         ReservationStatus newStatus = request.status();
@@ -78,7 +78,7 @@ public class ReservationCommandService {
             case CONFIRMED -> reservation.confirm();
             case CANCELLED -> reservation.cancel();
             case COMPLETED -> reservation.complete();
-            default -> throw new ContentException(ContentErrorCode.INVALID_RESERVATION_STATUS);
+            default -> throw new BusinessException(ContentErrorCode.INVALID_RESERVATION_STATUS);
         }
 
         Reservation updated = reservationRepository.save(reservation);
@@ -92,15 +92,15 @@ public class ReservationCommandService {
         log.info("Cancelling reservation: {}", id);
 
         Reservation reservation = reservationRepository.findByIdWithSchedule(id)
-                .orElseThrow(() -> new ContentException(ContentErrorCode.RESERVATION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.RESERVATION_NOT_FOUND));
 
         if (reservation.isCancelled()) {
-            throw new ContentException(ContentErrorCode.INVALID_RESERVATION_STATUS,
+            throw new BusinessException(ContentErrorCode.INVALID_RESERVATION_STATUS,
                     "Reservation is already cancelled");
         }
 
         if (reservation.isCompleted()) {
-            throw new ContentException(ContentErrorCode.INVALID_RESERVATION_STATUS,
+            throw new BusinessException(ContentErrorCode.INVALID_RESERVATION_STATUS,
                     "Cannot cancel completed reservation");
         }
 
@@ -117,7 +117,7 @@ public class ReservationCommandService {
         };
 
         if (!valid) {
-            throw new ContentException(ContentErrorCode.INVALID_RESERVATION_STATUS,
+            throw new BusinessException(ContentErrorCode.INVALID_RESERVATION_STATUS,
                     String.format("Cannot transition from %s to %s", current, target));
         }
     }

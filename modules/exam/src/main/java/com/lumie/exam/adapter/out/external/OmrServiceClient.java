@@ -1,8 +1,8 @@
 package com.lumie.exam.adapter.out.external;
 
 import com.lumie.exam.application.port.out.OmrServicePort;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
@@ -73,13 +73,13 @@ public class OmrServiceClient implements OmrServicePort {
                 return mapToResult(response.getBody());
             }
 
-            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED, "OMR service returned error");
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED, "OMR service returned error");
 
-        } catch (ExamException e) {
+        } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
             log.error("OMR grading failed", e);
-            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED, e.getMessage());
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED, e.getMessage());
         }
     }
 
@@ -101,7 +101,7 @@ public class OmrServiceClient implements OmrServicePort {
             return sb.toString();
         } catch (Exception e) {
             log.error("Failed to convert map to JSON for OMR grading", e);
-            throw new ExamException(ExamErrorCode.OMR_GRADING_FAILED);
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED);
         }
     }
 

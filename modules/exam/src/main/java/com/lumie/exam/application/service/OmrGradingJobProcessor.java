@@ -10,14 +10,13 @@ import com.lumie.student.api.StudentService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.OmrGradingJob;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.exception.ExamException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
-import com.lumie.exam.domain.exception.DuplicateExamResultException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -153,7 +152,7 @@ public class OmrGradingJobProcessor {
         @Transactional(readOnly = true)
         public SuccessPrep prepareSuccess(OmrGradingCallbackRequest request) {
             Exam exam = examRepository.findById(request.examId())
-                    .orElseThrow(() -> new ExamException(ExamErrorCode.EXAM_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
             String fullPhone = "010" + request.phoneNumber();
             String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -181,7 +180,10 @@ public class OmrGradingJobProcessor {
             ExamResult savedResult;
             try {
                 savedResult = resultRepository.save(examResult);
-            } catch (DuplicateExamResultException e) {
+            } catch (BusinessException e) {
+                if (e.getErrorCode() != ExamErrorCode.DUPLICATE_RESULT) {
+                    throw e;
+                }
                 log.warn("Duplicate result detected, retrying with existing record: jobId={}", request.jobId());
                 String fullPhone = "010" + request.phoneNumber();
                 examResult = prep.studentOpt().isPresent()

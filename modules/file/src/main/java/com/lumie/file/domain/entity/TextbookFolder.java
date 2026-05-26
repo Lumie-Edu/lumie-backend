@@ -2,7 +2,7 @@ package com.lumie.file.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.exception.FileException;
+import com.lumie.common.exception.BusinessException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -46,7 +46,7 @@ public class TextbookFolder extends TenantScopedEntity {
     public static TextbookFolder create(String name, UUID parentId, int parentDepth) {
         int newDepth = parentId == null ? 1 : parentDepth + 1;
         if (newDepth > MAX_DEPTH) {
-            throw new FileException(FileErrorCode.MAX_DEPTH_EXCEEDED);
+            throw new BusinessException(FileErrorCode.MAX_DEPTH_EXCEEDED);
         }
         return TextbookFolder.builder()
                 .name(name)
