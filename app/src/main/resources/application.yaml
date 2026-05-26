@@ -204,37 +204,12 @@ minio:
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
   bucket-name: ${MINIO_BUCKET_NAME:lumie-files}
 
-# Gemini via Spring AI (OpenAI-compat endpoint)
-# Spring AI appends completions-path to base-url. Default is /v1/chat/completions,
-# but Gemini's OpenAI-compat endpoint expects /chat/completions (no /v1 prefix).
-spring.ai:
-  openai:
-    api-key: ${GEMINI_API_KEY:}
-    base-url: https://generativelanguage.googleapis.com/v1beta/openai
-    chat:
-      completions-path: /chat/completions
-      options:
-        model: gemini-2.5-flash
-        temperature: 0.7
-        maxTokens: 4096
-  retry:
-    max-attempts: 3
-    backoff:
-      initial-interval: 1000
-      multiplier: 2
-      max-interval: 5000
-
 # Telegram Bot (ai module)
 telegram:
   bot-token: ${TELEGRAM_BOT_TOKEN:}
 
 # External Python services (exam module) + CORS
 lumie:
-  ai:
-    langgraph:
-      # When true, ChatController routes chat to the LangGraph chatbot worker
-      # (chatbot-svc); when false, it uses the in-monolith Spring AI path.
-      enabled: ${LUMIE_AI_LANGGRAPH_ENABLED:false}
   services:
     grading:
       url: ${GRADING_SVC_URL:http://localhost:8001}
@@ -328,5 +303,4 @@ logging:
   level:
     root: INFO
     com.lumie: DEBUG
-    org.springframework.ai: DEBUG
     org.springframework.web.reactive.function.client: DEBUG

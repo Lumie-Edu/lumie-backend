@@ -5,7 +5,6 @@ plugins {
 
 dependencyManagement {
     imports {
-        mavenBom(libs.spring.ai.bom.get().toString())
         mavenBom(libs.spring.modulith.bom.get().toString())
     }
 }

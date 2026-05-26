@@ -26,10 +26,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Proxy to the LangGraph chatbot worker (chatbot-svc) used when the
- * {@code lumie.ai.langgraph.enabled} flag is on. BE → worker is network-trust +
- * {@code X-Tenant-Slug} (same as {@code ReportServiceClient}); the worker calls
- * back into {@code /internal/chatbot/**} (HMAC) for all execution/persistence.
+ * Proxy to the LangGraph chatbot worker (chatbot-svc) — the only chat path
+ * after the Phase 5 Spring AI removal. BE → worker is network-trust +
+ * {@code X-Tenant-Slug} (same as {@code ReportServiceClient}); the worker
+ * calls back into {@code /internal/chatbot/**} (HMAC) for all
+ * execution/persistence.
  *
  * <p>All methods run OUTSIDE any {@code @Transactional} boundary — the LLM call
  * lives entirely in the Python service, so the monolith never holds a DB

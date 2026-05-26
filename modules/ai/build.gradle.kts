@@ -2,12 +2,6 @@ plugins {
     id("java-library")
 }
 
-dependencyManagement {
-    imports {
-        mavenBom(libs.spring.ai.bom.get().toString())
-    }
-}
-
 dependencies {
     implementation(project(":libs:common"))
     implementation(project(":libs:internal-api"))
@@ -19,11 +13,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-security")
 
-    // HTTP Client
+    // HTTP Client — used by ChatbotClient (BE→chatbot-svc SSE proxy)
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-
-    // Spring AI (OpenAI-compat starter — targeting Gemini's OpenAI endpoint)
-    implementation("org.springframework.ai:spring-ai-starter-model-openai")
 
     // Jackson
     implementation("com.fasterxml.jackson.core:jackson-databind")

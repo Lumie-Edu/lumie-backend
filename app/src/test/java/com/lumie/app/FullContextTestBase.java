@@ -99,7 +99,6 @@ abstract class FullContextTestBase {
         registry.add("lumie.internal.hmac-secret", () -> "test-hmac-secret-for-full-context-tests");
         registry.add("lumie.services.grading.url", () -> "http://localhost:8001");
         registry.add("lumie.services.report.url", () -> "http://localhost:8002");
-        registry.add("spring.ai.openai.api-key", () -> "test-dummy-key");
         registry.add("telegram.bot-token", () -> "test-token");
         registry.add("paddle.api-key", () -> "test-key");
         registry.add("paddle.webhook-secret", () -> "test-secret");
