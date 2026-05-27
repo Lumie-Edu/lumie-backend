@@ -410,6 +410,20 @@
         "required" : [ "failed", "failures", "success", "total" ],
         "type" : "object"
       },
+      "BillingConfigResponse" : {
+        "properties" : {
+          "sandbox" : {
+            "description" : "true면 Toss Sandbox 환경, false면 라이브",
+            "type" : "boolean"
+          },
+          "tossClientKey" : {
+            "description" : "Toss Payments 브라우저용 클라이언트 키 (test_ck_* 또는 live_ck_*)",
+            "type" : "string"
+          }
+        },
+        "required" : [ "sandbox", "tossClientKey" ],
+        "type" : "object"
+      },
       "BillingKeyResponse" : {
         "properties" : {
           "cardCompany" : {
@@ -7592,6 +7606,24 @@
           }
         },
         "tags" : [ "billing-key-controller" ]
+      }
+    },
+    "/v1/billing/config" : {
+      "get" : {
+        "operationId" : "getBillingConfig",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BillingConfigResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "billing-config-controller" ]
       }
     },
     "/v1/chat" : {
