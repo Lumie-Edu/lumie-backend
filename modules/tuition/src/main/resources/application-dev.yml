@@ -1,7 +1,0 @@
-tuition:
-  toss:
-    sandbox: true
-    # Dev credentials — override via Vault VaultStaticSecret in common-values.yaml
-    secret-key: ${TOSS_TUITION_SECRET_KEY:test_sk_placeholder}
-    client-key: ${TOSS_TUITION_CLIENT_KEY:test_ck_placeholder}
-    webhook-secret: ${TOSS_TUITION_WEBHOOK_SECRET:test_webhook_secret_placeholder}

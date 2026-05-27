@@ -1,0 +1,8 @@
+billing:
+  toss:
+    sandbox: ${TOSS_SANDBOX:true}
+    secret-key: ${TOSS_SECRET_KEY:test_sk_placeholder}
+    client-key: ${TOSS_CLIENT_KEY:test_ck_placeholder}
+    webhook-secret: ${TOSS_WEBHOOK_SECRET:test_webhook_secret_placeholder}
+  subscription:
+    free-plan-id: ${BILLING_FREE_PLAN_ID:FREE}
