@@ -10,6 +10,12 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Objects;
+
+/**
+ * Platform-scoped plan configuration (no RLS — Lumie ops managed).
+ * deactivate()/activate() domain methods require optimistic locking (@Version).
+ */
 @Entity
 @Table(name = "plans")
 @Getter
@@ -24,7 +30,7 @@ public class Plan extends BaseEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
-    @Column(name = "name", nullable = false, length = 50)
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 
     @Column(name = "description", length = 500)
@@ -38,17 +44,21 @@ public class Plan extends BaseEntity {
     @AttributeOverride(name = "amount", column = @Column(name = "yearly_price"))
     private Money yearlyPrice;
 
-    @Column(name = "max_students", nullable = false)
-    private int maxStudents;
+    /** NULL means unlimited (no cap enforced). */
+    @Column(name = "max_students")
+    private Integer maxStudents;
 
-    @Column(name = "max_academies", nullable = false)
-    private int maxAcademies;
+    /** NULL means unlimited. */
+    @Column(name = "max_academies")
+    private Integer maxAcademies;
 
-    @Column(name = "max_admins", nullable = false)
-    private int maxAdmins;
+    /** NULL means unlimited. */
+    @Column(name = "max_admins")
+    private Integer maxAdmins;
 
-    @Column(name = "omr_monthly_quota", nullable = false)
-    private int omrMonthlyQuota;
+    /** NULL means unlimited. */
+    @Column(name = "omr_monthly_quota")
+    private Integer omrMonthlyQuota;
 
     @Column(name = "custom_domains", nullable = false)
     private boolean customDomains;
@@ -71,18 +81,9 @@ public class Plan extends BaseEntity {
     @Column(name = "active", nullable = false)
     private boolean active;
 
-    @Column(name = "paddle_product_id", length = 50)
-    private String paddleProductId;
-
-    @Column(name = "paddle_monthly_price_id", length = 50)
-    private String paddleMonthlyPriceId;
-
-    @Column(name = "paddle_yearly_price_id", length = 50)
-    private String paddleYearlyPriceId;
-
     @Builder
     private Plan(String id, String name, String description, Money monthlyPrice, Money yearlyPrice,
-                 int maxStudents, int maxAcademies, int maxAdmins, int omrMonthlyQuota,
+                 Integer maxStudents, Integer maxAcademies, Integer maxAdmins, Integer omrMonthlyQuota,
                  boolean customDomains, boolean advancedAnalytics, boolean prioritySupport,
                  boolean apiAccess, boolean whiteLabeling, int displayOrder) {
         this.id = id;
@@ -103,6 +104,8 @@ public class Plan extends BaseEntity {
         this.active = true;
     }
 
+    // ─── Domain methods ───────────────────────────────────────────────────────
+
     public PlanLimits toLimits() {
         return PlanLimits.builder()
                 .maxStudents(maxStudents)
@@ -110,6 +113,11 @@ public class Plan extends BaseEntity {
                 .maxAdmins(maxAdmins)
                 .omrMonthlyQuota(omrMonthlyQuota)
                 .build();
+    }
+
+    /** True when this plan has no cap on the given dimension (NULL = unlimited). */
+    public boolean isUnlimited() {
+        return maxStudents == null && maxAcademies == null && maxAdmins == null && omrMonthlyQuota == null;
     }
 
     public PlanFeatures toFeatures() {
@@ -124,7 +132,7 @@ public class Plan extends BaseEntity {
     }
 
     public boolean isFree() {
-        return monthlyPrice.isZero();
+        return monthlyPrice == null || monthlyPrice.isZero();
     }
 
     public void deactivate() {
@@ -133,5 +141,19 @@ public class Plan extends BaseEntity {
 
     public void activate() {
         this.active = true;
+    }
+
+    // ─── equals / hashCode (ID-based) ─────────────────────────────────────────
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Plan other)) return false;
+        return id != null && Objects.equals(id, other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

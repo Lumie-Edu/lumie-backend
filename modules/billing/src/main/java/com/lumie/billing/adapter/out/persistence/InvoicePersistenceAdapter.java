@@ -4,6 +4,8 @@ import com.lumie.billing.application.port.out.InvoicePersistencePort;
 import com.lumie.billing.domain.entity.Invoice;
 import com.lumie.billing.domain.vo.InvoiceStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -36,8 +38,23 @@ public class InvoicePersistenceAdapter implements InvoicePersistencePort {
     }
 
     @Override
+    public Page<Invoice> findByTenantId(Long tenantId, Pageable pageable) {
+        return invoiceJpaRepository.findByTenantId(tenantId, pageable);
+    }
+
+    @Override
+    public Page<Invoice> findByTenantSlug(String tenantSlug, Pageable pageable) {
+        return invoiceJpaRepository.findByTenantSlug(tenantSlug, pageable);
+    }
+
+    @Override
+    public List<Invoice> findByTenantId(Long tenantId) {
+        return invoiceJpaRepository.findAllByTenantId(tenantId);
+    }
+
+    @Override
     public List<Invoice> findByTenantSlug(String tenantSlug) {
-        return invoiceJpaRepository.findByTenantSlug(tenantSlug);
+        return invoiceJpaRepository.findAllByTenantSlug(tenantSlug);
     }
 
     @Override

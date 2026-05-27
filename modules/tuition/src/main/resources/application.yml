@@ -1,0 +1,6 @@
+tuition:
+  toss:
+    sandbox: true
+    secret-key: ${TOSS_TUITION_SECRET_KEY:test_sk_placeholder}
+    client-key: ${TOSS_TUITION_CLIENT_KEY:test_ck_placeholder}
+    webhook-secret: ${TOSS_TUITION_WEBHOOK_SECRET:test_webhook_secret_placeholder}

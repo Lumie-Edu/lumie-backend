@@ -3,12 +3,18 @@ package com.lumie.billing.domain.vo;
 import com.lumie.common.quota.MetricType;
 import lombok.Builder;
 
+/**
+ * Immutable snapshot of a plan's usage limits.
+ * A {@code null} value for any dimension means "unlimited" — no cap enforced.
+ * This mirrors V28 schema: max_students / max_academies / max_admins / omr_monthly_quota
+ * are all nullable (NULL = unlimited).
+ */
 @Builder
 public record PlanLimits(
-        int maxStudents,
-        int maxAcademies,
-        int maxAdmins,
-        int omrMonthlyQuota
+        Integer maxStudents,
+        Integer maxAcademies,
+        Integer maxAdmins,
+        Integer omrMonthlyQuota
 ) {
     public static PlanLimits free() {
         return PlanLimits.builder()
@@ -37,25 +43,32 @@ public record PlanLimits(
                 .build();
     }
 
-    public static PlanLimits enterprise() {
+    public static PlanLimits unlimited() {
         return PlanLimits.builder()
-                .maxStudents(Integer.MAX_VALUE)
-                .maxAcademies(Integer.MAX_VALUE)
-                .maxAdmins(Integer.MAX_VALUE)
-                .omrMonthlyQuota(Integer.MAX_VALUE)
+                .maxStudents(null)
+                .maxAcademies(null)
+                .maxAdmins(null)
+                .omrMonthlyQuota(null)
                 .build();
     }
 
+    /**
+     * Returns {@code true} when the current usage is within the plan's limit.
+     * A {@code null} limit means unlimited — always returns {@code true}.
+     */
     public boolean isWithinLimit(MetricType metricType, long currentUsage) {
-        return switch (metricType) {
-            case STUDENTS -> currentUsage < maxStudents;
-            case ACADEMIES -> currentUsage < maxAcademies;
-            case ADMINS -> currentUsage < maxAdmins;
-            case OMR_MONTHLY -> currentUsage < omrMonthlyQuota;
-        };
+        Integer limit = limitFor(metricType);
+        return limit == null || currentUsage < limit;
     }
 
-    public int getLimit(MetricType metricType) {
+    /**
+     * Returns the numeric limit for the given metric, or {@code null} if unlimited.
+     */
+    public Integer getLimit(MetricType metricType) {
+        return limitFor(metricType);
+    }
+
+    private Integer limitFor(MetricType metricType) {
         return switch (metricType) {
             case STUDENTS -> maxStudents;
             case ACADEMIES -> maxAcademies;

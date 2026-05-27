@@ -1,0 +1,114 @@
+package com.lumie.billing.domain.entity;
+
+import com.lumie.billing.domain.exception.BillingErrorCode;
+import com.lumie.billing.domain.exception.BillingException;
+import com.lumie.billing.domain.vo.BillingKeyStatus;
+import com.lumie.common.domain.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.Instant;
+import java.util.Objects;
+
+/**
+ * Toss Payments billing key issued per tenant for automatic subscription charges.
+ * Stored pg_billing_key is the Toss-side billingKey string.
+ *
+ * <p>Actual PG charge calls are the responsibility of the application service —
+ * this entity only tracks key lifecycle (ACTIVE / REVOKED).
+ */
+@Entity
+@Table(name = "billing_keys", indexes = {
+        @Index(name = "idx_billing_keys_tenant_id", columnList = "tenant_id"),
+        @Index(name = "idx_billing_keys_status", columnList = "status"),
+        @Index(name = "idx_billing_keys_pg_billing_key", columnList = "pg_billing_key")
+})
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class BillingKey extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
+    @Column(name = "pg_billing_key", nullable = false, length = 200)
+    private String pgBillingKey;
+
+    @Column(name = "masked_card_number", nullable = false, length = 20)
+    private String maskedCardNumber;
+
+    @Column(name = "card_company", length = 50)
+    private String cardCompany;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private BillingKeyStatus status;
+
+    @Column(name = "revoked_at")
+    private Instant revokedAt;
+
+    @Builder
+    private BillingKey(Long tenantId, String pgBillingKey,
+                       String maskedCardNumber, String cardCompany) {
+        this.tenantId = tenantId;
+        this.pgBillingKey = pgBillingKey;
+        this.maskedCardNumber = maskedCardNumber;
+        this.cardCompany = cardCompany;
+        this.status = BillingKeyStatus.ACTIVE;
+    }
+
+    public static BillingKey register(Long tenantId, String pgBillingKey,
+                                       String maskedCardNumber, String cardCompany) {
+        return BillingKey.builder()
+                .tenantId(tenantId)
+                .pgBillingKey(pgBillingKey)
+                .maskedCardNumber(maskedCardNumber)
+                .cardCompany(cardCompany)
+                .build();
+    }
+
+    // ─── Domain methods ───────────────────────────────────────────────────────
+
+    /**
+     * Revokes this billing key. Further charge attempts must fail.
+     * Callers are responsible for pausing affected subscriptions via a separate command.
+     */
+    public void revoke() {
+        if (this.status == BillingKeyStatus.REVOKED) {
+            throw new BillingException(BillingErrorCode.BILLING_KEY_REVOKED,
+                    "Billing key is already revoked");
+        }
+        this.status = BillingKeyStatus.REVOKED;
+        this.revokedAt = Instant.now();
+    }
+
+    // ─── Query methods ────────────────────────────────────────────────────────
+
+    public boolean isActive() {
+        return this.status == BillingKeyStatus.ACTIVE;
+    }
+
+    // ─── equals / hashCode (ID-based) ─────────────────────────────────────────
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BillingKey other)) return false;
+        return id != null && Objects.equals(id, other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+}

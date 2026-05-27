@@ -1,18 +1,20 @@
 package com.lumie.billing.adapter.in.web;
 
 import com.lumie.billing.application.dto.request.ConfirmPaymentRequest;
-import com.lumie.billing.application.dto.request.TossWebhookPayload;
 import com.lumie.billing.application.dto.response.InvoiceResponse;
-import com.lumie.billing.application.dto.response.PaymentResponse;
 import com.lumie.billing.application.service.PaymentService;
+import com.lumie.common.api.AllowedSortFields;
+import com.lumie.common.api.PageResponse;
 import com.lumie.common.idempotency.IdempotencyService;
+import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -26,7 +28,7 @@ public class PaymentController {
     private final IdempotencyService idempotencyService;
 
     @PostMapping("/confirm")
-    public ResponseEntity<PaymentResponse> confirmPayment(
+    public ResponseEntity<InvoiceResponse> confirmPayment(
             @Valid @RequestBody ConfirmPaymentRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         if (idempotencyKey != null) {
@@ -37,20 +39,22 @@ public class PaymentController {
                     () -> ResponseEntity.ok(paymentService.confirmPayment(request))
             );
         }
-        PaymentResponse response = paymentService.confirmPayment(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(paymentService.confirmPayment(request));
     }
 
-    @PostMapping("/webhook")
-    public ResponseEntity<Void> handleWebhook(@RequestBody TossWebhookPayload payload) {
-        log.info("Received webhook: eventType={}", payload.eventType());
-        paymentService.handleWebhook(payload);
-        return ResponseEntity.ok().build();
+    @GetMapping("/history")
+    @AllowedSortFields({"createdAt", "amount", "status"})
+    public ResponseEntity<PageResponse<InvoiceResponse>> getPaymentHistory(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Long tenantId = TenantContextHolder.getTenantId();
+        return ResponseEntity.ok(paymentService.getPaymentHistory(tenantId, pageable));
     }
 
     @GetMapping("/history/{tenantSlug}")
-    public ResponseEntity<List<InvoiceResponse>> getPaymentHistory(@PathVariable String tenantSlug) {
-        List<InvoiceResponse> history = paymentService.getPaymentHistory(tenantSlug);
-        return ResponseEntity.ok(history);
+    @AllowedSortFields({"createdAt", "amount", "status"})
+    public ResponseEntity<PageResponse<InvoiceResponse>> getPaymentHistoryBySlug(
+            @PathVariable String tenantSlug,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(paymentService.getPaymentHistoryBySlug(tenantSlug, pageable));
     }
 }

@@ -6,18 +6,27 @@ import com.lumie.billing.domain.vo.SubscriptionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class SubscriptionPersistenceAdapter implements SubscriptionPersistencePort {
 
     private final SubscriptionJpaRepository subscriptionJpaRepository;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public Subscription save(Subscription subscription) {
         return subscriptionJpaRepository.save(subscription);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void delete(Subscription subscription) {
+        subscriptionJpaRepository.delete(subscription);
     }
 
     @Override
@@ -46,17 +55,12 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPersistencePo
     }
 
     @Override
-    public Optional<Subscription> findByPaddleSubscriptionId(String paddleSubscriptionId) {
-        return subscriptionJpaRepository.findByPaddleSubscriptionId(paddleSubscriptionId);
+    public List<Subscription> findActiveWithNextChargeAtOrBefore(Instant threshold) {
+        return subscriptionJpaRepository.findActiveWithNextChargeAtOrBefore(threshold);
     }
 
     @Override
     public boolean existsByTenantId(Long tenantId) {
         return subscriptionJpaRepository.existsByTenantId(tenantId);
-    }
-
-    @Override
-    public void delete(Subscription subscription) {
-        subscriptionJpaRepository.delete(subscription);
     }
 }

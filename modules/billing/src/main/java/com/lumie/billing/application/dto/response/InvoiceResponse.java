@@ -11,24 +11,30 @@ import java.time.Instant;
 public record InvoiceResponse(
         Long id,
         String invoiceNumber,
-        String tenantSlug,
+        Long subscriptionId,
+        Long tenantId,
         long amount,
+        long vatAmount,
         InvoiceStatus status,
+        boolean overdue,
         @Schema(nullable = true) String description,
         @Schema(nullable = true) Instant billingPeriodStart,
         @Schema(nullable = true) Instant billingPeriodEnd,
-        Instant dueDate,
+        @Schema(nullable = true) Instant dueDate,
         @Schema(nullable = true) Instant paidAt,
-        String paymentKey,
+        @Schema(nullable = true) String paymentKey,
         Instant createdAt
 ) {
     public static InvoiceResponse from(Invoice invoice) {
         return InvoiceResponse.builder()
                 .id(invoice.getId())
                 .invoiceNumber(invoice.getInvoiceNumber())
-                .tenantSlug(invoice.getTenantSlug())
+                .subscriptionId(invoice.getSubscriptionId())
+                .tenantId(invoice.getTenantId())
                 .amount(invoice.getAmount().toLong())
+                .vatAmount(invoice.getVatAmount().toLong())
                 .status(invoice.getStatus())
+                .overdue(invoice.isOverdue())
                 .description(invoice.getDescription())
                 .billingPeriodStart(invoice.getBillingPeriodStart())
                 .billingPeriodEnd(invoice.getBillingPeriodEnd())

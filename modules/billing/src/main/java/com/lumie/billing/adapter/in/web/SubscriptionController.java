@@ -65,13 +65,7 @@ public class SubscriptionController {
     public ResponseEntity<QuotaCheckResponse> checkQuota(
             @PathVariable String tenantSlug,
             @PathVariable MetricType metricType,
-            @RequestParam(required = false) Long currentUsage) {
-        QuotaCheckResponse response;
-        if (currentUsage != null) {
-            response = subscriptionQueryService.checkQuota(tenantSlug, metricType, currentUsage);
-        } else {
-            response = subscriptionQueryService.checkQuota(tenantSlug, metricType);
-        }
-        return ResponseEntity.ok(response);
+            @RequestParam(defaultValue = "0") long currentUsage) {
+        return ResponseEntity.ok(subscriptionQueryService.checkQuota(tenantSlug, metricType, currentUsage));
     }
 }
