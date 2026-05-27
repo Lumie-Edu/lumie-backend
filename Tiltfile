@@ -179,6 +179,27 @@ spec:
           value: "true"
         - name: CHATBOT_SVC_URL
           value: "http://chatbot-svc.lumie-dev.svc:8000"
+        # Toss Payments — billing + tuition modules. Sandbox keys from Vault
+        # via VSO (see lumie-infra applications/lumie/develop/common-values.yaml
+        # `lumie-dev-toss-vss`). The TOSS_SANDBOX flag flips the BE to the
+        # sandbox API host and relaxes signature checks for test webhooks.
+        - name: TOSS_SANDBOX
+          value: "true"
+        - name: TOSS_CLIENT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-toss-secrets
+              key: TOSS_CLIENT_KEY
+        - name: TOSS_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-toss-secrets
+              key: TOSS_SECRET_KEY
+        - name: TOSS_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-toss-secrets
+              key: TOSS_WEBHOOK_SECRET
         resources:
           requests:
             cpu: 100m
