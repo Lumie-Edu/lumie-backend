@@ -55,7 +55,7 @@ create index if not exists idx_guardians_tenant_id_phone
 
 alter table guardians enable row level security;
 alter table guardians force  row level security;
-create policy if not exists tenant_isolation on guardians
+create policy tenant_isolation on guardians
     using      (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint)
     with check (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint);
 
@@ -86,7 +86,7 @@ create index if not exists idx_student_guardians_tenant_id
 
 alter table student_guardians enable row level security;
 alter table student_guardians force  row level security;
-create policy if not exists tenant_isolation on student_guardians
+create policy tenant_isolation on student_guardians
     using      (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint)
     with check (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint);
 
@@ -126,7 +126,7 @@ create index if not exists idx_merchant_profiles_kyc_status
 
 alter table merchant_profiles enable row level security;
 alter table merchant_profiles force  row level security;
-create policy if not exists tenant_isolation on merchant_profiles
+create policy tenant_isolation on merchant_profiles
     using      (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint)
     with check (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint);
 
@@ -184,7 +184,7 @@ create index if not exists idx_tuition_invoices_guardian_id
 
 alter table tuition_invoices enable row level security;
 alter table tuition_invoices force  row level security;
-create policy if not exists tenant_isolation on tuition_invoices
+create policy tenant_isolation on tuition_invoices
     using      (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint)
     with check (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint);
 
@@ -239,7 +239,7 @@ create index if not exists idx_tuition_payments_tenant_status
 
 alter table tuition_payments enable row level security;
 alter table tuition_payments force  row level security;
-create policy if not exists tenant_isolation on tuition_payments
+create policy tenant_isolation on tuition_payments
     using      (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint)
     with check (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint);
 
@@ -288,7 +288,7 @@ create index if not exists idx_cash_receipts_payment_id
 
 alter table cash_receipts enable row level security;
 alter table cash_receipts force  row level security;
-create policy if not exists tenant_isolation on cash_receipts
+create policy tenant_isolation on cash_receipts
     using      (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint)
     with check (tenant_id = nullif(current_setting('app.tenant_id', true), '')::bigint);
 
