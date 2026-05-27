@@ -34,6 +34,10 @@ public enum TuitionErrorCode implements ErrorCode {
     CASH_RECEIPT_NOT_FOUND("TUITION_401", "Cash receipt not found", 404),
     INVALID_CASH_RECEIPT_STATUS("TUITION_402", "Invalid cash receipt status for this operation", 400),
 
+    // Toss Payments errors
+    TOSS_WEBHOOK_SIGNATURE_INVALID("TUITION_501", "Invalid Toss webhook signature", 401),
+    TOSS_API_ERROR("TUITION_502", "Toss Payments API call failed", 502),
+
     // General errors
     INTERNAL_ERROR("TUITION_999", "Internal server error", 500);
 

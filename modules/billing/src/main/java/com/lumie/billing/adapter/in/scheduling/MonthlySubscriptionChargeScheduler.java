@@ -125,8 +125,12 @@ public class MonthlySubscriptionChargeScheduler {
                 null);
 
         // PG call — outside @Transactional
+        // customerKey must match what was stored at billing key issuance (BillingKey.customerKey).
         PaymentGatewayPort.BillingChargeResult result =
-                paymentGatewayPort.chargeWithBillingKey(billingKey.getPgBillingKey(), amount, orderId, orderName);
+                paymentGatewayPort.chargeWithBillingKey(
+                        billingKey.getPgBillingKey(),
+                        billingKey.getCustomerKey(),
+                        amount, orderId, orderName);
 
         transactionLogger.log(subscription.getTenantId(), TransactionType.SUBSCRIPTION_CHARGE,
                 TransactionDirection.RESPONSE, orderId,

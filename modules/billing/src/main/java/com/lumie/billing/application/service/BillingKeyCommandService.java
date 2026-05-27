@@ -70,8 +70,10 @@ public class BillingKeyCommandService {
                     "Failed to issue billing key: " + result.errorMessage());
         }
 
+        // customerKey is the value passed to Toss at issuance time (from request.customerKey()).
+        // We store it so chargeWithBillingKey can pass the exact same value back to Toss.
         BillingKey billingKey = BillingKey.register(tenantId, result.billingKey(),
-                result.maskedCardNumber(), result.cardCompany());
+                request.customerKey(), result.maskedCardNumber(), result.cardCompany());
 
         BillingKey saved = billingKeyPersistenceHelper.save(billingKey);
         log.info("BillingKey registered: id={}, tenantId={}", saved.getId(), tenantId);

@@ -21,12 +21,13 @@ public interface PaymentGatewayPort {
      * Charges a registered billing key — used for automatic monthly subscription billing.
      *
      * @param billingKey  the pg_billing_key stored in BillingKey entity
+     * @param customerKey the Toss customerKey used at billing key issuance (stored in BillingKey.customerKey)
      * @param amount      amount in KRW
      * @param orderId     unique per-charge order ID
      * @param orderName   human-readable description (shows on card statement)
      */
-    BillingChargeResult chargeWithBillingKey(String billingKey, BigDecimal amount,
-                                              String orderId, String orderName);
+    BillingChargeResult chargeWithBillingKey(String billingKey, String customerKey,
+                                              BigDecimal amount, String orderId, String orderName);
 
     /** Verifies the Toss webhook HMAC-SHA256 signature. */
     WebhookVerificationResult verifyWebhook(String signature, String rawBody);
