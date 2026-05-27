@@ -3230,19 +3230,27 @@
       "PlanLimitsResponse" : {
         "properties" : {
           "maxAcademies" : {
+            "description" : "학원 한도 (null = 무제한)",
             "format" : "int32",
+            "nullable" : true,
             "type" : "integer"
           },
           "maxAdmins" : {
+            "description" : "관리자 한도 (null = 무제한)",
             "format" : "int32",
+            "nullable" : true,
             "type" : "integer"
           },
           "maxStudents" : {
+            "description" : "학생 한도 (null = 무제한)",
             "format" : "int32",
+            "nullable" : true,
             "type" : "integer"
           },
           "omrMonthlyQuota" : {
+            "description" : "월 OMR 처리 한도 (null = 무제한)",
             "format" : "int32",
+            "nullable" : true,
             "type" : "integer"
           }
         },
