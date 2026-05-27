@@ -3,23 +3,31 @@ package com.lumie.billing.application.service;
 import com.lumie.billing.adapter.out.config.BillingProperties;
 import com.lumie.billing.application.dto.request.ChangeSubscriptionRequest;
 import com.lumie.billing.application.dto.request.CreateSubscriptionRequest;
+import com.lumie.billing.application.dto.response.InvoiceResponse;
 import com.lumie.billing.application.dto.response.SubscriptionResponse;
+import com.lumie.billing.application.port.out.InvoicePersistencePort;
 import com.lumie.billing.application.port.out.PlanPersistencePort;
 import com.lumie.billing.application.port.out.SubscriptionPersistencePort;
+import com.lumie.billing.application.service.SubscriptionChargeExecutor.ChargeOutcome;
+import com.lumie.billing.domain.entity.Invoice;
 import com.lumie.billing.domain.entity.Plan;
 import com.lumie.billing.domain.entity.Subscription;
 import com.lumie.billing.domain.exception.BillingErrorCode;
 import com.lumie.billing.domain.exception.BillingException;
+import com.lumie.billing.domain.vo.InvoiceStatus;
 import com.lumie.billing.domain.vo.SuspensionReason;
 import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Comparator;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -31,6 +39,8 @@ public class SubscriptionCommandService {
 
     private final SubscriptionPersistencePort subscriptionPersistencePort;
     private final PlanPersistencePort planPersistencePort;
+    private final InvoicePersistencePort invoicePersistencePort;
+    private final SubscriptionChargeExecutor chargeExecutor;
 
     public SubscriptionResponse createSubscription(CreateSubscriptionRequest request) {
         log.info("Creating subscription for tenant: {} with plan: {}",
@@ -126,5 +136,52 @@ public class SubscriptionCommandService {
         subscription.resume();
         subscriptionPersistencePort.save(subscription);
         log.info("Subscription resumed for tenant: {}", tenantSlug);
+    }
+
+    /**
+     * Trigger the first paid charge on a newly created subscription once a billing key is attached.
+     *
+     * <p>Idempotency: if a PAID invoice already exists for this subscription, the existing invoice is
+     * returned without contacting the PG. Request-level dedup (same Idempotency-Key) is handled by
+     * the controller's {@code IdempotencyService.executeOnce}.
+     *
+     * <p>Runs without a surrounding transaction so the PG call in {@link SubscriptionChargeExecutor}
+     * is outside JDBC scope (HARD_RULES).
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public InvoiceResponse chargeFirstInvoice(String tenantSlug) {
+        log.info("First-charge requested for tenant: {}", tenantSlug);
+
+        Subscription subscription = subscriptionPersistencePort.findActiveByTenantSlug(tenantSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription", tenantSlug));
+
+        if (subscription.getPlan().isFree()) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "Free plan does not require a charge: " + tenantSlug);
+        }
+        if (subscription.getBillingKeyId() == null) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "Subscription has no billing key attached: " + tenantSlug);
+        }
+
+        List<Invoice> existing = invoicePersistencePort.findBySubscriptionId(subscription.getId());
+        Invoice alreadyPaid = existing.stream()
+                .filter(inv -> inv.getStatus() == InvoiceStatus.PAID)
+                .max(Comparator.comparing(Invoice::getCreatedAt))
+                .orElse(null);
+        if (alreadyPaid != null) {
+            log.info("First charge already settled — returning existing invoice: subscriptionId={}, invoiceId={}",
+                    subscription.getId(), alreadyPaid.getId());
+            return InvoiceResponse.from(alreadyPaid);
+        }
+
+        ChargeOutcome outcome = chargeExecutor.charge(subscription);
+        return switch (outcome.status()) {
+            case PAID -> InvoiceResponse.from(outcome.invoice());
+            case FAILED -> throw new BillingException(BillingErrorCode.PAYMENT_FAILED,
+                    outcome.reason() != null ? outcome.reason() : "PG charge failed");
+            case SKIPPED -> throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "Charge skipped: " + (outcome.reason() != null ? outcome.reason() : "unknown"));
+        };
     }
 }

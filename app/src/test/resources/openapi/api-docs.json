@@ -44,6 +44,41 @@
         "required" : [ "action", "actorId", "actorName", "actorRole", "createdAt", "description", "entityId", "entityName", "entityType", "id" ],
         "type" : "object"
       },
+      "AlimtalkCreditResponse" : {
+        "properties" : {
+          "autoRechargeEnabled" : {
+            "type" : "boolean"
+          },
+          "autoRechargePackage" : {
+            "format" : "int32",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "autoRechargeThreshold" : {
+            "format" : "int32",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "balance" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tenantId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "autoRechargeEnabled", "autoRechargePackage", "autoRechargeThreshold", "balance", "id", "tenantId", "updatedAt" ],
+        "type" : "object"
+      },
       "AnnouncementResponse" : {
         "properties" : {
           "announcementContent" : {
@@ -375,6 +410,39 @@
         "required" : [ "failed", "failures", "success", "total" ],
         "type" : "object"
       },
+      "BillingKeyResponse" : {
+        "properties" : {
+          "cardCompany" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "maskedCardNumber" : {
+            "type" : "string"
+          },
+          "revokedAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "ACTIVE", "REVOKED" ],
+            "type" : "string"
+          },
+          "tenantId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "cardCompany", "createdAt", "id", "maskedCardNumber", "revokedAt", "status", "tenantId" ],
+        "type" : "object"
+      },
       "BulkImportResult" : {
         "properties" : {
           "errors" : {
@@ -414,29 +482,6 @@
           }
         },
         "required" : [ "recordIds", "status" ],
-        "type" : "object"
-      },
-      "CardInfo" : {
-        "nullable" : true,
-        "properties" : {
-          "cardType" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "company" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "number" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "ownerType" : {
-            "nullable" : true,
-            "type" : "string"
-          }
-        },
-        "required" : [ "cardType", "company", "number", "ownerType" ],
         "type" : "object"
       },
       "ChangeLoginIdRequest" : {
@@ -815,6 +860,21 @@
           }
         },
         "required" : [ "absentCount", "attendanceRate", "excusedCount", "lateCount", "presentCount", "studentId", "studentName", "totalSessions" ],
+        "type" : "object"
+      },
+      "ConfigureAutoRechargeRequest" : {
+        "properties" : {
+          "packageSize" : {
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "threshold" : {
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        },
         "type" : "object"
       },
       "ConfirmPaymentRequest" : {
@@ -1382,6 +1442,24 @@
           }
         },
         "required" : [ "gradeDistribution", "overallAverageScore", "topIncorrectQuestions", "totalExams", "totalResults", "typeAccuracyList" ],
+        "type" : "object"
+      },
+      "DropoutSummaryResponse" : {
+        "properties" : {
+          "lastMonthDropouts" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "thisMonthDropoutRate" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "thisMonthDropouts" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "lastMonthDropouts", "thisMonthDropoutRate", "thisMonthDropouts" ],
         "type" : "object"
       },
       "EnrollStudentsRequest" : {
@@ -1972,6 +2050,7 @@
           },
           "dueDate" : {
             "format" : "date-time",
+            "nullable" : true,
             "type" : "string"
           },
           "id" : {
@@ -1981,23 +2060,36 @@
           "invoiceNumber" : {
             "type" : "string"
           },
+          "overdue" : {
+            "type" : "boolean"
+          },
           "paidAt" : {
             "format" : "date-time",
             "nullable" : true,
             "type" : "string"
           },
           "paymentKey" : {
+            "nullable" : true,
             "type" : "string"
           },
           "status" : {
             "enum" : [ "PENDING", "PAID", "FAILED", "REFUNDED" ],
             "type" : "string"
           },
-          "tenantSlug" : {
-            "type" : "string"
+          "subscriptionId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tenantId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "vatAmount" : {
+            "format" : "int64",
+            "type" : "integer"
           }
         },
-        "required" : [ "amount", "billingPeriodEnd", "billingPeriodStart", "createdAt", "description", "dueDate", "id", "invoiceNumber", "paidAt", "paymentKey", "status", "tenantSlug" ],
+        "required" : [ "amount", "billingPeriodEnd", "billingPeriodStart", "createdAt", "description", "dueDate", "id", "invoiceNumber", "overdue", "paidAt", "paymentKey", "status", "subscriptionId", "tenantId", "vatAmount" ],
         "type" : "object"
       },
       "ItemAnalysisResponse" : {
@@ -2225,15 +2317,23 @@
             "format" : "int64",
             "type" : "integer"
           },
+          "dropoutCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
           "month" : {
             "type" : "string"
+          },
+          "netChange" : {
+            "format" : "int64",
+            "type" : "integer"
           },
           "newCount" : {
             "format" : "int64",
             "type" : "integer"
           }
         },
-        "required" : [ "cumulativeCount", "month", "newCount" ],
+        "required" : [ "cumulativeCount", "dropoutCount", "month", "netChange", "newCount" ],
         "type" : "object"
       },
       "NormalizedExamScore" : {
@@ -2661,6 +2761,37 @@
         "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
         "type" : "object"
       },
+      "PageResponseInvoiceResponse" : {
+        "properties" : {
+          "hasNext" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/InvoiceResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "perPage" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
+        "type" : "object"
+      },
       "PageResponseLectureResponse" : {
         "properties" : {
           "hasNext" : {
@@ -3033,55 +3164,6 @@
         "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
         "type" : "object"
       },
-      "PaymentResponse" : {
-        "properties" : {
-          "approvedAt" : {
-            "format" : "date-time",
-            "nullable" : true,
-            "type" : "string"
-          },
-          "card" : {
-            "$ref" : "#/components/schemas/CardInfo"
-          },
-          "message" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "method" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "orderId" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "orderName" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "paymentKey" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "requestedAt" : {
-            "format" : "date-time",
-            "nullable" : true,
-            "type" : "string"
-          },
-          "status" : {
-            "type" : "string"
-          },
-          "success" : {
-            "type" : "boolean"
-          },
-          "totalAmount" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "approvedAt", "card", "message", "method", "orderId", "orderName", "paymentKey", "requestedAt", "status", "success", "totalAmount" ],
-        "type" : "object"
-      },
       "PermissionResponse" : {
         "properties" : {
           "category" : {
@@ -3423,6 +3505,20 @@
         "required" : [ "comments", "createdAt", "id", "isAnswered", "qnaContent", "qnaTitle", "qnaUserId", "qnaUserName", "updatedAt" ],
         "type" : "object"
       },
+      "QnaUnansweredOverdueResponse" : {
+        "properties" : {
+          "thresholdHours" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "unansweredOverdueCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "thresholdHours", "unansweredOverdueCount" ],
+        "type" : "object"
+      },
       "QueryRequest" : {
         "properties" : {
           "sql" : {
@@ -3538,6 +3634,16 @@
         "required" : [ "allowed", "currentUsage", "limit", "message", "metricType" ],
         "type" : "object"
       },
+      "RechargeAlimtalkCreditRequest" : {
+        "properties" : {
+          "packageSize" : {
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "RecipientRequest" : {
         "properties" : {
           "name" : {
@@ -3569,6 +3675,18 @@
           }
         },
         "required" : [ "name", "phone", "studentId" ],
+        "type" : "object"
+      },
+      "RegisterBillingKeyRequest" : {
+        "properties" : {
+          "authKey" : {
+            "type" : "string"
+          },
+          "customerKey" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "authKey", "customerKey" ],
         "type" : "object"
       },
       "RegisterRequest" : {
@@ -4724,6 +4842,16 @@
       },
       "SubscriptionResponse" : {
         "properties" : {
+          "billingKeyId" : {
+            "format" : "int64",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "cancelledAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
           "createdAt" : {
             "format" : "date-time",
             "type" : "string"
@@ -4740,6 +4868,11 @@
           "limits" : {
             "$ref" : "#/components/schemas/PlanLimitsResponse"
           },
+          "nextChargeAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
           "planId" : {
             "type" : "string"
           },
@@ -4751,7 +4884,12 @@
             "type" : "string"
           },
           "status" : {
-            "enum" : [ "ACTIVE", "CANCELLED", "EXPIRED", "PENDING", "PAST_DUE" ],
+            "enum" : [ "ACTIVE", "PAUSED", "CANCELLED", "EXPIRED", "PENDING", "PAST_DUE" ],
+            "type" : "string"
+          },
+          "suspensionReason" : {
+            "enum" : [ "NONE", "BILLING_KEY_REVOKED", "PAYMENT_FAILED_3X", "MANUAL_PAUSE" ],
+            "nullable" : true,
             "type" : "string"
           },
           "tenantId" : {
@@ -4766,7 +4904,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "createdAt", "expiresAt", "id", "limits", "planId", "planName", "startedAt", "status", "tenantId", "tenantSlug", "updatedAt" ],
+        "required" : [ "billingKeyId", "cancelledAt", "createdAt", "expiresAt", "id", "limits", "nextChargeAt", "planId", "planName", "startedAt", "status", "suspensionReason", "tenantId", "tenantSlug", "updatedAt" ],
         "type" : "object"
       },
       "TenantResponse" : {
@@ -4990,97 +5128,6 @@
           }
         },
         "required" : [ "correctAnswer", "incorrectCount", "incorrectRate", "questionNumber", "questionType", "topWrongChoice", "topWrongChoiceRate", "totalAttempts" ],
-        "type" : "object"
-      },
-      "TossCancellation" : {
-        "properties" : {
-          "cancelAmount" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "cancelReason" : {
-            "type" : "string"
-          },
-          "canceledAt" : {
-            "type" : "string"
-          }
-        },
-        "type" : "object"
-      },
-      "TossCardInfo" : {
-        "properties" : {
-          "cardType" : {
-            "type" : "string"
-          },
-          "company" : {
-            "type" : "string"
-          },
-          "number" : {
-            "type" : "string"
-          },
-          "ownerType" : {
-            "type" : "string"
-          }
-        },
-        "type" : "object"
-      },
-      "TossPaymentData" : {
-        "properties" : {
-          "approvedAt" : {
-            "type" : "string"
-          },
-          "cancels" : {
-            "items" : {
-              "$ref" : "#/components/schemas/TossCancellation"
-            },
-            "type" : "array"
-          },
-          "card" : {
-            "$ref" : "#/components/schemas/TossCardInfo"
-          },
-          "method" : {
-            "type" : "string"
-          },
-          "orderId" : {
-            "type" : "string"
-          },
-          "orderName" : {
-            "type" : "string"
-          },
-          "paymentKey" : {
-            "type" : "string"
-          },
-          "requestedAt" : {
-            "type" : "string"
-          },
-          "status" : {
-            "type" : "string"
-          },
-          "totalAmount" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        },
-        "type" : "object"
-      },
-      "TossWebhookPayload" : {
-        "properties" : {
-          "createdAt" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/TossPaymentData"
-          },
-          "eventType" : {
-            "type" : "string"
-          },
-          "paymentCanceled" : {
-            "type" : "boolean"
-          },
-          "paymentDone" : {
-            "type" : "boolean"
-          }
-        },
         "type" : "object"
       },
       "TrendPoint" : {
@@ -6115,6 +6162,35 @@
         "tags" : [ "internal-report-controller" ]
       }
     },
+    "/internal/webhooks/toss/billing" : {
+      "post" : {
+        "operationId" : "handleBillingWebhook",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Toss-Signature",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "toss-billing-webhook-controller" ]
+      }
+    },
     "/v1/activity-logs" : {
       "get" : {
         "operationId" : "getLogs",
@@ -6185,6 +6261,104 @@
           }
         },
         "tags" : [ "activity-log-controller" ]
+      }
+    },
+    "/v1/alimtalk/credits" : {
+      "get" : {
+        "operationId" : "getMyCreditBalance",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AlimtalkCreditResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "alimtalk-credit-controller" ]
+      }
+    },
+    "/v1/alimtalk/credits/auto-recharge" : {
+      "delete" : {
+        "operationId" : "disableAutoRecharge",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AlimtalkCreditResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "alimtalk-credit-controller" ]
+      },
+      "put" : {
+        "operationId" : "configureAutoRecharge",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfigureAutoRechargeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AlimtalkCreditResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "alimtalk-credit-controller" ]
+      }
+    },
+    "/v1/alimtalk/credits/recharge" : {
+      "post" : {
+        "operationId" : "recharge",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RechargeAlimtalkCreditRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AlimtalkCreditResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "alimtalk-credit-controller" ]
       }
     },
     "/v1/announcements" : {
@@ -7325,6 +7499,99 @@
           }
         },
         "tags" : [ "student-attendance-controller" ]
+      }
+    },
+    "/v1/billing-keys" : {
+      "get" : {
+        "operationId" : "getMyBillingKeys",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/BillingKeyResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "billing-key-controller" ]
+      },
+      "post" : {
+        "operationId" : "registerBillingKey",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterBillingKeyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BillingKeyResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "billing-key-controller" ]
+      }
+    },
+    "/v1/billing-keys/active" : {
+      "get" : {
+        "operationId" : "getActiveBillingKey",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BillingKeyResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "billing-key-controller" ]
+      }
+    },
+    "/v1/billing-keys/{billingKeyId}" : {
+      "delete" : {
+        "operationId" : "revokeBillingKey",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "billingKeyId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "billing-key-controller" ]
       }
     },
     "/v1/chat" : {
@@ -9765,7 +10032,57 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/PaymentResponse"
+                  "$ref" : "#/components/schemas/InvoiceResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "payment-controller" ]
+      }
+    },
+    "/v1/payments/history" : {
+      "get" : {
+        "operationId" : "getPaymentHistory",
+        "parameters" : [ {
+          "description" : "Zero-based page index (0..N)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The size of the page to be returned",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseInvoiceResponse"
                 }
               }
             },
@@ -9777,7 +10094,7 @@
     },
     "/v1/payments/history/{tenantSlug}" : {
       "get" : {
-        "operationId" : "getPaymentHistory",
+        "operationId" : "getPaymentHistoryBySlug",
         "parameters" : [ {
           "in" : "path",
           "name" : "tenantSlug",
@@ -9785,40 +10102,47 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "description" : "Zero-based page index (0..N)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The size of the page to be returned",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
         } ],
         "responses" : {
           "200" : {
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/InvoiceResponse"
-                  },
-                  "type" : "array"
+                  "$ref" : "#/components/schemas/PageResponseInvoiceResponse"
                 }
               }
             },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "payment-controller" ]
-      }
-    },
-    "/v1/payments/webhook" : {
-      "post" : {
-        "operationId" : "handleWebhook",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/TossWebhookPayload"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
             "description" : "OK"
           }
         },
@@ -9991,6 +10315,34 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/QnaBoardResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "qna-controller" ]
+      }
+    },
+    "/v1/qna/statistics/unanswered-overdue" : {
+      "get" : {
+        "operationId" : "getUnansweredOverdueStatistics",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "thresholdHours",
+          "required" : false,
+          "schema" : {
+            "default" : 24,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QnaUnansweredOverdueResponse"
                 }
               }
             },
@@ -12358,6 +12710,24 @@
         "tags" : [ "student-controller" ]
       }
     },
+    "/v1/students/statistics/dropout-summary" : {
+      "get" : {
+        "operationId" : "getDropoutSummary",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DropoutSummaryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "student-controller" ]
+      }
+    },
     "/v1/students/statistics/enrollment-trend" : {
       "get" : {
         "operationId" : "getEnrollmentTrend",
@@ -12706,6 +13076,39 @@
         "tags" : [ "subscription-controller" ]
       }
     },
+    "/v1/subscriptions/{tenantSlug}/charge" : {
+      "post" : {
+        "operationId" : "chargeFirstInvoice",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tenantSlug",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InvoiceResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "subscription-controller" ]
+      }
+    },
     "/v1/subscriptions/{tenantSlug}/quota/{metricType}" : {
       "get" : {
         "operationId" : "checkQuota",
@@ -12729,6 +13132,7 @@
           "name" : "currentUsage",
           "required" : false,
           "schema" : {
+            "default" : 0,
             "format" : "int64",
             "type" : "integer"
           }

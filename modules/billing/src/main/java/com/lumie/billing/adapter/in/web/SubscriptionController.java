@@ -2,6 +2,7 @@ package com.lumie.billing.adapter.in.web;
 
 import com.lumie.billing.application.dto.request.ChangeSubscriptionRequest;
 import com.lumie.billing.application.dto.request.CreateSubscriptionRequest;
+import com.lumie.billing.application.dto.response.InvoiceResponse;
 import com.lumie.billing.application.dto.response.QuotaCheckResponse;
 import com.lumie.billing.application.dto.response.SubscriptionResponse;
 import com.lumie.billing.application.service.SubscriptionCommandService;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class SubscriptionController {
 
     private static final String CREATE_SUBSCRIPTION_SCOPE = "POST /v1/subscriptions";
+    private static final String CHARGE_FIRST_INVOICE_SCOPE = "POST /v1/subscriptions/{tenantSlug}/charge";
 
     private final SubscriptionCommandService subscriptionCommandService;
     private final SubscriptionQueryService subscriptionQueryService;
@@ -59,6 +61,18 @@ public class SubscriptionController {
     public ResponseEntity<Void> cancelSubscription(@PathVariable String tenantSlug) {
         subscriptionCommandService.cancelSubscription(tenantSlug);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{tenantSlug}/charge")
+    public ResponseEntity<InvoiceResponse> chargeFirstInvoice(
+            @PathVariable String tenantSlug,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                CHARGE_FIRST_INVOICE_SCOPE,
+                tenantSlug,
+                () -> ResponseEntity.ok(subscriptionCommandService.chargeFirstInvoice(tenantSlug))
+        );
     }
 
     @GetMapping("/{tenantSlug}/quota/{metricType}")
