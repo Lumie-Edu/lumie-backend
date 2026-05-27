@@ -93,6 +93,7 @@ public class ResultCommandService {
         return response;
     }
 
+    @Transactional(readOnly = true)
     public OmrPresignResponse generatePresignedUrls(Long examId, OmrPresignRequest request) {
         log.info("Generating presigned URLs for exam: {}, files: {}", examId, request.fileNames().size());
 
