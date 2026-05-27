@@ -6,6 +6,7 @@ import com.lumie.content.application.dto.request.UpdateQnaRequest;
 import com.lumie.content.application.dto.response.QnaBoardResponse;
 import com.lumie.content.application.dto.response.QnaCommentResponse;
 import com.lumie.content.application.dto.response.QnaDetailResponse;
+import com.lumie.content.application.dto.response.QnaUnansweredOverdueResponse;
 import com.lumie.content.application.service.QnaCommandService;
 import com.lumie.content.application.service.QnaQueryService;
 import com.lumie.common.api.AllowedSortFields;
@@ -33,6 +34,12 @@ public class QnaController {
             @RequestParam(required = false) Boolean isAnswered,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(PageResponse.from(queryService.listQnas(isAnswered, pageable)));
+    }
+
+    @GetMapping("/statistics/unanswered-overdue")
+    public ResponseEntity<QnaUnansweredOverdueResponse> getUnansweredOverdueStatistics(
+            @RequestParam(defaultValue = "24") long thresholdHours) {
+        return ResponseEntity.ok(queryService.getUnansweredOverdueStatistics(thresholdHours));
     }
 
     @GetMapping("/unanswered")

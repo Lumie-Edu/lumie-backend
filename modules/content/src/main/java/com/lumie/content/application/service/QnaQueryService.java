@@ -3,6 +3,7 @@ package com.lumie.content.application.service;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.application.dto.response.QnaBoardResponse;
 import com.lumie.content.application.dto.response.QnaDetailResponse;
+import com.lumie.content.application.dto.response.QnaUnansweredOverdueResponse;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.staff.api.StaffService;
 import com.lumie.student.api.StudentService;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -81,6 +83,13 @@ public class QnaQueryService {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
 
         return QnaDetailResponse.from(qnaBoard, userName, adminNameMap);
+    }
+
+    public QnaUnansweredOverdueResponse getUnansweredOverdueStatistics(long thresholdHours) {
+        log.debug("Computing unanswered-overdue Q&A count, thresholdHours={}", thresholdHours);
+        Instant threshold = Instant.now().minusSeconds(thresholdHours * 3600L);
+        long count = qnaBoardRepository.countByIsAnsweredFalseAndCreatedAtBefore(threshold);
+        return new QnaUnansweredOverdueResponse(count, thresholdHours);
     }
 
     private Page<QnaBoardResponse> enrichWithUserNames(Page<QnaBoard> page) {

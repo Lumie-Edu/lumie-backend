@@ -12,6 +12,7 @@ import com.lumie.student.application.dto.request.StudentUpdateRequest;
 import com.lumie.student.application.dto.response.BatchOperationResult;
 import com.lumie.student.application.dto.response.BulkImportResult;
 import com.lumie.student.application.dto.response.ChangeLoginIdResponse;
+import com.lumie.student.application.dto.response.DropoutSummaryResponse;
 import com.lumie.student.application.dto.response.EnrollmentTrendResponse;
 import com.lumie.student.application.dto.response.StudentResponse;
 import com.lumie.student.application.service.StudentCommandService;
@@ -63,6 +64,11 @@ public class StudentController {
     public ResponseEntity<EnrollmentTrendResponse> getEnrollmentTrend(
             @RequestParam(defaultValue = "6") int months) {
         return ResponseEntity.ok(studentQueryService.getEnrollmentTrend(months));
+    }
+
+    @GetMapping("/statistics/dropout-summary")
+    public ResponseEntity<DropoutSummaryResponse> getDropoutSummary() {
+        return ResponseEntity.ok(studentQueryService.getDropoutSummary());
     }
 
     @GetMapping

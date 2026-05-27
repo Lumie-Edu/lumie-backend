@@ -2,6 +2,7 @@ package com.lumie.student.application.service;
 
 import com.lumie.common.csv.CsvWriter;
 import com.lumie.auth.api.AuthService;
+import com.lumie.student.application.dto.response.DropoutSummaryResponse;
 import com.lumie.student.application.dto.response.EnrollmentTrendResponse;
 import com.lumie.student.application.dto.response.StudentResponse;
 import com.lumie.student.domain.entity.Student;
@@ -131,16 +132,59 @@ public class StudentQueryService {
             bucketed.put((String) row[0], ((Number) row[1]).longValue());
         }
 
+        Map<String, Long> dropoutBucketed = new HashMap<>();
+        for (Object[] row : studentRepository.countMonthlyDropoutsSince(windowStart)) {
+            dropoutBucketed.put((String) row[0], ((Number) row[1]).longValue());
+        }
+
         long cumulative = studentRepository.countByCreatedAtBefore(windowStart);
         List<EnrollmentTrendResponse.MonthlyEnrollment> series = new ArrayList<>(window);
         for (int i = 0; i < window; i++) {
             YearMonth ym = firstMonth.plusMonths(i);
             String key = ym.toString();
             long monthlyNew = bucketed.getOrDefault(key, 0L);
+            long monthlyDropouts = dropoutBucketed.getOrDefault(key, 0L);
             cumulative += monthlyNew;
-            series.add(new EnrollmentTrendResponse.MonthlyEnrollment(key, monthlyNew, cumulative));
+            series.add(new EnrollmentTrendResponse.MonthlyEnrollment(
+                    key, monthlyNew, cumulative, monthlyDropouts, monthlyNew - monthlyDropouts));
         }
         return new EnrollmentTrendResponse(series);
+    }
+
+    /**
+     * Returns a dropout summary for the current and previous calendar month in KST
+     * (Asia/Seoul).
+     *
+     * <p>Dropout count is approximated via {@code updated_at} on rows where
+     * {@code is_active = false}, since the {@code students} table has no dedicated
+     * {@code deactivated_at} column. The denominator for {@code thisMonthDropoutRate}
+     * is the estimated count of students active at the start of the current month:
+     * currently-active students plus those deactivated during the current month.
+     */
+    public DropoutSummaryResponse getDropoutSummary() {
+        ZoneId kst = ZoneId.of("Asia/Seoul");
+        YearMonth currentMonth = YearMonth.now(kst);
+        YearMonth lastMonth = currentMonth.minusMonths(1);
+
+        Instant thisMonthStart = currentMonth.atDay(1).atStartOfDay(kst).toInstant();
+        Instant thisMonthEnd = currentMonth.atEndOfMonth().atTime(23, 59, 59, 999_999_999).atZone(kst).toInstant();
+        Instant lastMonthStart = lastMonth.atDay(1).atStartOfDay(kst).toInstant();
+        Instant lastMonthEnd = lastMonth.atEndOfMonth().atTime(23, 59, 59, 999_999_999).atZone(kst).toInstant();
+
+        long thisMonthDropouts = studentRepository.countByIsActiveAndUpdatedAtBetween(
+                false, thisMonthStart, thisMonthEnd);
+        long lastMonthDropouts = studentRepository.countByIsActiveAndUpdatedAtBetween(
+                false, lastMonthStart, lastMonthEnd);
+
+        // Active at start of this month = currently active + those deactivated during this month
+        long currentlyActive = studentRepository.countByIsActive(true);
+        long activeAtMonthStart = currentlyActive + thisMonthDropouts;
+
+        double dropoutRate = activeAtMonthStart == 0
+                ? 0.0
+                : (double) thisMonthDropouts / activeAtMonthStart;
+
+        return new DropoutSummaryResponse(thisMonthDropouts, dropoutRate, lastMonthDropouts);
     }
 
     public boolean existsByUserLoginId(String userLoginId) {

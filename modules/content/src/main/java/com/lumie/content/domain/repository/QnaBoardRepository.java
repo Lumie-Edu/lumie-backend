@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.Instant;
 import java.util.Optional;
 
 public interface QnaBoardRepository extends JpaRepository<QnaBoard, Long> {
@@ -20,4 +21,6 @@ public interface QnaBoardRepository extends JpaRepository<QnaBoard, Long> {
     Page<QnaBoard> findByIsAnsweredFalse(Pageable pageable);
 
     Page<QnaBoard> findByIsAnswered(Boolean isAnswered, Pageable pageable);
+
+    long countByIsAnsweredFalseAndCreatedAtBefore(Instant threshold);
 }

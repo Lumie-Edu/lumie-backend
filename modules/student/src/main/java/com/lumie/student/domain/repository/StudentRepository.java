@@ -45,6 +45,36 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
             """, nativeQuery = true)
     List<Object[]> countMonthlyEnrollmentsSince(@Param("from") Instant from);
 
+    /**
+     * Counts deactivated students whose {@code updated_at} falls within [from, to).
+     *
+     * <p><b>Fallback note:</b> the {@code students} table has no {@code deactivated_at}
+     * column; {@code updated_at} is used as a proxy for the deactivation timestamp.
+     * This is accurate only when the last mutation on the row was the deactivation.
+     * A dedicated {@code deactivated_at} column (Flyway migration) would make this
+     * precise. Track in: TODO add deactivated_at to students table.
+     */
+    long countByIsActiveAndUpdatedAtBetween(Boolean isActive, Instant from, Instant to);
+
+    long countByIsActiveAndUpdatedAtBefore(Boolean isActive, Instant cutoff);
+
+    /**
+     * Returns monthly dropout counts (rows where {@code is_active = false}) grouped by
+     * the month of {@code updated_at} for all rows updated on or after {@code from}.
+     *
+     * <p>Same {@code updated_at} proxy caveat as {@link #countByIsActiveAndUpdatedAtBetween}.
+     */
+    @Query(value = """
+            SELECT to_char(date_trunc('month', s.updated_at), 'YYYY-MM') AS month,
+                   COUNT(*)                                               AS dropout_count
+            FROM students s
+            WHERE s.is_active = false
+              AND s.updated_at >= :from
+            GROUP BY date_trunc('month', s.updated_at)
+            ORDER BY date_trunc('month', s.updated_at)
+            """, nativeQuery = true)
+    List<Object[]> countMonthlyDropoutsSince(@Param("from") Instant from);
+
     boolean existsByUserLoginId(String userLoginId);
 
     @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE s.phone = :phone OR s.parentPhone = :phone")
