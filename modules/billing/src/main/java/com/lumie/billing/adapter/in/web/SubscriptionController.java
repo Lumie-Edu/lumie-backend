@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/v1/subscriptions")
 @RequiredArgsConstructor
@@ -22,6 +24,9 @@ public class SubscriptionController {
 
     private static final String CREATE_SUBSCRIPTION_SCOPE = "POST /v1/subscriptions";
     private static final String CHARGE_FIRST_INVOICE_SCOPE = "POST /v1/subscriptions/{tenantSlug}/charge";
+    private static final String CHANGE_PLAN_SCOPE = "PATCH /v1/subscriptions/{tenantSlug}";
+    private static final String CANCEL_SUBSCRIPTION_SCOPE = "DELETE /v1/subscriptions/{tenantSlug}";
+    private static final String UNDO_CANCELLATION_SCOPE = "DELETE /v1/subscriptions/{tenantSlug}/cancellation";
 
     private final SubscriptionCommandService subscriptionCommandService;
     private final SubscriptionQueryService subscriptionQueryService;
@@ -30,17 +35,13 @@ public class SubscriptionController {
     @PostMapping
     public ResponseEntity<SubscriptionResponse> createSubscription(
             @Valid @RequestBody CreateSubscriptionRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        if (idempotencyKey != null) {
-            return idempotencyService.executeOnce(
-                    idempotencyKey,
-                    CREATE_SUBSCRIPTION_SCOPE,
-                    request,
-                    () -> ResponseEntity.status(HttpStatus.CREATED).body(subscriptionCommandService.createSubscription(request))
-            );
-        }
-        SubscriptionResponse response = subscriptionCommandService.createSubscription(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                CREATE_SUBSCRIPTION_SCOPE,
+                request,
+                () -> ResponseEntity.status(HttpStatus.CREATED)
+                        .body(subscriptionCommandService.createSubscription(request)));
     }
 
     @GetMapping("/{tenantSlug}")
@@ -52,15 +53,38 @@ public class SubscriptionController {
     @PatchMapping("/{tenantSlug}")
     public ResponseEntity<SubscriptionResponse> changePlan(
             @PathVariable String tenantSlug,
-            @Valid @RequestBody ChangeSubscriptionRequest request) {
-        SubscriptionResponse response = subscriptionCommandService.changePlan(tenantSlug, request);
-        return ResponseEntity.ok(response);
+            @Valid @RequestBody ChangeSubscriptionRequest request,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                CHANGE_PLAN_SCOPE,
+                Map.of("tenantSlug", tenantSlug, "request", request),
+                () -> ResponseEntity.ok(subscriptionCommandService.changePlan(tenantSlug, request)));
     }
 
     @DeleteMapping("/{tenantSlug}")
-    public ResponseEntity<Void> cancelSubscription(@PathVariable String tenantSlug) {
-        subscriptionCommandService.cancelSubscription(tenantSlug);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> cancelSubscription(
+            @PathVariable String tenantSlug,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                CANCEL_SUBSCRIPTION_SCOPE,
+                Map.of("tenantSlug", tenantSlug, "op", "cancel"),
+                () -> {
+                    subscriptionCommandService.cancelSubscription(tenantSlug);
+                    return ResponseEntity.noContent().build();
+                });
+    }
+
+    @DeleteMapping("/{tenantSlug}/cancellation")
+    public ResponseEntity<SubscriptionResponse> undoCancellation(
+            @PathVariable String tenantSlug,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                UNDO_CANCELLATION_SCOPE,
+                Map.of("tenantSlug", tenantSlug, "op", "undo_cancellation"),
+                () -> ResponseEntity.ok(subscriptionCommandService.undoCancellation(tenantSlug)));
     }
 
     @PostMapping("/{tenantSlug}/charge")
@@ -71,8 +95,7 @@ public class SubscriptionController {
                 idempotencyKey,
                 CHARGE_FIRST_INVOICE_SCOPE,
                 tenantSlug,
-                () -> ResponseEntity.ok(subscriptionCommandService.chargeFirstInvoice(tenantSlug))
-        );
+                () -> ResponseEntity.ok(subscriptionCommandService.chargeFirstInvoice(tenantSlug)));
     }
 
     @GetMapping("/{tenantSlug}/quota/{metricType}")

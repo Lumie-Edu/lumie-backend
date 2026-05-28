@@ -30,16 +30,12 @@ public class PaymentController {
     @PostMapping("/confirm")
     public ResponseEntity<InvoiceResponse> confirmPayment(
             @Valid @RequestBody ConfirmPaymentRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        if (idempotencyKey != null) {
-            return idempotencyService.executeOnce(
-                    idempotencyKey,
-                    CONFIRM_SCOPE,
-                    request,
-                    () -> ResponseEntity.ok(paymentService.confirmPayment(request))
-            );
-        }
-        return ResponseEntity.ok(paymentService.confirmPayment(request));
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                CONFIRM_SCOPE,
+                request,
+                () -> ResponseEntity.ok(paymentService.confirmPayment(request)));
     }
 
     @GetMapping("/history")

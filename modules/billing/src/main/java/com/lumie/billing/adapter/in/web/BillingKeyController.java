@@ -4,6 +4,7 @@ import com.lumie.billing.application.dto.request.RegisterBillingKeyRequest;
 import com.lumie.billing.application.dto.response.BillingKeyResponse;
 import com.lumie.billing.application.service.BillingKeyCommandService;
 import com.lumie.billing.application.service.BillingKeyQueryService;
+import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,23 +13,31 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/v1/billing-keys")
 @RequiredArgsConstructor
 public class BillingKeyController {
 
+    private static final String REGISTER_SCOPE = "POST /v1/billing-keys";
+    private static final String REVOKE_SCOPE = "DELETE /v1/billing-keys/{billingKeyId}";
+
     private final BillingKeyCommandService billingKeyCommandService;
     private final BillingKeyQueryService billingKeyQueryService;
+    private final IdempotencyService idempotencyService;
 
     @PostMapping
     public ResponseEntity<BillingKeyResponse> registerBillingKey(
             @Valid @RequestBody RegisterBillingKeyRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
         Long tenantId = TenantContextHolder.getTenantId();
-        BillingKeyResponse response = billingKeyCommandService.registerBillingKey(
-                tenantId, request, idempotencyKey);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                REGISTER_SCOPE,
+                request,
+                () -> ResponseEntity.status(HttpStatus.CREATED)
+                        .body(billingKeyCommandService.registerBillingKey(tenantId, request, idempotencyKey)));
     }
 
     @GetMapping
@@ -44,9 +53,17 @@ public class BillingKeyController {
     }
 
     @DeleteMapping("/{billingKeyId}")
-    public ResponseEntity<Void> revokeBillingKey(@PathVariable Long billingKeyId) {
+    public ResponseEntity<Void> revokeBillingKey(
+            @PathVariable Long billingKeyId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
         Long tenantId = TenantContextHolder.getTenantId();
-        billingKeyCommandService.revokeBillingKey(tenantId, billingKeyId);
-        return ResponseEntity.noContent().build();
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                REVOKE_SCOPE,
+                Map.of("billingKeyId", billingKeyId),
+                () -> {
+                    billingKeyCommandService.revokeBillingKey(tenantId, billingKeyId);
+                    return ResponseEntity.noContent().build();
+                });
     }
 }

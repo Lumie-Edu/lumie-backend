@@ -12,12 +12,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/v1/alimtalk/credits")
 @RequiredArgsConstructor
 public class AlimtalkCreditController {
 
     private static final String RECHARGE_SCOPE = "POST /v1/alimtalk/credits/recharge";
+    private static final String CONFIGURE_AUTO_RECHARGE_SCOPE = "PUT /v1/alimtalk/credits/auto-recharge";
+    private static final String DISABLE_AUTO_RECHARGE_SCOPE = "DELETE /v1/alimtalk/credits/auto-recharge";
 
     private final AlimtalkCreditCommandService alimtalkCreditCommandService;
     private final AlimtalkCreditQueryService alimtalkCreditQueryService;
@@ -32,29 +36,35 @@ public class AlimtalkCreditController {
     @PostMapping("/recharge")
     public ResponseEntity<AlimtalkCreditResponse> recharge(
             @Valid @RequestBody RechargeAlimtalkCreditRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
         Long tenantId = TenantContextHolder.getTenantId();
-        if (idempotencyKey != null) {
-            return idempotencyService.executeOnce(
-                    idempotencyKey,
-                    RECHARGE_SCOPE,
-                    request,
-                    () -> ResponseEntity.ok(alimtalkCreditCommandService.recharge(tenantId, request))
-            );
-        }
-        return ResponseEntity.ok(alimtalkCreditCommandService.recharge(tenantId, request));
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                RECHARGE_SCOPE,
+                request,
+                () -> ResponseEntity.ok(alimtalkCreditCommandService.recharge(tenantId, request)));
     }
 
     @PutMapping("/auto-recharge")
     public ResponseEntity<AlimtalkCreditResponse> configureAutoRecharge(
-            @Valid @RequestBody ConfigureAutoRechargeRequest request) {
+            @Valid @RequestBody ConfigureAutoRechargeRequest request,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
         Long tenantId = TenantContextHolder.getTenantId();
-        return ResponseEntity.ok(alimtalkCreditCommandService.enableAutoRecharge(tenantId, request));
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                CONFIGURE_AUTO_RECHARGE_SCOPE,
+                request,
+                () -> ResponseEntity.ok(alimtalkCreditCommandService.enableAutoRecharge(tenantId, request)));
     }
 
     @DeleteMapping("/auto-recharge")
-    public ResponseEntity<AlimtalkCreditResponse> disableAutoRecharge() {
+    public ResponseEntity<AlimtalkCreditResponse> disableAutoRecharge(
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
         Long tenantId = TenantContextHolder.getTenantId();
-        return ResponseEntity.ok(alimtalkCreditCommandService.disableAutoRecharge(tenantId));
+        return idempotencyService.executeOnce(
+                idempotencyKey,
+                DISABLE_AUTO_RECHARGE_SCOPE,
+                Map.of("tenantId", tenantId, "op", "disable_auto_recharge"),
+                () -> ResponseEntity.ok(alimtalkCreditCommandService.disableAutoRecharge(tenantId)));
     }
 }

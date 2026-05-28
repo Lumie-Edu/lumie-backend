@@ -79,6 +79,11 @@ dependencies {
     // it is on the test *compile* classpath too. Versions via Spring Boot BOM.
     testImplementation("org.flywaydb:flyway-core")
     testImplementation("org.flywaydb:flyway-database-postgresql")
+
+    // ArchUnit — cross-module architecture invariants (e.g. every /v1/** mutation
+    // controller wires IdempotencyService and routes through executeOnce).
+    // Lives in app/ so the test classpath sees every module's adapter/in/web.
+    testImplementation(libs.archunit.junit5)
 }
 
 tasks.bootJar {
