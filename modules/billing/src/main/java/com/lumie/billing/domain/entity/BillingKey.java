@@ -52,7 +52,10 @@ public class BillingKey extends BaseEntity {
     @Column(name = "customer_key", length = 255)
     private String customerKey;
 
-    @Column(name = "masked_card_number", nullable = false, length = 20)
+    // Nullable: Toss may omit card metadata in the issue response (notably
+    // sandbox dummy cards, and some live card networks). Display-only field —
+    // pg_billing_key carries the functional invariant.
+    @Column(name = "masked_card_number", length = 20)
     private String maskedCardNumber;
 
     @Column(name = "card_company", length = 50)

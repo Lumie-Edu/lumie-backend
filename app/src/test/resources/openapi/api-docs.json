@@ -427,6 +427,8 @@
       "BillingKeyResponse" : {
         "properties" : {
           "cardCompany" : {
+            "description" : "카드사 (Toss가 미반환 시 null)",
+            "nullable" : true,
             "type" : "string"
           },
           "createdAt" : {
@@ -438,6 +440,8 @@
             "type" : "integer"
           },
           "maskedCardNumber" : {
+            "description" : "마스킹된 카드 번호 (Toss가 미반환 시 null)",
+            "nullable" : true,
             "type" : "string"
           },
           "revokedAt" : {
