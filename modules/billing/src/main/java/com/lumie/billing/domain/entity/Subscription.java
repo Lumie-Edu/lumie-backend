@@ -133,6 +133,49 @@ public class Subscription extends BaseEntity {
         this.plan = newPlan;
     }
 
+    /**
+     * Adopt {@code newPlan} as the current paid plan and ensure the subscription
+     * is ACTIVE, regardless of the source state. Used by the
+     * {@code POST /v1/billing/subscribe} orchestrator so a tenant can move
+     * to a paid plan from any non-PENDING state in one step.
+     *
+     * <ul>
+     *   <li>ACTIVE → swap plan in place (same effect as {@link #changePlan})</li>
+     *   <li>PAUSED / PAST_DUE → resume + swap plan, reset failure counter</li>
+     *   <li>CANCELLED / EXPIRED → re-start the subscription on the new plan
+     *       (same effect as {@link #reactivate}, also clears {@code cancelledAt}
+     *       and resets {@code startedAt})</li>
+     *   <li>PENDING → reject (a prior operation is still in-flight)</li>
+     * </ul>
+     *
+     * <p>{@code newExpiresAt} is honored only for the reactivation paths
+     * (CANCELLED / EXPIRED) where the subscription period is being restarted;
+     * ignored for ACTIVE / PAUSED / PAST_DUE where the existing period applies.
+     */
+    public void upgradeOrReactivate(Plan newPlan, Instant newExpiresAt) {
+        switch (this.status) {
+            case ACTIVE -> this.plan = newPlan;
+            case PAUSED, PAST_DUE -> {
+                this.plan = newPlan;
+                this.status = SubscriptionStatus.ACTIVE;
+                this.suspensionReason = SuspensionReason.NONE;
+                this.paymentFailureCount = 0;
+            }
+            case CANCELLED, EXPIRED -> {
+                this.plan = newPlan;
+                this.status = SubscriptionStatus.ACTIVE;
+                this.suspensionReason = SuspensionReason.NONE;
+                this.startedAt = Instant.now();
+                this.expiresAt = newExpiresAt;
+                this.cancelledAt = null;
+                this.paymentFailureCount = 0;
+            }
+            case PENDING -> throw new BillingException(
+                    BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "Subscription is PENDING — wait for the current operation to settle before subscribing again");
+        }
+    }
+
     public void cancel() {
         if (this.status == SubscriptionStatus.CANCELLED) {
             throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,

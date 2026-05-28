@@ -36,7 +36,7 @@ import java.util.Map;
  * <ol>
  *   <li>(PG, tx-free) issue billing key at Toss</li>
  *   <li>(helper tx) {@code replaceActive}: REVOKE existing active + INSERT new</li>
- *   <li>(helper tx) {@code attachBillingKeyAndChangePlan}: subscription→new
+ *   <li>(helper tx) {@code attachBillingKeyAndUpgrade}: subscription→new
  *       key + new plan in one DB tx</li>
  *   <li>(PG via {@link SubscriptionChargeExecutor}) charge the first invoice;
  *       executor commits the Invoice + advances {@code nextChargeAt}
@@ -111,9 +111,13 @@ public class BillingSubscribeService {
         BillingKey savedKey = billingKeyPersistenceHelper.replaceActive(newBillingKey);
         log.info("BillingSubscribe: billing key persisted id={}", savedKey.getId());
 
-        // 3. Attach + changePlan (single helper tx)
+        // 3. Attach + upgrade-or-reactivate (single helper tx). Subscription
+        //    domain method absorbs the state-machine adapter (ACTIVE / PAUSED /
+        //    PAST_DUE / CANCELLED / EXPIRED → ACTIVE on newPlan), so this
+        //    endpoint is the single entry point for any "subscribe to paid"
+        //    intent regardless of the tenant's prior subscription state.
         Subscription subscription = subscriptionPersistenceHelper
-                .attachBillingKeyAndChangePlan(tenantSlug, savedKey.getId(), newPlan);
+                .attachBillingKeyAndUpgrade(tenantSlug, savedKey.getId(), newPlan, null);
         log.info("BillingSubscribe: subscription upgraded id={} → planId={}",
                 subscription.getId(), newPlan.getId());
 

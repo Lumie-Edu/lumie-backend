@@ -88,7 +88,7 @@ class BillingSubscribeServiceTest {
                 Instant.now().plusSeconds(86_400));
         ReflectionTestUtils.setField(upgraded, "id", 1L);
         upgraded.attachBillingKey(99L);
-        given(subscriptionPersistenceHelper.attachBillingKeyAndChangePlan(TENANT_SLUG, 99L, paidPlan))
+        given(subscriptionPersistenceHelper.attachBillingKeyAndUpgrade(TENANT_SLUG, 99L, paidPlan, null))
                 .willReturn(upgraded);
 
         Invoice paidInvoice = Invoice.create("INV-15-20260528-AB",
@@ -106,7 +106,7 @@ class BillingSubscribeServiceTest {
         assertThat(response.billingKey().id()).isEqualTo(99L);
         assertThat(response.invoice().id()).isEqualTo(500L);
         verify(billingKeyPersistenceHelper).replaceActive(any(BillingKey.class));
-        verify(subscriptionPersistenceHelper).attachBillingKeyAndChangePlan(TENANT_SLUG, 99L, paidPlan);
+        verify(subscriptionPersistenceHelper).attachBillingKeyAndUpgrade(TENANT_SLUG, 99L, paidPlan, null);
         verify(chargeExecutor).charge(upgraded);
     }
 
@@ -151,7 +151,7 @@ class BillingSubscribeServiceTest {
 
         verify(billingKeyPersistenceHelper, never()).replaceActive(any());
         verify(subscriptionPersistenceHelper, never())
-                .attachBillingKeyAndChangePlan(anyString(), any(), any());
+                .attachBillingKeyAndUpgrade(anyString(), any(), any(), any());
         verify(chargeExecutor, never()).charge(any());
     }
 
@@ -172,7 +172,7 @@ class BillingSubscribeServiceTest {
         Subscription upgraded = Subscription.create(TENANT_ID, TENANT_SLUG, paidPlan, null);
         ReflectionTestUtils.setField(upgraded, "id", 1L);
         upgraded.attachBillingKey(99L);
-        given(subscriptionPersistenceHelper.attachBillingKeyAndChangePlan(eq(TENANT_SLUG), eq(99L), any()))
+        given(subscriptionPersistenceHelper.attachBillingKeyAndUpgrade(eq(TENANT_SLUG), eq(99L), any(), any()))
                 .willReturn(upgraded);
 
         given(chargeExecutor.charge(upgraded)).willReturn(ChargeOutcome.failed("INVALID_CARD"));
@@ -185,6 +185,6 @@ class BillingSubscribeServiceTest {
         // The earlier DB mutations DID commit (helper-scoped tx). The scheduler
         // will retry the charge at the next billing cycle.
         verify(billingKeyPersistenceHelper).replaceActive(any());
-        verify(subscriptionPersistenceHelper).attachBillingKeyAndChangePlan(eq(TENANT_SLUG), eq(99L), any());
+        verify(subscriptionPersistenceHelper).attachBillingKeyAndUpgrade(eq(TENANT_SLUG), eq(99L), any(), any());
     }
 }

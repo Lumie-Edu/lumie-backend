@@ -100,6 +100,81 @@ class SubscriptionTest {
         assertThat(sub.hasBillingKey()).isTrue();
     }
 
+    // ─── upgradeOrReactivate: state-machine adapter for /v1/billing/subscribe ───
+
+    @Test
+    void upgradeOrReactivate_from_ACTIVE_swaps_plan() {
+        Plan freePlan = mockFreePlan();
+        Plan proPlan = mockPaidPlan("PRO");
+        Subscription sub = Subscription.createFree(1L, "test-academy", freePlan);
+
+        sub.upgradeOrReactivate(proPlan, null);
+
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(sub.getPlanId()).isEqualTo("PRO");
+    }
+
+    @Test
+    void upgradeOrReactivate_from_CANCELLED_reactivates_on_newPlan() {
+        Plan freePlan = mockFreePlan();
+        Plan proPlan = mockPaidPlan("PRO");
+        Subscription sub = Subscription.createFree(1L, "test-academy", freePlan);
+        sub.cancel();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.CANCELLED);
+
+        sub.upgradeOrReactivate(proPlan, null);
+
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(sub.getPlanId()).isEqualTo("PRO");
+        assertThat(sub.getCancelledAt()).isNull();
+        assertThat(sub.getSuspensionReason()).isEqualTo(SuspensionReason.NONE);
+    }
+
+    @Test
+    void upgradeOrReactivate_from_PAUSED_resumes_and_swaps_plan() {
+        Plan freePlan = mockFreePlan();
+        Plan proPlan = mockPaidPlan("PRO");
+        Subscription sub = Subscription.createFree(1L, "test-academy", freePlan);
+        sub.pause(SuspensionReason.PAYMENT_FAILED_3X);
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.PAUSED);
+
+        sub.upgradeOrReactivate(proPlan, null);
+
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(sub.getPlanId()).isEqualTo("PRO");
+        assertThat(sub.getSuspensionReason()).isEqualTo(SuspensionReason.NONE);
+        assertThat(sub.getPaymentFailureCount()).isZero();
+    }
+
+    @Test
+    void upgradeOrReactivate_from_EXPIRED_reactivates_on_newPlan() {
+        Plan freePlan = mockFreePlan();
+        Plan proPlan = mockPaidPlan("PRO");
+        Subscription sub = Subscription.createFree(1L, "test-academy", freePlan);
+        sub.expire();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
+
+        sub.upgradeOrReactivate(proPlan, null);
+
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(sub.getPlanId()).isEqualTo("PRO");
+    }
+
+    @Test
+    void upgradeOrReactivate_from_PAST_DUE_recovers_and_swaps_plan() {
+        Plan freePlan = mockFreePlan();
+        Plan proPlan = mockPaidPlan("PRO");
+        Subscription sub = Subscription.createFree(1L, "test-academy", freePlan);
+        sub.markPastDue();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.PAST_DUE);
+
+        sub.upgradeOrReactivate(proPlan, null);
+
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(sub.getPlanId()).isEqualTo("PRO");
+        assertThat(sub.getPaymentFailureCount()).isZero();
+    }
+
     // ─── Private helpers ──────────────────────────────────────────────────────
 
     private Plan mockFreePlan() {
@@ -114,6 +189,14 @@ class SubscriptionTest {
                         .maxAdmins(2)
                         .omrMonthlyQuota(10)
                         .build());
+        return plan;
+    }
+
+    private Plan mockPaidPlan(String id) {
+        Plan plan = mock(Plan.class);
+        when(plan.getId()).thenReturn(id);
+        when(plan.getName()).thenReturn(id + " Plan");
+        when(plan.getMonthlyPrice()).thenReturn(com.lumie.billing.domain.vo.Money.of(99_000L));
         return plan;
     }
 }
