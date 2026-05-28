@@ -1,6 +1,6 @@
 package com.lumie.billing.application.service;
 
-import com.lumie.billing.adapter.out.config.BillingProperties;
+import com.lumie.billing.application.port.out.BillingConfigPort;
 import com.lumie.billing.application.dto.request.ChangeSubscriptionRequest;
 import com.lumie.billing.application.dto.request.CreateSubscriptionRequest;
 import com.lumie.billing.application.dto.response.InvoiceResponse;
@@ -35,7 +35,7 @@ import java.util.List;
 @Transactional
 public class SubscriptionCommandService {
 
-    private final BillingProperties billingProperties;
+    private final BillingConfigPort billingConfig;
 
     private final SubscriptionPersistencePort subscriptionPersistencePort;
     private final PlanPersistencePort planPersistencePort;
@@ -110,7 +110,7 @@ public class SubscriptionCommandService {
                     .orElseThrow(() -> new ResourceNotFoundException("Subscription", "tenantId:" + tenantId));
         }
 
-        String freePlanId = billingProperties.subscription().freePlanId();
+        String freePlanId = billingConfig.getFreePlanId();
         Plan freePlan = planPersistencePort.findById(freePlanId)
                 .orElseThrow(() -> new ResourceNotFoundException("Plan", freePlanId));
 

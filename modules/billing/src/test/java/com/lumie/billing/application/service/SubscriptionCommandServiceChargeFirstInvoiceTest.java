@@ -46,7 +46,7 @@ class SubscriptionCommandServiceChargeFirstInvoiceTest {
     @Mock private PlanPersistencePort planPersistencePort;
     @Mock private InvoicePersistencePort invoicePersistencePort;
     @Mock private SubscriptionChargeExecutor chargeExecutor;
-    @Mock private com.lumie.billing.adapter.out.config.BillingProperties billingProperties;
+    @Mock private com.lumie.billing.application.port.out.BillingConfigPort billingConfig;
 
     @InjectMocks private SubscriptionCommandService service;
 
