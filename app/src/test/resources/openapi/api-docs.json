@@ -4932,10 +4932,19 @@
             "nullable" : true,
             "type" : "string"
           },
+          "pendingPlanId" : {
+            "nullable" : true,
+            "type" : "string"
+          },
           "planId" : {
             "type" : "string"
           },
           "planName" : {
+            "type" : "string"
+          },
+          "scheduledChangeAt" : {
+            "format" : "date-time",
+            "nullable" : true,
             "type" : "string"
           },
           "startedAt" : {
@@ -4943,7 +4952,7 @@
             "type" : "string"
           },
           "status" : {
-            "enum" : [ "ACTIVE", "PAUSED", "CANCELLED", "EXPIRED", "PENDING", "PAST_DUE" ],
+            "enum" : [ "ACTIVE", "PAUSED", "PAST_DUE", "CANCELLED", "EXPIRED" ],
             "type" : "string"
           },
           "suspensionReason" : {
@@ -4963,7 +4972,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "billingKeyId", "cancelledAt", "createdAt", "expiresAt", "id", "limits", "nextChargeAt", "planId", "planName", "startedAt", "status", "suspensionReason", "tenantId", "tenantSlug", "updatedAt" ],
+        "required" : [ "billingKeyId", "cancelledAt", "createdAt", "expiresAt", "id", "limits", "nextChargeAt", "pendingPlanId", "planId", "planName", "scheduledChangeAt", "startedAt", "status", "suspensionReason", "tenantId", "tenantSlug", "updatedAt" ],
         "type" : "object"
       },
       "TenantResponse" : {
@@ -6343,6 +6352,14 @@
     "/v1/alimtalk/credits/auto-recharge" : {
       "delete" : {
         "operationId" : "disableAutoRecharge",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {
@@ -6359,6 +6376,14 @@
       },
       "put" : {
         "operationId" : "configureAutoRecharge",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -6390,7 +6415,7 @@
         "parameters" : [ {
           "in" : "header",
           "name" : "Idempotency-Key",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -7585,7 +7610,7 @@
         "parameters" : [ {
           "in" : "header",
           "name" : "Idempotency-Key",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -7643,6 +7668,13 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -10125,7 +10157,7 @@
         "parameters" : [ {
           "in" : "header",
           "name" : "Idempotency-Key",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -13082,7 +13114,7 @@
         "parameters" : [ {
           "in" : "header",
           "name" : "Idempotency-Key",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -13118,6 +13150,13 @@
         "parameters" : [ {
           "in" : "path",
           "name" : "tenantSlug",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
           "required" : true,
           "schema" : {
             "type" : "string"
@@ -13163,6 +13202,13 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -13174,6 +13220,39 @@
           },
           "required" : true
         },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "subscription-controller" ]
+      }
+    },
+    "/v1/subscriptions/{tenantSlug}/cancellation" : {
+      "delete" : {
+        "operationId" : "undoCancellation",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tenantSlug",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {
