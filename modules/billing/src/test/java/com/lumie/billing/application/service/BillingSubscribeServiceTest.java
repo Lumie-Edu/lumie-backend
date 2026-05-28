@@ -25,10 +25,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -51,6 +53,7 @@ class BillingSubscribeServiceTest {
     @Mock private SubscriptionPersistenceHelper subscriptionPersistenceHelper;
     @Mock private SubscriptionChargeExecutor chargeExecutor;
     @Mock private PaymentTransactionLogger transactionLogger;
+    @Mock private BillingOperationLockService operationLockService;
 
     @InjectMocks private BillingSubscribeService service;
 
@@ -59,6 +62,10 @@ class BillingSubscribeServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Pass-through: delegate to real action so existing tests remain unchanged.
+        given(operationLockService.executeExclusively(anyLong(), anyString(), anyString(), any()))
+                .willAnswer(invocation -> ((Supplier<?>) invocation.getArgument(3)).get());
+
         paidPlan = Plan.builder()
                 .id("PRO").name("Pro")
                 .monthlyPrice(Money.of(99_000L))
@@ -88,7 +95,7 @@ class BillingSubscribeServiceTest {
                 Instant.now().plusSeconds(86_400));
         ReflectionTestUtils.setField(upgraded, "id", 1L);
         upgraded.attachBillingKey(99L);
-        given(subscriptionPersistenceHelper.attachBillingKeyAndUpgrade(TENANT_SLUG, 99L, paidPlan, null))
+        given(subscriptionPersistenceHelper.attachBillingKeyAndSubscribe(TENANT_SLUG, 99L, paidPlan, null))
                 .willReturn(upgraded);
 
         Invoice paidInvoice = Invoice.create("INV-15-20260528-AB",
@@ -106,7 +113,7 @@ class BillingSubscribeServiceTest {
         assertThat(response.billingKey().id()).isEqualTo(99L);
         assertThat(response.invoice().id()).isEqualTo(500L);
         verify(billingKeyPersistenceHelper).replaceActive(any(BillingKey.class));
-        verify(subscriptionPersistenceHelper).attachBillingKeyAndUpgrade(TENANT_SLUG, 99L, paidPlan, null);
+        verify(subscriptionPersistenceHelper).attachBillingKeyAndSubscribe(TENANT_SLUG, 99L, paidPlan, null);
         verify(chargeExecutor).charge(upgraded);
     }
 
@@ -151,7 +158,7 @@ class BillingSubscribeServiceTest {
 
         verify(billingKeyPersistenceHelper, never()).replaceActive(any());
         verify(subscriptionPersistenceHelper, never())
-                .attachBillingKeyAndUpgrade(anyString(), any(), any(), any());
+                .attachBillingKeyAndSubscribe(anyString(), any(), any(), any());
         verify(chargeExecutor, never()).charge(any());
     }
 
@@ -172,7 +179,7 @@ class BillingSubscribeServiceTest {
         Subscription upgraded = Subscription.create(TENANT_ID, TENANT_SLUG, paidPlan, null);
         ReflectionTestUtils.setField(upgraded, "id", 1L);
         upgraded.attachBillingKey(99L);
-        given(subscriptionPersistenceHelper.attachBillingKeyAndUpgrade(eq(TENANT_SLUG), eq(99L), any(), any()))
+        given(subscriptionPersistenceHelper.attachBillingKeyAndSubscribe(eq(TENANT_SLUG), eq(99L), any(), any()))
                 .willReturn(upgraded);
 
         given(chargeExecutor.charge(upgraded)).willReturn(ChargeOutcome.failed("INVALID_CARD"));
@@ -185,6 +192,6 @@ class BillingSubscribeServiceTest {
         // The earlier DB mutations DID commit (helper-scoped tx). The scheduler
         // will retry the charge at the next billing cycle.
         verify(billingKeyPersistenceHelper).replaceActive(any());
-        verify(subscriptionPersistenceHelper).attachBillingKeyAndUpgrade(eq(TENANT_SLUG), eq(99L), any(), any());
+        verify(subscriptionPersistenceHelper).attachBillingKeyAndSubscribe(eq(TENANT_SLUG), eq(99L), any(), any());
     }
 }

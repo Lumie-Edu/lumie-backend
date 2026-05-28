@@ -36,7 +36,7 @@ import java.util.Map;
  * <ol>
  *   <li>(PG, tx-free) issue billing key at Toss</li>
  *   <li>(helper tx) {@code replaceActive}: REVOKE existing active + INSERT new</li>
- *   <li>(helper tx) {@code attachBillingKeyAndUpgrade}: subscription→new
+ *   <li>(helper tx) {@code attachBillingKeyAndSubscribe}: subscription→new
  *       key + new plan in one DB tx</li>
  *   <li>(PG via {@link SubscriptionChargeExecutor}) charge the first invoice;
  *       executor commits the Invoice + advances {@code nextChargeAt}
@@ -60,6 +60,11 @@ import java.util.Map;
  * {@link com.lumie.common.idempotency.IdempotencyService} — duplicate
  * requests within the dedup window return the original {@link SubscribeResponse}
  * without re-executing this orchestration.
+ *
+ * <p>Concurrent calls from the same tenant with different Idempotency-Keys are
+ * serialized by {@link BillingOperationLockService} — the second concurrent
+ * call receives HTTP 409 {@code OPERATION_IN_PROGRESS} rather than
+ * re-issuing a Toss billing key.
  */
 @Slf4j
 @Service
@@ -72,66 +77,69 @@ public class BillingSubscribeService {
     private final SubscriptionPersistenceHelper subscriptionPersistenceHelper;
     private final SubscriptionChargeExecutor chargeExecutor;
     private final PaymentTransactionLogger transactionLogger;
+    private final BillingOperationLockService operationLockService;
 
     public SubscribeResponse subscribe(Long tenantId, String tenantSlug,
                                        SubscribeRequest request, String idempotencyKey) {
-        log.info("BillingSubscribe.subscribe: tenant={}, planId={}", tenantSlug, request.planId());
+        return operationLockService.executeExclusively(tenantId, "SUBSCRIBE", idempotencyKey, () -> {
+            log.info("BillingSubscribe.subscribe: tenant={}, planId={}", tenantSlug, request.planId());
 
-        Plan newPlan = planPersistencePort.findById(request.planId())
-                .orElseThrow(() -> new ResourceNotFoundException("Plan", request.planId()));
-        if (newPlan.isFree()) {
-            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
-                    "Cannot subscribe to a free plan via /billing/subscribe: " + request.planId());
-        }
+            Plan newPlan = planPersistencePort.findById(request.planId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Plan", request.planId()));
+            if (newPlan.isFree()) {
+                throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                        "Cannot subscribe to a free plan via /billing/subscribe: " + request.planId());
+            }
 
-        // 1. PG issueBillingKey (outside any tx)
-        transactionLogger.log(tenantId, TransactionType.BILLING_KEY_ISSUE,
-                TransactionDirection.REQUEST, idempotencyKey, "BillingKey", null,
-                Map.of("authKey", "[REDACTED]", "customerKey", request.customerKey()),
-                null);
+            // 1. PG issueBillingKey (outside any tx)
+            transactionLogger.log(tenantId, TransactionType.BILLING_KEY_ISSUE,
+                    TransactionDirection.REQUEST, idempotencyKey, "BillingKey", null,
+                    Map.of("authKey", "[REDACTED]", "customerKey", request.customerKey()),
+                    null);
 
-        PaymentGatewayPort.BillingKeyIssueResult issueResult =
-                paymentGatewayPort.issueBillingKey(request.authKey(), request.customerKey());
+            PaymentGatewayPort.BillingKeyIssueResult issueResult =
+                    paymentGatewayPort.issueBillingKey(request.authKey(), request.customerKey());
 
-        transactionLogger.log(tenantId, TransactionType.BILLING_KEY_ISSUE,
-                TransactionDirection.RESPONSE, idempotencyKey, "BillingKey", null,
-                Map.of("success", issueResult.success(),
-                        "error", issueResult.errorMessage() != null ? issueResult.errorMessage() : ""),
-                issueResult.success() ? 200 : 400);
+            transactionLogger.log(tenantId, TransactionType.BILLING_KEY_ISSUE,
+                    TransactionDirection.RESPONSE, idempotencyKey, "BillingKey", null,
+                    Map.of("success", issueResult.success(),
+                            "error", issueResult.errorMessage() != null ? issueResult.errorMessage() : ""),
+                    issueResult.success() ? 200 : 400);
 
-        if (!issueResult.success()) {
-            throw new BillingException(BillingErrorCode.TOSS_API_ERROR,
-                    "Failed to issue billing key: " + issueResult.errorMessage());
-        }
+            if (!issueResult.success()) {
+                throw new BillingException(BillingErrorCode.TOSS_API_ERROR,
+                        "Failed to issue billing key: " + issueResult.errorMessage());
+            }
 
-        // 2. replaceActive: REVOKE old + INSERT new (single helper tx)
-        BillingKey newBillingKey = BillingKey.register(tenantId,
-                issueResult.billingKey(), request.customerKey(),
-                issueResult.maskedCardNumber(), issueResult.cardCompany());
-        BillingKey savedKey = billingKeyPersistenceHelper.replaceActive(newBillingKey);
-        log.info("BillingSubscribe: billing key persisted id={}", savedKey.getId());
+            // 2. replaceActive: REVOKE old + INSERT new (single helper tx)
+            BillingKey newBillingKey = BillingKey.register(tenantId,
+                    issueResult.billingKey(), request.customerKey(),
+                    issueResult.maskedCardNumber(), issueResult.cardCompany());
+            BillingKey savedKey = billingKeyPersistenceHelper.replaceActive(newBillingKey);
+            log.info("BillingSubscribe: billing key persisted id={}", savedKey.getId());
 
-        // 3. Attach + upgrade-or-reactivate (single helper tx). Subscription
-        //    domain method absorbs the state-machine adapter (ACTIVE / PAUSED /
-        //    PAST_DUE / CANCELLED / EXPIRED → ACTIVE on newPlan), so this
-        //    endpoint is the single entry point for any "subscribe to paid"
-        //    intent regardless of the tenant's prior subscription state.
-        Subscription subscription = subscriptionPersistenceHelper
-                .attachBillingKeyAndUpgrade(tenantSlug, savedKey.getId(), newPlan, null);
-        log.info("BillingSubscribe: subscription upgraded id={} → planId={}",
-                subscription.getId(), newPlan.getId());
+            // 3. Attach + subscribe (single helper tx). Subscription
+            //    domain method absorbs the state-machine adapter (ACTIVE / PAUSED /
+            //    PAST_DUE / CANCELLED / EXPIRED → ACTIVE on newPlan), so this
+            //    endpoint is the single entry point for any "subscribe to paid"
+            //    intent regardless of the tenant's prior subscription state.
+            Subscription subscription = subscriptionPersistenceHelper
+                    .attachBillingKeyAndSubscribe(tenantSlug, savedKey.getId(), newPlan, null);
+            log.info("BillingSubscribe: subscription upgraded id={} → planId={}",
+                    subscription.getId(), newPlan.getId());
 
-        // 4. Charge (PG outside tx; executor commits Invoice + nextChargeAt in short tx)
-        SubscriptionChargeExecutor.ChargeOutcome outcome = chargeExecutor.charge(subscription);
-        return switch (outcome.status()) {
-            case PAID -> new SubscribeResponse(
-                    SubscriptionResponse.from(subscription),
-                    BillingKeyResponse.from(savedKey),
-                    InvoiceResponse.from(outcome.invoice()));
-            case FAILED -> throw new BillingException(BillingErrorCode.PAYMENT_FAILED,
-                    outcome.reason() != null ? outcome.reason() : "PG charge failed");
-            case SKIPPED -> throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
-                    "Charge skipped: " + (outcome.reason() != null ? outcome.reason() : "unknown"));
-        };
+            // 4. Charge (PG outside tx; executor commits Invoice + nextChargeAt in short tx)
+            SubscriptionChargeExecutor.ChargeOutcome outcome = chargeExecutor.charge(subscription);
+            return switch (outcome.status()) {
+                case PAID -> new SubscribeResponse(
+                        SubscriptionResponse.from(subscription),
+                        BillingKeyResponse.from(savedKey),
+                        InvoiceResponse.from(outcome.invoice()));
+                case FAILED -> throw new BillingException(BillingErrorCode.PAYMENT_FAILED,
+                        outcome.reason() != null ? outcome.reason() : "PG charge failed");
+                case SKIPPED -> throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                        "Charge skipped: " + (outcome.reason() != null ? outcome.reason() : "unknown"));
+            };
+        });
     }
 }

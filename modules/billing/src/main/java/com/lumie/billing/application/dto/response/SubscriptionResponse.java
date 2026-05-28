@@ -22,6 +22,8 @@ public record SubscriptionResponse(
         @Schema(nullable = true) Instant nextChargeAt,
         @Schema(nullable = true) Instant expiresAt,
         @Schema(nullable = true) Instant cancelledAt,
+        @Schema(nullable = true) String pendingPlanId,
+        @Schema(nullable = true) Instant scheduledChangeAt,
         PlanLimitsResponse limits,
         Instant createdAt,
         Instant updatedAt
@@ -40,6 +42,9 @@ public record SubscriptionResponse(
                 .nextChargeAt(subscription.getNextChargeAt())
                 .expiresAt(subscription.getExpiresAt())
                 .cancelledAt(subscription.getCancelledAt())
+                .pendingPlanId(subscription.getPendingPlan() != null
+                        ? subscription.getPendingPlan().getId() : null)
+                .scheduledChangeAt(subscription.getScheduledChangeAt())
                 .limits(PlanLimitsResponse.from(subscription.getLimits()))
                 .createdAt(subscription.getCreatedAt())
                 .updatedAt(subscription.getUpdatedAt())
