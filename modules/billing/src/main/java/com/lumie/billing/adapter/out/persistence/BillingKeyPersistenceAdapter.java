@@ -21,6 +21,11 @@ public class BillingKeyPersistenceAdapter implements BillingKeyPersistencePort {
     }
 
     @Override
+    public BillingKey saveAndFlush(BillingKey billingKey) {
+        return billingKeyJpaRepository.saveAndFlush(billingKey);
+    }
+
+    @Override
     public Optional<BillingKey> findById(Long id) {
         return billingKeyJpaRepository.findById(id);
     }

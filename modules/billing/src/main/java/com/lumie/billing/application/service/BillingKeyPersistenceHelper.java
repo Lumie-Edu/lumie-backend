@@ -39,13 +39,20 @@ public class BillingKeyPersistenceHelper {
      * transaction frees the slot for the new INSERT. Re-registration (user
      * retry, card swap, first-time setup) all share this semantics, which
      * matches the BE invariant "one active card per tenant".
+     *
+     * <p>{@code saveAndFlush} on the REVOKE forces Hibernate to emit the
+     * {@code UPDATE} immediately. Without it, JPA defers the dirty-tracking
+     * UPDATE to commit time, while the {@code INSERT} for the new entity
+     * fires straight away (needs the generated id) — order inversion would
+     * trip {@code uq_billing_keys_tenant_active} with 23505 even though the
+     * intent is correct.
      */
     @Transactional
     public BillingKey replaceActive(BillingKey newBillingKey) {
         billingKeyPersistencePort.findActiveByTenantId(newBillingKey.getTenantId())
                 .ifPresent(existing -> {
                     existing.revoke();
-                    billingKeyPersistencePort.save(existing);
+                    billingKeyPersistencePort.saveAndFlush(existing);
                 });
         return billingKeyPersistencePort.save(newBillingKey);
     }
