@@ -47,6 +47,9 @@ public enum BillingErrorCode implements ErrorCode {
     TOSS_WEBHOOK_SIGNATURE_INVALID("BILLING_801", "Invalid Toss webhook signature", 401),
     TOSS_API_ERROR("BILLING_802", "Toss Payments API call failed", 502),
 
+    // Operation lock errors
+    OPERATION_IN_PROGRESS("BILLING_901", "Another billing operation is in progress", 409),
+
     // General errors
     INTERNAL_ERROR("BILLING_999", "Internal server error", 500);
 
