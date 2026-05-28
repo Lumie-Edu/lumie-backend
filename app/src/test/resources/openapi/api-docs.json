@@ -4866,6 +4866,39 @@
         "required" : [ "assignmentId", "attachments", "content", "createdAt", "feedback", "gradedAt", "id", "score", "status", "studentId", "submittedAt", "updatedAt" ],
         "type" : "object"
       },
+      "SubscribeRequest" : {
+        "properties" : {
+          "authKey" : {
+            "description" : "Toss billing-widget authKey (one-shot, from successUrl callback)",
+            "type" : "string"
+          },
+          "customerKey" : {
+            "description" : "Per-tenant customerKey the FE sent to Toss (e.g. lumie-tenant-15)",
+            "type" : "string"
+          },
+          "planId" : {
+            "description" : "Target paid plan id (e.g. BASIC, PRO, ENTERPRISE)",
+            "type" : "string"
+          }
+        },
+        "required" : [ "authKey", "customerKey", "planId" ],
+        "type" : "object"
+      },
+      "SubscribeResponse" : {
+        "properties" : {
+          "billingKey" : {
+            "$ref" : "#/components/schemas/BillingKeyResponse"
+          },
+          "invoice" : {
+            "$ref" : "#/components/schemas/InvoiceResponse"
+          },
+          "subscription" : {
+            "$ref" : "#/components/schemas/SubscriptionResponse"
+          }
+        },
+        "required" : [ "billingKey", "invoice", "subscription" ],
+        "type" : "object"
+      },
       "SubscriptionResponse" : {
         "properties" : {
           "billingKeyId" : {
@@ -7636,6 +7669,42 @@
           }
         },
         "tags" : [ "billing-config-controller" ]
+      }
+    },
+    "/v1/billing/subscribe" : {
+      "post" : {
+        "operationId" : "subscribe",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubscribeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubscribeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "billing-subscribe-controller" ]
       }
     },
     "/v1/chat" : {
