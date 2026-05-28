@@ -35,6 +35,11 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPersistencePo
     }
 
     @Override
+    public Optional<Subscription> findByIdWithPlanAndPendingPlan(Long id) {
+        return subscriptionJpaRepository.findByIdWithPlanAndPendingPlan(id);
+    }
+
+    @Override
     public Optional<Subscription> findByTenantId(Long tenantId) {
         return subscriptionJpaRepository.findByTenantId(tenantId);
     }

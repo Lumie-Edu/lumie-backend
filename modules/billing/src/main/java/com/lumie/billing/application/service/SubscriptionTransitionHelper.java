@@ -43,11 +43,17 @@ public class SubscriptionTransitionHelper {
      * Apply a pending plan change (downgrade) to a single subscription (F-flow).
      * Calls {@link Subscription#applyPendingPlanChange()} which is idempotent.
      *
+     * <p>Uses {@code findByIdWithPlanAndPendingPlan} so the {@code plan} and
+     * {@code pendingPlan} associations are loaded eagerly in this fresh
+     * {@code REQUIRES_NEW} session — lazy-loading would trigger extra
+     * SELECTs per row when the domain method swaps {@code pendingPlan} into
+     * {@code plan}.
+     *
      * @throws BillingException if the subscription is not found
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void applyOnePendingChange(Long subscriptionId) {
-        Subscription sub = subscriptionPersistencePort.findById(subscriptionId)
+        Subscription sub = subscriptionPersistencePort.findByIdWithPlanAndPendingPlan(subscriptionId)
                 .orElseThrow(() -> new BillingException(BillingErrorCode.SUBSCRIPTION_NOT_FOUND,
                         "Subscription not found for pending plan change: " + subscriptionId));
         sub.applyPendingPlanChange();

@@ -10,6 +10,14 @@ import java.util.Optional;
 public interface SubscriptionPersistencePort {
     Subscription save(Subscription subscription);
     Optional<Subscription> findById(Long id);
+
+    /**
+     * Find by id with {@code plan} and {@code pendingPlan} eagerly fetched.
+     * Used by per-row transition handlers (F-flow {@code applyPendingPlanChange})
+     * to avoid N+1 lazy loads on the associations after the outer query's
+     * JOIN FETCH context is gone (REQUIRES_NEW reopens a fresh session).
+     */
+    Optional<Subscription> findByIdWithPlanAndPendingPlan(Long id);
     Optional<Subscription> findByTenantId(Long tenantId);
     Optional<Subscription> findByTenantSlug(String tenantSlug);
     Optional<Subscription> findActiveByTenantSlug(String tenantSlug);

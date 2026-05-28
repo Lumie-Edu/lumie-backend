@@ -13,6 +13,18 @@ import java.util.Optional;
 
 public interface SubscriptionJpaRepository extends JpaRepository<Subscription, Long> {
 
+    /**
+     * Eager fetch of {@code plan} and (LEFT JOIN FETCH for nullable)
+     * {@code pendingPlan}. Used by per-row scheduler transition handlers
+     * that mutate either association inside a fresh {@code REQUIRES_NEW}
+     * session where lazy-loading would issue extra SELECTs.
+     */
+    @Query("SELECT s FROM Subscription s " +
+           "JOIN FETCH s.plan " +
+           "LEFT JOIN FETCH s.pendingPlan " +
+           "WHERE s.id = :id")
+    Optional<Subscription> findByIdWithPlanAndPendingPlan(@Param("id") Long id);
+
     Optional<Subscription> findByTenantId(Long tenantId);
 
     Optional<Subscription> findByTenantSlug(String tenantSlug);
