@@ -35,16 +35,19 @@ public class BillingKeyCommandService {
     private final PaymentTransactionLogger transactionLogger;
 
     /**
-     * Issues a Toss billing key from a one-time auth code and registers it for the tenant.
-     * If the tenant has an existing active subscription without a billing key, it is attached.
+     * Issues a Toss billing key from a one-time auth code and makes it the
+     * tenant's active payment method.
+     *
+     * <p>Idempotent upsert semantics: if the tenant already has an active key,
+     * it is revoked atomically with the new INSERT and the subscription is
+     * re-pointed at the new key. This is the single path for first-time
+     * registration, card swap, and user retry — the operation truthfully
+     * means "this card is now the tenant's active billing method", not "create
+     * a never-before-seen key" (which earlier returned 409 and stranded the
+     * user whenever a previous attempt left state behind).
      */
     public BillingKeyResponse registerBillingKey(Long tenantId, RegisterBillingKeyRequest request,
                                                   String idempotencyKey) {
-        if (billingKeyPersistencePort.existsActiveByTenantId(tenantId)) {
-            throw new BillingException(BillingErrorCode.BILLING_KEY_ALREADY_ACTIVE,
-                    "Tenant already has an active billing key: " + tenantId);
-        }
-
         // Log request (outside @Transactional — audit must persist even on PG failure)
         transactionLogger.log(tenantId, TransactionType.BILLING_KEY_ISSUE,
                 TransactionDirection.REQUEST, idempotencyKey,
@@ -72,20 +75,22 @@ public class BillingKeyCommandService {
 
         // customerKey is the value passed to Toss at issuance time (from request.customerKey()).
         // We store it so chargeWithBillingKey can pass the exact same value back to Toss.
-        BillingKey billingKey = BillingKey.register(tenantId, result.billingKey(),
+        BillingKey newBillingKey = BillingKey.register(tenantId, result.billingKey(),
                 request.customerKey(), result.maskedCardNumber(), result.cardCompany());
 
-        BillingKey saved = billingKeyPersistenceHelper.save(billingKey);
+        // Atomically: REVOKE existing active (if any) + INSERT new active.
+        // Partial unique index (uq_billing_keys_tenant_active) allows this in
+        // a single transaction.
+        BillingKey saved = billingKeyPersistenceHelper.replaceActive(newBillingKey);
         log.info("BillingKey registered: id={}, tenantId={}", saved.getId(), tenantId);
 
-        // Attach to active subscription if one exists without a billing key
+        // Re-point any tenant subscription at the new key (unconditional —
+        // we just replaced the active key, so the old reference is stale).
         subscriptionPersistencePort.findByTenantId(tenantId).ifPresent(sub -> {
-            if (!sub.hasBillingKey()) {
-                sub.attachBillingKey(saved.getId());
-                subscriptionPersistenceHelper.save(sub);
-                log.info("BillingKey attached to subscription: subscriptionId={}, billingKeyId={}",
-                        sub.getId(), saved.getId());
-            }
+            sub.attachBillingKey(saved.getId());
+            subscriptionPersistenceHelper.save(sub);
+            log.info("BillingKey attached to subscription: subscriptionId={}, billingKeyId={}",
+                    sub.getId(), saved.getId());
         });
 
         return BillingKeyResponse.from(saved);

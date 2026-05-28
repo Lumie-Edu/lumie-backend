@@ -30,4 +30,23 @@ public class BillingKeyPersistenceHelper {
         billingKey.revoke();
         billingKeyPersistencePort.save(billingKey);
     }
+
+    /**
+     * Atomically replace the tenant's active billing key with a new one.
+     *
+     * <p>The partial unique index {@code uq_billing_keys_tenant_active} permits
+     * a single ACTIVE row per tenant; revoking the existing row inside the same
+     * transaction frees the slot for the new INSERT. Re-registration (user
+     * retry, card swap, first-time setup) all share this semantics, which
+     * matches the BE invariant "one active card per tenant".
+     */
+    @Transactional
+    public BillingKey replaceActive(BillingKey newBillingKey) {
+        billingKeyPersistencePort.findActiveByTenantId(newBillingKey.getTenantId())
+                .ifPresent(existing -> {
+                    existing.revoke();
+                    billingKeyPersistencePort.save(existing);
+                });
+        return billingKeyPersistencePort.save(newBillingKey);
+    }
 }
