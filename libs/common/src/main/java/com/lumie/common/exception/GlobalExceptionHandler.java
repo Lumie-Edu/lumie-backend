@@ -18,6 +18,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.net.URI;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,16 +110,74 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return wrapAsProblemJson(body);
     }
 
+    /**
+     * Honest mapping for {@link DataIntegrityViolationException}: branch on the
+     * underlying JDBC SQLSTATE so the FE sees a status that matches the actual
+     * failure class, not a generic 409 that hides NOT NULL / FK / CHECK
+     * violations behind "Resource conflict".
+     *
+     * <p>SQLSTATE classes ("23000" family) are JDBC-standard (ISO/IEC 9075-2);
+     * we read them via {@link SQLException#getSQLState()} so no PostgreSQL
+     * driver class needs to be on the classpath of {@code libs/common}.
+     *
+     * <ul>
+     *   <li>{@code 23505} unique_violation → 409 RESOURCE_CONFLICT
+     *       (truly a duplicate — the only case a user can resolve by retrying
+     *       with different input)</li>
+     *   <li>{@code 23502} not_null_violation → 500 INTERNAL_ERROR
+     *       (server bug — we sent NULL where the schema requires a value)</li>
+     *   <li>{@code 23503} foreign_key_violation → 500 INTERNAL_ERROR
+     *       (server bug — referenced row missing; or a TOCTOU race)</li>
+     *   <li>{@code 23514} check_violation → 422 BUSINESS_RULE_VIOLATION
+     *       (the value is syntactically valid but breaks a domain rule the
+     *       application should have validated upstream)</li>
+     *   <li>anything else → 500 INTERNAL_ERROR (unknown DB failure)</li>
+     * </ul>
+     */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ProblemDetail> handleDataIntegrityViolation(DataIntegrityViolationException ex,
                                                                        HttpServletRequest request) {
-        log.warn("Data integrity violation: {}", ex.getMessage());
-        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
-                "Resource conflict — a duplicate or constraint violation occurred");
-        body.setType(URI.create(PROBLEM_TYPE_PREFIX + "resource-conflict"));
-        body.setTitle("Resource conflict");
-        decorate(body, CommonErrorCode.RESOURCE_CONFLICT.getCode(), request);
-        return wrapAsProblemJson(body);
+        String sqlState = extractSqlState(ex);
+        return switch (sqlState) {
+            case "23505" -> {
+                log.warn("Unique violation: {}", ex.getMessage());
+                ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                        "Resource conflict — a duplicate or constraint violation occurred");
+                body.setType(URI.create(PROBLEM_TYPE_PREFIX + "resource-conflict"));
+                body.setTitle("Resource conflict");
+                decorate(body, CommonErrorCode.RESOURCE_CONFLICT.getCode(), request);
+                yield wrapAsProblemJson(body);
+            }
+            case "23514" -> {
+                log.warn("Check constraint violation: {}", ex.getMessage());
+                ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Value violates a domain rule");
+                body.setType(URI.create(PROBLEM_TYPE_PREFIX + "business-rule-violation"));
+                body.setTitle("Business rule violation");
+                decorate(body, CommonErrorCode.BUSINESS_RULE_VIOLATION.getCode(), request);
+                yield wrapAsProblemJson(body);
+            }
+            // 23502 NOT NULL, 23503 FK, and anything unrecognized are server-side
+            // bugs: the app wrote bad data or violated its own invariants. Log
+            // at ERROR with the full chain (not WARN) so on-call sees them.
+            default -> {
+                log.error("Server-side data integrity violation (sqlState={}): {}",
+                        sqlState.isEmpty() ? "<unknown>" : sqlState, ex.getMessage(), ex);
+                ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Internal server error");
+                body.setType(URI.create(PROBLEM_TYPE_PREFIX + "internal-error"));
+                body.setTitle("Internal server error");
+                decorate(body, CommonErrorCode.INTERNAL_ERROR.getCode(), request);
+                yield wrapAsProblemJson(body);
+            }
+        };
+    }
+
+    private static String extractSqlState(DataIntegrityViolationException ex) {
+        Throwable cause = ex.getMostSpecificCause();
+        return (cause instanceof SQLException sql && sql.getSQLState() != null)
+                ? sql.getSQLState()
+                : "";
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
