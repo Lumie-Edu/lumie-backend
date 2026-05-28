@@ -123,8 +123,17 @@ public class BillingSubscribeService {
             //    PAST_DUE / CANCELLED / EXPIRED → ACTIVE on newPlan), so this
             //    endpoint is the single entry point for any "subscribe to paid"
             //    intent regardless of the tenant's prior subscription state.
+            //
+            //    nextChargeAt = now + 1 month matches the convention used in
+            //    SubscriptionChargeExecutor.createInvoiceAndAdvanceChargeCycle so
+            //    the value is stable across the subsequent charge (executor will
+            //    overwrite via chargeSucceeded(periodEnd) on success, but the
+            //    initial stamp is required by Subscription.subscribe contract).
+            java.time.Instant initialNextChargeAt = java.time.Instant.now()
+                    .atZone(java.time.ZoneOffset.UTC).plusMonths(1).toInstant();
             Subscription subscription = subscriptionPersistenceHelper
-                    .attachBillingKeyAndSubscribe(tenantSlug, savedKey.getId(), newPlan, null);
+                    .attachBillingKeyAndSubscribe(tenantSlug, savedKey.getId(), newPlan,
+                            initialNextChargeAt);
             log.info("BillingSubscribe: subscription upgraded id={} → planId={}",
                     subscription.getId(), newPlan.getId());
 

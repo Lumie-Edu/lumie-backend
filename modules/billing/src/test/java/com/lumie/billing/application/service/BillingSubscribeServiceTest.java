@@ -95,7 +95,8 @@ class BillingSubscribeServiceTest {
                 Instant.now().plusSeconds(86_400));
         ReflectionTestUtils.setField(upgraded, "id", 1L);
         upgraded.attachBillingKey(99L);
-        given(subscriptionPersistenceHelper.attachBillingKeyAndSubscribe(TENANT_SLUG, 99L, paidPlan, null))
+        given(subscriptionPersistenceHelper.attachBillingKeyAndSubscribe(
+                eq(TENANT_SLUG), eq(99L), eq(paidPlan), any(Instant.class)))
                 .willReturn(upgraded);
 
         Invoice paidInvoice = Invoice.create("INV-15-20260528-AB",
@@ -113,7 +114,8 @@ class BillingSubscribeServiceTest {
         assertThat(response.billingKey().id()).isEqualTo(99L);
         assertThat(response.invoice().id()).isEqualTo(500L);
         verify(billingKeyPersistenceHelper).replaceActive(any(BillingKey.class));
-        verify(subscriptionPersistenceHelper).attachBillingKeyAndSubscribe(TENANT_SLUG, 99L, paidPlan, null);
+        verify(subscriptionPersistenceHelper).attachBillingKeyAndSubscribe(
+                eq(TENANT_SLUG), eq(99L), eq(paidPlan), any(Instant.class));
         verify(chargeExecutor).charge(upgraded);
     }
 
