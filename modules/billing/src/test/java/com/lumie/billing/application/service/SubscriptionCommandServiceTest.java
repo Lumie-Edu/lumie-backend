@@ -127,23 +127,22 @@ class SubscriptionCommandServiceTest {
     }
 
     @Test
-    @DisplayName("downgrade + nextChargeAt null (edge case) → changePlan 즉시 적용")
-    void changePlan_downgradeWithoutNextChargeAt_appliesImmediately() {
-        // No nextChargeAt (edge case: newly subscribed, chargeExecutor hasn't set it yet)
+    @DisplayName("downgrade + nextChargeAt null → INVALID_SUBSCRIPTION_STATE (no silent fallback)")
+    void changePlan_downgradeWithoutNextChargeAt_throws() {
+        // A paid ACTIVE subscription with no next_charge_at signals corrupted
+        // state — refuse rather than silently apply immediately. HARD_RULES
+        // line 21: no workarounds around broken contracts.
         Subscription subscription = paidActiveSubscription(proPlan, null);
 
         given(subscriptionPersistencePort.findActiveByTenantSlug(TENANT_SLUG))
                 .willReturn(Optional.of(subscription));
         given(planPersistencePort.findById("BASIC")).willReturn(Optional.of(basicPlan));
-        given(subscriptionPersistencePort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
-        SubscriptionResponse response = service.changePlan(TENANT_SLUG,
-                ChangeSubscriptionRequest.builder().newPlanId("BASIC").build());
-
-        // Applied immediately because nextChargeAt was null
-        assertThat(response.planId()).isEqualTo("BASIC");
-        assertThat(response.pendingPlanId()).isNull();
-        assertThat(response.scheduledChangeAt()).isNull();
+        assertThatThrownBy(() -> service.changePlan(TENANT_SLUG,
+                ChangeSubscriptionRequest.builder().newPlanId("BASIC").build()))
+                .isInstanceOf(BillingException.class)
+                .hasFieldOrPropertyWithValue("errorCode", BillingErrorCode.INVALID_SUBSCRIPTION_STATE)
+                .hasMessageContaining("next_charge_at");
     }
 
     // ─── undoCancellation ─────────────────────────────────────────────────────
@@ -192,6 +191,60 @@ class SubscriptionCommandServiceTest {
         assertThatThrownBy(() -> service.cancelSubscription(TENANT_SLUG))
                 .isInstanceOf(BillingException.class)
                 .hasFieldOrPropertyWithValue("errorCode", BillingErrorCode.INVALID_SUBSCRIPTION_STATE);
+    }
+
+    // ─── provisionTrial (A-flow) ──────────────────────────────────────────────
+
+    @Test
+    @DisplayName("provisionTrial_newTenant_savesTrialProSubscription")
+    void provisionTrial_newTenant_savesTrialProSubscription() {
+        given(subscriptionPersistencePort.findByTenantSlug(TENANT_SLUG)).willReturn(Optional.empty());
+        given(planPersistencePort.findById("PRO")).willReturn(Optional.of(proPlan));
+        given(subscriptionPersistencePort.save(any(Subscription.class)))
+                .willAnswer(inv -> {
+                    Subscription saved = inv.getArgument(0);
+                    ReflectionTestUtils.setField(saved, "id", 999L);
+                    return saved;
+                });
+
+        SubscriptionResponse response = service.provisionTrial(TENANT_ID, TENANT_SLUG);
+
+        assertThat(response.planId()).isEqualTo("PRO");
+        org.mockito.ArgumentCaptor<Subscription> captor = org.mockito.ArgumentCaptor.forClass(Subscription.class);
+        verify(subscriptionPersistencePort).save(captor.capture());
+        Subscription saved = captor.getValue();
+        assertThat(saved.isTrial()).isTrue();
+        assertThat(saved.getBillingKeyId()).isNull();
+        assertThat(saved.getExpiresAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("provisionTrial_existingSubscription_returnsExisting_noSave")
+    void provisionTrial_existingSubscription_returnsExisting_noSave() {
+        Subscription existing = Subscription.create(TENANT_ID, TENANT_SLUG, proPlan, null);
+        ReflectionTestUtils.setField(existing, "id", 1L);
+        given(subscriptionPersistencePort.findByTenantSlug(TENANT_SLUG))
+                .willReturn(Optional.of(existing));
+
+        SubscriptionResponse response = service.provisionTrial(TENANT_ID, TENANT_SLUG);
+
+        assertThat(response.id()).isEqualTo(1L);
+        verify(subscriptionPersistencePort, org.mockito.Mockito.never()).save(any());
+        verify(planPersistencePort, org.mockito.Mockito.never()).findById(any());
+    }
+
+    @Test
+    @DisplayName("provisionTrial_proPlanMissing_throwsIllegalState")
+    void provisionTrial_proPlanMissing_throwsIllegalState() {
+        given(subscriptionPersistencePort.findByTenantSlug(TENANT_SLUG)).willReturn(Optional.empty());
+        given(planPersistencePort.findById("PRO")).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.provisionTrial(TENANT_ID, TENANT_SLUG))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("PRO")
+                .hasMessageContaining("V34");
+
+        verify(subscriptionPersistencePort, org.mockito.Mockito.never()).save(any());
     }
 
     // ─── helpers ──────────────────────────────────────────────────────────────

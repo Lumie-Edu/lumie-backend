@@ -66,6 +66,40 @@ public class SubscriptionCommandService {
         return SubscriptionResponse.from(saved);
     }
 
+    /**
+     * Provision a Trial PRO subscription on tenant signup (Phase E A-flow).
+     *
+     * <p>Idempotent: if a subscription already exists for {@code tenantSlug},
+     * the existing row is returned and no new subscription is created.
+     * Required because Spring Modulith may replay the
+     * {@code TenantCreatedEvent} on application restart if a prior dispatch
+     * was incomplete.
+     *
+     * <p>Plan id is hard-coded to {@code "PRO"} (the V34 seed row). Throws
+     * {@link IllegalStateException} if the PRO plan is missing — the event
+     * stays incomplete and retries on restart.
+     */
+    public SubscriptionResponse provisionTrial(Long tenantId, String tenantSlug) {
+        log.info("Provisioning trial for tenant: {}", tenantSlug);
+
+        if (subscriptionPersistencePort.findByTenantSlug(tenantSlug).isPresent()) {
+            log.info("Tenant {} already has a subscription — skipping trial provisioning", tenantSlug);
+            return subscriptionPersistencePort.findByTenantSlug(tenantSlug)
+                    .map(SubscriptionResponse::from)
+                    .orElseThrow();
+        }
+
+        Plan proPlan = planPersistencePort.findById("PRO")
+                .orElseThrow(() -> new IllegalStateException(
+                        "Trial PRO plan 'PRO' missing — V34 seed migration must run first"));
+
+        Subscription trial = Subscription.createTrial(tenantId, tenantSlug, proPlan);
+        Subscription saved = subscriptionPersistencePort.save(trial);
+        log.info("Trial PRO 30-day subscription created: id={}, tenantSlug={}",
+                saved.getId(), saved.getTenantSlug());
+        return SubscriptionResponse.from(saved);
+    }
+
     public SubscriptionResponse createFreeSubscription(Long tenantId, String tenantSlug) {
         log.info("Creating free subscription for tenant: {}", tenantSlug);
 
