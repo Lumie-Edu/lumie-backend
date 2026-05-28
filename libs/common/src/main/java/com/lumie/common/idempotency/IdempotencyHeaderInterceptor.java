@@ -1,0 +1,97 @@
+package com.lumie.common.idempotency;
+
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.web.servlet.HandlerInterceptor;
+
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+/**
+ * Stripe-style universal {@code Idempotency-Key} gate for state-mutating
+ * routes under {@code /v1/**}.
+ *
+ * <p>Enforces the header at the HTTP boundary so individual controllers
+ * cannot silently skip idempotency. Controllers still call
+ * {@link IdempotencyService#executeOnce} explicitly — this interceptor only
+ * guarantees the header is present and well-formed before the handler runs.
+ *
+ * <p>Scope:
+ * <ul>
+ *   <li>HTTP method ∈ {POST, PUT, PATCH, DELETE}</li>
+ *   <li>Request path matches {@code /v1/**}</li>
+ *   <li>Path NOT matched by any {@link #EXEMPT_PATTERNS} entry
+ *       (webhook callbacks: PG-managed retry, not client-driven)</li>
+ * </ul>
+ *
+ * <p>Header value validation: 16–128 chars, ASCII subset
+ * {@code [A-Za-z0-9._:\-]} (covers UUID v4, Stripe-style {@code req_xxx},
+ * and base64url tokens). Rejecting wider character sets keeps log-injection
+ * and header-smuggling vectors closed.
+ */
+public class IdempotencyHeaderInterceptor implements HandlerInterceptor {
+
+    public static final String HEADER_NAME = "Idempotency-Key";
+    static final int MIN_LENGTH = 16;
+    static final int MAX_LENGTH = 128;
+
+    private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
+    private static final List<String> ENFORCED_PATTERNS = List.of("/v1/**");
+    private static final List<String> EXEMPT_PATTERNS = List.of(
+            "/internal/webhooks/**",
+            "/v1/internal/webhooks/**"
+    );
+    private static final Pattern KEY_FORMAT = Pattern.compile("^[A-Za-z0-9._:\\-]+$");
+
+    private final AntPathMatcher matcher = new AntPathMatcher();
+
+    @Override
+    public boolean preHandle(HttpServletRequest request,
+                             HttpServletResponse response,
+                             Object handler) {
+        if (!isEnforced(request)) {
+            return true;
+        }
+
+        String value = request.getHeader(HEADER_NAME);
+        if (value == null || value.isBlank()) {
+            throw new BusinessException(
+                    CommonErrorCode.MISSING_IDEMPOTENCY_KEY,
+                    "Idempotency-Key header is required for " + request.getMethod()
+                            + " " + request.getRequestURI());
+        }
+        if (value.length() < MIN_LENGTH || value.length() > MAX_LENGTH
+                || !KEY_FORMAT.matcher(value).matches()) {
+            throw new BusinessException(
+                    CommonErrorCode.INVALID_IDEMPOTENCY_KEY_FORMAT,
+                    "Idempotency-Key must be " + MIN_LENGTH + "–" + MAX_LENGTH
+                            + " chars matching [A-Za-z0-9._:-]");
+        }
+        return true;
+    }
+
+    private boolean isEnforced(HttpServletRequest request) {
+        if (!MUTATING_METHODS.contains(request.getMethod())) {
+            return false;
+        }
+        String path = request.getRequestURI();
+        if (path == null) {
+            return false;
+        }
+        for (String exempt : EXEMPT_PATTERNS) {
+            if (matcher.match(exempt, path)) {
+                return false;
+            }
+        }
+        for (String pattern : ENFORCED_PATTERNS) {
+            if (matcher.match(pattern, path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}

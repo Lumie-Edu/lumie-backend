@@ -11,6 +11,8 @@ public enum CommonErrorCode implements ErrorCode {
     INVALID_INPUT("COMMON_001", "Invalid input value", 400),
     INVALID_TYPE("COMMON_002", "Invalid type value", 400),
     VALIDATION_ERROR("COMMON_010", "Validation failed", 400),
+    MISSING_IDEMPOTENCY_KEY("COMMON_012", "Idempotency-Key header is required for this endpoint", 400),
+    INVALID_IDEMPOTENCY_KEY_FORMAT("COMMON_013", "Idempotency-Key header value has an invalid format", 400),
 
     // 401 Unauthorized
     UNAUTHORIZED("COMMON_007", "Unauthorized", 401),
