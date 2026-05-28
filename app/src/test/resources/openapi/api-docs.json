@@ -1659,9 +1659,13 @@
             "format" : "int64",
             "nullable" : true,
             "type" : "integer"
+          },
+          "studentName" : {
+            "nullable" : true,
+            "type" : "string"
           }
         },
-        "required" : [ "correctCount", "createdAt", "examId", "examName", "grade", "hasOmrImage", "id", "incorrectCount", "isRegistered", "phoneNumber", "score", "studentId" ],
+        "required" : [ "correctCount", "createdAt", "examId", "examName", "grade", "hasOmrImage", "id", "incorrectCount", "isRegistered", "phoneNumber", "score", "studentId", "studentName" ],
         "type" : "object"
       },
       "ExamStatisticsResponse" : {
@@ -8732,6 +8736,44 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OmrJobStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/omr-jobs/{jobId}/results" : {
+      "get" : {
+        "operationId" : "getOmrJobResults",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExamResultResponse"
+                  },
+                  "type" : "array"
                 }
               }
             },
