@@ -60,6 +60,21 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPersistencePo
     }
 
     @Override
+    public List<Subscription> findTrialsToExpire(Instant now) {
+        return subscriptionJpaRepository.findTrialsToExpire(now);
+    }
+
+    @Override
+    public List<Subscription> findPendingDowngradesToApply(Instant now) {
+        return subscriptionJpaRepository.findPendingDowngradesToApply(now);
+    }
+
+    @Override
+    public List<Subscription> findCancellationsToFinalize(Instant now) {
+        return subscriptionJpaRepository.findCancellationsToFinalize(now);
+    }
+
+    @Override
     public boolean existsByTenantId(Long tenantId) {
         return subscriptionJpaRepository.existsByTenantId(tenantId);
     }
