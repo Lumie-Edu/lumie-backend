@@ -1,6 +1,5 @@
 package com.lumie.tuition.adapter.out.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,18 +7,18 @@ import org.springframework.web.client.RestClient;
 
 @Configuration
 @EnableConfigurationProperties(TuitionProperties.class)
-@RequiredArgsConstructor
 public class TuitionModuleConfig {
 
-    private final TuitionProperties tuitionProperties;
-
+    /**
+     * Toss exposes a single host for both sandbox and live —
+     * {@code https://api.tosspayments.com}. The environment is selected by the
+     * secret-key prefix (test_sk_* vs live_sk_*) sent in Basic Auth, not by a
+     * separate hostname (no {@code sandbox-api.tosspayments.com} exists).
+     */
     @Bean("tossPaymentsRestClient")
     public RestClient tossPaymentsRestClient() {
-        String baseUrl = tuitionProperties.toss().sandbox()
-                ? "https://sandbox-api.tosspayments.com"
-                : "https://api.tosspayments.com";
         return RestClient.builder()
-                .baseUrl(baseUrl)
+                .baseUrl("https://api.tosspayments.com")
                 .build();
     }
 }
