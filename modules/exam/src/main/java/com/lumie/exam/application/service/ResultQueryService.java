@@ -7,14 +7,19 @@ import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,21 +30,73 @@ public class ResultQueryService {
     private final ExamResultRepository resultRepository;
     private final OmrGradingJobRepository jobRepository;
     private final OmrStoragePort storagePort;
+    private final StudentService studentService;
 
     public List<ExamResultResponse> getExamResults(Long examId) {
         log.debug("Getting results for exam: {}", examId);
 
-        return resultRepository.findByExamId(examId).stream()
-                .map(ExamResultResponse::from)
+        List<ExamResult> results = resultRepository.findByExamId(examId);
+        Map<Long, String> nameByStudentId = resolveStudentNames(results);
+
+        return results.stream()
+                .map(r -> ExamResultResponse.from(r,
+                        r.getStudentId() == null ? null : nameByStudentId.get(r.getStudentId())))
+                .toList();
+    }
+
+    public List<ExamResultResponse> getOmrJobResults(Long examId, Long jobId) {
+        log.debug("Getting OMR job results: examId={}, jobId={}", examId, jobId);
+
+        // Defense in depth: ensure the job actually belongs to this exam before
+        // surfacing rows. Prevents URL-tampering across tenants/exams (RLS catches
+        // cross-tenant, but cross-exam-within-tenant deserves a 404).
+        var job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+        if (!job.getExam().getId().equals(examId)) {
+            throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
+        }
+
+        List<ExamResult> results = resultRepository.findByOmrGradingJobId(jobId);
+        Map<Long, String> nameByStudentId = resolveStudentNames(results);
+
+        return results.stream()
+                .map(r -> ExamResultResponse.from(r,
+                        r.getStudentId() == null ? null : nameByStudentId.get(r.getStudentId())))
                 .toList();
     }
 
     public List<ExamResultResponse> getStudentResults(Long studentId) {
         log.debug("Getting results for student: {}", studentId);
 
-        return resultRepository.findByStudentId(studentId).stream()
-                .map(ExamResultResponse::from)
+        List<ExamResult> results = resultRepository.findByStudentId(studentId);
+        Map<Long, String> nameByStudentId = resolveStudentNames(results);
+
+        return results.stream()
+                .map(r -> ExamResultResponse.from(r,
+                        r.getStudentId() == null ? null : nameByStudentId.get(r.getStudentId())))
                 .toList();
+    }
+
+    /**
+     * Batched student-name lookup for a result list — single internal-api call
+     * even when the list contains hundreds of rows. Null/unregistered student_id
+     * entries are skipped so the response remains "missing key = unregistered".
+     */
+    private Map<Long, String> resolveStudentNames(List<ExamResult> results) {
+        List<Long> studentIds = results.stream()
+                .map(ExamResult::getStudentId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (studentIds.isEmpty()) {
+            return Map.of();
+        }
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        return studentService.getStudentsByIds(tenantSlug, studentIds).students().stream()
+                .collect(Collectors.toMap(
+                        StudentService.StudentData::id,
+                        StudentService.StudentData::studentName
+                ));
     }
 
     public List<QuestionResultResponse> getQuestionResults(Long resultId) {

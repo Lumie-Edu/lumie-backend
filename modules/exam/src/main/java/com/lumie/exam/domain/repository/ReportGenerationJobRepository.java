@@ -34,16 +34,30 @@ public interface ReportGenerationJobRepository extends JpaRepository<ReportGener
     int markProcessingIfPending(@Param("jobId") Long jobId);
 
     @Modifying
-    @Query(value = "UPDATE report_generation_jobs SET status = 'COMPLETED' " +
-            "WHERE id = :jobId AND processed_reports >= :totalReports AND status = 'PROCESSING'", nativeQuery = true)
+    @Query(value = "UPDATE report_generation_jobs SET status = 'COMPLETED', updated_at = NOW() " +
+            "WHERE id = :jobId AND processed_reports >= :totalReports " +
+            "  AND success_count > 0 AND status = 'PROCESSING'", nativeQuery = true)
     int markCompletedIfAllProcessed(@Param("jobId") Long jobId, @Param("totalReports") int totalReports);
+
+    @Modifying
+    @Query(value = "UPDATE report_generation_jobs SET status = 'FAILED', updated_at = NOW() " +
+            "WHERE id = :jobId AND processed_reports >= :totalReports " +
+            "  AND success_count = 0 AND status = 'PROCESSING'", nativeQuery = true)
+    int markFailedIfAllProcessed(@Param("jobId") Long jobId, @Param("totalReports") int totalReports);
 
     default boolean startProcessingIfPending(Long jobId) {
         return markProcessingIfPending(jobId) > 0;
     }
 
-    default boolean tryComplete(Long jobId, int totalReports) {
-        return markCompletedIfAllProcessed(jobId, totalReports) > 0;
+    /**
+     * Idempotently transition to a terminal state once every report's callback has
+     * landed. COMPLETED if any succeeded, FAILED if all failed. Returns true on
+     * transition. Outer {@code @Transactional} required by the {@code @Modifying}
+     * native queries.
+     */
+    default boolean tryFinalize(Long jobId, int totalReports) {
+        return markCompletedIfAllProcessed(jobId, totalReports) > 0
+                || markFailedIfAllProcessed(jobId, totalReports) > 0;
     }
 
     /**

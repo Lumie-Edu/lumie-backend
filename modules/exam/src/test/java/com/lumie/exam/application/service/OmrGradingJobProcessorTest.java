@@ -1,6 +1,5 @@
 package com.lumie.exam.application.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.common.test.TenantContextExtension;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
@@ -45,8 +44,6 @@ class OmrGradingJobProcessorTest {
     private StudentService studentService;
     @Mock
     private OmrGradingJobRepository jobRepository;
-    @Mock
-    private ObjectMapper objectMapper;
 
     private OmrGradingJobProcessor processor;
 
@@ -54,7 +51,7 @@ class OmrGradingJobProcessorTest {
     void setUp() {
         OmrGradingJobProcessor.Tx tx = new OmrGradingJobProcessor.Tx(
                 examRepository, resultRepository, resultCommandService, jobRepository, studentService);
-        processor = new OmrGradingJobProcessor(storagePort, callbackDeduplication, jobRepository, objectMapper, tx);
+        processor = new OmrGradingJobProcessor(storagePort, callbackDeduplication, jobRepository, tx);
     }
 
     private OmrGradingCallbackRequest buildSuccessCallback() {
@@ -89,7 +86,7 @@ class OmrGradingJobProcessorTest {
         given(storagePort.getObject(any())).willReturn(new byte[]{1, 2, 3});
         given(storagePort.putObject(any(), any(), any())).willReturn("omr/results/abc123/10/200");
         given(resultRepository.save(any(ExamResult.class))).willReturn(resolvedResult);
-        given(jobRepository.tryComplete(1L, 1)).willReturn(true);
+        given(jobRepository.tryFinalize(1L, 1)).willReturn(true);
 
         processor.processGradingCallback(request);
 
@@ -109,7 +106,7 @@ class OmrGradingJobProcessorTest {
         );
 
         given(callbackDeduplication.markIfAbsent(any())).willReturn(true);
-        given(jobRepository.tryComplete(1L, 1)).willReturn(true);
+        given(jobRepository.tryFinalize(1L, 1)).willReturn(true);
 
         processor.processGradingCallback(request);
 

@@ -1,5 +1,8 @@
 package com.lumie.app.config.internal;
 
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.tenant.api.TenantService;
+import com.lumie.tenant.api.TenantService.TenantData;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -60,6 +63,7 @@ public class InternalHmacAuthFilter extends OncePerRequestFilter {
     private static final String INTERNAL_PRINCIPAL = "internal-service";
 
     private final InternalAuthProperties properties;
+    private final TenantService tenantService;
     private SecretKeySpec keySpec;
 
     @PostConstruct
@@ -127,17 +131,28 @@ public class InternalHmacAuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Slug is verified via HMAC payload binding at this point. Resolve to tenantId
+        // so RLS sees a populated context — setTenant alone leaves rows invisible.
+        TenantData tenant = tenantService.getTenantBySlug(tenantSlug).orElse(null);
+        if (tenant == null || !tenant.isActive()) {
+            reject(response, "unknown or inactive tenant");
+            return;
+        }
+
         SecurityContextHolder.getContext().setAuthentication(
                 new PreAuthenticatedAuthenticationToken(
                         INTERNAL_PRINCIPAL,
                         null,
                         List.of(new SimpleGrantedAuthority("ROLE_INTERNAL")))
         );
+        TenantContextHolder.setTenant(tenant.slug());
+        TenantContextHolder.setTenantId(tenant.id());
 
         try {
             chain.doFilter(wrapped, response);
         } finally {
             SecurityContextHolder.clearContext();
+            TenantContextHolder.clear();
         }
     }
 

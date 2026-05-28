@@ -15,6 +15,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,7 @@ public class ReportJobService {
     private final OmrStoragePort storagePort;
     private final CallbackDeduplicationPort callbackDeduplication;
     private final ApplicationEventPublisher eventPublisher;
+    private final Tx tx;
 
     @Transactional
     public Long createBatchJob(Long examId, List<Long> studentIds) {
@@ -98,7 +100,7 @@ public class ReportJobService {
             return;
         }
 
-        jobRepository.startProcessingIfPending(request.jobId());
+        tx.markProcessing(request.jobId());
 
         if (request.success()) {
             byte[] jpgBytes = Base64.getDecoder().decode(request.reportBytes());
@@ -106,15 +108,15 @@ public class ReportJobService {
             String fileKey = "tmp/" + tenantId + "/reports/" + request.examId() + "/" + request.studentId() + ".jpg";
             // storage call outside any @Transactional boundary
             storagePort.putObject(fileKey, jpgBytes, "image/jpeg");
-            jobRepository.incrementSuccess(request.jobId());
+            tx.recordSuccess(request.jobId());
         } else {
             log.warn("Report generation failed: jobId={}, studentId={}, error={}",
                     request.jobId(), request.studentId(), request.error());
-            jobRepository.incrementFail(request.jobId());
+            tx.recordFail(request.jobId());
         }
 
-        if (jobRepository.tryComplete(request.jobId(), request.totalReports())) {
-            log.info("Report job completed: jobId={}", request.jobId());
+        if (tx.finalizeIfDone(request.jobId(), request.totalReports())) {
+            log.info("Report job reached terminal state: jobId={}", request.jobId());
             createZipFile(request.jobId());
         }
     }
@@ -144,7 +146,7 @@ public class ReportJobService {
 
             String zipKey = "tmp/" + tenantId + "/reports/" + examId + "/batch_" + jobId + ".zip";
             storagePort.putObject(zipKey, baos.toByteArray(), "application/zip");
-            jobRepository.setZipFileKey(jobId, zipKey);
+            tx.setZipFileKey(jobId, zipKey);
 
             log.info("ZIP created: jobId={}, key={}", jobId, zipKey);
         } catch (Exception e) {
@@ -152,4 +154,40 @@ public class ReportJobService {
         }
     }
 
+    /**
+     * Tx-wrapped DB ops. Mirrors {@link OmrGradingJobProcessor.Tx} — the @Modifying
+     * native queries each need an active transaction; wrapping at the method
+     * boundary keeps the storage/HTTP calls in {@code processCallback} outside
+     * any tx (HARD_RULES "wrap external HTTP outside @Transactional").
+     */
+    @Component
+    @RequiredArgsConstructor
+    static class Tx {
+        private final ReportGenerationJobRepository jobRepository;
+
+        @Transactional
+        public void markProcessing(Long jobId) {
+            jobRepository.startProcessingIfPending(jobId);
+        }
+
+        @Transactional
+        public void recordSuccess(Long jobId) {
+            jobRepository.incrementSuccess(jobId);
+        }
+
+        @Transactional
+        public void recordFail(Long jobId) {
+            jobRepository.incrementFail(jobId);
+        }
+
+        @Transactional
+        public boolean finalizeIfDone(Long jobId, int totalReports) {
+            return jobRepository.tryFinalize(jobId, totalReports);
+        }
+
+        @Transactional
+        public void setZipFileKey(Long jobId, String zipKey) {
+            jobRepository.setZipFileKey(jobId, zipKey);
+        }
+    }
 }

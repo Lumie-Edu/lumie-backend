@@ -45,6 +45,9 @@ public class ExamResult extends TenantScopedEntity {
     @Column(name = "omr_image_key", length = 500)
     private String omrImageKey;
 
+    @Column(name = "omr_grading_job_id")
+    private Long omrGradingJobId;
+
     @OneToMany(mappedBy = "examResult", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuestionResult> questionResults = new ArrayList<>();
 
@@ -59,6 +62,10 @@ public class ExamResult extends TenantScopedEntity {
 
     public void assignOmrImage(String omrImageKey) {
         this.omrImageKey = omrImageKey;
+    }
+
+    public void assignOmrGradingJob(Long omrGradingJobId) {
+        this.omrGradingJobId = omrGradingJobId;
     }
 
     public static ExamResult create(Exam exam, Long studentId, Integer totalScore) {

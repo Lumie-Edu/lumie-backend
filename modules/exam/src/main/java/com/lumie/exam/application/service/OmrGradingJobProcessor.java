@@ -1,7 +1,5 @@
 package com.lumie.exam.application.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrServicePort;
@@ -22,7 +20,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -34,7 +33,6 @@ public class OmrGradingJobProcessor {
     private final OmrStoragePort storagePort;
     private final CallbackDeduplicationPort callbackDeduplication;
     private final OmrGradingJobRepository jobRepository;
-    private final ObjectMapper objectMapper;
     private final Tx tx;
 
     public void processGradingCallback(OmrGradingCallbackRequest request) {
@@ -50,12 +48,10 @@ public class OmrGradingJobProcessor {
 
         tx.markProcessing(request.jobId());
 
-        Map<String, Object> resultMap = new LinkedHashMap<>();
-        resultMap.put("fileName", extractFileName(request.imageKey()));
-
         if (request.success()) {
             // Phase 1 (read tx): resolve in-memory ExamResult + compute storage key
             Tx.SuccessPrep prep = tx.prepareSuccess(request);
+            prep.examResult().assignOmrGradingJob(request.jobId());
 
             // Phase 2 (no tx): copy image in MinIO
             String permanentKey = copyImage(request, prep.permanentKey());
@@ -64,22 +60,15 @@ public class OmrGradingJobProcessor {
             }
 
             // Phase 3 (write tx): save result + update counters
-            Long savedResultId = tx.saveSuccess(request, prep, resultMap);
-
-            resultMap.put("success", true);
-            resultMap.put("saved", true);
-            resultMap.put("phoneNumber", request.phoneNumber());
-            resultMap.put("totalScore", request.totalScore());
-            resultMap.put("grade", request.grade());
-            resultMap.put("resultId", savedResultId);
+            tx.saveSuccess(request, prep);
         } else {
-            resultMap.put("success", false);
-            resultMap.put("saved", false);
-            resultMap.put("error", request.error());
             tx.recordFail(request.jobId());
         }
 
-        appendAndMaybeComplete(request, resultMap);
+        if (tx.finalizeIfDone(request.jobId(), request.totalImages())) {
+            log.info("OMR grading job reached terminal state: jobId={}", request.jobId());
+            cleanupImages(request.jobId());
+        }
     }
 
     private String copyImage(OmrGradingCallbackRequest request, String permanentKey) {
@@ -93,22 +82,6 @@ public class OmrGradingJobProcessor {
         }
     }
 
-    private void appendAndMaybeComplete(OmrGradingCallbackRequest request, Map<String, Object> resultMap) {
-        try {
-            String json = objectMapper.writeValueAsString(List.of(resultMap));
-            jobRepository.appendResult(request.jobId(), json);
-        } catch (JsonProcessingException e) {
-            log.warn("Failed to serialize result JSON for jobId={}: {}", request.jobId(), e.getMessage());
-        } catch (Exception e) {
-            log.warn("Failed to append result for jobId={}: {}", request.jobId(), e.getMessage());
-        }
-
-        if (jobRepository.tryComplete(request.jobId(), request.totalImages())) {
-            log.info("OMR grading job completed: jobId={}", request.jobId());
-            cleanupImages(request.jobId());
-        }
-    }
-
     private void cleanupImages(Long jobId) {
         try {
             OmrGradingJob job = jobRepository.findById(jobId).orElse(null);
@@ -119,11 +92,6 @@ public class OmrGradingJobProcessor {
         } catch (Exception e) {
             log.warn("Failed to cleanup MinIO images for job: {}", jobId, e);
         }
-    }
-
-    private String extractFileName(String objectKey) {
-        int lastSlash = objectKey.lastIndexOf('/');
-        return lastSlash >= 0 ? objectKey.substring(lastSlash + 1) : objectKey;
     }
 
     /** All DB-touching operations, each in their own transaction scope. */
@@ -149,6 +117,11 @@ public class OmrGradingJobProcessor {
             jobRepository.startProcessingIfPending(jobId);
         }
 
+        @Transactional
+        public boolean finalizeIfDone(Long jobId, int totalImages) {
+            return jobRepository.tryFinalize(jobId, totalImages);
+        }
+
         @Transactional(readOnly = true)
         public SuccessPrep prepareSuccess(OmrGradingCallbackRequest request) {
             Exam exam = examRepository.findById(request.examId())
@@ -172,14 +145,12 @@ public class OmrGradingJobProcessor {
         }
 
         @Transactional
-        public Long saveSuccess(OmrGradingCallbackRequest request, SuccessPrep prep,
-                                Map<String, Object> resultMap) {
+        public void saveSuccess(OmrGradingCallbackRequest request, SuccessPrep prep) {
             OmrServicePort.OmrGradingResult omrResult = toOmrGradingResult(request);
             ExamResult examResult = prep.examResult();
 
-            ExamResult savedResult;
             try {
-                savedResult = resultRepository.save(examResult);
+                resultRepository.save(examResult);
             } catch (BusinessException e) {
                 if (e.getErrorCode() != ExamErrorCode.DUPLICATE_RESULT) {
                     throw e;
@@ -189,16 +160,10 @@ public class OmrGradingJobProcessor {
                 examResult = prep.studentOpt().isPresent()
                         ? resultCommandService.resolveResult(prep.exam(), prep.studentOpt().get().id(), omrResult)
                         : resultCommandService.resolveResultForUnregistered(prep.exam(), fullPhone, omrResult);
-                savedResult = resultRepository.save(examResult);
-            }
-
-            if (prep.studentOpt().isPresent()) {
-                resultMap.put("studentId", prep.studentOpt().get().id());
-                resultMap.put("studentName", prep.studentOpt().get().studentName());
+                resultRepository.save(examResult);
             }
 
             jobRepository.incrementSuccess(request.jobId());
-            return savedResult.getId();
         }
 
         @Transactional

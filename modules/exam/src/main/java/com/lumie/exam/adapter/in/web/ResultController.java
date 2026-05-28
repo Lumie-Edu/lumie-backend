@@ -114,6 +114,13 @@ public class ResultController {
         return ResponseEntity.ok(resultQueryService.getOmrJobStatus(examId, jobId));
     }
 
+    @GetMapping("/exams/{examId}/omr-jobs/{jobId}/results")
+    public ResponseEntity<List<ExamResultResponse>> getOmrJobResults(
+            @PathVariable Long examId,
+            @PathVariable Long jobId) {
+        return ResponseEntity.ok(resultQueryService.getOmrJobResults(examId, jobId));
+    }
+
     @GetMapping("/exams/{examId}/omr-jobs")
     public ResponseEntity<List<OmrJobStatusResponse>> getOmrJobs(@PathVariable Long examId) {
         return ResponseEntity.ok(resultQueryService.getOmrJobs(examId));

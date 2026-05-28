@@ -10,6 +10,7 @@ public record ExamResultResponse(
         Long examId,
         String examName,
         @Schema(nullable = true) Long studentId,
+        @Schema(nullable = true) String studentName,
         @Schema(nullable = true) String phoneNumber,
         boolean isRegistered,
         Integer score,
@@ -20,11 +21,16 @@ public record ExamResultResponse(
         Instant createdAt
 ) {
     public static ExamResultResponse from(ExamResult result) {
+        return from(result, null);
+    }
+
+    public static ExamResultResponse from(ExamResult result, String studentName) {
         return new ExamResultResponse(
                 result.getId(),
                 result.getExam().getId(),
                 result.getExam().getName(),
                 result.getStudentId(),
+                studentName,
                 result.getPhoneNumber(),
                 result.getStudentId() != null,
                 result.getTotalScore(),
