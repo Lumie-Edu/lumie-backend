@@ -98,22 +98,50 @@ public class SubscriptionCommandService {
         Plan newPlan = planPersistencePort.findById(request.newPlanId())
                 .orElseThrow(() -> new ResourceNotFoundException("Plan", request.newPlanId()));
 
-        subscription.changePlan(newPlan);
-        Subscription saved = subscriptionPersistencePort.save(subscription);
+        if (newPlan.getMonthlyPrice().isLessThan(subscription.getPlan().getMonthlyPrice())) {
+            // Downgrade: defer to current period end (next_charge_at). A paid ACTIVE
+            // subscription always has next_charge_at set (BillingSubscribeService stamps
+            // it on subscribe); if absent, refuse rather than silently apply immediately
+            // — the absence signals a corrupted state caller must investigate.
+            Instant effectiveAt = subscription.getNextChargeAt();
+            if (effectiveAt == null) {
+                throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                        "Cannot schedule downgrade: subscription has no next_charge_at. "
+                                + "Tenant: " + tenantSlug);
+            }
+            subscription.scheduleDowngrade(newPlan, effectiveAt);
+        } else {
+            // Upgrade or same-price: immediate.
+            subscription.changePlan(newPlan);
+        }
 
-        log.info("Plan changed for tenant: {} from {} to {}", tenantSlug, previousPlanId, request.newPlanId());
+        Subscription saved = subscriptionPersistencePort.save(subscription);
+        log.info("Plan changed for tenant: {} from {} to {} (downgrade={})",
+                tenantSlug, previousPlanId, request.newPlanId(), saved.isDowngradeScheduled());
+        return SubscriptionResponse.from(saved);
+    }
+
+    public SubscriptionResponse undoCancellation(String tenantSlug) {
+        log.info("Undoing scheduled cancellation for tenant: {}", tenantSlug);
+
+        Subscription subscription = subscriptionPersistencePort.findActiveByTenantSlug(tenantSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription", tenantSlug));
+
+        subscription.undoScheduledCancellation();
+        Subscription saved = subscriptionPersistencePort.save(subscription);
+        log.info("Cancellation undone for tenant: {}", tenantSlug);
         return SubscriptionResponse.from(saved);
     }
 
     public void cancelSubscription(String tenantSlug) {
-        log.info("Cancelling subscription for tenant: {}", tenantSlug);
+        log.info("Scheduling cancellation for tenant: {}", tenantSlug);
 
         Subscription subscription = subscriptionPersistencePort.findByTenantSlug(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Subscription", tenantSlug));
 
-        subscription.cancel();
+        subscription.scheduleCancellation();
         subscriptionPersistencePort.save(subscription);
-        log.info("Subscription cancelled for tenant: {}", tenantSlug);
+        log.info("Cancellation scheduled for tenant: {}", tenantSlug);
     }
 
     public void pauseSubscription(String tenantSlug, SuspensionReason reason) {

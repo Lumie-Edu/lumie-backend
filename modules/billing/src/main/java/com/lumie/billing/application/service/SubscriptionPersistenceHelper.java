@@ -36,24 +36,26 @@ public class SubscriptionPersistenceHelper {
     }
 
     /**
-     * Atomically attach a billing key and upgrade-or-reactivate the
-     * subscription onto the given paid plan. Used by
-     * {@code BillingSubscribeService.subscribe} so the "switch to paid plan
-     * with this card" mutation is one DB tx — the FE never observes
-     * "new card attached but still on the old plan / still CANCELLED" mid-flow.
+     * Atomically attach a billing key and subscribe the tenant onto the given paid plan.
+     * Used by {@code BillingSubscribeService.subscribe} so the "switch to paid plan with
+     * this card" mutation is one DB tx — the FE never observes "new card attached but
+     * still on the old plan / still CANCELLED" mid-flow.
      *
-     * <p>Delegates to {@link Subscription#upgradeOrReactivate} which absorbs
-     * the state-machine adapter: ACTIVE / PAUSED / PAST_DUE / CANCELLED /
-     * EXPIRED all converge to "ACTIVE on newPlan". Only PENDING is rejected
-     * (a prior subscribe is in-flight).
+     * <p>Delegates to {@link Subscription#subscribe(Long, Plan, java.time.Instant)} which
+     * absorbs the state-machine: ACTIVE / PAUSED / PAST_DUE / CANCELLED / EXPIRED all
+     * converge to "ACTIVE on newPlan".
      */
     @Transactional
-    public Subscription attachBillingKeyAndUpgrade(String tenantSlug, Long billingKeyId,
-                                                   Plan newPlan, java.time.Instant newExpiresAt) {
+    public Subscription attachBillingKeyAndSubscribe(String tenantSlug, Long billingKeyId,
+                                                     Plan newPlan, java.time.Instant nextChargeAt) {
+        if (nextChargeAt == null) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "nextChargeAt is required — caller (BillingSubscribeService) must compute "
+                            + "the next billing cycle before invoking attachBillingKeyAndSubscribe");
+        }
         Subscription subscription = subscriptionPersistencePort.findByTenantSlug(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Subscription", tenantSlug));
-        subscription.attachBillingKey(billingKeyId);
-        subscription.upgradeOrReactivate(newPlan, newExpiresAt);
+        subscription.subscribe(billingKeyId, newPlan, nextChargeAt);
         return subscriptionPersistencePort.save(subscription);
     }
 }

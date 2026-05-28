@@ -18,12 +18,16 @@ import java.util.Objects;
 /**
  * Platform-scoped subscription aggregate (no RLS — Lumie ops can query cross-tenant).
  *
- * <p>State machine:
+ * <p>State machine (8-flow):
  * <pre>
- *   PENDING → ACTIVE → PAUSED ⇄ ACTIVE
- *   ACTIVE  → PAST_DUE → ACTIVE (payment retry)
- *   ACTIVE | PAST_DUE | PAUSED → CANCELLED
- *   ACTIVE | PAUSED → EXPIRED
+ *   A: createFree        → ACTIVE (no billing key, no expiresAt)
+ *   B: createTrial       → ACTIVE (no billing key, expiresAt = now+30d); expireTrial → EXPIRED
+ *   C: subscribe         → ACTIVE (any source state; Trial → Paid)
+ *   D: subscribe         → ACTIVE (EXPIRED/CANCELLED → Paid fresh start)
+ *   E: changePlan        → ACTIVE (upgrade/same-price; immediate swap; ACTIVE only)
+ *   F: scheduleDowngrade → pendingPlan set; applyPendingPlanChange → plan swapped
+ *   G: scheduleCancellation → cancelledAt set; finalizeCancellation → CANCELLED
+ *   H: undoScheduledCancellation → cancelledAt cleared
  * </pre>
  */
 @Entity
@@ -88,6 +92,22 @@ public class Subscription extends BaseEntity {
     @Column(name = "payment_failure_count", nullable = false)
     private int paymentFailureCount;
 
+    /**
+     * The plan to switch to at {@link #scheduledChangeAt} (F-flow: deferred downgrade).
+     * Null when no scheduled change is pending.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pending_plan_id")
+    private Plan pendingPlan;
+
+    /**
+     * Timestamp at which the scheduler applies the pending plan change (F-flow) or
+     * finalizes a cancellation (G-flow via {@link #finalizeCancellation}).
+     * Null when no scheduled change is pending.
+     */
+    @Column(name = "scheduled_change_at")
+    private Instant scheduledChangeAt;
+
     @Builder
     private Subscription(Long tenantId, String tenantSlug, Plan plan, Instant startedAt,
                          Instant expiresAt, Integer billingCycleDay) {
@@ -105,6 +125,10 @@ public class Subscription extends BaseEntity {
 
     // ─── Factory methods ──────────────────────────────────────────────────────
 
+    /**
+     * Create a Free subscription (no billing key, no expiry). Used by TenantCreatedListener
+     * until D7 replaces this with {@link #createTrial}.
+     */
     public static Subscription createFree(Long tenantId, String tenantSlug, Plan freePlan) {
         return Subscription.builder()
                 .tenantId(tenantId)
@@ -126,68 +150,220 @@ public class Subscription extends BaseEntity {
                 .build();
     }
 
+    /**
+     * Create a Trial subscription on tenant signup. B-flow entry point.
+     *
+     * <p>Trial = PRO plan (configured at signup) for 30 days, no billing key required.
+     * Identifier: ACTIVE + billing_key_id IS NULL (no separate status value).
+     * After 30 days the SubscriptionScheduledChangeScheduler calls {@link #expireTrial};
+     * users who want to continue subscribe via POST /v1/billing/subscribe (C-flow).
+     *
+     * @param proPlan the plan the trial grants access to (typically id="PRO")
+     */
+    public static Subscription createTrial(Long tenantId, String tenantSlug, Plan proPlan) {
+        return Subscription.builder()
+                .tenantId(tenantId)
+                .tenantSlug(tenantSlug)
+                .plan(proPlan)
+                .startedAt(Instant.now())
+                .expiresAt(Instant.now().plus(java.time.Duration.ofDays(30)))
+                .build();
+        // billingKeyId stays null (trial does not auto-charge)
+        // nextChargeAt stays null
+        // status = ACTIVE (from builder)
+    }
+
     // ─── Domain methods ───────────────────────────────────────────────────────
 
-    public void changePlan(Plan newPlan) {
-        validateActive();
-        this.plan = newPlan;
+    /**
+     * Adopt {@code plan} as the paid plan with a registered card. C/D-flow entry point.
+     * Used by the /v1/billing/subscribe orchestrator.
+     *
+     * <p>State changes (regardless of source ACTIVE/PAUSED/PAST_DUE/CANCELLED/EXPIRED):
+     * <ul>
+     *   <li>status = ACTIVE</li>
+     *   <li>plan = plan</li>
+     *   <li>billingKeyId = billingKey.getId()</li>
+     *   <li>nextChargeAt = nextChargeAt parameter</li>
+     *   <li>expiresAt = null (trial expiry cleared; paid is rolling)</li>
+     *   <li>cancelledAt = null</li>
+     *   <li>pendingPlan / scheduledChangeAt = null (any pending downgrade voided)</li>
+     *   <li>suspensionReason = NONE, paymentFailureCount = 0</li>
+     * </ul>
+     *
+     * <p>For CANCELLED / EXPIRED sources (D-flow), startedAt is reset to now (fresh period).
+     * For ACTIVE / PAUSED / PAST_DUE sources (C-flow), startedAt is preserved.
+     */
+    public void subscribe(BillingKey billingKey, Plan plan, Instant nextChargeAt) {
+        subscribe(billingKey.getId(), plan, nextChargeAt);
     }
 
     /**
-     * Adopt {@code newPlan} as the current paid plan and ensure the subscription
-     * is ACTIVE, regardless of the source state. Used by the
-     * {@code POST /v1/billing/subscribe} orchestrator so a tenant can move
-     * to a paid plan from any non-PENDING state in one step.
-     *
-     * <ul>
-     *   <li>ACTIVE → swap plan in place (same effect as {@link #changePlan})</li>
-     *   <li>PAUSED / PAST_DUE → resume + swap plan, reset failure counter</li>
-     *   <li>CANCELLED / EXPIRED → re-start the subscription on the new plan
-     *       (same effect as {@link #reactivate}, also clears {@code cancelledAt}
-     *       and resets {@code startedAt})</li>
-     *   <li>PENDING → reject (a prior operation is still in-flight)</li>
-     * </ul>
-     *
-     * <p>{@code newExpiresAt} is honored only for the reactivation paths
-     * (CANCELLED / EXPIRED) where the subscription period is being restarted;
-     * ignored for ACTIVE / PAUSED / PAST_DUE where the existing period applies.
+     * Overload for application-layer callers that hold a billingKeyId (Long) rather than
+     * a loaded {@link BillingKey} entity. Same state machine as
+     * {@link #subscribe(BillingKey, Plan, Instant)}.
      */
-    public void upgradeOrReactivate(Plan newPlan, Instant newExpiresAt) {
-        switch (this.status) {
-            case ACTIVE -> this.plan = newPlan;
-            case PAUSED, PAST_DUE -> {
-                this.plan = newPlan;
-                this.status = SubscriptionStatus.ACTIVE;
-                this.suspensionReason = SuspensionReason.NONE;
-                this.paymentFailureCount = 0;
-            }
-            case CANCELLED, EXPIRED -> {
-                this.plan = newPlan;
-                this.status = SubscriptionStatus.ACTIVE;
-                this.suspensionReason = SuspensionReason.NONE;
-                this.startedAt = Instant.now();
-                this.expiresAt = newExpiresAt;
-                this.cancelledAt = null;
-                this.paymentFailureCount = 0;
-            }
-            case PENDING -> throw new BillingException(
-                    BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
-                    "Subscription is PENDING — wait for the current operation to settle before subscribing again");
+    public void subscribe(Long billingKeyId, Plan plan, Instant nextChargeAt) {
+        if (billingKeyId == null) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "subscribe requires a non-null billingKeyId — a paid subscription must "
+                            + "have a registered card. Use createTrial(...) for trial provisioning.");
+        }
+        if (plan == null || nextChargeAt == null) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "subscribe requires non-null plan and nextChargeAt");
+        }
+        boolean isFreshStart = (this.status == SubscriptionStatus.CANCELLED
+                              || this.status == SubscriptionStatus.EXPIRED);
+        this.plan = plan;
+        this.billingKeyId = billingKeyId;
+        this.nextChargeAt = nextChargeAt;
+        this.expiresAt = null;
+        this.cancelledAt = null;
+        this.pendingPlan = null;
+        this.scheduledChangeAt = null;
+        this.status = SubscriptionStatus.ACTIVE;
+        this.suspensionReason = SuspensionReason.NONE;
+        this.paymentFailureCount = 0;
+        if (isFreshStart) {
+            this.startedAt = Instant.now();
         }
     }
 
-    public void cancel() {
-        if (this.status == SubscriptionStatus.CANCELLED) {
+    /**
+     * Apply {@code newPlan} immediately. E-flow: upgrade or same-price change.
+     * Service layer routes upgrade vs downgrade — domain swaps unconditionally.
+     *
+     * <p>Side-effects:
+     * <ul>
+     *   <li>plan = newPlan</li>
+     *   <li>cancelledAt = null (auto-uncancel — re-subscribing during cancel-grace)</li>
+     *   <li>pendingPlan / scheduledChangeAt = null (any pending downgrade voided)</li>
+     * </ul>
+     *
+     * <p>Domain guard: mustBePaid (refuses Trial: billing_key_id IS NULL).
+     * ACTIVE only — dunning states (PAUSED/PAST_DUE) use different flows.
+     */
+    public void changePlan(Plan newPlan) {
+        mustBePaid();
+        if (this.status != SubscriptionStatus.ACTIVE) {
             throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
-                    "Subscription is already cancelled");
+                    "Can only change plan on ACTIVE subscriptions. Current: " + this.status);
         }
-        if (this.status == SubscriptionStatus.EXPIRED) {
+        this.plan = newPlan;
+        this.cancelledAt = null;
+        this.pendingPlan = null;
+        this.scheduledChangeAt = null;
+    }
+
+    /**
+     * Schedule a downgrade to {@code pendingPlan} at {@code scheduledAt}. F-flow.
+     * PRO → BASIC keeps PRO until current cycle end, then BASIC.
+     *
+     * <p>Service layer computes scheduledAt = current nextChargeAt (when the next charge
+     * would have happened at the current plan).
+     *
+     * <p>Side-effects: pendingPlan, scheduledChangeAt set; cancelledAt cleared
+     * (auto-uncancel — re-subscribing during cancel-grace).
+     *
+     * <p>Domain guard: mustBePaid + ACTIVE only. The pendingPlan must be strictly
+     * cheaper than the current plan — caller should route equal/higher to changePlan.
+     */
+    public void scheduleDowngrade(Plan pendingPlan, Instant scheduledAt) {
+        mustBePaid();
+        if (this.status != SubscriptionStatus.ACTIVE) {
             throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
-                    "Cannot cancel an expired subscription");
+                    "Can only schedule downgrade on ACTIVE subscriptions. Current: " + this.status);
+        }
+        if (pendingPlan == null || scheduledAt == null) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "pendingPlan and scheduledAt are required");
+        }
+        if (!pendingPlan.getMonthlyPrice().isLessThan(this.plan.getMonthlyPrice())) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "scheduleDowngrade requires a lower-priced plan");
+        }
+        this.pendingPlan = pendingPlan;
+        this.scheduledChangeAt = scheduledAt;
+        this.cancelledAt = null;
+    }
+
+    /**
+     * Mark the subscription for cancellation at the end of the current paid period. G-flow.
+     * cancelledAt = now(); status stays ACTIVE; service remains usable until nextChargeAt.
+     * The daily SubscriptionScheduledChangeScheduler calls {@link #finalizeCancellation}
+     * when nextChargeAt passes.
+     *
+     * <p>Domain guard: mustBePaid (Trial cannot be cancelled — no cancel button for trial).
+     */
+    public void scheduleCancellation() {
+        mustBePaid();
+        if (this.status != SubscriptionStatus.ACTIVE) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "Can only schedule cancellation on ACTIVE subscriptions. Current: " + this.status);
+        }
+        if (this.cancelledAt != null) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "Subscription is already scheduled for cancellation");
+        }
+        this.cancelledAt = Instant.now();
+    }
+
+    /**
+     * Undo a scheduled cancellation. H-flow: cancelledAt = null; nothing else changes.
+     */
+    public void undoScheduledCancellation() {
+        if (this.cancelledAt == null) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "No scheduled cancellation to undo");
+        }
+        this.cancelledAt = null;
+    }
+
+    /**
+     * Trial expiry. B-flow continuation. Called by SubscriptionScheduledChangeScheduler when
+     * billing_key_id IS NULL AND expires_at &lt;= now AND status = ACTIVE.
+     *
+     * <p>Defensive guards inside the method (idempotent re-run safe).
+     */
+    public void expireTrial() {
+        if (this.billingKeyId != null) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "expireTrial only applies to trial subscriptions (no billing key)");
+        }
+        if (this.status != SubscriptionStatus.ACTIVE) {
+            return;  // already transitioned, idempotent
+        }
+        this.status = SubscriptionStatus.EXPIRED;
+    }
+
+    /**
+     * Apply pending downgrade. F-flow continuation. Called when scheduledChangeAt &lt;= now.
+     * Swaps to pendingPlan and clears pending state. Idempotent.
+     */
+    public void applyPendingPlanChange() {
+        if (this.pendingPlan == null) {
+            return;  // nothing to apply, idempotent
+        }
+        this.plan = this.pendingPlan;
+        this.pendingPlan = null;
+        this.scheduledChangeAt = null;
+    }
+
+    /**
+     * Finalize cancellation. G-flow continuation. Called when cancel-grace period ends
+     * (nextChargeAt &lt;= now AND cancelledAt IS NOT NULL).
+     * Transitions status to CANCELLED. Idempotent.
+     */
+    public void finalizeCancellation() {
+        if (this.cancelledAt == null) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "Cannot finalize cancellation: cancelled_at is null");
+        }
+        if (this.status == SubscriptionStatus.CANCELLED) {
+            return;  // already finalized, idempotent
         }
         this.status = SubscriptionStatus.CANCELLED;
-        this.cancelledAt = Instant.now();
-        this.suspensionReason = SuspensionReason.NONE;
     }
 
     public void markPastDue() {
@@ -249,27 +425,6 @@ public class Subscription extends BaseEntity {
         this.status = SubscriptionStatus.EXPIRED;
     }
 
-    public void reactivate(Plan plan, Instant newExpiresAt) {
-        if (this.status != SubscriptionStatus.CANCELLED && this.status != SubscriptionStatus.EXPIRED) {
-            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
-                    "Can only reactivate CANCELLED or EXPIRED subscriptions. Current: " + this.status);
-        }
-        this.plan = plan;
-        this.status = SubscriptionStatus.ACTIVE;
-        this.suspensionReason = SuspensionReason.NONE;
-        this.startedAt = Instant.now();
-        this.expiresAt = newExpiresAt;
-        this.cancelledAt = null;
-        this.paymentFailureCount = 0;
-    }
-
-    public void extendExpiration(Instant newExpiresAt) {
-        validateActive();
-        if (newExpiresAt != null && (this.expiresAt == null || newExpiresAt.isAfter(this.expiresAt))) {
-            this.expiresAt = newExpiresAt;
-        }
-    }
-
     public void updateNextChargeAt(Instant nextChargeAt) {
         this.nextChargeAt = nextChargeAt;
     }
@@ -293,6 +448,22 @@ public class Subscription extends BaseEntity {
 
     public boolean hasBillingKey() {
         return this.billingKeyId != null;
+    }
+
+    /** True when this is a trial subscription (ACTIVE, no billing key, has expiresAt). */
+    public boolean isTrial() {
+        return this.billingKeyId == null && this.status == SubscriptionStatus.ACTIVE
+                && this.expiresAt != null;
+    }
+
+    /** True when a cancellation has been scheduled (cancel-grace period active). */
+    public boolean isCancellationScheduled() {
+        return this.cancelledAt != null && this.status == SubscriptionStatus.ACTIVE;
+    }
+
+    /** True when a plan downgrade is scheduled for a future date. */
+    public boolean isDowngradeScheduled() {
+        return this.pendingPlan != null;
     }
 
     public String getPlanId() {
@@ -331,6 +502,17 @@ public class Subscription extends BaseEntity {
         if (this.status != SubscriptionStatus.ACTIVE) {
             throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
                     "Subscription must be ACTIVE for this operation. Current: " + this.status);
+        }
+    }
+
+    /**
+     * Guard: this operation requires a paid subscription (billingKeyId != null).
+     * Trials and Free subscriptions are rejected.
+     */
+    private void mustBePaid() {
+        if (this.billingKeyId == null) {
+            throw new BillingException(BillingErrorCode.INVALID_SUBSCRIPTION_STATE,
+                    "This operation requires a paid subscription. Trial subscriptions cannot be modified this way.");
         }
     }
 }
