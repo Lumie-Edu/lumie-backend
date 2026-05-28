@@ -55,8 +55,8 @@ class IdempotencyHeaderInterceptorTest {
     }
 
     @Nested
-    @DisplayName("non-/v1 paths bypass enforcement")
-    class NonV1Path {
+    @DisplayName("non-enforced paths bypass — actuator, root, v2, non-billing /v1 domains")
+    class NonEnforcedPath {
 
         @Test
         void actuatorPostPasses() {
@@ -73,6 +73,48 @@ class IdempotencyHeaderInterceptorTest {
         @Test
         void v2PostPasses() {
             assertThat(interceptor.preHandle(req("POST", "/v2/anything", null), response, new Object()))
+                    .isTrue();
+        }
+
+        /* Non-billing /v1 domains — replay-safety not required by these flows.
+         * Auth (login/refresh/logout): each call must mint fresh state.
+         * Domain APIs (students, lectures, etc): no money-moving mutations today.
+         * If any future endpoint needs Idempotency-Key, add its prefix to
+         * ENFORCED_PATTERNS explicitly. */
+
+        @Test
+        void v1LoginPostPasses() {
+            assertThat(interceptor.preHandle(req("POST", "/v1/login", null), response, new Object()))
+                    .isTrue();
+        }
+
+        @Test
+        void v1RefreshPostPasses() {
+            assertThat(interceptor.preHandle(req("POST", "/v1/refresh", null), response, new Object()))
+                    .isTrue();
+        }
+
+        @Test
+        void v1LogoutPostPasses() {
+            assertThat(interceptor.preHandle(req("POST", "/v1/logout", null), response, new Object()))
+                    .isTrue();
+        }
+
+        @Test
+        void v1StudentsPostPasses() {
+            assertThat(interceptor.preHandle(req("POST", "/v1/students", null), response, new Object()))
+                    .isTrue();
+        }
+
+        @Test
+        void v1LecturesPatchPasses() {
+            assertThat(interceptor.preHandle(req("PATCH", "/v1/lectures/42", null), response, new Object()))
+                    .isTrue();
+        }
+
+        @Test
+        void v1AttendanceSessionsDeletePasses() {
+            assertThat(interceptor.preHandle(req("DELETE", "/v1/attendance/sessions/99", null), response, new Object()))
                     .isTrue();
         }
     }
