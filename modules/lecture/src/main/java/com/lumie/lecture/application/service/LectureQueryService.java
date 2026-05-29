@@ -59,7 +59,7 @@ public class LectureQueryService {
                 lecture.getTitle(),
                 lecture.getDescription(),
                 lecture.getYoutubeUrl(),
-                lecture.getVisibility().name()
+                lecture.getVisibility()
         );
     }
 }

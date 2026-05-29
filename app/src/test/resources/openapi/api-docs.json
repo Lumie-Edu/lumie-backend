@@ -1271,10 +1271,12 @@
             "type" : "string"
           },
           "endTime" : {
-            "$ref" : "#/components/schemas/LocalTime"
+            "example" : "09:00",
+            "type" : "string"
           },
           "startTime" : {
-            "$ref" : "#/components/schemas/LocalTime"
+            "example" : "09:00",
+            "type" : "string"
           }
         },
         "required" : [ "date", "endTime", "startTime" ],
@@ -2209,6 +2211,7 @@
             "type" : "string"
           },
           "status" : {
+            "enum" : [ "ACTIVE", "DRAFT", "CLOSED" ],
             "type" : "string"
           },
           "teacherId" : {
@@ -2223,6 +2226,7 @@
             "type" : "string"
           },
           "visibility" : {
+            "enum" : [ "TEACHER_ONLY", "STUDENT" ],
             "type" : "string"
           },
           "youtubeUrl" : {
@@ -3830,7 +3834,8 @@
             "type" : "string"
           },
           "endTime" : {
-            "$ref" : "#/components/schemas/LocalTime"
+            "example" : "09:00",
+            "type" : "string"
           },
           "id" : {
             "format" : "int64",
@@ -3841,7 +3846,8 @@
             "type" : "integer"
           },
           "startTime" : {
-            "$ref" : "#/components/schemas/LocalTime"
+            "example" : "09:00",
+            "type" : "string"
           },
           "status" : {
             "enum" : [ "PENDING", "CONFIRMED", "CANCELLED", "COMPLETED" ],
@@ -4046,7 +4052,8 @@
             "type" : "string"
           },
           "endTime" : {
-            "$ref" : "#/components/schemas/LocalTime"
+            "example" : "09:00",
+            "type" : "string"
           },
           "hasReservation" : {
             "type" : "boolean"
@@ -4059,7 +4066,8 @@
             "type" : "boolean"
           },
           "startTime" : {
-            "$ref" : "#/components/schemas/LocalTime"
+            "example" : "09:00",
+            "type" : "string"
           },
           "updatedAt" : {
             "format" : "date-time",
@@ -5145,7 +5153,8 @@
             "type" : "string"
           },
           "endTime" : {
-            "$ref" : "#/components/schemas/LocalTime"
+            "example" : "09:00",
+            "type" : "string"
           },
           "id" : {
             "format" : "int64",
@@ -5156,7 +5165,8 @@
             "type" : "integer"
           },
           "startTime" : {
-            "$ref" : "#/components/schemas/LocalTime"
+            "example" : "09:00",
+            "type" : "string"
           },
           "status" : {
             "enum" : [ "PENDING", "CONFIRMED", "CANCELLED", "COMPLETED" ],
@@ -5680,13 +5690,15 @@
             "type" : "string"
           },
           "endTime" : {
-            "$ref" : "#/components/schemas/LocalTime"
+            "example" : "09:00",
+            "type" : "string"
           },
           "isAvailable" : {
             "type" : "boolean"
           },
           "startTime" : {
-            "$ref" : "#/components/schemas/LocalTime"
+            "example" : "09:00",
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -5832,6 +5844,7 @@
             "type" : "string"
           },
           "visibility" : {
+            "enum" : [ "TEACHER_ONLY", "STUDENT" ],
             "type" : "string"
           },
           "youtubeUrl" : {

@@ -1,6 +1,8 @@
 package com.lumie.lecture.application.dto.response;
 
 import com.lumie.lecture.domain.entity.Lecture;
+import com.lumie.lecture.domain.vo.LectureStatus;
+import com.lumie.lecture.domain.vo.LectureVisibility;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
@@ -13,8 +15,8 @@ public record LectureResponse(
         String title,
         @Schema(nullable = true) String description,
         @Schema(nullable = true) String youtubeUrl,
-        String visibility,
-        String status,
+        LectureVisibility visibility,
+        LectureStatus status,
         @Schema(nullable = true) LocalDate lectureDate,
         Instant createdAt,
         Instant updatedAt
@@ -27,8 +29,8 @@ public record LectureResponse(
                 lecture.getTitle(),
                 lecture.getDescription(),
                 lecture.getYoutubeUrl(),
-                lecture.getVisibility().name(),
-                lecture.getStatus().name(),
+                lecture.getVisibility(),
+                lecture.getStatus(),
                 lecture.getLectureDate(),
                 lecture.getCreatedAt(),
                 lecture.getUpdatedAt()
