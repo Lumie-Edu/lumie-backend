@@ -12,6 +12,7 @@ import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
 import com.lumie.exam.application.dto.response.OmrPresignResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
+import com.lumie.exam.application.dto.response.statistics.TopStudentMonthlyResponse;
 import com.lumie.exam.application.service.ExamExportService;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
@@ -134,6 +135,12 @@ public class ResultController {
     @GetMapping("/students/{studentId}/results")
     public ResponseEntity<List<ExamResultResponse>> getStudentResults(@PathVariable Long studentId) {
         return ResponseEntity.ok(resultQueryService.getStudentResults(studentId));
+    }
+
+    @GetMapping("/exam-results/statistics/top-students-monthly")
+    public ResponseEntity<List<TopStudentMonthlyResponse>> getTopStudentsMonthly(
+            @RequestParam(defaultValue = "5") int limit) {
+        return ResponseEntity.ok(resultQueryService.getTopStudentsMonthly(limit));
     }
 
     @PatchMapping("/question-results/{id}")

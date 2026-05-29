@@ -3,6 +3,7 @@ package com.lumie.exam.application.service;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
+import com.lumie.exam.application.dto.response.statistics.TopStudentMonthlyResponse;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
@@ -97,6 +98,30 @@ public class ResultQueryService {
                         StudentService.StudentData::id,
                         StudentService.StudentData::studentName
                 ));
+    }
+
+    public List<TopStudentMonthlyResponse> getTopStudentsMonthly(int limit) {
+        log.debug("Getting top {} students for current month", limit);
+
+        var rows = resultRepository.findTopStudentsForCurrentMonth(limit);
+        if (rows.isEmpty()) {
+            return List.of();
+        }
+        List<Long> studentIds = rows.stream().map(r -> r.getStudentId()).toList();
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Map<Long, String> nameById = studentService.getStudentsByIds(tenantSlug, studentIds).students().stream()
+                .collect(Collectors.toMap(
+                        StudentService.StudentData::id,
+                        StudentService.StudentData::studentName
+                ));
+        return rows.stream()
+                .map(r -> new TopStudentMonthlyResponse(
+                        r.getStudentId(),
+                        nameById.get(r.getStudentId()),
+                        r.getAvgScore(),
+                        r.getAttemptCount()
+                ))
+                .toList();
     }
 
     public List<QuestionResultResponse> getQuestionResults(Long resultId) {

@@ -3,6 +3,7 @@ package com.lumie.content.adapter.in.web;
 import com.lumie.content.application.dto.request.CreateReservationRequest;
 import com.lumie.content.application.dto.request.UpdateReservationStatusRequest;
 import com.lumie.content.application.dto.response.ReservationResponse;
+import com.lumie.content.application.dto.response.TodayReservationResponse;
 import com.lumie.content.application.service.ReservationCommandService;
 import com.lumie.content.application.service.ReservationQueryService;
 import com.lumie.content.domain.vo.ReservationStatus;
@@ -47,6 +48,11 @@ public class ReservationController {
     @GetMapping("/schedule/{scheduleId}")
     public ResponseEntity<List<ReservationResponse>> listReservationsBySchedule(@PathVariable Long scheduleId) {
         return ResponseEntity.ok(queryService.listReservationsBySchedule(scheduleId));
+    }
+
+    @GetMapping("/today")
+    public ResponseEntity<List<TodayReservationResponse>> listTodayReservations() {
+        return ResponseEntity.ok(queryService.listTodayReservations());
     }
 
     @GetMapping("/{id}")

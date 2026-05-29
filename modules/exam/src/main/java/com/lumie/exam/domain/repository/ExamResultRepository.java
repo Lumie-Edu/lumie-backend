@@ -49,4 +49,27 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     @EntityGraph(attributePaths = {"exam", "questionResults"})
     @Query("SELECT r FROM ExamResult r JOIN r.questionResults qr WHERE qr.id = :questionResultId")
     Optional<ExamResult> findByQuestionResultId(@Param("questionResultId") Long questionResultId);
+
+    /**
+     * Top students by average total_score for the current month. Native query —
+     * studentName is left joined later in the service via StudentService.
+     */
+    @Query(value = """
+        SELECT r.student_id AS studentId,
+               AVG(r.total_score) AS avgScore,
+               COUNT(*) AS attemptCount
+          FROM exam_results r
+         WHERE r.student_id IS NOT NULL
+           AND r.created_at >= date_trunc('month', now())
+         GROUP BY r.student_id
+         ORDER BY AVG(r.total_score) DESC, COUNT(*) DESC
+         LIMIT :limit
+        """, nativeQuery = true)
+    List<TopStudentAggregateRow> findTopStudentsForCurrentMonth(@Param("limit") int limit);
+
+    interface TopStudentAggregateRow {
+        Long getStudentId();
+        Double getAvgScore();
+        Integer getAttemptCount();
+    }
 }

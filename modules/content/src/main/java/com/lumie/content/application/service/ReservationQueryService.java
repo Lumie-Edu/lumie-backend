@@ -1,11 +1,14 @@
 package com.lumie.content.application.service;
 
 import com.lumie.content.application.dto.response.ReservationResponse;
+import com.lumie.content.application.dto.response.TodayReservationResponse;
 import com.lumie.content.domain.entity.Reservation;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.repository.ReservationRepository;
 import com.lumie.content.domain.vo.ReservationStatus;
+import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -13,7 +16,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +30,7 @@ import java.util.List;
 public class ReservationQueryService {
 
     private final ReservationRepository reservationRepository;
+    private final StudentService studentService;
 
     public Page<ReservationResponse> listReservations(Pageable pageable) {
         log.debug("Listing reservations with pagination");
@@ -51,6 +60,32 @@ public class ReservationQueryService {
 
         return reservationRepository.findByScheduleId(scheduleId).stream()
                 .map(ReservationResponse::from)
+                .toList();
+    }
+
+    public List<TodayReservationResponse> listTodayReservations() {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        log.debug("Listing reservations for date: {}", today);
+
+        List<Reservation> reservations = reservationRepository.findByScheduleDateExcludingCancelled(today);
+        if (reservations.isEmpty()) {
+            return List.of();
+        }
+        List<Long> studentIds = reservations.stream()
+                .map(Reservation::getStudentId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, String> nameById = studentIds.isEmpty()
+                ? Map.of()
+                : studentService.getStudentsByIds(TenantContextHolder.getRequiredTenant(), studentIds)
+                        .students().stream()
+                        .collect(Collectors.toMap(
+                                StudentService.StudentData::id,
+                                StudentService.StudentData::studentName
+                        ));
+        return reservations.stream()
+                .map(r -> TodayReservationResponse.from(r, nameById.get(r.getStudentId())))
                 .toList();
     }
 
