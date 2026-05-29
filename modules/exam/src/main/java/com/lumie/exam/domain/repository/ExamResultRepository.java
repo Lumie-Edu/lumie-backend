@@ -13,8 +13,10 @@ import java.util.Optional;
 
 public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
+    @EntityGraph(attributePaths = {"exam"})
     Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
 
+    @EntityGraph(attributePaths = {"exam"})
     Optional<ExamResult> findByExamIdAndPhoneNumber(Long examId, String phoneNumber);
 
     @EntityGraph(attributePaths = {"exam", "questionResults"})
@@ -71,5 +73,71 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
         Long getStudentId();
         Double getAvgScore();
         Integer getAttemptCount();
+    }
+
+    // ---------------------------------------------------------------------
+    // Dashboard statistics — compact SQL aggregates over the whole tenant.
+    // Aggregation is pushed into Postgres (COUNT / SUM / GROUP BY) so the
+    // dashboard never materialises ExamResult / QuestionResult entities into
+    // heap. All queries are RLS-scoped to the current tenant, so each one only
+    // ever scans that tenant's rows. camelCase aliases are quoted so the column
+    // labels survive Postgres' lower-case folding for the projection mapper.
+    // ---------------------------------------------------------------------
+
+    /** Result count + total-score sum across all of the tenant's exams. */
+    @Query(value = """
+        SELECT COUNT(*)                       AS "resultCount",
+               COALESCE(SUM(r.total_score), 0) AS "scoreSum"
+          FROM exam_results r
+        """, nativeQuery = true)
+    ResultAggregateRow aggregateResults();
+
+    /** (gradeScale, grade) -> count across the tenant. Scale comes from the exam. */
+    @Query(value = """
+        SELECT e.grade_scale AS "gradeScale",
+               r.grade       AS grade,
+               COUNT(*)      AS cnt
+          FROM exam_results r
+          JOIN exams e ON e.id = r.exam_id
+         WHERE r.grade IS NOT NULL
+           AND r.grade > 0
+         GROUP BY e.grade_scale, r.grade
+        """, nativeQuery = true)
+    List<GradeBucketRow> aggregateGradeBuckets();
+
+    /**
+     * Per (examId, questionNumber, selectedChoice, isCorrect) counts across the
+     * tenant. Row cardinality is bounded by exams × questions × distinct choices
+     * × 2 — a few thousand rows at most, independent of the number of results.
+     */
+    @Query(value = """
+        SELECT r.exam_id        AS "examId",
+               qr.question_number AS "questionNumber",
+               qr.selected_choice AS "selectedChoice",
+               qr.is_correct      AS correct,
+               COUNT(*)           AS cnt
+          FROM question_results qr
+          JOIN exam_results r ON r.id = qr.exam_result_id
+         GROUP BY r.exam_id, qr.question_number, qr.selected_choice, qr.is_correct
+        """, nativeQuery = true)
+    List<QuestionChoiceCountRow> aggregateQuestionChoices();
+
+    interface ResultAggregateRow {
+        long getResultCount();
+        long getScoreSum();
+    }
+
+    interface GradeBucketRow {
+        String getGradeScale();
+        Integer getGrade();
+        Integer getCnt();
+    }
+
+    interface QuestionChoiceCountRow {
+        Long getExamId();
+        Integer getQuestionNumber();
+        String getSelectedChoice();
+        Boolean getCorrect();
+        Integer getCnt();
     }
 }

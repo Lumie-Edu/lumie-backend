@@ -1,5 +1,6 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.common.cache.CacheConfig;
 import com.lumie.exam.application.dto.response.statistics.DashboardStatisticsResponse;
 import com.lumie.exam.application.dto.response.statistics.ExamStatisticsResponse;
 import com.lumie.exam.domain.entity.Exam;
@@ -9,11 +10,15 @@ import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.domain.repository.ExamResultRepository.GradeBucketRow;
+import com.lumie.exam.domain.repository.ExamResultRepository.QuestionChoiceCountRow;
+import com.lumie.exam.domain.repository.ExamResultRepository.ResultAggregateRow;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +43,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional(readOnly = true)
 public class ExamSummaryStatisticsService {
+
+    private static final int MIN_ATTEMPTS_FOR_TOP_INCORRECT = 5;
+    private static final int TOP_INCORRECT_LIMIT = 10;
 
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
@@ -99,55 +107,75 @@ public class ExamSummaryStatisticsService {
         );
     }
 
+    /**
+     * Cross-exam dashboard statistics, computed directly with tenant-scoped SQL
+     * aggregates (COUNT / SUM / GROUP BY) and assembled in memory. Heap stays
+     * bounded by the number of exams (loaded for their question metadata) plus
+     * the compact aggregate rows — never by the number of results or
+     * question-results, which is what caused the original OOM. Because the
+     * query is RLS-scoped, each call only ever aggregates one tenant's rows.
+     *
+     * <p>Cached per tenant with a short TTL ({@link CacheConfig#CACHE_EXAM_DASHBOARD}):
+     * dashboard figures tolerate a few minutes of staleness, so no write-path
+     * eviction is needed.
+     */
+    @Cacheable(value = CacheConfig.CACHE_EXAM_DASHBOARD,
+            key = "T(com.lumie.common.tenant.TenantContextHolder).getRequiredTenantId()")
     public DashboardStatisticsResponse getDashboardStatistics() {
-        log.debug("Getting dashboard statistics");
+        log.debug("Computing dashboard statistics from SQL aggregates");
 
-        List<Exam> allExams = examRepository.findAll();
-        List<ExamResult> allResults = new ArrayList<>();
-        for (Exam exam : allExams) {
-            allResults.addAll(resultRepository.findByExamId(exam.getId()));
+        List<Exam> exams = examRepository.findAll();
+        int totalExams = exams.size();
+
+        ResultAggregateRow agg = resultRepository.aggregateResults();
+        long totalResults = agg != null ? agg.getResultCount() : 0L;
+        long scoreSum = agg != null ? agg.getScoreSum() : 0L;
+        if (totalResults == 0) {
+            return emptyDashboard(totalExams);
+        }
+        double overallAverage = (double) scoreSum / totalResults;
+
+        Map<Long, Exam> examById = exams.stream()
+                .collect(Collectors.toMap(Exam::getId, e -> e));
+
+        // Grade buckets, routed by each exam's scale.
+        Map<Integer, Integer> fiveBuckets = new HashMap<>();
+        Map<Integer, Integer> nineBuckets = new HashMap<>();
+        for (GradeBucketRow row : resultRepository.aggregateGradeBuckets()) {
+            if (row.getGrade() == null || row.getCnt() == null) continue;
+            if (GradeScale.FIVE_GRADE.name().equals(row.getGradeScale())) {
+                fiveBuckets.merge(row.getGrade(), row.getCnt(), Integer::sum);
+            } else if (GradeScale.NINE_GRADE.name().equals(row.getGradeScale())) {
+                nineBuckets.merge(row.getGrade(), row.getCnt(), Integer::sum);
+            }
         }
 
-        if (allResults.isEmpty()) {
-            return new DashboardStatisticsResponse(
-                    allExams.size(), 0, 0.0,
-                    Collections.emptyList(), Collections.emptyList(),
-                    new DashboardStatisticsResponse.GradeDistributionByScale(
-                            buildDashboardGradeBuckets(Collections.emptyMap(), 5),
-                            buildDashboardGradeBuckets(Collections.emptyMap(), 9)
-                    )
-            );
-        }
-
-        double overallAverage = allResults.stream()
-                .mapToInt(ExamResult::getTotalScore)
-                .average()
-                .orElse(0.0);
-
-        Map<String, int[]> typeStats = new HashMap<>();
+        // Type accuracy + per-question incorrect distribution, from the compact
+        // (examId, questionNumber, selectedChoice, isCorrect) counts.
+        Map<String, int[]> typeStats = new HashMap<>();              // type -> [correct, total] (same as calculateExamTypeAccuracy)
         Map<String, QuestionErrorInfo> questionErrors = new HashMap<>();
+        for (QuestionChoiceCountRow row : resultRepository.aggregateQuestionChoices()) {
+            Exam exam = examById.get(row.getExamId());
+            if (exam == null) continue;
+            int qNum = row.getQuestionNumber();
+            int cnt = row.getCnt() != null ? row.getCnt() : 0;
+            boolean correct = Boolean.TRUE.equals(row.getCorrect());
 
-        for (ExamResult result : allResults) {
-            Exam exam = result.getExam();
-            for (QuestionResult qr : result.getQuestionResults()) {
-                String type = exam.getQuestionType(qr.getQuestionNumber());
-                if (type != null) {
-                    typeStats.computeIfAbsent(type, k -> new int[]{0, 0});
-                    typeStats.get(type)[1]++;
-                    if (qr.isCorrect()) {
-                        typeStats.get(type)[0]++;
-                    }
-                }
+            String type = exam.getQuestionType(qNum);
+            if (type != null) {
+                int[] t = typeStats.computeIfAbsent(type, k -> new int[]{0, 0});
+                t[1] += cnt;                 // total
+                if (correct) t[0] += cnt;    // correct
+            }
 
-                String questionKey = exam.getId() + "-" + qr.getQuestionNumber();
-                QuestionErrorInfo errorInfo = questionErrors.computeIfAbsent(questionKey,
-                        k -> new QuestionErrorInfo(exam, qr.getQuestionNumber()));
-                errorInfo.totalAttempts++;
-                if (!qr.isCorrect()) {
-                    errorInfo.incorrectCount++;
-                    if (qr.getSelectedChoice() != null) {
-                        errorInfo.wrongChoices.merge(qr.getSelectedChoice(), 1, Integer::sum);
-                    }
+            QuestionErrorInfo info = questionErrors.computeIfAbsent(
+                    exam.getId() + "-" + qNum, k -> new QuestionErrorInfo(exam, qNum));
+            info.totalAttempts += cnt;
+            if (!correct) {
+                info.incorrectCount += cnt;
+                String choice = row.getSelectedChoice();
+                if (choice != null) {
+                    info.wrongChoices.merge(choice, cnt, Integer::sum);
                 }
             }
         }
@@ -158,20 +186,17 @@ public class ExamSummaryStatisticsService {
                     int total = entry.getValue()[1];
                     double accuracy = total > 0 ? (double) correct / total * 100 : 0;
                     return new DashboardStatisticsResponse.TypeAccuracy(
-                            entry.getKey(), total, correct, Math.round(accuracy * 10) / 10.0
-                    );
+                            entry.getKey(), total, correct, round1(accuracy));
                 })
                 .sorted((a, b) -> Double.compare(b.accuracyRate(), a.accuracyRate()))
                 .toList();
 
         List<DashboardStatisticsResponse.TopIncorrectQuestion> topIncorrect = questionErrors.values().stream()
-                .filter(info -> info.totalAttempts >= 5)
-                .sorted((a, b) -> {
-                    double rateA = (double) a.incorrectCount / a.totalAttempts;
-                    double rateB = (double) b.incorrectCount / b.totalAttempts;
-                    return Double.compare(rateB, rateA);
-                })
-                .limit(10)
+                .filter(info -> info.totalAttempts >= MIN_ATTEMPTS_FOR_TOP_INCORRECT)
+                .sorted((a, b) -> Double.compare(
+                        (double) b.incorrectCount / b.totalAttempts,
+                        (double) a.incorrectCount / a.totalAttempts))
+                .limit(TOP_INCORRECT_LIMIT)
                 .map(info -> {
                     double incorrectRate = (double) info.incorrectCount / info.totalAttempts * 100;
                     String topWrongChoice = info.wrongChoices.entrySet().stream()
@@ -181,56 +206,36 @@ public class ExamSummaryStatisticsService {
                     int topWrongCount = info.wrongChoices.getOrDefault(topWrongChoice, 0);
                     double topWrongRate = info.incorrectCount > 0
                             ? (double) topWrongCount / info.incorrectCount * 100 : 0;
-
                     return new DashboardStatisticsResponse.TopIncorrectQuestion(
                             info.exam.getId(), info.exam.getName(), info.questionNumber,
                             info.exam.getQuestionType(info.questionNumber),
                             info.exam.getCorrectAnswerForQuestion(info.questionNumber),
-                            info.totalAttempts, info.incorrectCount,
-                            Math.round(incorrectRate * 10) / 10.0,
-                            topWrongChoice, Math.round(topWrongRate * 10) / 10.0
-                    );
+                            info.totalAttempts, info.incorrectCount, round1(incorrectRate),
+                            topWrongChoice, round1(topWrongRate));
                 })
                 .toList();
-
-        Map<Integer, Integer> fiveBuckets = new HashMap<>();
-        Map<Integer, Integer> nineBuckets = new HashMap<>();
-        for (ExamResult result : allResults) {
-            Exam exam = result.getExam();
-            Integer grade = result.getGrade();
-            GradeScale scale = exam.getGradeScale();
-            if (grade == null || grade <= 0 || scale == null) continue;
-            if (scale == GradeScale.FIVE_GRADE) {
-                fiveBuckets.merge(grade, 1, Integer::sum);
-            } else if (scale == GradeScale.NINE_GRADE) {
-                nineBuckets.merge(grade, 1, Integer::sum);
-            }
-        }
 
         DashboardStatisticsResponse.GradeDistributionByScale gradeDistribution =
                 new DashboardStatisticsResponse.GradeDistributionByScale(
                         buildDashboardGradeBuckets(fiveBuckets, 5),
-                        buildDashboardGradeBuckets(nineBuckets, 9)
-                );
+                        buildDashboardGradeBuckets(nineBuckets, 9));
 
         return new DashboardStatisticsResponse(
-                allExams.size(), allResults.size(),
-                Math.round(overallAverage * 10) / 10.0,
-                typeAccuracyList, topIncorrect,
-                gradeDistribution
-        );
+                totalExams, (int) totalResults, round1(overallAverage),
+                typeAccuracyList, topIncorrect, gradeDistribution);
     }
 
-    private List<DashboardStatisticsResponse.GradeBucket> buildDashboardGradeBuckets(
-            Map<Integer, Integer> counts, int maxGrade) {
-        int total = counts.values().stream().mapToInt(Integer::intValue).sum();
-        List<DashboardStatisticsResponse.GradeBucket> buckets = new ArrayList<>(maxGrade);
-        for (int grade = 1; grade <= maxGrade; grade++) {
-            int count = counts.getOrDefault(grade, 0);
-            double pct = total > 0 ? Math.round((double) count / total * 1000) / 10.0 : 0.0;
-            buckets.add(new DashboardStatisticsResponse.GradeBucket(grade, count, pct));
-        }
-        return buckets;
+    private DashboardStatisticsResponse emptyDashboard(int totalExams) {
+        return new DashboardStatisticsResponse(
+                totalExams, 0, 0.0,
+                Collections.emptyList(), Collections.emptyList(),
+                new DashboardStatisticsResponse.GradeDistributionByScale(
+                        buildDashboardGradeBuckets(Collections.emptyMap(), 5),
+                        buildDashboardGradeBuckets(Collections.emptyMap(), 9)));
+    }
+
+    private static double round1(double value) {
+        return Math.round(value * 10) / 10.0;
     }
 
     private static class QuestionErrorInfo {
@@ -244,6 +249,18 @@ public class ExamSummaryStatisticsService {
             this.exam = exam;
             this.questionNumber = questionNumber;
         }
+    }
+
+    private List<DashboardStatisticsResponse.GradeBucket> buildDashboardGradeBuckets(
+            Map<Integer, Integer> counts, int maxGrade) {
+        int total = counts.values().stream().mapToInt(Integer::intValue).sum();
+        List<DashboardStatisticsResponse.GradeBucket> buckets = new ArrayList<>(maxGrade);
+        for (int grade = 1; grade <= maxGrade; grade++) {
+            int count = counts.getOrDefault(grade, 0);
+            double pct = total > 0 ? Math.round((double) count / total * 1000) / 10.0 : 0.0;
+            buckets.add(new DashboardStatisticsResponse.GradeBucket(grade, count, pct));
+        }
+        return buckets;
     }
 
     private record PassFailStats(double passRate, int passCount, int failCount) {}
