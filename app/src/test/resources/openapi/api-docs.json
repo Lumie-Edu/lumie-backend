@@ -763,6 +763,7 @@
         "properties" : {
           "classId" : {
             "format" : "int64",
+            "nullable" : true,
             "type" : "integer"
           },
           "className" : {
@@ -770,6 +771,7 @@
           },
           "grade1Ratio" : {
             "format" : "double",
+            "nullable" : true,
             "type" : "number"
           },
           "gradeDistribution" : {
@@ -796,6 +798,7 @@
           },
           "passRate" : {
             "format" : "double",
+            "nullable" : true,
             "type" : "number"
           },
           "stddev" : {
@@ -1665,9 +1668,13 @@
           "studentName" : {
             "nullable" : true,
             "type" : "string"
+          },
+          "totalPossibleScore" : {
+            "format" : "int32",
+            "type" : "integer"
           }
         },
-        "required" : [ "correctCount", "createdAt", "examId", "examName", "grade", "hasOmrImage", "id", "incorrectCount", "isRegistered", "phoneNumber", "score", "studentId", "studentName" ],
+        "required" : [ "correctCount", "createdAt", "examId", "examName", "grade", "hasOmrImage", "id", "incorrectCount", "isRegistered", "phoneNumber", "score", "studentId", "studentName", "totalPossibleScore" ],
         "type" : "object"
       },
       "ExamStatisticsResponse" : {
@@ -1689,9 +1696,11 @@
           },
           "failCount" : {
             "format" : "int32",
+            "nullable" : true,
             "type" : "integer"
           },
           "gradeDistribution" : {
+            "description" : "등급별 분포. PASS_FAIL 시험에서는 빈 배열.",
             "items" : {
               "$ref" : "#/components/schemas/GradeDistribution"
             },
@@ -1699,6 +1708,7 @@
           },
           "gradeScale" : {
             "enum" : [ "NINE_GRADE", "FIVE_GRADE" ],
+            "nullable" : true,
             "type" : "string"
           },
           "gradingType" : {
@@ -1719,13 +1729,16 @@
           },
           "passCount" : {
             "format" : "int32",
+            "nullable" : true,
             "type" : "integer"
           },
           "passRate" : {
             "format" : "double",
+            "nullable" : true,
             "type" : "number"
           },
           "scoreRangeDistribution" : {
+            "description" : "점수 구간별 분포. PASS_FAIL 시험에서는 빈 배열.",
             "items" : {
               "$ref" : "#/components/schemas/ScoreRangeDistribution"
             },
@@ -1736,12 +1749,14 @@
             "type" : "number"
           },
           "topIncorrectQuestions" : {
+            "description" : "오답률 상위 문항 목록. 채점 데이터가 없으면 빈 배열.",
             "items" : {
               "$ref" : "#/components/schemas/TopIncorrectQuestion"
             },
             "type" : "array"
           },
           "typeAccuracyList" : {
+            "description" : "문항 유형별 정답률 목록. 채점 데이터가 없으면 빈 배열.",
             "items" : {
               "$ref" : "#/components/schemas/TypeAccuracy"
             },
@@ -1932,6 +1947,7 @@
         "type" : "object"
       },
       "GradeDistribution" : {
+        "description" : "등급별 분포. PASS_FAIL 시험에서는 빈 배열.",
         "properties" : {
           "count" : {
             "format" : "int32",
@@ -1939,6 +1955,7 @@
           },
           "cutoffScore" : {
             "format" : "int32",
+            "nullable" : true,
             "type" : "integer"
           },
           "grade" : {
@@ -2031,6 +2048,7 @@
             "type" : "integer"
           },
           "priority" : {
+            "enum" : [ "HIGH", "MEDIUM", "LOW" ],
             "type" : "string"
           },
           "questionType" : {
@@ -2235,27 +2253,6 @@
           }
         },
         "required" : [ "classId", "createdAt", "description", "id", "lectureDate", "status", "teacherId", "title", "updatedAt", "visibility", "youtubeUrl" ],
-        "type" : "object"
-      },
-      "LocalTime" : {
-        "properties" : {
-          "hour" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "minute" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "nano" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "second" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
         "type" : "object"
       },
       "LoginRequest" : {
@@ -3408,11 +3405,15 @@
           "name" : {
             "type" : "string"
           },
+          "phone" : {
+            "nullable" : true,
+            "type" : "string"
+          },
           "slug" : {
             "type" : "string"
           }
         },
-        "required" : [ "customId", "logoUrl", "name", "slug" ],
+        "required" : [ "customId", "logoUrl", "name", "phone", "slug" ],
         "type" : "object"
       },
       "PublishHomepageRequest" : {
@@ -4110,12 +4111,17 @@
           "score" : {
             "format" : "int32",
             "type" : "integer"
+          },
+          "totalPossibleScore" : {
+            "format" : "int32",
+            "type" : "integer"
           }
         },
-        "required" : [ "examDate", "examId", "examName", "grade", "score" ],
+        "required" : [ "examDate", "examId", "examName", "grade", "score", "totalPossibleScore" ],
         "type" : "object"
       },
       "ScoreRangeDistribution" : {
+        "description" : "점수 구간별 분포. PASS_FAIL 시험에서는 빈 배열.",
         "properties" : {
           "count" : {
             "format" : "int32",
@@ -4759,6 +4765,7 @@
           },
           "grade" : {
             "format" : "int32",
+            "nullable" : true,
             "type" : "integer"
           },
           "isActive" : {
@@ -4771,6 +4778,7 @@
             "type" : "boolean"
           },
           "phoneNumber" : {
+            "nullable" : true,
             "type" : "string"
           },
           "resultId" : {
@@ -5222,6 +5230,7 @@
         "type" : "object"
       },
       "TopIncorrectQuestion" : {
+        "description" : "오답률 상위 문항 목록. 채점 데이터가 없으면 빈 배열.",
         "properties" : {
           "correctAnswer" : {
             "type" : "string"
@@ -5307,6 +5316,7 @@
         "type" : "object"
       },
       "TypeAccuracy" : {
+        "description" : "문항 유형별 정답률 목록. 채점 데이터가 없으면 빈 배열.",
         "properties" : {
           "accuracyRate" : {
             "format" : "double",

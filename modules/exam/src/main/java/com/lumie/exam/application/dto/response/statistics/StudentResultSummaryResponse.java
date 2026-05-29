@@ -1,16 +1,17 @@
 package com.lumie.exam.application.dto.response.statistics;
 
 import com.lumie.exam.domain.vo.ExamCategory;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public record StudentResultSummaryResponse(
         Long resultId,
         Long studentId,
-        String phoneNumber,
+        @Schema(nullable = true) String phoneNumber,
         boolean isRegistered,
         String studentName,
         boolean isActive,
         int score,
-        Integer grade,
+        @Schema(nullable = true) Integer grade,
         ExamCategory examCategory,
         boolean isPassed
 ) {

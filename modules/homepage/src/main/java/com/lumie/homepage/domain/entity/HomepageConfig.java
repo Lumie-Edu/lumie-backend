@@ -18,6 +18,15 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class HomepageConfig extends TenantScopedEntity {
 
+    /** Current landing-template schema version. Must stay in sync with the FE
+     *  {@code CURRENT_TEMPLATE_VERSION}. */
+    public static final int CURRENT_TEMPLATE_VERSION = 3;
+
+    /** Canonical empty homepage returned when a tenant has not saved one yet. */
+    private static final String DEFAULT_SECTIONS =
+            "{\"hero\":{\"enabled\":true,\"welcomeMessage\":\"\",\"kakaoChannelUrl\":\"\","
+                    + "\"backgroundImageId\":null,\"backgroundImageUrl\":null}}";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -53,6 +62,19 @@ public class HomepageConfig extends TenantScopedEntity {
                 .templateId(templateId)
                 .templateVersion(templateVersion)
                 .sections(sections)
+                .build();
+    }
+
+    /**
+     * A transient (unsaved, {@code id == null}) default config for tenants that
+     * have never customised their homepage. Returned by {@code GET /v1/homepage}
+     * so the client always has a valid representation to render — never a 404.
+     */
+    public static HomepageConfig defaultConfig() {
+        return HomepageConfig.builder()
+                .templateId(TemplateId.SOLO_INSTRUCTOR)
+                .templateVersion(CURRENT_TEMPLATE_VERSION)
+                .sections(DEFAULT_SECTIONS)
                 .build();
     }
 

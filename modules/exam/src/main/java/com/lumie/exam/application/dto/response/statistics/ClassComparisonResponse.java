@@ -1,6 +1,7 @@
 package com.lumie.exam.application.dto.response.statistics;
 
 import com.lumie.exam.domain.vo.ExamCategory;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
@@ -12,15 +13,15 @@ public record ClassComparisonResponse(
         List<ClassMetric> classes
 ) {
     public record ClassMetric(
-            Long classId,            // null = 미배정
+            @Schema(nullable = true) Long classId,            // null = 미배정
             String className,
             int participantCount,
             double mean,
             double stddev,
             int highest,
             int lowest,
-            Double grade1Ratio,      // null when PASS_FAIL
-            Double passRate,         // null when GRADED
+            @Schema(nullable = true) Double grade1Ratio,      // null when PASS_FAIL
+            @Schema(nullable = true) Double passRate,         // null when GRADED
             List<GradeBucket> gradeDistribution
     ) {}
 

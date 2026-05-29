@@ -15,6 +15,7 @@ public record StabilityIndexResponse(
             Long examId,
             String examName,
             int score,
+            int totalPossibleScore,
             int grade,
             java.time.Instant examDate
     ) {}

@@ -130,6 +130,9 @@ public class Exam extends TenantScopedEntity {
     }
 
     public int calculateTotalPossibleScore() {
+        if (questionScores == null) {
+            return 0;
+        }
         return questionScores.values().stream()
                 .mapToInt(Integer::intValue)
                 .sum();

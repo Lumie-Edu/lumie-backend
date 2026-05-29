@@ -1,5 +1,7 @@
 package com.lumie.exam.application.dto.response.statistics;
 
+import com.lumie.exam.domain.vo.Priority;
+
 import java.util.List;
 
 public record GoalSimulationResponse(
@@ -20,6 +22,6 @@ public record GoalSimulationResponse(
             int additionalCorrectNeeded,
             double targetAccuracy,
             int potentialScoreGain,
-            String priority
+            Priority priority
     ) {}
 }

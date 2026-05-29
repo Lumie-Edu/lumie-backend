@@ -10,6 +10,7 @@ import com.lumie.homepage.domain.entity.HomepageConfig;
 import com.lumie.homepage.domain.vo.TemplateId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,8 +20,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +39,9 @@ class HomepageQueryServiceTest {
 
     @Spy
     private ObjectMapper objectMapper;
+
+    @Mock
+    private HomepageQueryService.Tx tx;
 
     @InjectMocks
     private HomepageQueryService homepageQueryService;
@@ -49,89 +57,103 @@ class HomepageQueryServiceTest {
         HomepageConfig config = buildPublishedConfig();
         when(homepageConfigPersistencePort.find()).thenReturn(Optional.of(config));
 
-        Optional<HomepageConfigResponse> result = homepageQueryService.getCurrent();
+        HomepageConfigResponse result = homepageQueryService.getCurrent();
 
-        assertThat(result).isPresent();
-        assertThat(result.get().templateId()).isEqualTo(TemplateId.SOLO_INSTRUCTOR);
-        assertThat(result.get().published()).isTrue();
+        assertThat(result.templateId()).isEqualTo(TemplateId.SOLO_INSTRUCTOR);
+        assertThat(result.published()).isTrue();
     }
 
     @Test
-    @DisplayName("홈페이지 설정이 없을 때 빈 Optional 반환")
-    void getCurrent_returnsEmpty() {
+    @DisplayName("홈페이지 설정이 없을 때 기본(미게시) config 반환")
+    void getCurrent_returnsDefault_whenNoConfig() {
         when(homepageConfigPersistencePort.find()).thenReturn(Optional.empty());
 
-        Optional<HomepageConfigResponse> result = homepageQueryService.getCurrent();
+        HomepageConfigResponse result = homepageQueryService.getCurrent();
 
-        assertThat(result).isEmpty();
+        assertThat(result).isNotNull();
+        assertThat(result.templateId()).isEqualTo(TemplateId.SOLO_INSTRUCTOR);
+        assertThat(result.published()).isFalse();
+        assertThat(result.updatedAt()).isNull();
     }
 
     @Test
-    @DisplayName("공개 조회 - published=true이면 설정 반환")
-    void getPublicByCustomId_publishedConfig_returnsConfig() {
+    @DisplayName("공개 조회 - 테넌트를 찾으면 RLS 컨텍스트(tenantId 포함)를 세팅하고 Tx에서 조회")
+    void getPublicByCustomId_tenantFound_setsTenantIdAndDelegatesToTx() {
         when(tenantLookupPort.findByCustomId("my-academy"))
-                .thenReturn(Optional.of(new TenantInfo("my-academy")));
-        HomepageConfig config = buildPublishedConfig();
-        when(homepageConfigPersistencePort.find()).thenReturn(Optional.of(config));
+                .thenReturn(Optional.of(new TenantInfo("my-academy", 1L)));
+        AtomicReference<Long> tenantIdDuringTx = new AtomicReference<>();
+        when(tx.findPublished()).thenAnswer(inv -> {
+            tenantIdDuringTx.set(TenantContextHolder.getTenantId());
+            return Optional.of(HomepageConfigResponse.from(buildPublishedConfig(), objectMapper));
+        });
 
         Optional<HomepageConfigResponse> result = homepageQueryService.getPublicByCustomId("my-academy");
 
         assertThat(result).isPresent();
         assertThat(result.get().published()).isTrue();
+        // RLS filters on app.tenant_id — tenantId MUST be bound while Tx runs
+        // (setTenant alone leaves the tenant's rows invisible).
+        assertThat(tenantIdDuringTx.get()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("공개 조회 - published=false이면 빈 Optional 반환")
-    void getPublicByCustomId_unpublishedConfig_returnsEmpty() {
-        when(tenantLookupPort.findByCustomId("my-academy"))
-                .thenReturn(Optional.of(new TenantInfo("my-academy")));
-        // Config with meaningful content but unpublished
-        HomepageConfig config = buildUnpublishedConfig();
-        when(homepageConfigPersistencePort.find()).thenReturn(Optional.of(config));
-
-        Optional<HomepageConfigResponse> result = homepageQueryService.getPublicByCustomId("my-academy");
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("공개 조회 - 존재하지 않는 customId이면 빈 Optional 반환")
+    @DisplayName("공개 조회 - 존재하지 않는 customId이면 빈 Optional, Tx 미호출")
     void getPublicByCustomId_unknownCustomId_returnsEmpty() {
         when(tenantLookupPort.findByCustomId("unknown")).thenReturn(Optional.empty());
 
         Optional<HomepageConfigResponse> result = homepageQueryService.getPublicByCustomId("unknown");
 
         assertThat(result).isEmpty();
+        verify(tx, never()).findPublished();
     }
 
     @Test
     @DisplayName("getPublicByCustomId - 이전 테넌트 컨텍스트가 호출 후 복원된다")
     void getPublicByCustomId_restoresPreviousTenantContext() {
-        // Arrange: pre-existing tenant in context (simulates a request already scoped to "owner-tenant")
+        // Pre-existing tenant in context (simulates a request already scoped to "owner-tenant")
         TenantContextHolder.setTenant("owner-tenant");
-
         when(tenantLookupPort.findByCustomId("other-academy"))
-                .thenReturn(Optional.of(new TenantInfo("other-academy")));
-        HomepageConfig config = buildUnpublishedConfig();
-        when(homepageConfigPersistencePort.find()).thenReturn(Optional.of(config));
+                .thenReturn(Optional.of(new TenantInfo("other-academy", 2L)));
+        when(tx.findPublished()).thenReturn(Optional.empty());
 
         homepageQueryService.getPublicByCustomId("other-academy");
 
-        // The previous tenant must be restored in the finally block
+        // withinContext must restore the previous context after the call —
+        // both slug and tenantId (prior context had no tenantId → null).
         assertThat(TenantContextHolder.getTenant()).isEqualTo("owner-tenant");
+        assertThat(TenantContextHolder.getTenantId()).isNull();
     }
 
-    @Test
-    @DisplayName("getPublicByCustomId_returns_empty_when_unpublished")
-    void getPublicByCustomId_returns_empty_when_unpublished() {
-        when(tenantLookupPort.findByCustomId("my-academy"))
-                .thenReturn(Optional.of(new TenantInfo("my-academy")));
-        HomepageConfig config = buildUnpublishedConfig();
-        when(homepageConfigPersistencePort.find()).thenReturn(Optional.of(config));
+    @Nested
+    @DisplayName("Tx.findPublished — published 필터 + RLS 트랜잭션 경계")
+    class TxTest {
 
-        Optional<HomepageConfigResponse> result = homepageQueryService.getPublicByCustomId("my-academy");
+        private final HomepageConfigPersistencePort port = mock(HomepageConfigPersistencePort.class);
+        private final HomepageQueryService.Tx txBean = new HomepageQueryService.Tx(port, new ObjectMapper());
 
-        assertThat(result).isEmpty();
+        @Test
+        @DisplayName("published=true이면 설정 반환")
+        void published_returnsConfig() {
+            when(port.find()).thenReturn(Optional.of(buildPublishedConfig()));
+
+            assertThat(txBean.findPublished()).isPresent();
+        }
+
+        @Test
+        @DisplayName("published=false이면 빈 Optional")
+        void unpublished_returnsEmpty() {
+            when(port.find()).thenReturn(Optional.of(buildUnpublishedConfig()));
+
+            assertThat(txBean.findPublished()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("설정이 없으면 빈 Optional")
+        void noConfig_returnsEmpty() {
+            when(port.find()).thenReturn(Optional.empty());
+
+            assertThat(txBean.findPublished()).isEmpty();
+        }
     }
 
     // --- helpers ---

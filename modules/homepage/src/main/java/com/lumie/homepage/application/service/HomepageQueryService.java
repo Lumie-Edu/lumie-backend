@@ -9,6 +9,7 @@ import com.lumie.homepage.application.port.out.TenantLookupPort.TenantInfo;
 import com.lumie.homepage.domain.entity.HomepageConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,37 +23,50 @@ public class HomepageQueryService {
     private final HomepageConfigPersistencePort homepageConfigPersistencePort;
     private final TenantLookupPort tenantLookupPort;
     private final ObjectMapper objectMapper;
+    private final Tx tx;
 
     @Transactional(readOnly = true)
-    public Optional<HomepageConfigResponse> getCurrent() {
+    public HomepageConfigResponse getCurrent() {
         return homepageConfigPersistencePort.find()
-                .map(config -> HomepageConfigResponse.from(config, objectMapper));
+                .map(config -> HomepageConfigResponse.from(config, objectMapper))
+                .orElseGet(() -> HomepageConfigResponse.from(HomepageConfig.defaultConfig(), objectMapper));
     }
 
     public Optional<HomepageConfigResponse> getPublicByCustomId(String customId) {
-        // Tenant lookup runs in public schema — its own transaction boundary is fine.
         Optional<TenantInfo> tenantInfo = tenantLookupPort.findByCustomId(customId);
         if (tenantInfo.isEmpty()) {
             log.debug("No tenant found for customId: {}", customId);
             return Optional.empty();
         }
 
-        // Switch context BEFORE any persistence call so Hibernate opens a new
-        // session (and picks the correct schema) after the switch.
-        String previousTenant = TenantContextHolder.getTenant();
-        try {
-            TenantContextHolder.setTenant(tenantInfo.get().slug());
-            // Spring Data JPA repository is @Transactional by default, so a new
-            // transaction opens here — after the context switch.
+        // This endpoint is public (no auth → no ambient tenant context), and the
+        // tenant is only known after the customId lookup, so this method cannot
+        // itself be @Transactional. Set slug + tenantId, then run the read on the
+        // proxied @Transactional Tx bean: RlsTenantContextAspect binds
+        // `app.tenant_id` to that transaction (slug alone leaves the row
+        // invisible → public page falls back to the default homepage).
+        TenantInfo info = tenantInfo.get();
+        return TenantContextHolder.withinContext(info.slug(), info.tenantId(), tx::findPublished);
+    }
+
+    /**
+     * Owns the @Transactional read boundary for the public path. Extracted to a
+     * separate proxied bean (mirrors {@code ExamJobTimeoutSweeper.Tx}) so the
+     * call from {@link #getPublicByCustomId} crosses the Spring proxy — a
+     * self-invocation would bypass the proxy and the RLS aspect would not fire.
+     */
+    @Component
+    @RequiredArgsConstructor
+    static class Tx {
+
+        private final HomepageConfigPersistencePort homepageConfigPersistencePort;
+        private final ObjectMapper objectMapper;
+
+        @Transactional(readOnly = true)
+        public Optional<HomepageConfigResponse> findPublished() {
             return homepageConfigPersistencePort.find()
                     .filter(HomepageConfig::isPublished)
                     .map(config -> HomepageConfigResponse.from(config, objectMapper));
-        } finally {
-            if (previousTenant != null) {
-                TenantContextHolder.setTenant(previousTenant);
-            } else {
-                TenantContextHolder.clear();
-            }
         }
     }
 }

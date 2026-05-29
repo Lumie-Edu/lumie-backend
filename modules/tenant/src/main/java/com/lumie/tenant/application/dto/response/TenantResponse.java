@@ -41,7 +41,7 @@ public record TenantResponse(
                 .address(tenant.getAddress())
                 .instituteName(tenant.getInstituteName())
                 .businessRegistrationNumber(tenant.getBusinessRegistrationNumber())
-                .logoUrl(hasLogo ? "/api/tenant/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
+                .logoUrl(hasLogo ? "/api/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
                 .customId(tenant.getCustomId())
                 .createdAt(tenant.getCreatedAt())
                 .updatedAt(tenant.getUpdatedAt())

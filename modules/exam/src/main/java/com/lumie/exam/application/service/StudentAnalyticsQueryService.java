@@ -11,6 +11,7 @@ import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
+import com.lumie.exam.domain.vo.Priority;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -85,7 +86,8 @@ public class StudentAnalyticsQueryService {
                 .sorted(Comparator.comparing(ExamResult::getCreatedAt))
                 .map(r -> new StabilityIndexResponse.ScoreHistory(
                         r.getExam().getId(), r.getExam().getName(),
-                        r.getTotalScore(), r.getGrade() != null ? r.getGrade() : 0,
+                        r.getTotalScore(), r.getExam().calculateTotalPossibleScore(),
+                        r.getGrade() != null ? r.getGrade() : 0,
                         r.getCreatedAt()
                 ))
                 .toList();
@@ -361,13 +363,13 @@ public class StudentAnalyticsQueryService {
 
                     double targetAccuracy = total > 0 ? (double) (correct + additionalNeeded) / total * 100 : 0;
 
-                    String priority;
+                    Priority priority;
                     if (incorrectCount > 0 && currentAccuracy < 50) {
-                        priority = "HIGH";
+                        priority = Priority.HIGH;
                     } else if (incorrectCount > 0 && currentAccuracy < 70) {
-                        priority = "MEDIUM";
+                        priority = Priority.MEDIUM;
                     } else {
-                        priority = "LOW";
+                        priority = Priority.LOW;
                     }
 
                     return new GoalSimulationResponse.ImprovementScenario(
@@ -377,19 +379,8 @@ public class StudentAnalyticsQueryService {
                             potentialGain, priority
                     );
                 })
-                .sorted((a, b) -> {
-                    int priorityOrder = getPriorityOrder(a.priority()) - getPriorityOrder(b.priority());
-                    return priorityOrder != 0 ? priorityOrder : b.potentialScoreGain() - a.potentialScoreGain();
-                })
+                .sorted(Comparator.comparingInt((GoalSimulationResponse.ImprovementScenario a) -> a.priority().order())
+                        .thenComparingInt(a -> -a.potentialScoreGain()))
                 .toList();
-    }
-
-    private int getPriorityOrder(String priority) {
-        return switch (priority) {
-            case "HIGH" -> 1;
-            case "MEDIUM" -> 2;
-            case "LOW" -> 3;
-            default -> 4;
-        };
     }
 }

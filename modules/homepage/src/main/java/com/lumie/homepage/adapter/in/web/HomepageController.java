@@ -21,15 +21,15 @@ public class HomepageController {
 
     /**
      * GET /v1/homepage — returns the current tenant's homepage config.
-     * Returns 404 if no config exists yet.
+     * Always 200: a transient default (unpublished, {@code id == null}) is
+     * returned when the tenant has not saved one yet, so the client always has
+     * a valid representation to render.
      * Requires authenticated user (tenant context populated from the
      * X-Tenant-Slug request header by RequestContextFilter).
      */
     @GetMapping
     public ResponseEntity<HomepageConfigResponse> getCurrent() {
-        return homepageQueryService.getCurrent()
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        return ResponseEntity.ok(homepageQueryService.getCurrent());
     }
 
     /**

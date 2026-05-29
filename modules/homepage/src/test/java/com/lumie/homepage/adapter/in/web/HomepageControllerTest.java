@@ -65,7 +65,7 @@ class HomepageControllerTest {
     @DisplayName("GET /v1/homepage - 설정 있을 때 반환")
     void getCurrent_returnsConfig() throws Exception {
         HomepageConfigResponse response = buildResponse(true);
-        when(homepageQueryService.getCurrent()).thenReturn(Optional.of(response));
+        when(homepageQueryService.getCurrent()).thenReturn(response);
 
         mockMvc.perform(get("/v1/homepage"))
                 .andExpect(status().isOk())
@@ -74,12 +74,13 @@ class HomepageControllerTest {
     }
 
     @Test
-    @DisplayName("GET /v1/homepage - 미공개 시 404 반환")
-    void getCurrent_returnsNullBody_whenNoConfig() throws Exception {
-        when(homepageQueryService.getCurrent()).thenReturn(Optional.empty());
+    @DisplayName("GET /v1/homepage - 설정 없을 때도 기본값을 200으로 반환")
+    void getCurrent_returnsDefault_whenNoConfig() throws Exception {
+        when(homepageQueryService.getCurrent()).thenReturn(buildResponse(false));
 
         mockMvc.perform(get("/v1/homepage"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.published").value(false));
     }
 
     @Test
