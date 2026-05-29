@@ -116,8 +116,8 @@ public class ActivityLogQueryService {
 
     private List<Role> getVisibleRoles(Role role) {
         return switch (role) {
-            case OWNER -> List.of(Role.MANAGER, Role.INSTRUCTOR);
-            case MANAGER -> List.of(Role.INSTRUCTOR);
+            case OWNER -> List.of(Role.MANAGER, Role.INSTRUCTOR, Role.STUDENT);
+            case MANAGER -> List.of(Role.INSTRUCTOR, Role.STUDENT);
             default -> List.of();
         };
     }
