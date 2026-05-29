@@ -5130,6 +5130,50 @@
         "required" : [ "author", "coverImagePath", "createdAt", "description", "gradeLevel", "id", "isbn", "name", "price", "publisher", "status", "subject", "updatedAt" ],
         "type" : "object"
       },
+      "TodayReservationResponse" : {
+        "properties" : {
+          "consultationContent" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "date" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "endTime" : {
+            "$ref" : "#/components/schemas/LocalTime"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "scheduleId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "startTime" : {
+            "$ref" : "#/components/schemas/LocalTime"
+          },
+          "status" : {
+            "enum" : [ "PENDING", "CONFIRMED", "CANCELLED", "COMPLETED" ],
+            "type" : "string"
+          },
+          "studentId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "studentName" : {
+            "nullable" : true,
+            "type" : "string"
+          }
+        },
+        "required" : [ "consultationContent", "createdAt", "date", "endTime", "id", "scheduleId", "startTime", "status", "studentId", "studentName" ],
+        "type" : "object"
+      },
       "ToolExecuteRequest" : {
         "properties" : {
           "arguments" : {
@@ -5200,6 +5244,27 @@
           }
         },
         "required" : [ "correctAnswer", "incorrectCount", "incorrectRate", "questionNumber", "questionType", "topWrongChoice", "topWrongChoiceRate", "totalAttempts" ],
+        "type" : "object"
+      },
+      "TopStudentMonthlyResponse" : {
+        "properties" : {
+          "attemptCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "avgScore" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "studentId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "studentName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "attemptCount", "avgScore", "studentId", "studentName" ],
         "type" : "object"
       },
       "TrendPoint" : {
@@ -8430,6 +8495,37 @@
         "tags" : [ "conversation-controller" ]
       }
     },
+    "/v1/exam-results/statistics/top-students-monthly" : {
+      "get" : {
+        "operationId" : "getTopStudentsMonthly",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 5,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/TopStudentMonthlyResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
     "/v1/exam-templates" : {
       "get" : {
         "operationId" : "listTemplates",
@@ -11080,6 +11176,27 @@
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/ReservationResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "reservation-controller" ]
+      }
+    },
+    "/v1/reservations/today" : {
+      "get" : {
+        "operationId" : "listTodayReservations",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/TodayReservationResponse"
                   },
                   "type" : "array"
                 }
