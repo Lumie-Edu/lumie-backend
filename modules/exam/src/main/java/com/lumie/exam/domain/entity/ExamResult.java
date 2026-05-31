@@ -64,6 +64,10 @@ public class ExamResult extends TenantScopedEntity {
         this.omrImageKey = omrImageKey;
     }
 
+    public void assignPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
     public void assignOmrGradingJob(Long omrGradingJobId) {
         this.omrGradingJobId = omrGradingJobId;
     }
@@ -84,7 +88,7 @@ public class ExamResult extends TenantScopedEntity {
                 .build();
     }
 
-    public void setGrade(Integer grade) {
+    public void assignGrade(Integer grade) {
         this.grade = grade;
     }
 

@@ -20,10 +20,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -58,8 +58,6 @@ class ResultCommandServiceTest {
     private OmrServicePort omrService;
     @Mock
     private OmrStoragePort storagePort;
-    @Mock
-    private RabbitTemplate rabbitTemplate;
     @Mock
     private TransactionTemplate transactionTemplate;
 
@@ -97,6 +95,11 @@ class ResultCommandServiceTest {
         return new OmrServicePort.OmrGradingResult(totalScore, 1, "01012345678", questions);
     }
 
+    private StudentService.StudentData aStudent(Long studentId) {
+        return new StudentService.StudentData(
+                studentId, 1000L, "홍길동", "01012345678", true, null, null);
+    }
+
     @Test
     @DisplayName("신규 학생이면 새 결과를 생성하여 저장한다")
     void processOmrGrading_newStudent_createsNewResult() {
@@ -108,6 +111,7 @@ class ResultCommandServiceTest {
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
+        given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
         given(billingService.checkQuota(any(), eq(MetricType.OMR_MONTHLY))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, MetricType.OMR_MONTHLY, "ok"));
         given(omrService.gradeOmrImage(any(), any(), any(), any(), any())).willReturn(buildOmrResult(100));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
@@ -118,7 +122,10 @@ class ResultCommandServiceTest {
 
         // then
         verify(resultRepository).findByExamIdAndStudentId(examId, studentId);
-        verify(resultRepository).save(any(ExamResult.class));
+        ArgumentCaptor<ExamResult> captor = ArgumentCaptor.forClass(ExamResult.class);
+        verify(resultRepository).save(captor.capture());
+        // 가입 학생의 결과에는 등록된 전화번호가 저장되어야 한다.
+        assertThat(captor.getValue().getPhoneNumber()).isEqualTo("01012345678");
     }
 
     @Test
@@ -135,6 +142,7 @@ class ResultCommandServiceTest {
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
+        given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
         given(billingService.checkQuota(any(), eq(MetricType.OMR_MONTHLY))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, MetricType.OMR_MONTHLY, "ok"));
         given(omrService.gradeOmrImage(any(), any(), any(), any(), any())).willReturn(buildOmrResult(100));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.of(existingResult));
@@ -175,6 +183,7 @@ class ResultCommandServiceTest {
     void processOmrGrading_quotaExceeded_throwsExamException() {
         given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
         given(studentService.validateStudent(any(), eq(100L))).willReturn(new StudentService.ValidateStudentResult(true, "ok", 100L));
+        given(studentService.getStudent(any(), eq(100L))).willReturn(Optional.of(aStudent(100L)));
         given(billingService.checkQuota(any(), eq(MetricType.OMR_MONTHLY))).willReturn(new BillingService.QuotaResult(false, 1000L, 1000L, MetricType.OMR_MONTHLY, "exceeded"));
 
         assertThatThrownBy(() -> resultCommandService.processOmrGrading(1L, 100L, new byte[]{1}))
@@ -188,6 +197,7 @@ class ResultCommandServiceTest {
     void processOmrGrading_omrServiceFails_throwsExamException() {
         given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
         given(studentService.validateStudent(any(), eq(100L))).willReturn(new StudentService.ValidateStudentResult(true, "ok", 100L));
+        given(studentService.getStudent(any(), eq(100L))).willReturn(Optional.of(aStudent(100L)));
         given(billingService.checkQuota(any(), eq(MetricType.OMR_MONTHLY))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, MetricType.OMR_MONTHLY, "ok"));
         given(omrService.gradeOmrImage(any(), any(), any(), any(), any()))
                 .willThrow(new RuntimeException("OMR service unavailable"));
@@ -208,6 +218,7 @@ class ResultCommandServiceTest {
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
+        given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
         given(billingService.checkQuota(any(), eq(MetricType.OMR_MONTHLY))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, MetricType.OMR_MONTHLY, "ok"));
         given(omrService.gradeOmrImage(any(), any(), any(), any(), any())).willReturn(buildOmrResult(100));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());

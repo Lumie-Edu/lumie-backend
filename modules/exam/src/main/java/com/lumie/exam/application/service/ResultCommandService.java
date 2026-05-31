@@ -57,9 +57,14 @@ public class ResultCommandService {
         Exam exam = transactionTemplate.execute(status ->
                 examRepository.findById(examId)
                         .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND)));
+        // validateStudent also rejects inactive students; keep it as the gate.
         if (!studentService.validateStudent(tenantSlug, studentId).valid()) {
             throw new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND);
         }
+        // The student is selected manually by id here, so the authoritative phone is the
+        // registered student's own number (not OCR output). Fetched outside the tx.
+        StudentService.StudentData student = studentService.getStudent(tenantSlug, studentId)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND));
         if (!billingService.checkQuota(tenantSlug, MetricType.OMR_MONTHLY).allowed()) {
             throw new BusinessException(ExamErrorCode.OMR_QUOTA_EXCEEDED);
         }
@@ -85,6 +90,7 @@ public class ResultCommandService {
             Exam managedExam = examRepository.findById(examId)
                     .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
             ExamResult result = resolveResult(examId, managedExam, studentId, omrResult);
+            result.assignPhoneNumber(student.studentPhone());
             ExamResult saved = resultRepository.save(result);
             return ExamResultResponse.from(saved);
         });

@@ -34,13 +34,13 @@ public class GradeCalculator {
             // 합불제
             Integer passScore = exam.getPassScore();
             if (passScore != null) {
-                result.setGrade(result.getTotalScore() >= passScore ? 0 : -1);
+                result.assignGrade(result.getTotalScore() >= passScore ? 0 : -1);
             }
         } else if (exam.getCategory() == ExamCategory.GRADED &&
                    exam.getGradingType() == GradingType.ABSOLUTE) {
             // 절대평가
             GradeScale scale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
-            result.setGrade(getGradeFromScore(result.getTotalScore(), scale));
+            result.assignGrade(getGradeFromScore(result.getTotalScore(), scale));
         }
         // 상대평가는 grade를 null로 유지 (조회 시 계산)
     }
@@ -103,7 +103,7 @@ public class GradeCalculator {
             ExamResult result = sortedResults.get(i);
             double percentile = (double) i / totalCount * 100;
             int grade = getGradeFromPercentile(percentile, gradeScale);
-            result.setGrade(grade);
+            result.assignGrade(grade);
         }
     }
 
@@ -113,7 +113,7 @@ public class GradeCalculator {
     private void calculateAbsoluteGrades(List<ExamResult> results, GradeScale gradeScale) {
         for (ExamResult result : results) {
             int grade = getGradeFromScore(result.getTotalScore(), gradeScale);
-            result.setGrade(grade);
+            result.assignGrade(grade);
         }
     }
 
@@ -123,13 +123,13 @@ public class GradeCalculator {
     private void calculatePassFailGrades(Exam exam, List<ExamResult> results) {
         Integer passScore = exam.getPassScore();
         if (passScore == null) {
-            results.forEach(r -> r.setGrade(0));
+            results.forEach(r -> r.assignGrade(0));
             return;
         }
 
         for (ExamResult result : results) {
             int grade = result.getTotalScore() >= passScore ? 0 : -1;
-            result.setGrade(grade);
+            result.assignGrade(grade);
         }
     }
 

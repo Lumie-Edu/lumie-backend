@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -92,6 +93,8 @@ class OmrGradingJobProcessorTest {
 
         verify(jobRepository).incrementSuccess(1L);
         verify(resultRepository).save(any(ExamResult.class));
+        // 가입 학생도 채점 결과에 전화번호가 저장되어야 한다 (010 + 콜백 phoneNumber).
+        assertThat(resolvedResult.getPhoneNumber()).isEqualTo("01012345678");
     }
 
     @Test
@@ -111,6 +114,29 @@ class OmrGradingJobProcessorTest {
         processor.processGradingCallback(request);
 
         verify(jobRepository).incrementFail(1L);
+        verify(jobRepository, never()).incrementSuccess(any());
+        verify(resultRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("성공 콜백이라도 전화번호가 없으면 실패로 처리한다")
+    void processGradingCallback_successWithoutPhone_treatedAsFailure() {
+        OmrGradingCallbackRequest request = new OmrGradingCallbackRequest(
+                1L, 10L, "inst-abc123",
+                "omr/tmp/abc123/batch1/sheet1.png",
+                0, 1,
+                true, null,
+                null, 100, 1,
+                List.of()
+        );
+
+        given(callbackDeduplication.markIfAbsent(any())).willReturn(true);
+        given(jobRepository.tryFinalize(1L, 1)).willReturn(true);
+
+        processor.processGradingCallback(request);
+
+        verify(jobRepository).incrementFail(1L);
+        verify(jobRepository, never()).incrementSuccess(any());
         verify(resultRepository, never()).save(any());
     }
 }

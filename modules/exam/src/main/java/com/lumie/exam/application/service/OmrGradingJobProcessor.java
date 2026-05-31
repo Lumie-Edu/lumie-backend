@@ -48,7 +48,16 @@ public class OmrGradingJobProcessor {
 
         tx.markProcessing(request.jobId());
 
-        if (request.success()) {
+        // A success callback without a detected phone cannot be attributed to a student
+        // (it is the OMR identity key). Treat it as a failed sheet rather than persisting
+        // a poisoned "010null" lookup key.
+        boolean success = request.success() && hasPhoneNumber(request);
+        if (request.success() && !success) {
+            log.warn("OMR success callback missing phoneNumber, treating as failure: jobId={}, imageIndex={}",
+                    request.jobId(), request.imageIndex());
+        }
+
+        if (success) {
             // Phase 1 (read tx): resolve in-memory ExamResult + compute storage key
             Tx.SuccessPrep prep = tx.prepareSuccess(request);
             prep.examResult().assignOmrGradingJob(request.jobId());
@@ -69,6 +78,15 @@ public class OmrGradingJobProcessor {
             log.info("OMR grading job reached terminal state: jobId={}", request.jobId());
             cleanupImages(request.jobId());
         }
+    }
+
+    private static boolean hasPhoneNumber(OmrGradingCallbackRequest request) {
+        return request.phoneNumber() != null && !request.phoneNumber().isBlank();
+    }
+
+    /** OMR sheets carry the phone without the leading "010"; restore it for matching/storage. */
+    private static String fullPhoneNumber(OmrGradingCallbackRequest request) {
+        return "010" + request.phoneNumber();
     }
 
     private String copyImage(OmrGradingCallbackRequest request, String permanentKey) {
@@ -127,7 +145,7 @@ public class OmrGradingJobProcessor {
             Exam exam = examRepository.findById(request.examId())
                     .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
-            String fullPhone = "010" + request.phoneNumber();
+            String fullPhone = fullPhoneNumber(request);
             String tenantSlug = TenantContextHolder.getRequiredTenant();
             Optional<StudentService.StudentData> studentOpt =
                     studentService.getStudentByPhone(tenantSlug, fullPhone);
@@ -149,6 +167,14 @@ public class OmrGradingJobProcessor {
             OmrServicePort.OmrGradingResult omrResult = toOmrGradingResult(request);
             ExamResult examResult = prep.examResult();
 
+            // Registered results otherwise lack the phone; persist it here (inside the
+            // write tx) so the results view can show it. Unregistered rows already carry
+            // it as their identity. Done in the write tx — not readOnly prepareSuccess —
+            // so the mutation is flushed reliably regardless of managed/detached state.
+            if (prep.studentOpt().isPresent()) {
+                examResult.assignPhoneNumber(fullPhoneNumber(request));
+            }
+
             try {
                 resultRepository.save(examResult);
             } catch (BusinessException e) {
@@ -156,10 +182,13 @@ public class OmrGradingJobProcessor {
                     throw e;
                 }
                 log.warn("Duplicate result detected, retrying with existing record: jobId={}", request.jobId());
-                String fullPhone = "010" + request.phoneNumber();
-                examResult = prep.studentOpt().isPresent()
-                        ? resultCommandService.resolveResult(prep.exam(), prep.studentOpt().get().id(), omrResult)
-                        : resultCommandService.resolveResultForUnregistered(prep.exam(), fullPhone, omrResult);
+                String fullPhone = fullPhoneNumber(request);
+                if (prep.studentOpt().isPresent()) {
+                    examResult = resultCommandService.resolveResult(prep.exam(), prep.studentOpt().get().id(), omrResult);
+                    examResult.assignPhoneNumber(fullPhone);
+                } else {
+                    examResult = resultCommandService.resolveResultForUnregistered(prep.exam(), fullPhone, omrResult);
+                }
                 resultRepository.save(examResult);
             }
 
