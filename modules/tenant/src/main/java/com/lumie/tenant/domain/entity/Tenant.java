@@ -214,10 +214,6 @@ public class Tenant extends BaseEntity {
         return this.status == TenantStatus.ACTIVE;
     }
 
-    public boolean supportsCustomDomains() {
-        return this.plan != null && this.plan.supportsCustomDomains();
-    }
-
     public void updatePlan(TenantPlan plan) {
         if (plan != null) {
             this.plan = plan;
@@ -228,10 +224,6 @@ public class Tenant extends BaseEntity {
         if (domain == null || domain.isBlank()) {
             this.customDomain = null;
             return;
-        }
-        if (!supportsCustomDomains()) {
-            throw new BusinessException(TenantErrorCode.PLAN_DOES_NOT_SUPPORT_CUSTOM_DOMAIN,
-                    "Tenant plan does not support custom domains: plan=" + plan);
         }
         this.customDomain = domain.toLowerCase(java.util.Locale.ROOT).trim();
     }

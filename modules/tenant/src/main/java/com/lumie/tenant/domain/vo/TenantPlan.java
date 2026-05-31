@@ -6,10 +6,6 @@ public enum TenantPlan {
     PRO,
     MAX;
 
-    public boolean supportsCustomDomains() {
-        return this == PRO || this == MAX;
-    }
-
     public boolean supportsAdvancedAnalytics() {
         return this == PRO || this == MAX;
     }

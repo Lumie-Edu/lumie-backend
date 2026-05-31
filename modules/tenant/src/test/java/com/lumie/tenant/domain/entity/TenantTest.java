@@ -112,7 +112,6 @@ class TenantTest {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
 
         assertThat(tenant.getPlan()).isEqualTo(TenantPlan.FREE);
-        assertThat(tenant.supportsCustomDomains()).isFalse();
     }
 
     @Test
@@ -121,7 +120,6 @@ class TenantTest {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null, TenantPlan.PRO);
 
         assertThat(tenant.getPlan()).isEqualTo(TenantPlan.PRO);
-        assertThat(tenant.supportsCustomDomains()).isTrue();
     }
 
     @Test
@@ -133,7 +131,17 @@ class TenantTest {
         tenant.updatePlan(TenantPlan.MAX);
 
         assertThat(tenant.getPlan()).isEqualTo(TenantPlan.MAX);
-        assertThat(tenant.supportsCustomDomains()).isTrue();
+    }
+
+    @Test
+    @DisplayName("FREE 플랜도 커스텀 도메인을 설정할 수 있다 (요금제 게이트 제거)")
+    void setCustomDomainOnFreePlan() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        assertThat(tenant.getPlan()).isEqualTo(TenantPlan.FREE);
+
+        tenant.setCustomDomain("ABC.com");
+
+        assertThat(tenant.getCustomDomain()).isEqualTo("abc.com");
     }
 
     @Test

@@ -3223,9 +3223,6 @@
           "apiAccess" : {
             "type" : "boolean"
           },
-          "customDomains" : {
-            "type" : "boolean"
-          },
           "prioritySupport" : {
             "type" : "boolean"
           },
@@ -3233,7 +3230,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "additionalFeatures", "advancedAnalytics", "apiAccess", "customDomains", "prioritySupport", "whiteLabeling" ],
+        "required" : [ "additionalFeatures", "advancedAnalytics", "apiAccess", "prioritySupport", "whiteLabeling" ],
         "type" : "object"
       },
       "PlanLimitsResponse" : {
@@ -5011,6 +5008,10 @@
             "format" : "date-time",
             "type" : "string"
           },
+          "customDomain" : {
+            "nullable" : true,
+            "type" : "string"
+          },
           "customId" : {
             "nullable" : true,
             "type" : "string"
@@ -5058,7 +5059,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "address", "businessRegistrationNumber", "createdAt", "customId", "displayName", "id", "instituteName", "logoUrl", "name", "ownerEmail", "phone", "plan", "slug", "status", "updatedAt" ],
+        "required" : [ "address", "businessRegistrationNumber", "createdAt", "customDomain", "customId", "displayName", "id", "instituteName", "logoUrl", "name", "ownerEmail", "phone", "plan", "slug", "status", "updatedAt" ],
         "type" : "object"
       },
       "TextbookFolderPathResponse" : {

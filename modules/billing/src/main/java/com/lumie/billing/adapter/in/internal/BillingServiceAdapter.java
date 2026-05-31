@@ -71,7 +71,6 @@ public class BillingServiceAdapter implements BillingService {
         try {
             PlanResponse plan = planQueryService.getPlanById(planId);
             List<String> features = new ArrayList<>();
-            if (plan.features().customDomains()) features.add("custom_domains");
             if (plan.features().advancedAnalytics()) features.add("advanced_analytics");
             if (plan.features().prioritySupport()) features.add("priority_support");
             if (plan.features().apiAccess()) features.add("api_access");

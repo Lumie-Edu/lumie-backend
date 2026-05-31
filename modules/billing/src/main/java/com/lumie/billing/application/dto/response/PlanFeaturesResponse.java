@@ -5,7 +5,6 @@ import com.lumie.billing.domain.vo.PlanFeatures;
 import java.util.List;
 
 public record PlanFeaturesResponse(
-        boolean customDomains,
         boolean advancedAnalytics,
         boolean prioritySupport,
         boolean apiAccess,
@@ -17,7 +16,6 @@ public record PlanFeaturesResponse(
             return null;
         }
         return new PlanFeaturesResponse(
-                vo.customDomains(),
                 vo.advancedAnalytics(),
                 vo.prioritySupport(),
                 vo.apiAccess(),

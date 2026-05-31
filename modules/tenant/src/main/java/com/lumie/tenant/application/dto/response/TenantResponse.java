@@ -23,6 +23,7 @@ public record TenantResponse(
         @Schema(nullable = true) String businessRegistrationNumber,
         @Schema(nullable = true) String logoUrl,
         @Schema(nullable = true) String customId,
+        @Schema(nullable = true) String customDomain,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -43,6 +44,7 @@ public record TenantResponse(
                 .businessRegistrationNumber(tenant.getBusinessRegistrationNumber())
                 .logoUrl(hasLogo ? "/api/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
                 .customId(tenant.getCustomId())
+                .customDomain(tenant.getCustomDomain())
                 .createdAt(tenant.getCreatedAt())
                 .updatedAt(tenant.getUpdatedAt())
                 .build();

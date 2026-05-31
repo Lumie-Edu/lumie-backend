@@ -60,9 +60,6 @@ public class Plan extends BaseEntity {
     @Column(name = "omr_monthly_quota")
     private Integer omrMonthlyQuota;
 
-    @Column(name = "custom_domains", nullable = false)
-    private boolean customDomains;
-
     @Column(name = "advanced_analytics", nullable = false)
     private boolean advancedAnalytics;
 
@@ -84,7 +81,7 @@ public class Plan extends BaseEntity {
     @Builder
     private Plan(String id, String name, String description, Money monthlyPrice, Money yearlyPrice,
                  Integer maxStudents, Integer maxAcademies, Integer maxAdmins, Integer omrMonthlyQuota,
-                 boolean customDomains, boolean advancedAnalytics, boolean prioritySupport,
+                 boolean advancedAnalytics, boolean prioritySupport,
                  boolean apiAccess, boolean whiteLabeling, int displayOrder) {
         this.id = id;
         this.name = name;
@@ -95,7 +92,6 @@ public class Plan extends BaseEntity {
         this.maxAcademies = maxAcademies;
         this.maxAdmins = maxAdmins;
         this.omrMonthlyQuota = omrMonthlyQuota;
-        this.customDomains = customDomains;
         this.advancedAnalytics = advancedAnalytics;
         this.prioritySupport = prioritySupport;
         this.apiAccess = apiAccess;
@@ -122,7 +118,6 @@ public class Plan extends BaseEntity {
 
     public PlanFeatures toFeatures() {
         return PlanFeatures.builder()
-                .customDomains(customDomains)
                 .advancedAnalytics(advancedAnalytics)
                 .prioritySupport(prioritySupport)
                 .apiAccess(apiAccess)

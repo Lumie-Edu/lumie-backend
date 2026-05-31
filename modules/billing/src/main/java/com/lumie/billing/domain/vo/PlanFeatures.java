@@ -6,7 +6,6 @@ import java.util.List;
 
 @Builder
 public record PlanFeatures(
-        boolean customDomains,
         boolean advancedAnalytics,
         boolean prioritySupport,
         boolean apiAccess,
@@ -15,7 +14,6 @@ public record PlanFeatures(
 ) {
     public static PlanFeatures free() {
         return PlanFeatures.builder()
-                .customDomains(false)
                 .advancedAnalytics(false)
                 .prioritySupport(false)
                 .apiAccess(false)
@@ -26,7 +24,6 @@ public record PlanFeatures(
 
     public static PlanFeatures basic() {
         return PlanFeatures.builder()
-                .customDomains(false)
                 .advancedAnalytics(false)
                 .prioritySupport(false)
                 .apiAccess(true)
@@ -37,7 +34,6 @@ public record PlanFeatures(
 
     public static PlanFeatures pro() {
         return PlanFeatures.builder()
-                .customDomains(true)
                 .advancedAnalytics(true)
                 .prioritySupport(true)
                 .apiAccess(true)
@@ -48,7 +44,6 @@ public record PlanFeatures(
 
     public static PlanFeatures enterprise() {
         return PlanFeatures.builder()
-                .customDomains(true)
                 .advancedAnalytics(true)
                 .prioritySupport(true)
                 .apiAccess(true)
