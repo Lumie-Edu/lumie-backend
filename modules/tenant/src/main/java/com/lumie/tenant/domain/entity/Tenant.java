@@ -138,6 +138,23 @@ public class Tenant extends BaseEntity {
     }
 
     public void updateCustomId(String customId) {
+        boolean alreadySet = this.customId != null && !this.customId.isBlank();
+
+        if (alreadySet) {
+            // Once set, the only permitted call is an idempotent no-op with the same value.
+            // Clearing, blanking, or changing to a different value are all forbidden.
+            String incoming = (customId == null || customId.isBlank())
+                    ? null
+                    : customId.toLowerCase(java.util.Locale.ROOT).trim();
+            if (!this.customId.equals(incoming)) {
+                throw new BusinessException(TenantErrorCode.CUSTOM_ID_IMMUTABLE,
+                        "학원 ID는 한번 설정되면 변경할 수 없습니다.");
+            }
+            // Same value — idempotent no-op.
+            return;
+        }
+
+        // First-set path: existing behavior preserved exactly.
         if (customId == null || customId.isBlank()) {
             this.customId = null;
             return;

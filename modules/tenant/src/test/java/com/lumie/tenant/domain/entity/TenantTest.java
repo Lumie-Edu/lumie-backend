@@ -1,6 +1,8 @@
 package com.lumie.tenant.domain.entity;
 
+import com.lumie.common.exception.BusinessException;
 import com.lumie.tenant.domain.exception.InvalidTenantStateException;
+import com.lumie.tenant.domain.exception.TenantErrorCode;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.api.TenantStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -152,5 +154,87 @@ class TenantTest {
         tenant.updateLogoObjectKey("c704d223/branding/logo");
 
         assertThat(tenant.getLogoObjectKey()).isEqualTo("c704d223/branding/logo");
+    }
+
+    // --- customId permanence ---
+
+    @Test
+    @DisplayName("customId가 null일 때 처음 설정하면 정상 저장됨")
+    void setCustomIdFirstTime() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        assertThat(tenant.getCustomId()).isNull();
+
+        tenant.updateCustomId("my-academy");
+
+        assertThat(tenant.getCustomId()).isEqualTo("my-academy");
+    }
+
+    @Test
+    @DisplayName("이미 설정된 customId를 다른 값으로 변경하면 BusinessException(CUSTOM_ID_IMMUTABLE) 발생")
+    void changeCustomIdAfterSetThrowsImmutableException() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        tenant.updateCustomId("my-academy");
+
+        assertThatThrownBy(() -> tenant.updateCustomId("other-academy"))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(TenantErrorCode.CUSTOM_ID_IMMUTABLE));
+    }
+
+    @Test
+    @DisplayName("이미 설정된 customId와 동일한 값으로 호출하면 예외 없이 no-op")
+    void sameCustomIdIsNoOp() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        tenant.updateCustomId("my-academy");
+
+        // Must not throw — idempotent no-op.
+        tenant.updateCustomId("my-academy");
+        tenant.updateCustomId("MY-ACADEMY"); // normalises to same value
+
+        assertThat(tenant.getCustomId()).isEqualTo("my-academy");
+    }
+
+    @Test
+    @DisplayName("이미 설정된 customId를 null/blank로 지우려 하면 BusinessException(CUSTOM_ID_IMMUTABLE) 발생")
+    void clearCustomIdAfterSetThrowsImmutableException() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        tenant.updateCustomId("my-academy");
+
+        assertThatThrownBy(() -> tenant.updateCustomId(null))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(TenantErrorCode.CUSTOM_ID_IMMUTABLE));
+
+        assertThatThrownBy(() -> tenant.updateCustomId("   "))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(TenantErrorCode.CUSTOM_ID_IMMUTABLE));
+    }
+
+    // --- customId first-set validation ---
+
+    @Test
+    @DisplayName("customId가 null일 때 포맷 위반 값으로 설정하면 BusinessException(INVALID_CUSTOM_ID) 발생")
+    void setCustomIdFirstTimeWithInvalidFormatThrows() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        assertThat(tenant.getCustomId()).isNull();
+
+        assertThatThrownBy(() -> tenant.updateCustomId("-bad"))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(TenantErrorCode.INVALID_CUSTOM_ID));
+    }
+
+    @Test
+    @DisplayName("customId가 null일 때 예약어로 설정하면 BusinessException(RESERVED_CUSTOM_ID) 발생")
+    void setCustomIdFirstTimeWithReservedValueThrows() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        assertThat(tenant.getCustomId()).isNull();
+
+        // "admin" satisfies CUSTOM_ID_PATTERN (format-valid) but is in RESERVED_CUSTOM_IDS
+        assertThatThrownBy(() -> tenant.updateCustomId("admin"))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(TenantErrorCode.RESERVED_CUSTOM_ID));
     }
 }

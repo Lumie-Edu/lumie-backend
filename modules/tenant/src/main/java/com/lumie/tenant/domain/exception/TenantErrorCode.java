@@ -18,6 +18,7 @@ public enum TenantErrorCode implements ErrorCode {
     // 409 Conflict
     SLUG_ALREADY_EXISTS("TENANT_004", "Tenant with this slug already exists", 409),
     INVALID_STATUS_TRANSITION("TENANT_005", "Invalid tenant status transition", 409),
+    CUSTOM_ID_IMMUTABLE("TENANT_012", "Custom ID cannot be changed once set", 409),
     INVALID_TENANT_STATE("TENANT_016", "Invalid tenant state: current={0}, required={1}", 409),
 
     // 400 Bad Request
