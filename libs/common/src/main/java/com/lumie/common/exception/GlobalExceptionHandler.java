@@ -1,6 +1,7 @@
 package com.lumie.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -94,6 +95,36 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .headers(problemJsonHeaders())
                 .body(body);
+    }
+
+    // ----- Bean Validation on @RequestParam / @PathVariable (@Validated controllers) -----
+
+    /**
+     * Handles {@link ConstraintViolationException} thrown by Spring's method-level
+     * validation proxy when a {@code @Validated} controller fails a constraint on a
+     * {@code @RequestParam}, {@code @PathVariable}, or service method argument.
+     *
+     * <p>Distinct from {@link MethodArgumentNotValidException} (which covers
+     * {@code @Valid @RequestBody} bean validation). Both map to 400 Bad Request.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetail> handleConstraintViolation(ConstraintViolationException ex,
+                                                                   HttpServletRequest request) {
+        List<Map<String, Object>> violations = ex.getConstraintViolations().stream()
+                .map(cv -> Map.<String, Object>of(
+                        "field", cv.getPropertyPath().toString(),
+                        "message", cv.getMessage(),
+                        "rejectedValue", String.valueOf(cv.getInvalidValue())))
+                .toList();
+        log.warn("Constraint violation: {}", violations);
+
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "Request validation failed");
+        body.setType(URI.create(PROBLEM_TYPE_PREFIX + "validation-error"));
+        body.setTitle("Validation error");
+        decorate(body, CommonErrorCode.VALIDATION_ERROR.getCode(), request);
+        body.setProperty("violations", violations);
+        return wrapAsProblemJson(body);
     }
 
     // ----- Misc Spring / JDBC fall-through with custom semantics -------------

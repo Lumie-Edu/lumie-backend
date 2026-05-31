@@ -1,31 +1,41 @@
 package com.lumie.tenant.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.tenant.api.TenantStatus;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
+import com.lumie.tenant.application.dto.response.PublicTenantResponse;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.service.TenantCommandService;
 import com.lumie.tenant.application.service.TenantLogoService;
 import com.lumie.tenant.application.service.TenantQueryService;
-import com.lumie.tenant.api.TenantStatus;
-import com.lumie.common.exception.GlobalExceptionHandler;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.validation.beanvalidation.MethodValidationInterceptor;
 
 import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class TenantControllerTest {
@@ -41,14 +51,21 @@ class TenantControllerTest {
     @Mock
     private TenantLogoService tenantLogoService;
 
-    @InjectMocks
-    private TenantController tenantController;
-
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(tenantController)
+        // Wrap the controller in a Spring AOP proxy so that @Validated method-level
+        // constraints (@NotBlank on @RequestParam) fire as ConstraintViolationException.
+        TenantController rawController = new TenantController(
+                tenantCommandService, tenantQueryService, tenantLogoService);
+
+        ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
+        ProxyFactory proxyFactory = new ProxyFactory(rawController);
+        proxyFactory.addAdvice(new MethodValidationInterceptor(validatorFactory.getValidator()));
+        TenantController proxiedController = (TenantController) proxyFactory.getProxy();
+
+        mockMvc = MockMvcBuilders.standaloneSetup(proxiedController)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
         objectMapper = new ObjectMapper();
@@ -135,5 +152,87 @@ class TenantControllerTest {
     void deleteTenantSuccess() throws Exception {
         mockMvc.perform(delete("/v1/tenants/test-academy"))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("GET /v1/tenants/public/by-domain?host=... - 활성 테넌트 반환 (공개 필드만)")
+    void getPublicTenantByCustomDomainSuccess() throws Exception {
+        PublicTenantResponse response = PublicTenantResponse.builder()
+                .slug("test-academy")
+                .name("Test Academy")
+                .customId("test-academy")
+                .logoUrl(null)
+                .phone(null)
+                .build();
+
+        when(tenantQueryService.getPublicTenantByCustomDomain("academy.example.com"))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/v1/tenants/public/by-domain")
+                        .param("host", "academy.example.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slug").value("test-academy"))
+                .andExpect(jsonPath("$.name").value("Test Academy"));
+    }
+
+    @Test
+    @DisplayName("GET /v1/tenants/public/by-domain?host=... - 일치하는 테넌트 없음 → 404")
+    void getPublicTenantByCustomDomainNotFound() throws Exception {
+        when(tenantQueryService.getPublicTenantByCustomDomain("unknown.example.com"))
+                .thenThrow(new ResourceNotFoundException("Tenant", "unknown.example.com"));
+
+        mockMvc.perform(get("/v1/tenants/public/by-domain")
+                        .param("host", "unknown.example.com"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("GET /v1/tenants/public/by-domain - host 파라미터 누락 → 400")
+    void getPublicTenantByCustomDomainMissingParam() throws Exception {
+        mockMvc.perform(get("/v1/tenants/public/by-domain"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET /v1/tenants/public/by-domain?host=  ABC.com  - 컨트롤러가 소문자+트림 후 서비스 호출")
+    void getPublicTenantByCustomDomainNormalizesHostBeforeService() throws Exception {
+        PublicTenantResponse response = PublicTenantResponse.builder()
+                .slug("test-academy")
+                .name("Test Academy")
+                .customId("test-academy")
+                .logoUrl(null)
+                .phone(null)
+                .build();
+
+        // The controller normalizes "  ABC.com  " → "abc.com" before calling the service.
+        when(tenantQueryService.getPublicTenantByCustomDomain("abc.com")).thenReturn(response);
+
+        mockMvc.perform(get("/v1/tenants/public/by-domain")
+                        .param("host", "  ABC.com  "))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
+        verify(tenantQueryService).getPublicTenantByCustomDomain(hostCaptor.capture());
+        assertThat(hostCaptor.getValue()).isEqualTo("abc.com");
+    }
+
+    @Test
+    @DisplayName("GET /v1/tenants/public/by-domain?host= (빈 문자열) → 400 (@NotBlank violation)")
+    void blankHostReturns400() throws Exception {
+        // @NotBlank on the @RequestParam rejects an empty string.
+        // ConstraintViolationException is mapped to 400 by GlobalExceptionHandler.
+        mockMvc.perform(get("/v1/tenants/public/by-domain")
+                        .param("host", ""))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET /v1/tenants/public/by-domain?host=%20%20 (공백만) → 400 (@NotBlank violation)")
+    void whitespaceOnlyHostReturns400() throws Exception {
+        // @NotBlank treats whitespace-only strings as blank.
+        // After normalization "  ".trim() == "" but @NotBlank fires before any domain logic.
+        mockMvc.perform(get("/v1/tenants/public/by-domain")
+                        .param("host", "  "))
+                .andExpect(status().isBadRequest());
     }
 }

@@ -1,6 +1,7 @@
 package com.lumie.tenant.application.service;
 
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.tenant.application.dto.response.PublicTenantResponse;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
@@ -108,5 +109,44 @@ class TenantQueryServiceTest {
         Optional<Long> tenantId = tenantQueryService.getTenantIdBySlug("non-existent");
 
         assertThat(tenantId).isEmpty();
+    }
+
+    @Test
+    @DisplayName("커스텀 도메인으로 공개 테넌트 조회 성공 - 활성 테넌트")
+    void getPublicTenantByCustomDomainSuccess() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", "테스트 학원", "owner@test.com");
+        tenant.startProvisioning();
+        tenant.activate();
+        tenant.setCustomDomain("academy.example.com");
+        when(tenantPersistencePort.findByCustomDomain("academy.example.com"))
+                .thenReturn(Optional.of(tenant));
+
+        PublicTenantResponse response = tenantQueryService.getPublicTenantByCustomDomain("academy.example.com");
+
+        assertThat(response.slug()).isEqualTo("test-academy");
+        assertThat(response.name()).isEqualTo("Test Academy");
+    }
+
+    @Test
+    @DisplayName("커스텀 도메인 조회 - 일치하는 테넌트 없음")
+    void getPublicTenantByCustomDomainNotFound() {
+        when(tenantPersistencePort.findByCustomDomain("unknown.example.com"))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> tenantQueryService.getPublicTenantByCustomDomain("unknown.example.com"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("커스텀 도메인 조회 - 비활성 테넌트는 404")
+    void getPublicTenantByCustomDomainInactiveTenant() {
+        Tenant tenant = Tenant.create("suspended-academy", "Suspended Academy", null, null);
+        // status remains PENDING (not active)
+        tenant.setCustomDomain("suspended.example.com");
+        when(tenantPersistencePort.findByCustomDomain("suspended.example.com"))
+                .thenReturn(Optional.of(tenant));
+
+        assertThatThrownBy(() -> tenantQueryService.getPublicTenantByCustomDomain("suspended.example.com"))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }

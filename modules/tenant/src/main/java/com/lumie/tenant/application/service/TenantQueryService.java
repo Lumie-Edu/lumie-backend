@@ -1,5 +1,6 @@
 package com.lumie.tenant.application.service;
 
+import com.lumie.common.cache.CacheConfig;
 import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.application.dto.response.PublicTenantResponse;
 import com.lumie.tenant.application.dto.response.TenantResponse;
@@ -7,6 +8,7 @@ import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,5 +57,20 @@ public class TenantQueryService {
                 .filter(Tenant::isActive)
                 .map(PublicTenantResponse::from)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", customId));
+    }
+
+    /**
+     * Looks up a public tenant by its custom domain.
+     *
+     * <p>Expects a canonical host: lowercased and trimmed. Normalization is the
+     * caller's responsibility (performed at the controller boundary) so that the
+     * {@code @Cacheable} key is always in canonical form.
+     */
+    @Cacheable(value = CacheConfig.CACHE_TENANTS_BY_DOMAIN, key = "#host")
+    public PublicTenantResponse getPublicTenantByCustomDomain(String host) {
+        return tenantPersistencePort.findByCustomDomain(host)
+                .filter(Tenant::isActive)
+                .map(PublicTenantResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", host));
     }
 }

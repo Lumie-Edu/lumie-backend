@@ -9,17 +9,21 @@ import com.lumie.tenant.application.service.TenantCommandService;
 import com.lumie.tenant.application.service.TenantLogoService;
 import com.lumie.tenant.application.service.TenantQueryService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Locale;
 
+@Validated
 @RestController
 @RequestMapping("/v1/tenants")
 @RequiredArgsConstructor
@@ -32,6 +36,13 @@ public class TenantController {
     @GetMapping("/public/by-custom-id/{customId}")
     public ResponseEntity<PublicTenantResponse> getPublicTenantByCustomId(@PathVariable String customId) {
         return ResponseEntity.ok(tenantQueryService.getPublicTenantByCustomId(customId));
+    }
+
+    @GetMapping("/public/by-domain")
+    public ResponseEntity<PublicTenantResponse> getPublicTenantByCustomDomain(
+            @NotBlank @RequestParam String host) {
+        String canonicalHost = host.toLowerCase(Locale.ROOT).trim();
+        return ResponseEntity.ok(tenantQueryService.getPublicTenantByCustomDomain(canonicalHost));
     }
 
     @PostMapping

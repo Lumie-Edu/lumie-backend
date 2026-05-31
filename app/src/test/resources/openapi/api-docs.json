@@ -13602,6 +13602,32 @@
         "tags" : [ "tenant-controller" ]
       }
     },
+    "/v1/tenants/public/by-domain" : {
+      "get" : {
+        "operationId" : "getPublicTenantByCustomDomain",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "host",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicTenantResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "tenant-controller" ]
+      }
+    },
     "/v1/tenants/{slug}" : {
       "delete" : {
         "operationId" : "deleteTenant",

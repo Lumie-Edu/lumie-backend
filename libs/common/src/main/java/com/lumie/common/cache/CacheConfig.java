@@ -38,6 +38,10 @@ import java.util.List;
  *       aggregates (COUNT/GROUP BY over exam_results/question_results).
  *       TTL-only invalidation — dashboard figures tolerate a few minutes of
  *       staleness, so there is no write-path eviction. One entry per tenant.
+ *   <li>{@code tenants-by-domain} (5 min, 1k entries) — host → public tenant
+ *       resolution for white-label custom domains. TTL-only invalidation;
+ *       operator-managed domains change rarely so write-path eviction is
+ *       unnecessary overhead.
  * </ul>
  */
 @Configuration
@@ -45,6 +49,7 @@ import java.util.List;
 public class CacheConfig {
 
     public static final String CACHE_TENANTS_BY_SLUG = "tenants-by-slug";
+    public static final String CACHE_TENANTS_BY_DOMAIN = "tenants-by-domain";
     public static final String CACHE_ADMIN_PERMISSIONS = "admin-permissions";
     public static final String CACHE_PLANS = "plans";
     public static final String CACHE_EXAM_DASHBOARD = "exam-dashboard";
@@ -54,6 +59,7 @@ public class CacheConfig {
         SimpleCacheManager manager = new SimpleCacheManager();
         manager.setCaches(List.of(
                 build(CACHE_TENANTS_BY_SLUG, Duration.ofMinutes(5), 1_000),
+                build(CACHE_TENANTS_BY_DOMAIN, Duration.ofMinutes(5), 1_000),
                 build(CACHE_ADMIN_PERMISSIONS, Duration.ofMinutes(1), 10_000),
                 build(CACHE_PLANS, Duration.ofHours(1), 50),
                 build(CACHE_EXAM_DASHBOARD, Duration.ofMinutes(5), 500)
