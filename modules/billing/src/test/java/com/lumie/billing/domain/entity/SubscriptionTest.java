@@ -217,28 +217,46 @@ class SubscriptionTest {
     // ─── E-flow: changePlan (immediate swap) ──────────────────────────────────
 
     @Test
-    @DisplayName("changePlan: swaps plan, clears cancelledAt and pendingPlan")
-    void changePlan_swapsPlan_clearsCancelledAt_clearsPending() {
+    @DisplayName("changePlan: swaps plan, clears pending downgrade")
+    void changePlan_swapsPlan_clearsPending() {
         Plan proPlan = mockPaidPlan("PRO");
         Plan basicPlan = mockCheaperPlan("BASIC");
         Plan elitePlan = mockPaidPlan("ELITE");
 
-        // Arrange: ACTIVE + pending downgrade + cancel grace
+        // Arrange: ACTIVE + pending downgrade
         Subscription sub = Subscription.createFree(1L, "demo", proPlan);
         sub.attachBillingKey(1L);
         sub.scheduleDowngrade(basicPlan, Instant.now().plus(Duration.ofDays(15)));
-        assertThat(sub.getPendingPlan()).isNotNull();  // downgrade scheduled
-        sub.scheduleCancellation();
-        assertThat(sub.getCancelledAt()).isNotNull();  // cancel grace active
+        assertThat(sub.getPendingPlan()).isNotNull();
 
-        // Act: changePlan overrides everything
+        // Act: changePlan overrides the pending downgrade
+        sub.changePlan(elitePlan);
+
+        // Assert
+        assertThat(sub.getPlanId()).isEqualTo("ELITE");
+        assertThat(sub.getPendingPlan()).isNull();
+        assertThat(sub.getScheduledChangeAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("changePlan: clears scheduled cancellation (auto-uncancel)")
+    void changePlan_clearsCancelledAt() {
+        Plan proPlan = mockPaidPlan("PRO");
+        Plan elitePlan = mockPaidPlan("ELITE");
+
+        // Arrange: ACTIVE + cancel grace
+        Subscription sub = Subscription.createFree(1L, "demo", proPlan);
+        sub.attachBillingKey(1L);
+        sub.scheduleCancellation();
+        assertThat(sub.getCancelledAt()).isNotNull();
+
+        // Act: changing plan signals intent to keep using the service
         sub.changePlan(elitePlan);
 
         // Assert
         assertThat(sub.getPlanId()).isEqualTo("ELITE");
         assertThat(sub.getCancelledAt()).isNull();
-        assertThat(sub.getPendingPlan()).isNull();
-        assertThat(sub.getScheduledChangeAt()).isNull();
+        assertThat(sub.isCancellationScheduled()).isFalse();
     }
 
     @Test
@@ -370,6 +388,26 @@ class SubscriptionTest {
         assertThat(sub.getCancelledAt()).isNotNull();
         assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
         assertThat(sub.isCancellationScheduled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("scheduleCancellation after scheduleDowngrade: voids pending downgrade (most-recent-intent wins)")
+    void scheduleCancellation_afterDowngrade_voidsPendingDowngrade() {
+        Plan proPlan = mockPaidPlan("PRO");
+        Plan basicPlan = mockCheaperPlan("BASIC");
+        Subscription sub = Subscription.createFree(1L, "demo", proPlan);
+        sub.attachBillingKey(1L);
+        sub.scheduleDowngrade(basicPlan, Instant.now().plus(Duration.ofDays(15)));
+        assertThat(sub.getPendingPlan()).isNotNull();  // downgrade scheduled first
+
+        // Cancellation is the later intent — it must override the pending downgrade
+        // so the period-end outcome does not depend on scheduler ordering.
+        sub.scheduleCancellation();
+
+        assertThat(sub.getCancelledAt()).isNotNull();
+        assertThat(sub.getPendingPlan()).isNull();
+        assertThat(sub.getScheduledChangeAt()).isNull();
+        assertThat(sub.getPlanId()).isEqualTo("PRO");  // current plan untouched until period end
     }
 
     @Test

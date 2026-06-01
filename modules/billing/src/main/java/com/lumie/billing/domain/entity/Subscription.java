@@ -294,6 +294,11 @@ public class Subscription extends BaseEntity {
      * The daily SubscriptionScheduledChangeScheduler calls {@link #finalizeCancellation}
      * when nextChargeAt passes.
      *
+     * <p>Any pending downgrade is voided — cancellation is the more recent intent,
+     * and clearing it keeps the period-end outcome independent of scheduler ordering
+     * (symmetric with {@link #scheduleDowngrade} / {@link #changePlan}, which clear
+     * cancelledAt).
+     *
      * <p>Domain guard: mustBePaid (Trial cannot be cancelled — no cancel button for trial).
      */
     public void scheduleCancellation() {
@@ -307,10 +312,18 @@ public class Subscription extends BaseEntity {
                     "Subscription is already scheduled for cancellation");
         }
         this.cancelledAt = Instant.now();
+        // Cancellation overrides any pending downgrade (most-recent-intent wins),
+        // so the period-end result does not rely on scheduler execution order.
+        this.pendingPlan = null;
+        this.scheduledChangeAt = null;
     }
 
     /**
      * Undo a scheduled cancellation. H-flow: cancelledAt = null; nothing else changes.
+     *
+     * <p>Reverses only the cancellation. A downgrade that was pending before
+     * {@link #scheduleCancellation} voided it is NOT restored — undo is the inverse
+     * of cancel, not a full state-history rollback. Re-schedule the downgrade if needed.
      */
     public void undoScheduledCancellation() {
         if (this.cancelledAt == null) {
