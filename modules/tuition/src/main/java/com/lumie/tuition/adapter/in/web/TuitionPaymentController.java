@@ -4,7 +4,6 @@ import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import com.lumie.tuition.application.dto.request.RefundRequest;
 import com.lumie.tuition.application.dto.request.RequestPaymentRequest;
-import com.lumie.tuition.application.dto.response.PaymentCheckoutResponse;
 import com.lumie.tuition.application.dto.response.TuitionPaymentResponse;
 import com.lumie.tuition.application.service.TuitionPaymentCommandService;
 import com.lumie.tuition.application.service.TuitionPaymentQueryService;
@@ -27,10 +26,10 @@ public class TuitionPaymentController {
     private final TuitionPaymentQueryService paymentQueryService;
 
     @PostMapping
-    public ResponseEntity<PaymentCheckoutResponse> requestPayment(
+    public ResponseEntity<TuitionPaymentResponse> requestPayment(
             @Valid @RequestBody RequestPaymentRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        PaymentCheckoutResponse response = paymentCommandService.requestPayment(request, idempotencyKey);
+        TuitionPaymentResponse response = paymentCommandService.requestPayment(request, idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

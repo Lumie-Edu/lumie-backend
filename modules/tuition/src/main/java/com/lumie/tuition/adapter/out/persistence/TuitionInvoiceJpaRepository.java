@@ -2,7 +2,6 @@ package com.lumie.tuition.adapter.out.persistence;
 
 import com.lumie.tuition.domain.entity.TuitionInvoice;
 import com.lumie.tuition.domain.repository.TuitionInvoiceRepository;
-import com.lumie.tuition.domain.vo.TuitionInvoiceStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

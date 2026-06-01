@@ -1,6 +1,5 @@
 package com.lumie.tuition.domain.vo;
 
-import com.lumie.tuition.domain.vo.Money;
 
 /**
  * A single line item within a TuitionInvoice.

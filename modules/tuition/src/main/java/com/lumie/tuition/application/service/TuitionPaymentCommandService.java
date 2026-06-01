@@ -1,24 +1,25 @@
 package com.lumie.tuition.application.service;
 
-import com.lumie.tuition.domain.vo.Money;
-import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.tuition.application.dto.request.RefundRequest;
 import com.lumie.tuition.application.dto.request.RequestPaymentRequest;
-import com.lumie.tuition.application.dto.response.PaymentCheckoutResponse;
 import com.lumie.tuition.application.dto.response.TuitionPaymentResponse;
-import com.lumie.tuition.application.port.out.TuitionPaymentGatewayPort;
+import com.lumie.tuition.application.port.out.TuitionBillingGatewayPort;
+import com.lumie.tuition.domain.entity.Guardian;
 import com.lumie.tuition.domain.entity.TuitionInvoice;
 import com.lumie.tuition.domain.entity.TuitionPayment;
 import com.lumie.tuition.domain.exception.TuitionErrorCode;
 import com.lumie.tuition.domain.exception.TuitionException;
+import com.lumie.tuition.domain.repository.GuardianRepository;
 import com.lumie.tuition.domain.repository.TuitionInvoiceRepository;
 import com.lumie.tuition.domain.repository.TuitionPaymentRepository;
+import com.lumie.tuition.domain.vo.Money;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -29,61 +30,69 @@ public class TuitionPaymentCommandService {
 
     private final TuitionInvoiceRepository invoiceRepository;
     private final TuitionPaymentRepository paymentRepository;
-    private final TuitionPaymentGatewayPort paymentGatewayPort;
+    private final GuardianRepository guardianRepository;
+    private final TuitionBillingGatewayPort billingGatewayPort;
     private final TuitionPaymentPersistenceHelper persistenceHelper;
 
     /**
-     * Step 1: Record a PENDING payment, commit, then call PG outside the transaction.
-     * PG call MUST be outside @Transactional (HARD_RULES: avoid pool exhaustion).
+     * Record a PENDING payment, commit, then dispatch the invoice via the billing
+     * gateway (PaySsam) OUTSIDE the transaction (HARD_RULES: avoid pool exhaustion).
+     * The gateway sends a mobile invoice to the guardian's phone; collection completes
+     * asynchronously and is reconciled later via {@link #recordCollection}.
      */
-    public PaymentCheckoutResponse requestPayment(RequestPaymentRequest request, String idempotencyKey) {
+    public TuitionPaymentResponse requestPayment(RequestPaymentRequest request, String idempotencyKey) {
         TuitionInvoice invoice = findInvoiceForPayment(request.invoiceId());
 
         String orderId = idempotencyKey != null ? generateOrderId(invoice.getId(), idempotencyKey)
                 : generateOrderId(invoice.getId());
 
-        // Step 1a: persist PENDING payment row inside a separate transaction (via helper bean)
+        // Resolve the guardian BEFORE persisting the PENDING row, so a missing guardian
+        // cannot leave an orphaned committed PENDING payment.
+        Guardian guardian = guardianRepository.findById(invoice.getGuardianId())
+                .orElseThrow(() -> new TuitionException(TuitionErrorCode.GUARDIAN_NOT_FOUND,
+                        "Guardian not found for invoice: " + invoice.getId()));
+
         TuitionPayment payment = persistenceHelper.savePendingPayment(invoice, orderId, request);
 
-        // Step 1b: call PG outside any @Transactional boundary
-        TuitionPaymentGatewayPort.TuitionPaymentRequest pgRequest =
-                new TuitionPaymentGatewayPort.TuitionPaymentRequest(
-                        orderId,
-                        invoice.getTitle(),
-                        invoice.getTotalAmount().getAmount(),
-                        request.customerName(),
-                        request.customerEmail(),
-                        request.successUrl(),
-                        request.failUrl()
-                );
-        TuitionPaymentGatewayPort.PaymentRequestResult result = paymentGatewayPort.requestPayment(pgRequest);
+        TuitionBillingGatewayPort.SendInvoiceResult result = billingGatewayPort.sendInvoice(
+                orderId,
+                guardian.getPhone(),
+                guardian.getName(),
+                invoice.getTitle(),
+                invoice.getTotalAmount().getAmount(),
+                invoice.getDueDate()
+        );
 
         if (!result.success()) {
-            log.error("PG requestPayment failed: orderId={}, error={}", orderId, result.errorMessage());
+            log.error("Gateway sendInvoice failed: orderId={}, error={}", orderId, result.errorMessage());
             persistenceHelper.failPendingPayment(payment.getId(), result.errorMessage());
-            throw new TuitionException(TuitionErrorCode.INTERNAL_ERROR,
-                    "Payment request failed: " + result.errorMessage());
+            // Raw gateway message stays in the log only; do not surface vendor detail to the API.
+            throw new TuitionException(TuitionErrorCode.INTERNAL_ERROR, "Invoice dispatch failed");
         }
 
-        log.info("Payment requested: paymentId={}, orderId={}", payment.getId(), orderId);
-        return new PaymentCheckoutResponse(payment.getId(), orderId, result.checkoutUrl());
+        log.info("Invoice dispatched: paymentId={}, orderId={}, externalInvoiceId={}",
+                payment.getId(), orderId, result.externalInvoiceId());
+        return TuitionPaymentResponse.from(payment);
     }
 
     /**
-     * Called from the Toss webhook — confirm a payment that completed on PG side.
-     * Step 1: verify webhook signature (already done in controller), parse orderId.
-     * Step 2: update TuitionPayment and TuitionInvoice in a single transaction.
+     * Reconcile a completed collection reported by the billing gateway (future PaySsam
+     * status callback). Captures the payment and marks the invoice PAID. Idempotent.
+     *
+     * <p>The caller (future PaySsam webhook adapter) MUST establish
+     * {@link com.lumie.common.tenant.TenantContextHolder} before invoking — this method
+     * writes to RLS-scoped tables and is blocked without an active tenant context.
      */
     @Transactional
-    public void confirmPaymentFromWebhook(String orderId, String pgTransactionId,
-                                           java.math.BigDecimal amount, Instant capturedAt) {
+    public TuitionPaymentResponse recordCollection(String orderId, String externalRef,
+                                                   BigDecimal amount, Instant collectedAt) {
         TuitionPayment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new TuitionException(TuitionErrorCode.PAYMENT_NOT_FOUND,
                         "Payment not found for orderId: " + orderId));
 
         if (payment.isCaptured()) {
-            log.warn("Duplicate webhook for orderId={} — payment already captured", orderId);
-            return;
+            log.warn("Duplicate recordCollection for orderId={} — already captured", orderId);
+            return TuitionPaymentResponse.from(payment);
         }
 
         TuitionInvoice invoice = invoiceRepository.findById(payment.getTuitionInvoiceId())
@@ -92,45 +101,36 @@ public class TuitionPaymentCommandService {
 
         if (payment.getAmount().getAmount().compareTo(amount) != 0) {
             log.error("Amount mismatch: expected={}, got={}, orderId={}", payment.getAmount(), amount, orderId);
-            payment.fail("Amount mismatch from PG webhook");
+            payment.fail("Amount mismatch from gateway callback");
             paymentRepository.save(payment);
             throw new TuitionException(TuitionErrorCode.PAYMENT_AMOUNT_MISMATCH,
-                    "PG amount does not match expected payment amount");
+                    "Gateway amount does not match expected payment amount");
         }
 
-        payment.capture(pgTransactionId, capturedAt);
+        payment.capture(externalRef, collectedAt);
         paymentRepository.save(payment);
-
-        invoice.markPaid(capturedAt);
+        invoice.markPaid(collectedAt);
         invoiceRepository.save(invoice);
 
-        log.info("Payment confirmed via webhook: paymentId={}, orderId={}, invoiceId={}",
+        log.info("Collection recorded: paymentId={}, orderId={}, invoiceId={}",
                 payment.getId(), orderId, invoice.getId());
+        return TuitionPaymentResponse.from(payment);
     }
 
+    /**
+     * Record a refund against a payment. Under the PaySsam model the actual refund to
+     * the guardian is a gateway-side (merchant-of-record) process; here we only record
+     * the domain refund so it is reflected in Lumie's books.
+     */
     public TuitionPaymentResponse refundPayment(Long paymentId, RefundRequest request) {
         Long staffId = UserContextHolder.getUserId();
         Money refundAmount = Money.of(request.amount());
 
-        // Step 1: record refund intent in DB (via helper bean — separate transaction, commits before PG)
         TuitionPayment payment = persistenceHelper.applyRefundToPayment(
                 paymentId, refundAmount, request.reason(), staffId, TuitionErrorCode.PAYMENT_NOT_FOUND);
 
-        // Step 2: call PG outside @Transactional
-        TuitionPaymentGatewayPort.RefundResult pgResult = paymentGatewayPort.refund(
-                payment.getPgTransactionId(),
-                request.amount(),
-                request.reason(),
-                UUID.randomUUID().toString()
-        );
-
-        if (!pgResult.success()) {
-            log.error("PG refund failed: paymentId={}, error={}", paymentId, pgResult.errorMessage());
-            throw new TuitionException(TuitionErrorCode.INTERNAL_ERROR,
-                    "Refund failed: " + pgResult.errorMessage());
-        }
-
-        log.info("Payment refunded: paymentId={}, amount={}, staffId={}", paymentId, request.amount(), staffId);
+        log.info("Payment refunded (recorded): paymentId={}, amount={}, staffId={}",
+                paymentId, request.amount(), staffId);
         return TuitionPaymentResponse.from(payment);
     }
 
@@ -152,8 +152,7 @@ public class TuitionPaymentCommandService {
     }
 
     private String generateOrderId(Long invoiceId, String idempotencyKey) {
-        // Derive a deterministic suffix from the idempotency key so duplicate requests
-        // produce the same orderId and can be detected at the payment gateway level.
+        // Deterministic suffix so duplicate requests produce the same orderId.
         String suffix = idempotencyKey.replace("-", "");
         String truncated = suffix.length() >= 12 ? suffix.substring(0, 12) : suffix;
         return "TUITION-%d-%s".formatted(invoiceId, truncated);
