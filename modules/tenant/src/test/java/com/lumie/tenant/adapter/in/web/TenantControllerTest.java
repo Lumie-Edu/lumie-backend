@@ -162,7 +162,6 @@ class TenantControllerTest {
                 .name("Test Academy")
                 .customId("test-academy")
                 .logoUrl(null)
-                .phone(null)
                 .build();
 
         when(tenantQueryService.getPublicTenantByCustomDomain("academy.example.com"))
@@ -201,7 +200,6 @@ class TenantControllerTest {
                 .name("Test Academy")
                 .customId("test-academy")
                 .logoUrl(null)
-                .phone(null)
                 .build();
 
         // The controller normalizes "  ABC.com  " → "abc.com" before calling the service.

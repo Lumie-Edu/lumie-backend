@@ -9,8 +9,7 @@ public record PublicTenantResponse(
         String slug,
         String name,
         @Schema(nullable = true) String customId,
-        @Schema(nullable = true) String logoUrl,
-        @Schema(nullable = true) String phone
+        @Schema(nullable = true) String logoUrl
 ) {
     public static PublicTenantResponse from(Tenant tenant) {
         boolean hasLogo = tenant.getLogoObjectKey() != null
@@ -20,7 +19,6 @@ public record PublicTenantResponse(
                 .name(tenant.getName())
                 .customId(tenant.getCustomId())
                 .logoUrl(hasLogo ? "/api/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
-                .phone(tenant.getPhone())
                 .build();
     }
 }

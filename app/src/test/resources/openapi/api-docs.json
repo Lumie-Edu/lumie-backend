@@ -3402,15 +3402,11 @@
           "name" : {
             "type" : "string"
           },
-          "phone" : {
-            "nullable" : true,
-            "type" : "string"
-          },
           "slug" : {
             "type" : "string"
           }
         },
-        "required" : [ "customId", "logoUrl", "name", "phone", "slug" ],
+        "required" : [ "customId", "logoUrl", "name", "slug" ],
         "type" : "object"
       },
       "PublishHomepageRequest" : {
