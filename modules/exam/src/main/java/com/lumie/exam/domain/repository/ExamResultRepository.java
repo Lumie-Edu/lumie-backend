@@ -53,8 +53,18 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     Optional<ExamResult> findByQuestionResultId(@Param("questionResultId") Long questionResultId);
 
     /**
-     * Top students by average total_score for the current month. Native query —
-     * studentName is left joined later in the service via StudentService.
+     * Top students by average total_score over results graded this month.
+     * "This month" is the Asia/Seoul calendar month keyed on updated_at — the
+     * grade / re-grade time. created_at is updatable=false, so a result first
+     * inserted in a prior month but (re)graded this month must still count;
+     * filtering on created_at silently drops every re-graded sheet. The month
+     * boundary is computed in Asia/Seoul so it matches the Korean calendar
+     * rather than UTC (which lags by 9h at the month edge).
+     * <p>Known edge: {@code linkUnregisteredByPhone} also bumps updated_at, so a
+     * prior-month result back-filled to a student who registers this month can
+     * surface in the window. Accepted over an {@code omr_grading_job_id IS NOT
+     * NULL} guard, which would silently drop manually-graded results. Native
+     * query — studentName is left joined later in the service via StudentService.
      */
     @Query(value = """
         SELECT r.student_id AS studentId,
@@ -62,7 +72,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
                COUNT(*) AS attemptCount
           FROM exam_results r
          WHERE r.student_id IS NOT NULL
-           AND r.created_at >= date_trunc('month', now())
+           AND r.updated_at >= date_trunc('month', now() AT TIME ZONE 'Asia/Seoul') AT TIME ZONE 'Asia/Seoul'
          GROUP BY r.student_id
          ORDER BY AVG(r.total_score) DESC, COUNT(*) DESC
          LIMIT :limit
