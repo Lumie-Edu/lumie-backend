@@ -16,6 +16,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -184,5 +185,33 @@ class IdempotencyServiceTest {
                 });
 
         assertThat(callCount.get()).isEqualTo(2);
+    }
+
+    @Test
+    void responseBodyWithInstantField_storesCanonicalJson_andReplaysStructured() {
+        Instant startedAt = Instant.parse("2026-06-02T09:15:00Z");
+
+        // First call returns a body carrying an Instant. Before JavaTimeModule
+        // was registered this threw InvalidDefinitionException and the service
+        // silently stored body.toString().
+        ResponseEntity<Map<String, Object>> first = service.executeOnce(
+                "key-instant", "POST /v1/subscriptions", Map.of("amount", 5000),
+                () -> ResponseEntity.ok(Map.of("planId", "PRO", "startedAt", startedAt)));
+        assertThat(first.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // Stored body is canonical JSON with an ISO-8601 Instant, not a
+        // toString() fallback (which would use `=` and unquoted keys).
+        String stored = jdbcTemplate.queryForObject(
+                "SELECT response_body FROM idempotency_keys WHERE idempotency_key = 'key-instant'",
+                String.class);
+        assertThat(stored).contains("\"startedAt\":\"2026-06-02T09:15:00Z\"");
+
+        // Replay deserializes the stored JSON back into a structured body.
+        ResponseEntity<Map<String, Object>> replay = service.executeOnce(
+                "key-instant", "POST /v1/subscriptions", Map.of("amount", 5000),
+                () -> ResponseEntity.ok(Map.of("planId", "SHOULD-NOT", "startedAt", Instant.now())));
+        assertThat(replay.getBody())
+                .containsEntry("planId", "PRO")
+                .containsEntry("startedAt", "2026-06-02T09:15:00Z");
     }
 }

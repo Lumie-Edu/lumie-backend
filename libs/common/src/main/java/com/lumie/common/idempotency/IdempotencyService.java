@@ -1,8 +1,11 @@
 package com.lumie.common.idempotency;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -57,9 +60,20 @@ public class IdempotencyService {
 
     public IdempotencyService(JdbcTemplate jdbcTemplate, PlatformTransactionManager txManager) {
         this.jdbcTemplate = jdbcTemplate;
-        // Sort keys for canonical fingerprint stability across JVM/Jackson versions.
-        this.canonicalMapper = new ObjectMapper()
-                .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+        // Independent, deterministic mapper for fingerprint hashing + response
+        // body storage. Sorted Map entries AND alphabetical POJO/record fields
+        // keep the fingerprint stable regardless of map iteration or reflection
+        // order; JavaTimeModule with ISO-8601 output (not numeric timestamps)
+        // handles Instant/Java-8 time DTO fields. Deliberately NOT the API
+        // ObjectMapper bean — fingerprints must not drift if the API's Jackson
+        // config changes, which would turn in-flight idempotency keys into
+        // spurious 409 conflicts.
+        this.canonicalMapper = JsonMapper.builder()
+                .addModule(new JavaTimeModule())
+                .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+                .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .build();
         this.requiresNewTx = new TransactionTemplate(txManager);
         this.requiresNewTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
@@ -181,8 +195,12 @@ public class IdempotencyService {
         try {
             return canonicalMapper.writeValueAsString(body);
         } catch (JsonProcessingException e) {
-            log.warn("Failed to serialize idempotency response body, storing toString()", e);
-            return body.toString();
+            // The missing-JavaTimeModule root cause is fixed, so a failure here
+            // now means a genuinely non-serializable body. Fail fast instead of
+            // storing a toString() that would corrupt the fingerprint and the
+            // replayed response (HARD_RULES: no workaround when the root cause
+            // is known).
+            throw new IllegalStateException("Failed to serialize idempotency body", e);
         }
     }
 
