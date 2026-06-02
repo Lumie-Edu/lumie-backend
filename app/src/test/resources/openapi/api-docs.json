@@ -4892,7 +4892,7 @@
             "type" : "string"
           },
           "planId" : {
-            "description" : "Target paid plan id (e.g. BASIC, PRO, ENTERPRISE)",
+            "description" : "Target paid plan id (e.g. BASIC, PRO, MAX)",
             "type" : "string"
           }
         },

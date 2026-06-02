@@ -42,7 +42,7 @@ public record PlanFeatures(
                 .build();
     }
 
-    public static PlanFeatures enterprise() {
+    public static PlanFeatures max() {
         return PlanFeatures.builder()
                 .advancedAnalytics(true)
                 .prioritySupport(true)

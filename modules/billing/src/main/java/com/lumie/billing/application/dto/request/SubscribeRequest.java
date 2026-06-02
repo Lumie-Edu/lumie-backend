@@ -22,7 +22,7 @@ public record SubscribeRequest(
         @NotBlank
         String customerKey,
 
-        @Schema(description = "Target paid plan id (e.g. BASIC, PRO, ENTERPRISE)")
+        @Schema(description = "Target paid plan id (e.g. BASIC, PRO, MAX)")
         @NotBlank
         String planId
 ) {}
