@@ -1,8 +1,11 @@
 package com.lumie.attendance.adapter.in.web;
 
+import com.lumie.attendance.application.dto.response.AttendanceSessionResponse;
 import com.lumie.attendance.application.dto.response.ClassAttendanceStatisticsResponse;
 import com.lumie.attendance.application.dto.response.ClassStudentAttendanceResponse;
 import com.lumie.attendance.application.service.AttendanceRecordQueryService;
+import com.lumie.attendance.application.service.AttendanceSessionCommandService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +20,15 @@ import java.util.List;
 public class ClassAttendanceController {
 
     private final AttendanceRecordQueryService queryService;
+    private final AttendanceSessionCommandService sessionCommandService;
+
+    @Operation(operationId = "ensureClassSessionToday",
+            summary = "Get or create today's attendance session for a class")
+    @PostMapping("/{classId}/sessions/ensure")
+    public ResponseEntity<AttendanceSessionResponse> ensureSessionToday(@PathVariable Long classId) {
+        AttendanceSessionResponse response = sessionCommandService.ensureSessionForClass(classId);
+        return ResponseEntity.ok(response);
+    }
 
     @GetMapping("/{classId}/statistics")
     public ResponseEntity<ClassAttendanceStatisticsResponse> getClassStatistics(

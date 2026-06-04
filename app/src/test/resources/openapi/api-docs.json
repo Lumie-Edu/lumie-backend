@@ -238,7 +238,7 @@
             "type" : "integer"
           },
           "status" : {
-            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED" ],
+            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED", "PENDING" ],
             "type" : "string"
           },
           "studentId" : {
@@ -495,7 +495,7 @@
             "type" : "array"
           },
           "status" : {
-            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED" ],
+            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED", "PENDING" ],
             "type" : "string"
           }
         },
@@ -589,7 +589,7 @@
             "type" : "string"
           },
           "status" : {
-            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED" ],
+            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED", "PENDING" ],
             "type" : "string"
           }
         },
@@ -4501,7 +4501,7 @@
             "type" : "string"
           },
           "status" : {
-            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED" ],
+            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED", "PENDING" ],
             "type" : "string"
           },
           "studentId" : {
@@ -5458,7 +5458,7 @@
             "type" : "string"
           },
           "status" : {
-            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED" ],
+            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED", "PENDING" ],
             "type" : "string"
           }
         },
@@ -7222,6 +7222,34 @@
           }
         },
         "tags" : [ "student-check-in-controller" ]
+      }
+    },
+    "/v1/attendance/classes/{classId}/sessions/ensure" : {
+      "post" : {
+        "operationId" : "ensureClassSessionToday",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "classId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttendanceSessionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Get or create today's attendance session for a class",
+        "tags" : [ "class-attendance-controller" ]
       }
     },
     "/v1/attendance/classes/{classId}/statistics" : {

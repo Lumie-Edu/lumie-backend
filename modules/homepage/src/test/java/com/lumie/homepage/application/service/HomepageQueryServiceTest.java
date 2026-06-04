@@ -82,7 +82,7 @@ class HomepageQueryServiceTest {
         when(tenantLookupPort.findByCustomId("my-academy"))
                 .thenReturn(Optional.of(new TenantInfo("my-academy", 1L)));
         AtomicReference<Long> tenantIdDuringTx = new AtomicReference<>();
-        when(tx.findPublished()).thenAnswer(inv -> {
+        when(tx.findCurrent()).thenAnswer(inv -> {
             tenantIdDuringTx.set(TenantContextHolder.getTenantId());
             return Optional.of(HomepageConfigResponse.from(buildPublishedConfig(), objectMapper));
         });
@@ -104,7 +104,7 @@ class HomepageQueryServiceTest {
         Optional<HomepageConfigResponse> result = homepageQueryService.getPublicByCustomId("unknown");
 
         assertThat(result).isEmpty();
-        verify(tx, never()).findPublished();
+        verify(tx, never()).findCurrent();
     }
 
     @Test
@@ -114,7 +114,7 @@ class HomepageQueryServiceTest {
         TenantContextHolder.setTenant("owner-tenant");
         when(tenantLookupPort.findByCustomId("other-academy"))
                 .thenReturn(Optional.of(new TenantInfo("other-academy", 2L)));
-        when(tx.findPublished()).thenReturn(Optional.empty());
+        when(tx.findCurrent()).thenReturn(Optional.empty());
 
         homepageQueryService.getPublicByCustomId("other-academy");
 
@@ -125,26 +125,26 @@ class HomepageQueryServiceTest {
     }
 
     @Nested
-    @DisplayName("Tx.findPublished — published 필터 + RLS 트랜잭션 경계")
+    @DisplayName("Tx.findCurrent — 현재 설정 조회 + RLS 트랜잭션 경계")
     class TxTest {
 
         private final HomepageConfigPersistencePort port = mock(HomepageConfigPersistencePort.class);
         private final HomepageQueryService.Tx txBean = new HomepageQueryService.Tx(port, new ObjectMapper());
 
         @Test
-        @DisplayName("published=true이면 설정 반환")
-        void published_returnsConfig() {
+        @DisplayName("저장된 설정이면 반환")
+        void savedConfig_returnsConfig() {
             when(port.find()).thenReturn(Optional.of(buildPublishedConfig()));
 
-            assertThat(txBean.findPublished()).isPresent();
+            assertThat(txBean.findCurrent()).isPresent();
         }
 
         @Test
-        @DisplayName("published=false이면 빈 Optional")
-        void unpublished_returnsEmpty() {
+        @DisplayName("published=false여도 저장된 설정이면 반환")
+        void unpublished_returnsConfig() {
             when(port.find()).thenReturn(Optional.of(buildUnpublishedConfig()));
 
-            assertThat(txBean.findPublished()).isEmpty();
+            assertThat(txBean.findCurrent()).isPresent();
         }
 
         @Test
@@ -152,7 +152,7 @@ class HomepageQueryServiceTest {
         void noConfig_returnsEmpty() {
             when(port.find()).thenReturn(Optional.empty());
 
-            assertThat(txBean.findPublished()).isEmpty();
+            assertThat(txBean.findCurrent()).isEmpty();
         }
     }
 

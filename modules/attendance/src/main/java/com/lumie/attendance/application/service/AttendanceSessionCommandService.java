@@ -18,13 +18,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class AttendanceSessionCommandService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final int DEFAULT_LATE_THRESHOLD_MINUTES = 10;
 
     private final AttendanceSessionRepository sessionRepository;
     private final AttendanceRecordRepository recordRepository;
@@ -71,30 +76,45 @@ public class AttendanceSessionCommandService {
         return AttendanceSessionResponse.fromWithoutRecords(saved);
     }
 
-    public void createSessionForClass(Long classId, String className,
-                                      LocalDate date, Integer lateThresholdMinutes) {
-        if (sessionRepository.existsByClassIdAndSessionDate(classId, date)) {
-            log.debug("Session already exists for class {} on {}, skipping", classId, date);
-            return;
+    /**
+     * Gets today's attendance session for the class, creating it on demand if absent.
+     * Idempotent on (classId, today): a second call returns the existing session rather
+     * than creating a duplicate. Driven by a teacher opening the class to take attendance,
+     * replacing the former daily pre-creation scheduler. "Today" is resolved in KST.
+     */
+    public AttendanceSessionResponse ensureSessionForClass(Long classId) {
+        LocalDate today = LocalDate.now(KST);
+
+        Optional<AttendanceSession> existing = sessionRepository.findByClassIdAndSessionDate(classId, today);
+        if (existing.isPresent()) {
+            log.debug("Returning existing attendance session {} for class {} on {}",
+                existing.get().getId(), classId, today);
+            return AttendanceSessionResponse.from(existing.get());
         }
+        return createSessionForClass(classId, today);
+    }
+
+    private AttendanceSessionResponse createSessionForClass(Long classId, LocalDate date) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        String className = classService.getClass(tenantSlug, classId)
+            .map(ClassService.ClassData::name)
+            .orElseThrow(() -> new BusinessException(AttendanceErrorCode.CLASS_NOT_FOUND,
+                "Class not found with id: %d".formatted(classId)));
 
         AttendanceSession session = AttendanceSession.create(
-            className, date, classId, className,
-            lateThresholdMinutes
+            className, date, classId, className, DEFAULT_LATE_THRESHOLD_MINUTES
         );
-
         AttendanceSession saved = sessionRepository.save(session);
 
-        String tenantSlug = TenantContextHolder.getRequiredTenant();
         List<Long> studentIds = classService.getEnrolledStudentIds(tenantSlug, classId);
-
         List<AttendanceRecord> records = studentIds.stream()
             .map(studentId -> AttendanceRecord.create(saved, studentId))
             .toList();
-
         recordRepository.saveAll(records);
 
-        log.info("Auto-created session for class {} on {} with {} students", classId, date, records.size());
+        log.info("Created attendance session for class {} on {} with {} students",
+            classId, date, records.size());
+        return AttendanceSessionResponse.fromWithoutRecords(saved);
     }
 
     public AttendanceSessionResponse regenerateCode(Long id) {

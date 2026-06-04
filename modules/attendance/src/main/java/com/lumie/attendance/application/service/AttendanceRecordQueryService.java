@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Collator;
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.*;
@@ -29,6 +30,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AttendanceRecordQueryService {
+
+    private static final Collator KOREAN_COLLATOR = Collator.getInstance(Locale.KOREAN);
 
     private final AttendanceRecordRepository recordRepository;
     private final AttendanceSessionRepository sessionRepository;
@@ -42,9 +45,7 @@ public class AttendanceRecordQueryService {
             .distinct()
             .toList();
 
-        Map<Long, StudentReadModel> studentMap = studentIds.stream()
-            .map(id -> studentReadRepository.findById(id).orElse(null))
-            .filter(s -> s != null)
+        Map<Long, StudentReadModel> studentMap = studentReadRepository.findAllById(studentIds).stream()
             .collect(Collectors.toMap(StudentReadModel::getId, Function.identity()));
 
         return records.stream()
@@ -53,6 +54,7 @@ public class AttendanceRecordQueryService {
                 String studentName = student != null ? student.getName() : "Unknown";
                 return AttendanceRecordResponse.from(record, studentName);
             })
+            .sorted(Comparator.comparing(AttendanceRecordResponse::studentName, KOREAN_COLLATOR))
             .toList();
     }
 
@@ -114,6 +116,7 @@ public class AttendanceRecordQueryService {
                 for (AttendanceSession s : entry.getValue()) {
                     List<AttendanceRecord> recs = recordRepository.findBySessionId(s.getId());
                     for (AttendanceRecord r : recs) {
+                        if (r.getStatus() == AttendanceStatus.PENDING) continue;
                         wt++;
                         if (r.getStatus() != AttendanceStatus.ABSENT) wp++;
                     }
@@ -158,8 +161,9 @@ public class AttendanceRecordQueryService {
             .map(entry -> {
                 Long studentId = entry.getKey();
                 int[] c = entry.getValue();
-                double rate = c[0] > 0
-                    ? Math.round((double) (c[1] + c[3] + c[4]) / c[0] * 1000) / 10.0
+                int decided = c[1] + c[2] + c[3] + c[4]; // exclude PENDING (미인증) from the rate
+                double rate = decided > 0
+                    ? Math.round((double) (c[1] + c[3] + c[4]) / decided * 1000) / 10.0
                     : 0.0;
                 return new ClassStudentAttendanceResponse(
                     studentId, studentNames.getOrDefault(studentId, "Unknown"),
@@ -183,8 +187,9 @@ public class AttendanceRecordQueryService {
         int excusedCount = (int) records.stream()
             .filter(r -> r.getStatus() == AttendanceStatus.EXCUSED).count();
 
-        double attendanceRate = total > 0
-            ? Math.round((double) (presentCount + lateCount + excusedCount) / total * 1000) / 10.0
+        int decided = presentCount + absentCount + lateCount + excusedCount; // exclude PENDING
+        double attendanceRate = decided > 0
+            ? Math.round((double) (presentCount + lateCount + excusedCount) / decided * 1000) / 10.0
             : 0.0;
 
         return new StudentAttendanceStatisticsResponse(

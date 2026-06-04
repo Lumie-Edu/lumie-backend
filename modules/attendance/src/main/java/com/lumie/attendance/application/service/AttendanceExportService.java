@@ -99,6 +99,7 @@ public class AttendanceExportService {
             case ABSENT -> "결석";
             case LATE -> "지각";
             case EXCUSED -> "공결";
+            case PENDING -> "미인증";
         };
     }
 

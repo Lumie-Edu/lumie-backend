@@ -26,4 +26,6 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     long countBySessionSessionDateBetween(LocalDate from, LocalDate to);
 
     long countBySessionSessionDateBetweenAndStatus(LocalDate from, LocalDate to, AttendanceStatus status);
+
+    long countBySessionSessionDateBetweenAndStatusNot(LocalDate from, LocalDate to, AttendanceStatus status);
 }

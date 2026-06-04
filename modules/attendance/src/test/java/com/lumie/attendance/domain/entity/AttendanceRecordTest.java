@@ -16,14 +16,14 @@ class AttendanceRecordTest {
     }
 
     @Test
-    @DisplayName("create() 호출 시 기본 상태는 ABSENT이다")
-    void create_defaultStatusIsAbsent() {
+    @DisplayName("create() 호출 시 기본 상태는 PENDING이다")
+    void create_defaultStatusIsPending() {
         AttendanceSession session = buildSession();
 
         AttendanceRecord record = AttendanceRecord.create(session, 42L);
 
         assertThat(record.getStudentId()).isEqualTo(42L);
-        assertThat(record.getStatus()).isEqualTo(AttendanceStatus.ABSENT);
+        assertThat(record.getStatus()).isEqualTo(AttendanceStatus.PENDING);
         assertThat(record.getCheckedAt()).isNull();
         assertThat(record.getCheckedBy()).isNull();
     }

@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.lumie.common.test.ReflectionTestUtils;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -63,7 +62,7 @@ class AttendanceRecordQueryServiceTest {
         AttendanceRecord record = buildRecord(5L, AttendanceStatus.PRESENT);
 
         given(recordRepository.findBySessionId(sessionId)).willReturn(List.of(record));
-        given(studentReadRepository.findById(5L)).willReturn(Optional.of(student));
+        given(studentReadRepository.findAllById(List.of(5L))).willReturn(List.of(student));
 
         // when
         List<AttendanceRecordResponse> result = queryService.getRecordsBySession(sessionId);
@@ -82,7 +81,7 @@ class AttendanceRecordQueryServiceTest {
         AttendanceRecord record = buildRecord(99L, AttendanceStatus.ABSENT);
 
         given(recordRepository.findBySessionId(sessionId)).willReturn(List.of(record));
-        given(studentReadRepository.findById(99L)).willReturn(Optional.empty());
+        given(studentReadRepository.findAllById(List.of(99L))).willReturn(List.of());
 
         // when
         List<AttendanceRecordResponse> result = queryService.getRecordsBySession(sessionId);

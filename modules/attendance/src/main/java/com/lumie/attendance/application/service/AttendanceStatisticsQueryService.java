@@ -30,7 +30,9 @@ public class AttendanceStatisticsQueryService {
         LocalDate weekEnd = today;
 
         long sessionsThisWeek = sessionRepository.countBySessionDateBetween(weekStart, weekEnd);
-        long totalCount = recordRepository.countBySessionSessionDateBetween(weekStart, weekEnd);
+        // Exclude PENDING (미인증) — undecided records must not dilute the weekly rate.
+        long totalCount = recordRepository.countBySessionSessionDateBetweenAndStatusNot(
+                weekStart, weekEnd, AttendanceStatus.PENDING);
         long presentCount = recordRepository.countBySessionSessionDateBetweenAndStatus(
                 weekStart, weekEnd, AttendanceStatus.PRESENT);
 

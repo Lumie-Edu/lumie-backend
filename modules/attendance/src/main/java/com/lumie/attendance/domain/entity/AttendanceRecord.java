@@ -49,7 +49,7 @@ public class AttendanceRecord extends TenantScopedEntity {
                              Instant checkedAt, Long checkedBy, String memo) {
         this.session = session;
         this.studentId = studentId;
-        this.status = status != null ? status : AttendanceStatus.ABSENT;
+        this.status = status != null ? status : AttendanceStatus.PENDING;
         this.checkedAt = checkedAt;
         this.checkedBy = checkedBy;
         this.memo = memo;
@@ -59,7 +59,7 @@ public class AttendanceRecord extends TenantScopedEntity {
         return AttendanceRecord.builder()
                 .session(session)
                 .studentId(studentId)
-                .status(AttendanceStatus.ABSENT)
+                .status(AttendanceStatus.PENDING)
                 .build();
     }
 

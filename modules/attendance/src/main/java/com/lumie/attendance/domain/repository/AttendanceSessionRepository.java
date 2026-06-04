@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -20,16 +21,20 @@ public interface AttendanceSessionRepository extends JpaRepository<AttendanceSes
 
     boolean existsByClassIdAndSessionDate(Long classId, LocalDate sessionDate);
 
+    Optional<AttendanceSession> findByClassIdAndSessionDate(Long classId, LocalDate sessionDate);
+
     List<AttendanceSession> findByClassIdAndSessionDateBetween(Long classId, LocalDate from, LocalDate to);
 
     long countBySessionDateBetween(LocalDate from, LocalDate to);
 
     /**
      * Finds today's session whose attendance code matches. The session_date guard
-     * prevents stale codes from yesterday from matching.
+     * prevents stale codes from yesterday from matching. "Today" is resolved in KST
+     * so check-in agrees with the KST session_date set at on-demand session creation
+     * (a UTC default would mismatch during the 00:00–09:00 KST window).
      */
     default Optional<AttendanceSession> findByAttendanceCode(String code) {
-        return findByAttendanceCodeAndSessionDate(code, LocalDate.now());
+        return findByAttendanceCodeAndSessionDate(code, LocalDate.now(ZoneId.of("Asia/Seoul")));
     }
 
     default Page<AttendanceSession> search(Long classId, LocalDate dateFrom,
