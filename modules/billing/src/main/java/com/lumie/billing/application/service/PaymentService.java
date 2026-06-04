@@ -1,14 +1,11 @@
 package com.lumie.billing.application.service;
 
 import com.lumie.billing.application.dto.request.ConfirmPaymentRequest;
-import com.lumie.billing.application.dto.request.TossWebhookPayload;
 import com.lumie.billing.application.dto.response.InvoiceResponse;
 import com.lumie.billing.application.port.out.InvoicePersistencePort;
 import com.lumie.billing.application.port.out.PaymentGatewayPort;
 import com.lumie.billing.application.port.out.SubscriptionPersistencePort;
 import com.lumie.billing.domain.entity.Invoice;
-import com.lumie.billing.domain.exception.BillingErrorCode;
-import com.lumie.billing.domain.exception.BillingException;
 import com.lumie.billing.domain.exception.PaymentFailedException;
 import com.lumie.billing.domain.vo.TransactionDirection;
 import com.lumie.billing.domain.vo.TransactionType;
@@ -22,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 
 /**

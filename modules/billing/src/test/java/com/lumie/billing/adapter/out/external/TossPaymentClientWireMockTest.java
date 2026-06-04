@@ -1,6 +1,5 @@
 package com.lumie.billing.adapter.out.external;
 
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.lumie.billing.adapter.out.config.BillingProperties;
 import com.lumie.billing.application.port.out.PaymentGatewayPort;

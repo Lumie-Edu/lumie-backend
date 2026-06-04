@@ -6,7 +6,6 @@ import com.lumie.billing.application.port.out.BillingKeyPersistencePort;
 import com.lumie.billing.application.port.out.PaymentGatewayPort;
 import com.lumie.billing.application.port.out.SubscriptionPersistencePort;
 import com.lumie.billing.domain.entity.BillingKey;
-import com.lumie.billing.domain.entity.Subscription;
 import com.lumie.billing.domain.exception.BillingErrorCode;
 import com.lumie.billing.domain.exception.BillingException;
 import com.lumie.billing.domain.vo.TransactionDirection;

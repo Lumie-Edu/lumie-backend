@@ -3,10 +3,7 @@ package com.lumie.billing.application.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.billing.adapter.out.persistence.BillingKeyJpaRepository;
 import com.lumie.billing.adapter.out.persistence.BillingKeyPersistenceAdapter;
-import com.lumie.billing.adapter.out.persistence.InvoiceJpaRepository;
-import com.lumie.billing.adapter.out.persistence.PaymentTransactionJpaRepository;
 import com.lumie.billing.adapter.out.persistence.PaymentTransactionPersistenceAdapter;
-import com.lumie.billing.adapter.out.persistence.PlanJpaRepository;
 import com.lumie.billing.adapter.out.persistence.PlanPersistenceAdapter;
 import com.lumie.billing.adapter.out.persistence.SubscriptionJpaRepository;
 import com.lumie.billing.adapter.out.persistence.SubscriptionPersistenceAdapter;
@@ -18,8 +15,6 @@ import com.lumie.billing.application.service.SubscriptionChargeExecutor.ChargeOu
 import com.lumie.billing.domain.entity.Invoice;
 import com.lumie.billing.domain.entity.Plan;
 import com.lumie.billing.domain.entity.Subscription;
-import com.lumie.billing.domain.exception.BillingErrorCode;
-import com.lumie.billing.domain.exception.BillingException;
 import com.lumie.billing.domain.vo.Money;
 import com.lumie.billing.domain.vo.SubscriptionStatus;
 import jakarta.persistence.EntityManager;
@@ -50,7 +45,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;

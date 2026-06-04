@@ -1,6 +1,5 @@
 package com.lumie.billing.adapter.in.internal;
 
-import com.lumie.billing.application.dto.response.AlimtalkCreditResponse;
 import com.lumie.billing.application.dto.response.PlanLimitsResponse;
 import com.lumie.billing.application.dto.response.PlanResponse;
 import com.lumie.billing.application.dto.response.SubscriptionResponse;
