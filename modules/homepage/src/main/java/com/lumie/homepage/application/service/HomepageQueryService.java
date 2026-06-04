@@ -46,7 +46,7 @@ public class HomepageQueryService {
         // `app.tenant_id` to that transaction (slug alone leaves the row
         // invisible → public page falls back to the default homepage).
         TenantInfo info = tenantInfo.get();
-        return TenantContextHolder.withinContext(info.slug(), info.tenantId(), tx::findPublished);
+        return TenantContextHolder.withinContext(info.slug(), info.tenantId(), tx::findCurrent);
     }
 
     /**
@@ -63,9 +63,11 @@ public class HomepageQueryService {
         private final ObjectMapper objectMapper;
 
         @Transactional(readOnly = true)
-        public Optional<HomepageConfigResponse> findPublished() {
+        public Optional<HomepageConfigResponse> findCurrent() {
+            // The homepage is always public once saved — no `published` gate. A
+            // tenant that has never saved a config returns empty here, and the
+            // public page renders the default landing template instead.
             return homepageConfigPersistencePort.find()
-                    .filter(HomepageConfig::isPublished)
                     .map(config -> HomepageConfigResponse.from(config, objectMapper));
         }
     }
