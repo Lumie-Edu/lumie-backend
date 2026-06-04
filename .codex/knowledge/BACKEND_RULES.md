@@ -1,6 +1,6 @@
 # Backend Hard Rules (Java / Spring Boot)
 
-Behavioral invariants. Java-specific. Read with `.claude/knowledge/HARD_RULES_CROSS.md` (cross-cutting).
+Behavioral invariants. Java-specific. Read with `.codex/knowledge/HARD_RULES_CROSS.md` (cross-cutting).
 
 ## NEVER
 
@@ -46,6 +46,6 @@ modules/{module}/
 
 ## References
 
-- Cross-cutting rules: `../../../.claude/knowledge/HARD_RULES_CROSS.md`
-- Architecture intent: `../../../.claude/knowledge/ARCHITECTURE_INTENT.md`
-- Path-scoped rules: `.claude/rules/{controllers,entities,services,migrations}.md`
+- Cross-cutting rules: `../../../.codex/knowledge/HARD_RULES_CROSS.md`
+- Architecture intent: `../../../.codex/knowledge/ARCHITECTURE_INTENT.md`
+- Path-scoped rules: `.codex/rules/{controllers,entities,services,migrations}.md`

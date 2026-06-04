@@ -87,7 +87,7 @@ Configuration cache is enabled (`org.gradle.configuration-cache=true`) — incre
 
 ## Where to look next
 
-- `CLAUDE.md` — AI assistant conventions and command references (not for human contributors)
+- `AGENTS.md` — Codex conventions and command references (not for human contributors)
 - `modules/<module>/` — each module is self-contained; no per-module READMEs exist yet
-- `.claude/knowledge/ARCHITECTURE_INTENT.md` — reasoning behind architectural decisions
-- Workspace `.claude/CLAUDE.md` — cross-repo rules and full repo map
+- `../.codex/knowledge/ARCHITECTURE_INTENT.md` — reasoning behind architectural decisions
+- Workspace `../AGENTS.md` — cross-repo rules and full repo map

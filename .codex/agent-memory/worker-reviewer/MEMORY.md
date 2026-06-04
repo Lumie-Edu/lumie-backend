@@ -1,0 +1,1 @@
+- [analysis-svc refactor (2026-05-17)](project_analysis_svc_refactor.md) — monolith decomposed; 3 critical + 2 warning blockers found, pydantic-settings missing being build-breaking

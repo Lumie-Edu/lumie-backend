@@ -4,7 +4,7 @@ paths: ["lumie-backend/**/application/service/**/*.java"]
 
 # Application Services (path-scoped rules)
 
-Auto-loaded when editing files in `**/application/service/**`. See `.claude/knowledge/BACKEND_RULES.md` for blanket rules (`@Transactional`+external HTTP, raw `RuntimeException`, `@Autowired` field).
+Auto-loaded when editing files in `**/application/service/**`. See `.codex/knowledge/BACKEND_RULES.md` for blanket rules (`@Transactional`+external HTTP, raw `RuntimeException`, `@Autowired` field).
 
 ## NEVER (service-specific)
 
@@ -19,4 +19,4 @@ Auto-loaded when editing files in `**/application/service/**`. See `.claude/know
 
 ## References
 
-- `.claude/knowledge/BACKEND_RULES.md`
+- `.codex/knowledge/BACKEND_RULES.md`

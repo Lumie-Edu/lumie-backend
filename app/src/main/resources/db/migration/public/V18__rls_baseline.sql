@@ -8,8 +8,7 @@
 -- old schema-per-tenant flow never applied due to the ownership bug.
 --
 -- Tenant test data is discarded — see NEXT_SESSION.md #22 follow-up and
--- the user-confirmed cutover plan at
--- /Users/bluemayne/.claude/plans/encapsulated-twirling-frost.md.
+-- the user-confirmed cutover plan captured during the RLS migration.
 -- =====================================================================
 
 -- 1. Drop every leftover tenant_* schema (test data only)
@@ -2762,4 +2761,3 @@ ALTER TABLE users FORCE  ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON users
   USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::bigint)
   WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::bigint);
-

@@ -1,6 +1,6 @@
 #!/bin/bash
 # PreToolUse Edit|Write guard for Java files in lumie-backend.
-# Delegates regex detection to .claude/lint/sweep.sh (workspace SSOT).
+# Delegates regex detection to .codex/lint/sweep.sh (workspace SSOT).
 # Path-context-only logic (NEW *-svc directory creation) stays here.
 
 INPUT=$(cat)
@@ -12,18 +12,18 @@ case "$FILE_PATH" in */build/*|*/.gradle/*|*/target/*) exit 0 ;; esac
 
 # === Walk up to WORKSPACE_ROOT to locate workspace lint sweep ===
 DIR=$(dirname "$FILE_PATH")
-while [ "$DIR" != "/" ] && [ ! -f "$DIR/.claude/WORKSPACE_ROOT" ]; do
+while [ "$DIR" != "/" ] && [ ! -f "$DIR/.codex/WORKSPACE_ROOT" ]; do
   DIR=$(dirname "$DIR")
 done
-SWEEP="$DIR/.claude/lint/sweep.sh"
+SWEEP="$DIR/.codex/lint/sweep.sh"
 
-# === Forbidden-pattern sweep (SSOT in .claude/lint/patterns/backend.yaml) ===
+# === Forbidden-pattern sweep (SSOT in .codex/lint/patterns/backend.yaml) ===
 if [ -x "$SWEEP" ]; then
   HITS=$(printf '%s\n' "$NEW_CONTENT" | bash "$SWEEP" backend --stdin --path-context "$FILE_PATH")
   if [ -n "$HITS" ]; then
     echo "차단: 백엔드 금지 패턴 검출." >&2
     echo "$HITS" >&2
-    echo "참고: .claude/lint/patterns/backend.yaml — 패턴은 그곳에서만 추가/수정." >&2
+    echo "참고: .codex/lint/patterns/backend.yaml — 패턴은 그곳에서만 추가/수정." >&2
     exit 2
   fi
 fi
@@ -34,7 +34,7 @@ fi
 if echo "$FILE_PATH" | grep -qE "/lumie-backend/services/|/lumie-backend/modules/[^/]+-svc/"; then
   echo "차단: 레거시 백엔드 모듈 경로 (services/ 또는 *-svc) 사용 금지." >&2
   echo "  → 모든 모듈은 modules/<name>/ 평탄 구조." >&2
-  echo "  참고: lumie-backend/CLAUDE.md, BACKEND_RULES.md" >&2
+  echo "  참고: lumie-backend/AGENTS.md, BACKEND_RULES.md" >&2
   exit 2
 fi
 

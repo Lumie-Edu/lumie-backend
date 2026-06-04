@@ -1,8 +1,6 @@
 ---
 name: add-migration
 description: Create a new Flyway migration with idempotency guards. Uses `migration` agent.
-user-invocable: true
-argument-hint: <description-snake-case> [scope=public|tenant]
 ---
 
 Create a Flyway migration safely.

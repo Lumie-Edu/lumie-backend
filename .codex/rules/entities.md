@@ -4,7 +4,7 @@ paths: ["lumie-backend/**/domain/entity/**/*.java"]
 
 # JPA Entities (path-scoped rules)
 
-Auto-loaded when editing files in `**/domain/entity/**`. See `.claude/knowledge/BACKEND_RULES.md` for blanket rules (`@Setter`, Spring-in-domain, Instant, cross-module entity import, `@Version`, `BaseEntity`).
+Auto-loaded when editing files in `**/domain/entity/**`. See `.codex/knowledge/BACKEND_RULES.md` for blanket rules (`@Setter`, Spring-in-domain, Instant, cross-module entity import, `@Version`, `BaseEntity`).
 
 ## NEVER (entity-specific)
 
@@ -20,4 +20,4 @@ Auto-loaded when editing files in `**/domain/entity/**`. See `.claude/knowledge/
 
 ## References
 
-- `.claude/knowledge/BACKEND_RULES.md`
+- `.codex/knowledge/BACKEND_RULES.md`

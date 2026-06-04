@@ -4,7 +4,7 @@ paths: ["lumie-backend/**/adapter/in/web/**/*.java"]
 
 # Controllers (path-scoped rules)
 
-Auto-loaded when editing files in `**/adapter/in/web/**`. See `.claude/knowledge/BACKEND_RULES.md` for blanket rules (Page wrapping, Map<String,Object>, etc.).
+Auto-loaded when editing files in `**/adapter/in/web/**`. See `.codex/knowledge/BACKEND_RULES.md` for blanket rules (Page wrapping, Map<String,Object>, etc.).
 
 ## NEVER (controller-specific)
 
@@ -23,4 +23,4 @@ Auto-loaded when editing files in `**/adapter/in/web/**`. See `.claude/knowledge
 
 ## References
 
-- `.claude/knowledge/BACKEND_RULES.md`
+- `.codex/knowledge/BACKEND_RULES.md`

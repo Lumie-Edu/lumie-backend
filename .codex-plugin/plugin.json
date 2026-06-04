@@ -1,0 +1,22 @@
+{
+  "name": "lumie-backend",
+  "version": "0.1.0",
+  "description": "Lumie backend plugin: Spring Boot monolith skills, rules, and Java-specific knowledge.",
+  "author": {
+    "name": "Lumie"
+  },
+  "skills": "skills",
+  "interface": {
+    "displayName": "Lumie Backend",
+    "shortDescription": "Backend skills and rules for Lumie.",
+    "longDescription": "Spring Boot monolith scaffolding, migration, review guidance, and Java-specific Lumie rules.",
+    "developerName": "Lumie",
+    "category": "Development",
+    "capabilities": [
+      "Skills",
+      "Rules",
+      "Knowledge"
+    ],
+    "defaultPrompt": "Use Lumie backend conventions when working in lumie-backend."
+  }
+}

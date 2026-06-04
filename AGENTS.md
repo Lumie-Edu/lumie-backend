@@ -2,9 +2,9 @@
 
 Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot 3.4. `app/` is the single `@SpringBootApplication`; `modules/*` are domain modules (logical, not deployables).
 
-> Workspace rules apply (`.claude/CLAUDE.md`).
+> Workspace rules apply (`../AGENTS.md`).
 
-@.claude/knowledge/BACKEND_RULES.md
+@.codex/knowledge/BACKEND_RULES.md
 
 ## Module layout
 
@@ -18,7 +18,7 @@ modules/{module}/
 
 ## Multi-tenancy
 
-Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NOT NULL`, enforced by `FORCE ROW LEVEL SECURITY` against the `lumie_app` runtime role. When crossing tenants in adapters, use `TenantContextHolder.withinContext(slug, tenantId, action)` — `setTenant` alone leaves rows invisible. See `.claude/knowledge/ARCHITECTURE_INTENT.md` "Multi-tenancy" for the full mechanism (aspect ordering, RabbitListener path, known costs).
+Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NOT NULL`, enforced by `FORCE ROW LEVEL SECURITY` against the `lumie_app` runtime role. When crossing tenants in adapters, use `TenantContextHolder.withinContext(slug, tenantId, action)` — `setTenant` alone leaves rows invisible. See `../.codex/knowledge/ARCHITECTURE_INTENT.md` "Multi-tenancy" for the full mechanism (aspect ordering, RabbitListener path, known costs).
 
 ## Inter-module / external
 
@@ -36,8 +36,8 @@ Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NO
 
 ## References
 
-- Architecture intent: `.claude/knowledge/ARCHITECTURE_INTENT.md`
-- Path-scoped rules: `.claude/rules/{controllers,entities,services,migrations}.md`
+- Architecture intent: `../.codex/knowledge/ARCHITECTURE_INTENT.md`
+- Path-scoped rules: `.codex/rules/{controllers,entities,services,migrations}.md`
 
 ## Agents
 

@@ -1,0 +1,1 @@
+- [Lumie Backend Codebase Patterns](project_codebase_patterns.md) — established conventions vs known violations from 2026-05-08 architecture review
