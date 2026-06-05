@@ -4,7 +4,7 @@ Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot
 
 > Workspace rules apply (`../AGENTS.md`).
 
-@.codex/knowledge/BACKEND_RULES.md
+@../.codex/knowledge/backend/BACKEND_RULES.md
 
 ## Module layout
 
@@ -37,8 +37,8 @@ Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NO
 ## References
 
 - Architecture intent: `../.codex/knowledge/ARCHITECTURE_INTENT.md`
-- Path-scoped rules: `.codex/rules/{controllers,entities,services,migrations}.md`
+- Path-scoped rules: `../.codex/rules/backend/{controllers,entities,services,migrations}.md`
 
 ## Agents
 
-`backend-scaffolder` · `backend-reviewer` · `migration` (Flyway scaffold) · `migration-reviewer` (read-only Flyway diff review) · `backend-test-orchestrator` (per-module Gradle test + JaCoCo coverage gate) · `backend-performance-monitor` (static N+1 / tx-scope-HTTP / missing-index analysis).
+`backend-scaffolder` · `backend-reviewer` · `backend-migration-author` (Flyway scaffold) · `backend-migration-reviewer` (read-only Flyway diff review) · `backend-test-orchestrator` (per-module Gradle test + JaCoCo coverage gate) · `backend-performance-monitor` (static N+1 / tx-scope-HTTP / missing-index analysis).
