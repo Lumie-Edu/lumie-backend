@@ -19,7 +19,7 @@ public class ContentServiceAdapter implements ContentService {
     public String createAnnouncement(Long authorId, String title, String content,
                                      boolean isImportant, boolean isAsset) {
         CreateAnnouncementRequest request = new CreateAnnouncementRequest(
-                authorId, title, content, isAsset, isImportant);
+                authorId, title, content, isAsset, isImportant, null);
         AnnouncementResponse response = announcementCommandService.createAnnouncement(request);
         return "Announcement created successfully: " + response.announcementTitle();
     }

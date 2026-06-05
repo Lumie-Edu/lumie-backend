@@ -1005,6 +1005,13 @@
           },
           "isItImportantAnnouncement" : {
             "type" : "boolean"
+          },
+          "textbookFileIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
           }
         },
         "required" : [ "announcementContent", "announcementTitle", "authorId" ],
@@ -5416,6 +5423,13 @@
           },
           "isItImportantAnnouncement" : {
             "type" : "boolean"
+          },
+          "textbookFileIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"

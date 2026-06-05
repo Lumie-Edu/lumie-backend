@@ -9,6 +9,7 @@ import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.TextbookFolderRepository;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FilePath;
@@ -29,6 +30,7 @@ public class FileCommandService {
     private static final int UPLOAD_URL_EXPIRY_SECONDS = 3600; // 1 hour
 
     private final FileMetadataRepository fileMetadataRepository;
+    private final FileLinkRepository fileLinkRepository;
     private final TextbookFolderRepository textbookFolderRepository;
     private final StoragePort storagePort;
 
@@ -118,6 +120,10 @@ public class FileCommandService {
     public void deleteFile(UUID fileId) {
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+        if (fileLinkRepository.existsByFile_Id(fileId)) {
+            throw new BusinessException(FileErrorCode.FILE_IN_USE);
+        }
 
         storagePort.deleteObject(fileMetadata.getObjectKey());
         fileMetadataRepository.deleteById(fileId);

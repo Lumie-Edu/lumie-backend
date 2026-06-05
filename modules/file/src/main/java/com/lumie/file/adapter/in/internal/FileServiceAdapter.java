@@ -1,7 +1,11 @@
 package com.lumie.file.adapter.in.internal;
 
 import com.lumie.file.application.port.out.StoragePort;
+import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
+import com.lumie.file.domain.entity.FileLink;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.api.FileService;
@@ -22,14 +26,12 @@ import java.util.UUID;
 public class FileServiceAdapter implements FileService {
 
     private final FileMetadataRepository fileMetadataRepository;
+    private final FileLinkRepository fileLinkRepository;
     private final StoragePort storagePort;
 
     @Override
     public void deleteFilesByEntity(String entityType, Long entityId) {
-        EntityType type = Arrays.stream(EntityType.values())
-                .filter(e -> e.getPathSegment().equals(entityType))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown entity type: " + entityType));
+        EntityType type = parseEntityType(entityType);
 
         List<FileMetadata> files = fileMetadataRepository.findByEntityTypeAndEntityId(type, entityId);
         if (files.isEmpty()) {
@@ -55,6 +57,9 @@ public class FileServiceAdapter implements FileService {
         List<String> objectKeys = new ArrayList<>();
         for (UUID id : fileIds) {
             fileMetadataRepository.findById(id).ifPresent(file -> {
+                if (file.getEntityType() == EntityType.TEXTBOOK) {
+                    throw new BusinessException(FileErrorCode.FILE_IN_USE, "Textbook files must be unlinked, not deleted from posts");
+                }
                 objectKeys.add(file.getObjectKey());
                 fileMetadataRepository.deleteById(file.getId());
             });
@@ -66,6 +71,41 @@ public class FileServiceAdapter implements FileService {
 
         log.info("Marked {} file(s) for MinIO deletion by ID", objectKeys.size());
         scheduleMinioCleanup(objectKeys);
+    }
+
+    @Override
+    public void replaceFileLinks(String entityType, Long entityId, List<UUID> fileIds) {
+        if (fileIds == null) {
+            return;
+        }
+
+        EntityType type = parseEntityType(entityType);
+        fileLinkRepository.deleteByEntityTypeAndEntityId(type, entityId);
+
+        if (fileIds.isEmpty()) {
+            return;
+        }
+
+        for (UUID fileId : fileIds.stream().distinct().toList()) {
+            FileMetadata file = fileMetadataRepository.findById(fileId)
+                    .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+            if (file.getEntityType() != EntityType.TEXTBOOK || !file.isUploadCompleted()) {
+                throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "Only completed textbook files can be linked");
+            }
+            fileLinkRepository.save(FileLink.create(file, type, entityId));
+        }
+    }
+
+    @Override
+    public void deleteFileLinksByEntity(String entityType, Long entityId) {
+        fileLinkRepository.deleteByEntityTypeAndEntityId(parseEntityType(entityType), entityId);
+    }
+
+    private static EntityType parseEntityType(String entityType) {
+        return Arrays.stream(EntityType.values())
+                .filter(e -> e.getPathSegment().equals(entityType))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown entity type: " + entityType));
     }
 
     /**

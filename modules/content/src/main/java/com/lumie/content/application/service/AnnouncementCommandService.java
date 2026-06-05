@@ -34,6 +34,7 @@ public class AnnouncementCommandService {
         );
 
         Announcement saved = announcementRepository.save(announcement);
+        fileService.replaceFileLinks("announcement", saved.getId(), request.textbookFileIds());
         log.info("Announcement created with id: {}", saved.getId());
 
         return AnnouncementResponse.from(saved);
@@ -56,6 +57,7 @@ public class AnnouncementCommandService {
         if (request.fileIdsToDelete() != null && !request.fileIdsToDelete().isEmpty()) {
             fileService.deleteFilesByIds(request.fileIdsToDelete());
         }
+        fileService.replaceFileLinks("announcement", id, request.textbookFileIds());
 
         Announcement updated = announcementRepository.save(announcement);
         log.info("Announcement updated: {}", updated.getId());
@@ -71,6 +73,7 @@ public class AnnouncementCommandService {
             throw new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND);
         }
 
+        fileService.deleteFileLinksByEntity("announcement", id);
         fileService.deleteFilesByEntity("announcement", id);
         announcementRepository.deleteById(id);
         log.info("Announcement deleted: {}", id);

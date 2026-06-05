@@ -3,6 +3,9 @@ package com.lumie.content.application.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+import java.util.UUID;
+
 public record CreateAnnouncementRequest(
         @NotNull(message = "Author ID is required")
         Long authorId,
@@ -15,6 +18,8 @@ public record CreateAnnouncementRequest(
 
         Boolean isItAssetAnnouncement,
 
-        Boolean isItImportantAnnouncement
+        Boolean isItImportantAnnouncement,
+
+        List<UUID> textbookFileIds
 ) {
 }

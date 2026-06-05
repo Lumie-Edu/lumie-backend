@@ -8,6 +8,7 @@ import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class FileQueryService {
     private static final int DOWNLOAD_URL_EXPIRY_SECONDS = 3600; // 1 hour
 
     private final FileMetadataRepository fileMetadataRepository;
+    private final FileLinkRepository fileLinkRepository;
     private final StoragePort storagePort;
 
     @Transactional(readOnly = true)
@@ -111,8 +113,13 @@ public class FileQueryService {
     @Transactional(readOnly = true)
     public List<FileMetadataResponse> getFilesByEntity(EntityType entityType, Long entityId) {
         List<FileMetadata> files = fileMetadataRepository.findByEntityTypeAndEntityId(entityType, entityId);
+        List<FileMetadata> linkedFiles = fileLinkRepository.findByEntityTypeAndEntityId(entityType, entityId)
+                .stream()
+                .map(link -> link.getFile())
+                .toList();
 
-        return files.stream()
+        return java.util.stream.Stream.concat(files.stream(), linkedFiles.stream())
+                .distinct()
                 .map(FileMetadataResponse::from)
                 .toList();
     }

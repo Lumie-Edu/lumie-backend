@@ -22,6 +22,7 @@ public enum FileErrorCode implements ErrorCode {
 
     // 409 Conflict
     DUPLICATE_FOLDER_NAME("FILE_007", "Folder with this name already exists", 409),
+    FILE_IN_USE("FILE_008", "File is linked to another resource", 409),
 
     // 403 Forbidden
     TENANT_INVALID("FILE_301", "Invalid tenant", 403),
