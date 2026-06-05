@@ -5,11 +5,14 @@ import com.lumie.lecture.application.dto.request.UpdateLectureRequest;
 import com.lumie.lecture.application.dto.response.LectureResponse;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.lecture.domain.exception.LectureErrorCode;
 import com.lumie.lecture.domain.repository.LectureRepository;
 import com.lumie.lecture.domain.vo.LectureStatus;
 import com.lumie.lecture.domain.vo.LectureVisibility;
 import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.staff.api.StaffService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,11 +25,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class LectureCommandService {
 
     private final LectureRepository lectureRepository;
+    private final StaffService staffService;
 
     public LectureResponse create(CreateLectureRequest request) {
-        Long teacherId = request.teacherId() != null
-                ? request.teacherId()
-                : UserContextHolder.getUserId();
+        Long teacherId = request.teacherId();
+        if (teacherId == null) {
+            teacherId = staffService.getStaffByUserId(TenantContextHolder.getRequiredTenant(), UserContextHolder.getRequiredUserId())
+                    .map(StaffService.StaffData::id)
+                    .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
+        }
 
         LectureVisibility visibility = request.visibility() != null
                 ? LectureVisibility.valueOf(request.visibility())
