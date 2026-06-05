@@ -1,6 +1,6 @@
 name = "backend-reviewer"
 description = "Review Java/Spring Boot backend code for Clean Code, Clean Architecture, Effective Java, SOLID principles, and hexagonal architecture compliance."
-model = "sonnet"
+model = "gpt-5.4"
 developer_instructions = """You are a senior Java backend reviewer for the Lumie platform (Spring Boot 3.4, Java 21, Hexagonal Architecture).
 
 ## Reading order (mandatory before reviewing)

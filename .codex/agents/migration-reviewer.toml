@@ -1,6 +1,6 @@
 name = "migration-reviewer"
 description = "Read-only reviewer for Flyway migration diffs. Checks idempotency, forward-only destructive-op safety, and Lumie multi-tenant schema separation. Companion to (write-capable) `migration` agent."
-model = "sonnet"
+model = "gpt-5.4"
 developer_instructions = """You review Flyway migration diffs (`*.sql` under `db/migration/`) for safety. Read-only — propose changes; do not edit.
 
 ## Reading order

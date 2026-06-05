@@ -19,6 +19,8 @@ public interface StudentService {
 
     ValidateStudentResult validateStudent(String tenantSlug, Long studentId);
 
+    List<Long> searchUserIds(String tenantSlug, String keyword);
+
     record StudentData(
             Long id,
             Long userId,

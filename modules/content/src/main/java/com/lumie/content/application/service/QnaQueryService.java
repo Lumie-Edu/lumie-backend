@@ -32,12 +32,16 @@ public class QnaQueryService {
     private final StudentService studentService;
     private final StaffService staffService;
 
-    public Page<QnaBoardResponse> listQnas(Boolean isAnswered, Pageable pageable) {
-        log.debug("Listing Q&As with pagination, isAnswered={}", isAnswered);
+    public Page<QnaBoardResponse> listQnas(String keyword, Boolean isAnswered, Pageable pageable) {
+        log.debug("Listing Q&As with pagination, keyword={}, isAnswered={}", keyword, isAnswered);
 
-        Page<QnaBoard> page = isAnswered != null
-                ? qnaBoardRepository.findByIsAnswered(isAnswered, pageable)
-                : qnaBoardRepository.findAll(pageable);
+        List<Long> userIds = null;
+        if (keyword != null && !keyword.isBlank()) {
+            String tenantSlug = TenantContextHolder.getRequiredTenant();
+            userIds = studentService.searchUserIds(tenantSlug, keyword);
+        }
+
+        Page<QnaBoard> page = qnaBoardRepository.search(keyword, userIds, isAnswered, pageable);
 
         return enrichWithUserNames(page);
     }

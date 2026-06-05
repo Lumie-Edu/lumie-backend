@@ -10,7 +10,13 @@ import org.springframework.data.jpa.repository.Query;
 import java.time.Instant;
 import java.util.Optional;
 
-public interface QnaBoardRepository extends JpaRepository<QnaBoard, Long> {
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import java.util.List;
+
+public interface QnaBoardRepository extends JpaRepository<QnaBoard, Long>, JpaSpecificationExecutor<QnaBoard> {
 
     @EntityGraph(attributePaths = {"comments"})
     @Query("SELECT q FROM QnaBoard q WHERE q.id = :id")
@@ -23,4 +29,27 @@ public interface QnaBoardRepository extends JpaRepository<QnaBoard, Long> {
     Page<QnaBoard> findByIsAnswered(Boolean isAnswered, Pageable pageable);
 
     long countByIsAnsweredFalseAndCreatedAtBefore(Instant threshold);
+
+    default Page<QnaBoard> search(String keyword, List<Long> userIds, Boolean isAnswered, Pageable pageable) {
+        Specification<QnaBoard> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (isAnswered != null) {
+                predicates.add(cb.equal(root.get("isAnswered"), isAnswered));
+            }
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.toLowerCase() + "%";
+                Predicate titleMatch = cb.like(cb.lower(root.get("qnaTitle")), pattern);
+                Predicate contentMatch = cb.like(cb.lower(root.get("qnaContent")), pattern);
+
+                if (userIds != null && !userIds.isEmpty()) {
+                    Predicate userMatch = root.get("qnaUserId").in(userIds);
+                    predicates.add(cb.or(titleMatch, contentMatch, userMatch));
+                } else {
+                    predicates.add(cb.or(titleMatch, contentMatch));
+                }
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return findAll(spec, pageable);
+    }
 }

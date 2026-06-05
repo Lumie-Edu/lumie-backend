@@ -10579,6 +10579,13 @@
         "operationId" : "listQnas",
         "parameters" : [ {
           "in" : "query",
+          "name" : "keyword",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
           "name" : "isAnswered",
           "required" : false,
           "schema" : {

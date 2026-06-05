@@ -76,6 +76,19 @@ public class StudentServiceAdapter implements StudentService {
                 .orElseGet(() -> new ValidateStudentResult(false, "NOT_FOUND", studentId));
     }
 
+    @Override
+    public List<Long> searchUserIds(String tenantSlug, String keyword) {
+        log.debug("internal.searchUserIds slug={} keyword={}", tenantSlug, keyword);
+        if (keyword == null || keyword.isBlank()) {
+            return List.of();
+        }
+        return studentRepository.search(null, keyword, org.springframework.data.domain.PageRequest.of(0, 1000))
+                .stream()
+                .map(Student::getUserId)
+                .filter(id -> id != null)
+                .toList();
+    }
+
     private StudentData toData(Student s) {
         return new StudentData(
                 s.getId(),

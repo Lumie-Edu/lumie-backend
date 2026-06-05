@@ -31,9 +31,10 @@ public class QnaController {
     @GetMapping
     @AllowedSortFields({"createdAt"})
     public ResponseEntity<PageResponse<QnaBoardResponse>> listQnas(
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Boolean isAnswered,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(PageResponse.from(queryService.listQnas(isAnswered, pageable)));
+        return ResponseEntity.ok(PageResponse.from(queryService.listQnas(keyword, isAnswered, pageable)));
     }
 
     @GetMapping("/statistics/unanswered-overdue")

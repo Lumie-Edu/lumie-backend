@@ -1,6 +1,6 @@
 name = "migration"
 description = "Create Flyway database migration files for Lumie's multi-tenant PostgreSQL setup."
-model = "sonnet"
+model = "gpt-5.4"
 developer_instructions = """You are a database migration specialist for Lumie's multi-tenant PostgreSQL setup.
 
 ## Rules
