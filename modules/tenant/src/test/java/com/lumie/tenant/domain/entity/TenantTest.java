@@ -8,6 +8,9 @@ import com.lumie.tenant.api.TenantStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -154,6 +157,40 @@ class TenantTest {
         tenant.updateLogoObjectKey("c704d223/branding/logo");
 
         assertThat(tenant.getLogoObjectKey()).isEqualTo("c704d223/branding/logo");
+    }
+
+    @Test
+    @DisplayName("숨김 sidebar 항목은 공백과 중복을 정리해 저장한다")
+    void updateHiddenSidebarItemIds() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+
+        tenant.updateHiddenSidebarItemIds(List.of(" attendance ", "attendance", "", "reviews"));
+
+        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+    }
+
+    @Test
+    @DisplayName("숨김 sidebar 항목은 외부 리스트 변경으로 변하지 않는다")
+    void hiddenSidebarItemIdsAreDefensivelyCopied() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        List<String> source = new ArrayList<>(List.of("attendance"));
+
+        tenant.updateHiddenSidebarItemIds(source);
+        source.add("reviews");
+
+        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("attendance");
+        assertThatThrownBy(() -> tenant.getHiddenSidebarItemIds().add("reviews"))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    @DisplayName("지원하지 않는 sidebar 항목은 저장할 수 없다")
+    void updateHiddenSidebarItemIdsRejectsUnknownId() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+
+        assertThatThrownBy(() -> tenant.updateHiddenSidebarItemIds(List.of("not-a-menu")))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("지원하지 않는 사이드바 메뉴 ID");
     }
 
     // --- customId permanence ---

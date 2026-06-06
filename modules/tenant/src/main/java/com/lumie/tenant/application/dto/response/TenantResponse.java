@@ -3,10 +3,12 @@ package com.lumie.tenant.application.dto.response;
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.api.TenantStatus;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.time.Instant;
+import java.util.List;
 
 @Builder
 public record TenantResponse(
@@ -24,6 +26,15 @@ public record TenantResponse(
         @Schema(nullable = true) String logoUrl,
         @Schema(nullable = true) String customId,
         @Schema(nullable = true) String customDomain,
+        @ArraySchema(schema = @Schema(allowableValues = {
+                "ai",
+                "students", "employees",
+                "classes", "attendance", "assignments", "lectures",
+                "grades", "omr-grading", "reports",
+                "announcements", "sms", "resources", "qna", "schedules",
+                "textbooks", "spreadsheets", "reviews", "activity-logs"
+        }))
+        List<String> hiddenSidebarItemIds,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -45,6 +56,7 @@ public record TenantResponse(
                 .logoUrl(hasLogo ? "/api/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
                 .customId(tenant.getCustomId())
                 .customDomain(tenant.getCustomDomain())
+                .hiddenSidebarItemIds(tenant.getHiddenSidebarItemIds())
                 .createdAt(tenant.getCreatedAt())
                 .updatedAt(tenant.getUpdatedAt())
                 .build();

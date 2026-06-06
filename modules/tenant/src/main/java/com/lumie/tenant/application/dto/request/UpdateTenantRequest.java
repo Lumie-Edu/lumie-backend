@@ -1,8 +1,12 @@
 package com.lumie.tenant.application.dto.request;
 
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
+
+import java.util.List;
 
 @Builder
 public record UpdateTenantRequest(
@@ -22,6 +26,21 @@ public record UpdateTenantRequest(
                 regexp = "^$|^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$",
                 message = "학원 ID는 3-30자의 소문자 영숫자와 하이픈만 사용할 수 있습니다."
         )
-        String customId
+        String customId,
+
+        @ArraySchema(schema = @Schema(allowableValues = {
+                "ai",
+                "students", "employees",
+                "classes", "attendance", "assignments", "lectures",
+                "grades", "omr-grading", "reports",
+                "announcements", "sms", "resources", "qna", "schedules",
+                "textbooks", "spreadsheets", "reviews", "activity-logs"
+        }))
+        @Size(max = 100, message = "Hidden sidebar item ids must contain at most 100 entries")
+        List<@Size(max = 80, message = "Sidebar item id must be at most 80 characters")
+        @Pattern(
+                regexp = "^[a-z0-9][a-z0-9-]*$",
+                message = "Sidebar item id must be lowercase alphanumeric or hyphen"
+        ) String> hiddenSidebarItemIds
 ) {
 }

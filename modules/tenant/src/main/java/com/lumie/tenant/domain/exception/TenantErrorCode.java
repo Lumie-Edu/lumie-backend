@@ -27,6 +27,7 @@ public enum TenantErrorCode implements ErrorCode {
     LOGO_EMPTY("TENANT_009", "Logo file is empty", 400),
     LOGO_TOO_LARGE("TENANT_010", "Logo file exceeds the 5MB size limit", 400),
     LOGO_UNSUPPORTED_CONTENT_TYPE("TENANT_011", "Unsupported logo content type", 400),
+    INVALID_SIDEBAR_ITEM_ID("TENANT_017", "Invalid sidebar item ID", 400),
 
     // 500 Internal Server Error
     SCHEMA_PROVISIONING_FAILED("TENANT_006", "Failed to provision tenant schema", 500),

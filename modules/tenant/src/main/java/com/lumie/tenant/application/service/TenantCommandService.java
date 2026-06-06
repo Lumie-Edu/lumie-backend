@@ -66,6 +66,7 @@ public class TenantCommandService {
         tenant.updateInfo(request.name(), request.displayName());
         tenant.updateContact(request.phone(), request.address());
         applyCustomIdUpdate(tenant, request.customId());
+        tenant.updateHiddenSidebarItemIds(request.hiddenSidebarItemIds());
         Tenant updatedTenant = tenantPersistencePort.save(tenant);
 
         log.info("Tenant updated: {}", slug);

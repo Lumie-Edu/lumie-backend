@@ -12,6 +12,12 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "tenants")
@@ -67,6 +73,19 @@ public class Tenant extends BaseEntity {
 
     @Column(name = "custom_domain", length = 253)
     private String customDomain;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "hidden_sidebar_item_ids", nullable = false)
+    private List<String> hiddenSidebarItemIds = new ArrayList<>();
+
+    private static final Set<String> ALLOWED_SIDEBAR_ITEM_IDS = Set.of(
+            "ai",
+            "students", "employees",
+            "classes", "attendance", "assignments", "lectures",
+            "grades", "omr-grading", "reports",
+            "announcements", "sms", "resources", "qna", "schedules",
+            "textbooks", "spreadsheets", "reviews", "activity-logs"
+    );
 
     private static final java.util.regex.Pattern CUSTOM_ID_PATTERN =
             java.util.regex.Pattern.compile("^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$");
@@ -221,6 +240,30 @@ public class Tenant extends BaseEntity {
         if (address != null) {
             this.address = address.isBlank() ? null : address;
         }
+    }
+
+    public void updateHiddenSidebarItemIds(List<String> itemIds) {
+        if (itemIds == null) {
+            return;
+        }
+        this.hiddenSidebarItemIds = itemIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .map(String::trim)
+                .map(this::validatedSidebarItemId)
+                .distinct()
+                .toList();
+    }
+
+    public List<String> getHiddenSidebarItemIds() {
+        return hiddenSidebarItemIds == null ? List.of() : List.copyOf(hiddenSidebarItemIds);
+    }
+
+    private String validatedSidebarItemId(String itemId) {
+        if (!ALLOWED_SIDEBAR_ITEM_IDS.contains(itemId)) {
+            throw new BusinessException(TenantErrorCode.INVALID_SIDEBAR_ITEM_ID,
+                    "지원하지 않는 사이드바 메뉴 ID입니다: " + itemId);
+        }
+        return itemId;
     }
 
     public String getSlugValue() {

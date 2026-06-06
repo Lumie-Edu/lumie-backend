@@ -5091,6 +5091,13 @@
             "nullable" : true,
             "type" : "string"
           },
+          "hiddenSidebarItemIds" : {
+            "items" : {
+              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "schedules", "textbooks", "spreadsheets", "reviews", "activity-logs" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "id" : {
             "format" : "int64",
             "type" : "integer"
@@ -5130,7 +5137,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "address", "businessRegistrationNumber", "createdAt", "customDomain", "customId", "displayName", "id", "instituteName", "logoUrl", "name", "ownerEmail", "phone", "plan", "slug", "status", "updatedAt" ],
+        "required" : [ "address", "businessRegistrationNumber", "createdAt", "customDomain", "customId", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "ownerEmail", "phone", "plan", "slug", "status", "updatedAt" ],
         "type" : "object"
       },
       "TextbookFolderPathResponse" : {
@@ -5857,6 +5864,18 @@
             "maxLength" : 200,
             "minLength" : 0,
             "type" : "string"
+          },
+          "hiddenSidebarItemIds" : {
+            "items" : {
+              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "schedules", "textbooks", "spreadsheets", "reviews", "activity-logs" ],
+              "maxLength" : 80,
+              "minLength" : 0,
+              "pattern" : "^[a-z0-9][a-z0-9-]*$",
+              "type" : "string"
+            },
+            "maxItems" : 100,
+            "minItems" : 0,
+            "type" : "array"
           },
           "name" : {
             "maxLength" : 100,
@@ -13694,7 +13713,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -13702,7 +13721,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "tenant-controller" ]
@@ -13772,8 +13791,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "tenant-controller" ]

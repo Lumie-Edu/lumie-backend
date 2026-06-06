@@ -8,6 +8,7 @@ import com.lumie.tenant.application.port.out.TenantLogoStoragePort.LogoStream;
 import com.lumie.tenant.application.service.TenantCommandService;
 import com.lumie.tenant.application.service.TenantLogoService;
 import com.lumie.tenant.application.service.TenantQueryService;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class TenantController {
     }
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<TenantResponse> createTenant(@Valid @RequestBody CreateTenantRequest request) {
         TenantResponse response = tenantCommandService.createTenant(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -72,6 +74,7 @@ public class TenantController {
     }
 
     @DeleteMapping("/{slug}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteTenant(@PathVariable String slug) {
         tenantCommandService.deleteTenant(slug);
         return ResponseEntity.noContent().build();

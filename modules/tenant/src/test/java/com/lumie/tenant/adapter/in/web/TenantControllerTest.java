@@ -1,15 +1,18 @@
 package com.lumie.tenant.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.api.TenantStatus;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
+import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.PublicTenantResponse;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.service.TenantCommandService;
 import com.lumie.tenant.application.service.TenantLogoService;
 import com.lumie.tenant.application.service.TenantQueryService;
+import com.lumie.tenant.domain.exception.TenantErrorCode;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,13 +29,16 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.MethodValidationInterceptor;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -145,6 +151,61 @@ class TenantControllerTest {
 
         mockMvc.perform(get("/v1/tenants/non-existent"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PATCH /v1/tenants/{slug} - 숨김 sidebar 항목 저장")
+    void updateTenantHiddenSidebarItemsSuccess() throws Exception {
+        UpdateTenantRequest request = UpdateTenantRequest.builder()
+                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .build();
+        TenantResponse response = TenantResponse.builder()
+                .id(1L)
+                .slug("test-academy")
+                .name("Test Academy")
+                .status(TenantStatus.ACTIVE)
+                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(tenantCommandService.updateTenant(any(), any())).thenReturn(response);
+
+        mockMvc.perform(patch("/v1/tenants/test-academy")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hiddenSidebarItemIds[0]").value("attendance"))
+                .andExpect(jsonPath("$.hiddenSidebarItemIds[1]").value("reviews"));
+
+        ArgumentCaptor<UpdateTenantRequest> requestCaptor = ArgumentCaptor.forClass(UpdateTenantRequest.class);
+        verify(tenantCommandService).updateTenant(any(), requestCaptor.capture());
+        assertThat(requestCaptor.getValue().hiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+    }
+
+    @Test
+    @DisplayName("PATCH /v1/tenants/{slug} - 잘못된 sidebar 항목 형식")
+    void updateTenantInvalidHiddenSidebarItemFormat() throws Exception {
+        mockMvc.perform(patch("/v1/tenants/test-academy")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"hiddenSidebarItemIds":["Attendance"]}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("PATCH /v1/tenants/{slug} - 지원하지 않는 sidebar 항목")
+    void updateTenantUnsupportedHiddenSidebarItem() throws Exception {
+        doThrow(new BusinessException(TenantErrorCode.INVALID_SIDEBAR_ITEM_ID))
+                .when(tenantCommandService).updateTenant(any(), any());
+
+        mockMvc.perform(patch("/v1/tenants/test-academy")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"hiddenSidebarItemIds":["not-a-menu"]}
+                                """))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -87,12 +88,14 @@ class TenantCommandServiceTest {
         UpdateTenantRequest updateRequest = UpdateTenantRequest.builder()
                 .name("Updated Academy")
                 .displayName("업데이트된 학원")
+                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
                 .build();
 
         TenantResponse response = tenantCommandService.updateTenant("test-academy", updateRequest);
 
         assertThat(response.name()).isEqualTo("Updated Academy");
         assertThat(response.displayName()).isEqualTo("업데이트된 학원");
+        assertThat(response.hiddenSidebarItemIds()).containsExactly("attendance", "reviews");
     }
 
     @Test
