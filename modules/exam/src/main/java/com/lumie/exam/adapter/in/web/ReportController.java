@@ -12,9 +12,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ContentDisposition;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/v1")
@@ -37,10 +39,11 @@ public class ReportController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.IMAGE_JPEG);
-        headers.setContentDispositionFormData(
-                "inline",
-                String.format("report_%d_%d.jpg", studentId, examId)
-        );
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                ContentDisposition.inline()
+                        .filename(reportJobService.getSingleReportFilename(studentId, examId), StandardCharsets.UTF_8)
+                        .build()
+                        .toString());
         // Generation is expensive (worker call) — prevent browser/proxy re-fetch on every render.
         // Server-side is naturally idempotent for (studentId, examId), so caching would be safe,
         // but no-store keeps the simplest contract until a real caching strategy is decided.
@@ -93,8 +96,11 @@ public class ReportController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/zip"));
-        headers.setContentDispositionFormData("attachment",
-                String.format("reports_%d_%d.zip", examId, jobId));
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                ContentDisposition.attachment()
+                        .filename(reportJobService.getZipFilename(jobId), StandardCharsets.UTF_8)
+                        .build()
+                        .toString());
 
         return ResponseEntity.ok()
                 .headers(headers)

@@ -13,6 +13,7 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -22,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -36,6 +39,7 @@ public class ReportJobService {
     private final OmrStoragePort storagePort;
     private final CallbackDeduplicationPort callbackDeduplication;
     private final ApplicationEventPublisher eventPublisher;
+    private final StudentService studentService;
     private final Tx tx;
 
     @Transactional
@@ -110,6 +114,22 @@ public class ReportJobService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public String getSingleReportFilename(Long studentId, Long examId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        String studentName = studentService.getStudent(tenantSlug, studentId)
+                .map(StudentService.StudentData::studentName)
+                .orElse("학생 " + studentId);
+        return buildReportImageFilename(studentName, exam.getName());
+    }
+
+    public String getZipFilename(Long jobId) {
+        ReportZipManifest manifest = tx.loadZipManifest(jobId);
+        return buildZipFilename(manifest.examName());
+    }
+
     public void processCallback(ReportCallbackRequest request) {
         log.info("Processing report callback: jobId={}, studentId={}, success={}",
                 request.jobId(), request.studentId(), request.success());
@@ -167,6 +187,7 @@ public class ReportJobService {
     private void createZipFileOrThrow(Long jobId) throws Exception {
         ReportZipManifest manifest = tx.loadZipManifest(jobId);
         String tenantId = TenantContextHolder.toStorageTenantId(manifest.tenantSlug());
+        Map<String, Integer> entryNameCounts = new HashMap<>();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zos = new ZipOutputStream(baos)) {
@@ -174,7 +195,12 @@ public class ReportJobService {
                 String fileKey = "tmp/" + tenantId + "/reports/" + manifest.examId() + "/" + studentId + ".jpg";
                 try {
                     byte[] jpgBytes = storagePort.getObject(fileKey);
-                    zos.putNextEntry(new ZipEntry("report_" + studentId + ".jpg"));
+                    String studentName = manifest.studentNamesById()
+                            .getOrDefault(studentId, "학생 " + studentId);
+                    String entryName = uniqueFilename(
+                            buildReportImageFilename(studentName, manifest.examName()),
+                            entryNameCounts);
+                    zos.putNextEntry(new ZipEntry(entryName));
                     zos.write(jpgBytes);
                     zos.closeEntry();
                 } catch (Exception e) {
@@ -190,7 +216,40 @@ public class ReportJobService {
         log.info("ZIP created: jobId={}, key={}", jobId, zipKey);
     }
 
-    private record ReportZipManifest(String tenantSlug, Long examId, List<Long> studentIds) {
+    private static String buildReportImageFilename(String studentName, String examName) {
+        return sanitizeFilenamePart(studentName) + "_" + sanitizeFilenamePart(examName) + ".jpg";
+    }
+
+    private static String buildZipFilename(String examName) {
+        return sanitizeFilenamePart(examName) + "_리포트.zip";
+    }
+
+    private static String uniqueFilename(String filename, Map<String, Integer> counts) {
+        int count = counts.getOrDefault(filename, 0) + 1;
+        counts.put(filename, count);
+        if (count == 1) {
+            return filename;
+        }
+
+        int dotIndex = filename.lastIndexOf('.');
+        if (dotIndex <= 0) {
+            return filename + "_" + count;
+        }
+        return filename.substring(0, dotIndex) + "_" + count + filename.substring(dotIndex);
+    }
+
+    private static String sanitizeFilenamePart(String value) {
+        String sanitized = value == null ? "" : value.trim();
+        sanitized = sanitized
+                .replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]+", "_")
+                .replaceAll("\\s+", "_")
+                .replaceAll("_+", "_")
+                .replaceAll("^_+|_+$", "");
+        return sanitized.isBlank() ? "리포트" : sanitized;
+    }
+
+    private record ReportZipManifest(String tenantSlug, Long examId, String examName,
+                                     List<Long> studentIds, Map<Long, String> studentNamesById) {
     }
 
     private record ReportZipDownloadState(JobStatus status, int successCount, String zipFileKey) {
@@ -206,6 +265,7 @@ public class ReportJobService {
     @RequiredArgsConstructor
     static class Tx {
         private final ReportGenerationJobRepository jobRepository;
+        private final StudentService studentService;
 
         @Transactional
         public void markProcessing(Long jobId) {
@@ -231,10 +291,24 @@ public class ReportJobService {
         public ReportZipManifest loadZipManifest(Long jobId) {
             ReportGenerationJob job = jobRepository.findById(jobId)
                     .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+            String tenantSlug = job.getTenantSlug();
+            Map<Long, String> studentNamesById = studentService.getStudentsByIds(
+                            tenantSlug,
+                            List.copyOf(job.getStudentIds())
+                    )
+                    .students()
+                    .stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            StudentService.StudentData::id,
+                            StudentService.StudentData::studentName,
+                            (first, ignored) -> first
+                    ));
             return new ReportZipManifest(
-                    job.getTenantSlug(),
+                    tenantSlug,
                     job.getExam().getId(),
-                    List.copyOf(job.getStudentIds())
+                    job.getExam().getName(),
+                    List.copyOf(job.getStudentIds()),
+                    studentNamesById
             );
         }
 
