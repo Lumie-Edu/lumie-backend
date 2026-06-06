@@ -88,10 +88,16 @@ public class AttendanceRecordQueryService {
         Set<Long> studentIds = new HashSet<>();
         int presentCount = 0, absentCount = 0, lateCount = 0, excusedCount = 0;
 
+        List<Long> sessionIds = sessions.stream()
+            .map(AttendanceSession::getId)
+            .toList();
+        Map<Long, List<AttendanceRecord>> recordsBySessionId = recordRepository.findBySessionIdIn(sessionIds).stream()
+            .collect(Collectors.groupingBy(record -> record.getSession().getId()));
+
         Map<Integer, List<AttendanceSession>> weeklyGroups = new TreeMap<>();
 
         for (AttendanceSession session : sessions) {
-            List<AttendanceRecord> records = recordRepository.findBySessionId(session.getId());
+            List<AttendanceRecord> records = recordsBySessionId.getOrDefault(session.getId(), List.of());
             for (AttendanceRecord record : records) {
                 studentIds.add(record.getStudentId());
                 switch (record.getStatus()) {
@@ -99,6 +105,9 @@ public class AttendanceRecordQueryService {
                     case ABSENT -> absentCount++;
                     case LATE -> lateCount++;
                     case EXCUSED -> excusedCount++;
+                    case PENDING -> {
+                        // Pending records count toward total students only.
+                    }
                 }
             }
             int weekNum = session.getSessionDate().get(WeekFields.ISO.weekOfYear());
@@ -114,7 +123,7 @@ public class AttendanceRecordQueryService {
             .map(entry -> {
                 int wp = 0, wt = 0;
                 for (AttendanceSession s : entry.getValue()) {
-                    List<AttendanceRecord> recs = recordRepository.findBySessionId(s.getId());
+                    List<AttendanceRecord> recs = recordsBySessionId.getOrDefault(s.getId(), List.of());
                     for (AttendanceRecord r : recs) {
                         if (r.getStatus() == AttendanceStatus.PENDING) continue;
                         wt++;
@@ -137,10 +146,12 @@ public class AttendanceRecordQueryService {
         List<AttendanceSession> sessions = sessionRepository.findByClassIdAndSessionDateBetween(classId, from, to);
 
         Map<Long, int[]> studentCounts = new LinkedHashMap<>();
+        List<Long> sessionIds = sessions.stream()
+            .map(AttendanceSession::getId)
+            .toList();
 
-        for (AttendanceSession session : sessions) {
-            List<AttendanceRecord> records = recordRepository.findBySessionId(session.getId());
-            for (AttendanceRecord record : records) {
+        if (!sessionIds.isEmpty()) {
+            for (AttendanceRecord record : recordRepository.findBySessionIdIn(sessionIds)) {
                 int[] counts = studentCounts.computeIfAbsent(record.getStudentId(), k -> new int[5]);
                 counts[0]++; // total
                 switch (record.getStatus()) {
@@ -148,13 +159,14 @@ public class AttendanceRecordQueryService {
                     case ABSENT -> counts[2]++;
                     case LATE -> counts[3]++;
                     case EXCUSED -> counts[4]++;
+                    case PENDING -> {
+                        // Pending records count toward total attendance opportunities only.
+                    }
                 }
             }
         }
 
-        Map<Long, String> studentNames = studentCounts.keySet().stream()
-            .map(id -> studentReadRepository.findById(id).orElse(null))
-            .filter(Objects::nonNull)
+        Map<Long, String> studentNames = studentReadRepository.findAllById(studentCounts.keySet()).stream()
             .collect(Collectors.toMap(StudentReadModel::getId, StudentReadModel::getName));
 
         return studentCounts.entrySet().stream()

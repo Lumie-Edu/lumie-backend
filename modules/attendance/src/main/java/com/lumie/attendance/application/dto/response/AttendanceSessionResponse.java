@@ -79,4 +79,29 @@ public record AttendanceSessionResponse(
             0, 0, 0, 0, 0
         );
     }
+
+    public static AttendanceSessionResponse fromCounts(AttendanceSession session,
+                                                       int presentCount,
+                                                       int absentCount,
+                                                       int lateCount,
+                                                       int excusedCount,
+                                                       int totalStudents) {
+        return new AttendanceSessionResponse(
+            session.getId(),
+            session.getName(),
+            session.getSessionDate(),
+            session.getClassId(),
+            session.getClassName(),
+            session.getAttendanceCode(),
+            session.getCodeExpiresAt(),
+            session.getLateThresholdMinutes(),
+            session.getCreatedAt(),
+            session.getUpdatedAt(),
+            presentCount,
+            absentCount,
+            lateCount,
+            excusedCount,
+            totalStudents
+        );
+    }
 }
