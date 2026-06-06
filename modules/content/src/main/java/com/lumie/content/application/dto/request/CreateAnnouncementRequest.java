@@ -20,6 +20,8 @@ public record CreateAnnouncementRequest(
 
         Boolean isItImportantAnnouncement,
 
-        List<UUID> textbookFileIds
+        List<UUID> textbookFileIds,
+
+        List<Long> classIds
 ) {
 }

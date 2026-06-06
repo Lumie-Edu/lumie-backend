@@ -4,6 +4,7 @@ import com.lumie.content.domain.entity.Announcement;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
+import java.util.List;
 
 public record AnnouncementResponse(
         Long id,
@@ -14,13 +15,18 @@ public record AnnouncementResponse(
         @Schema(nullable = true) Boolean isItAssetAnnouncement,
         @Schema(nullable = true) Boolean isItImportantAnnouncement,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        List<Long> classIds
 ) {
     public static AnnouncementResponse from(Announcement announcement) {
-        return from(announcement, null);
+        return from(announcement, null, List.of());
     }
 
     public static AnnouncementResponse from(Announcement announcement, String authorName) {
+        return from(announcement, authorName, List.of());
+    }
+
+    public static AnnouncementResponse from(Announcement announcement, String authorName, List<Long> classIds) {
         return new AnnouncementResponse(
                 announcement.getId(),
                 announcement.getAuthorId(),
@@ -30,7 +36,8 @@ public record AnnouncementResponse(
                 announcement.getIsItAssetAnnouncement(),
                 announcement.getIsItImportantAnnouncement(),
                 announcement.getCreatedAt(),
-                announcement.getUpdatedAt()
+                announcement.getUpdatedAt(),
+                classIds == null ? List.of() : classIds
         );
     }
 }

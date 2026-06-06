@@ -9,6 +9,7 @@ public record UpdateAnnouncementRequest(
         Boolean isItAssetAnnouncement,
         Boolean isItImportantAnnouncement,
         List<UUID> fileIdsToDelete,
-        List<UUID> textbookFileIds
+        List<UUID> textbookFileIds,
+        List<Long> classIds
 ) {
 }

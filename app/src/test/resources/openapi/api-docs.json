@@ -94,6 +94,13 @@
           "authorName" : {
             "type" : "string"
           },
+          "classIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
           "createdAt" : {
             "format" : "date-time",
             "type" : "string"
@@ -115,7 +122,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "announcementContent", "announcementTitle", "authorId", "authorName", "createdAt", "id", "isItAssetAnnouncement", "isItImportantAnnouncement", "updatedAt" ],
+        "required" : [ "announcementContent", "announcementTitle", "authorId", "authorName", "classIds", "createdAt", "id", "isItAssetAnnouncement", "isItImportantAnnouncement", "updatedAt" ],
         "type" : "object"
       },
       "AssignmentDashboardResponse" : {
@@ -999,6 +1006,13 @@
           "authorId" : {
             "format" : "int64",
             "type" : "integer"
+          },
+          "classIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           },
           "isItAssetAnnouncement" : {
             "type" : "boolean"
@@ -5410,6 +5424,13 @@
           },
           "announcementTitle" : {
             "type" : "string"
+          },
+          "classIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           },
           "fileIdsToDelete" : {
             "items" : {

@@ -1,12 +1,18 @@
 package com.lumie.content.application.service;
 
+import com.lumie.classroom.api.ClassService;
+import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.domain.entity.Announcement;
+import com.lumie.content.domain.entity.AnnouncementClassTarget;
 import com.lumie.staff.api.StaffService;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
+import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
 import com.lumie.content.domain.repository.AnnouncementRepository;
+import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,26 +33,43 @@ public class AnnouncementQueryService {
     private static final String DELETED_USER_NAME = "삭제된 유저";
 
     private final AnnouncementRepository announcementRepository;
+    private final AnnouncementClassTargetRepository classTargetRepository;
     private final StaffService staffService;
+    private final StudentService studentService;
+    private final ClassService classService;
 
     public Page<AnnouncementResponse> listAnnouncements(Boolean isAsset, Pageable pageable) {
         log.debug("Listing announcements with pagination, isAsset={}", isAsset);
 
-        Page<Announcement> page = isAsset != null
-                ? announcementRepository.findByIsItAssetAnnouncementOrderByImportantDescCreatedAtDesc(isAsset, pageable)
-                : announcementRepository.findAllOrderByImportantDescCreatedAtDesc(pageable);
+        List<Long> visibleClassIds = currentStudentClassIdsOrNull();
+        Page<Announcement> page = findVisibleAnnouncements(isAsset, visibleClassIds, pageable);
 
         Map<Long, String> authorNames = resolveAuthorNames(page.getContent());
-        return page.map(a -> AnnouncementResponse.from(a, authorNameOrFallback(a.getAuthorId(), authorNames)));
+        Map<Long, List<Long>> classIdsByAnnouncementId = resolveClassTargets(page.getContent());
+        return page.map(a -> AnnouncementResponse.from(
+                a,
+                authorNameOrFallback(a.getAuthorId(), authorNames),
+                responseClassIds(classIdsByAnnouncementId.getOrDefault(a.getId(), List.of()))
+        ));
     }
 
     public List<AnnouncementResponse> listImportantAnnouncements() {
         log.debug("Listing important announcements");
 
-        List<Announcement> announcements = announcementRepository.findByIsItImportantAnnouncementTrue();
+        List<Long> visibleClassIds = currentStudentClassIdsOrNull();
+        List<Announcement> announcements = visibleClassIds == null
+                ? announcementRepository.findByIsItImportantAnnouncementTrue()
+                : visibleClassIds.isEmpty()
+                        ? announcementRepository.findImportantVisibleWithoutClassTargets()
+                        : announcementRepository.findImportantVisibleByClassTargets(visibleClassIds);
         Map<Long, String> authorNames = resolveAuthorNames(announcements);
+        Map<Long, List<Long>> classIdsByAnnouncementId = resolveClassTargets(announcements);
         return announcements.stream()
-                .map(a -> AnnouncementResponse.from(a, authorNameOrFallback(a.getAuthorId(), authorNames)))
+                .map(a -> AnnouncementResponse.from(
+                        a,
+                        authorNameOrFallback(a.getAuthorId(), authorNames),
+                        responseClassIds(classIdsByAnnouncementId.getOrDefault(a.getId(), List.of()))
+                ))
                 .toList();
     }
 
@@ -56,8 +79,93 @@ public class AnnouncementQueryService {
         Announcement announcement = announcementRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND));
 
+        List<Long> classIds = classTargetRepository.findByAnnouncementId(id).stream()
+                .map(AnnouncementClassTarget::getClassId)
+                .toList();
+        ensureVisibleToCurrentUser(classIds);
+
         Map<Long, String> authorNames = resolveAuthorNames(List.of(announcement));
-        return AnnouncementResponse.from(announcement, authorNameOrFallback(announcement.getAuthorId(), authorNames));
+        return AnnouncementResponse.from(
+                announcement,
+                authorNameOrFallback(announcement.getAuthorId(), authorNames),
+                responseClassIds(classIds)
+        );
+    }
+
+    private List<Long> responseClassIds(List<Long> classIds) {
+        return isStudentUser() ? List.of() : classIds;
+    }
+
+    private Page<Announcement> findVisibleAnnouncements(
+            Boolean isAsset,
+            List<Long> visibleClassIds,
+            Pageable pageable) {
+        if (visibleClassIds == null) {
+            return isAsset != null
+                    ? announcementRepository.findByIsItAssetAnnouncementOrderByImportantDescCreatedAtDesc(isAsset, pageable)
+                    : announcementRepository.findAllOrderByImportantDescCreatedAtDesc(pageable);
+        }
+
+        if (visibleClassIds.isEmpty()) {
+            return isAsset != null
+                    ? announcementRepository.findVisibleWithoutClassTargetsByIsAsset(isAsset, pageable)
+                    : announcementRepository.findVisibleWithoutClassTargets(pageable);
+        }
+
+        return isAsset != null
+                ? announcementRepository.findVisibleByClassTargetsAndIsAsset(isAsset, visibleClassIds, pageable)
+                : announcementRepository.findVisibleByClassTargets(visibleClassIds, pageable);
+    }
+
+    private void ensureVisibleToCurrentUser(List<Long> classIds) {
+        List<Long> visibleClassIds = currentStudentClassIdsOrNull();
+        if (visibleClassIds == null || classIds.isEmpty()) {
+            return;
+        }
+
+        boolean visible = classIds.stream().anyMatch(visibleClassIds::contains);
+        if (!visible) {
+            throw new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND);
+        }
+    }
+
+    private List<Long> currentStudentClassIdsOrNull() {
+        if (!isStudentUser()) {
+            return null;
+        }
+
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Long userId = UserContextHolder.getRequiredUserId();
+        StudentService.StudentData student = studentService.getStudentsByUserIds(tenantSlug, List.of(userId))
+                .students()
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.STUDENT_NOT_FOUND));
+
+        return classService.getClassesByStudent(tenantSlug, student.id(), 0, 1000)
+                .classes()
+                .stream()
+                .map(ClassService.ClassData::id)
+                .toList();
+    }
+
+    private boolean isStudentUser() {
+        return UserContextHolder.getUserRole() == Role.STUDENT;
+    }
+
+    private Map<Long, List<Long>> resolveClassTargets(List<Announcement> announcements) {
+        List<Long> announcementIds = announcements.stream()
+                .map(Announcement::getId)
+                .toList();
+        if (announcementIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return classTargetRepository.findByAnnouncementIdIn(announcementIds).stream()
+                .collect(Collectors.groupingBy(
+                        AnnouncementClassTarget::getAnnouncementId,
+                        Collectors.mapping(AnnouncementClassTarget::getClassId, Collectors.toList())
+                ));
     }
 
     private Map<Long, String> resolveAuthorNames(List<Announcement> announcements) {

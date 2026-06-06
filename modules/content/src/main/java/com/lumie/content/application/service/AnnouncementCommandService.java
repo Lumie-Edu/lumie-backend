@@ -1,11 +1,15 @@
 package com.lumie.content.application.service;
 
+import com.lumie.classroom.api.ClassService;
 import com.lumie.content.application.dto.request.CreateAnnouncementRequest;
 import com.lumie.content.application.dto.request.UpdateAnnouncementRequest;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.domain.entity.Announcement;
+import com.lumie.content.domain.entity.AnnouncementClassTarget;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.domain.exception.ContentErrorCode;
+import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
 import com.lumie.content.domain.repository.AnnouncementRepository;
 import com.lumie.file.api.FileService;
 import lombok.RequiredArgsConstructor;
@@ -13,13 +17,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AnnouncementCommandService {
 
     private final AnnouncementRepository announcementRepository;
+    private final AnnouncementClassTargetRepository classTargetRepository;
     private final FileService fileService;
+    private final ClassService classService;
 
     @Transactional
     public AnnouncementResponse createAnnouncement(CreateAnnouncementRequest request) {
@@ -34,10 +42,11 @@ public class AnnouncementCommandService {
         );
 
         Announcement saved = announcementRepository.save(announcement);
+        List<Long> classIds = replaceClassTargets(saved.getId(), request.classIds());
         fileService.replaceFileLinks("announcement", saved.getId(), request.textbookFileIds());
         log.info("Announcement created with id: {}", saved.getId());
 
-        return AnnouncementResponse.from(saved);
+        return AnnouncementResponse.from(saved, null, classIds);
     }
 
     @Transactional
@@ -59,10 +68,15 @@ public class AnnouncementCommandService {
         }
         fileService.replaceFileLinks("announcement", id, request.textbookFileIds());
 
+        List<Long> classIds = request.classIds() == null
+                ? classTargetRepository.findByAnnouncementId(id).stream()
+                        .map(AnnouncementClassTarget::getClassId)
+                        .toList()
+                : replaceClassTargets(id, request.classIds());
         Announcement updated = announcementRepository.save(announcement);
         log.info("Announcement updated: {}", updated.getId());
 
-        return AnnouncementResponse.from(updated);
+        return AnnouncementResponse.from(updated, null, classIds);
     }
 
     @Transactional
@@ -75,7 +89,42 @@ public class AnnouncementCommandService {
 
         fileService.deleteFileLinksByEntity("announcement", id);
         fileService.deleteFilesByEntity("announcement", id);
+        classTargetRepository.deleteByAnnouncementId(id);
         announcementRepository.deleteById(id);
         log.info("Announcement deleted: {}", id);
+    }
+
+    private List<Long> replaceClassTargets(Long announcementId, List<Long> requestedClassIds) {
+        List<Long> classIds = normalizeClassIds(requestedClassIds);
+        validateClassTargets(classIds);
+
+        classTargetRepository.deleteByAnnouncementId(announcementId);
+        if (!classIds.isEmpty()) {
+            classTargetRepository.saveAll(classIds.stream()
+                    .map(classId -> AnnouncementClassTarget.create(announcementId, classId))
+                    .toList());
+        }
+        return classIds;
+    }
+
+    private void validateClassTargets(List<Long> classIds) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        for (Long classId : classIds) {
+            if (classService.getClass(tenantSlug, classId).isEmpty()) {
+                throw new BusinessException(ContentErrorCode.INVALID_CLASS_TARGET);
+            }
+        }
+    }
+
+    private List<Long> normalizeClassIds(List<Long> classIds) {
+        if (classIds == null || classIds.isEmpty()) {
+            return List.of();
+        }
+        if (classIds.stream().anyMatch(id -> id == null || id <= 0)) {
+            throw new BusinessException(ContentErrorCode.INVALID_CLASS_TARGET);
+        }
+        return classIds.stream()
+                .distinct()
+                .toList();
     }
 }
