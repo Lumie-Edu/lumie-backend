@@ -1,11 +1,13 @@
 package com.lumie.attendance.application.service;
 
 import com.lumie.attendance.application.dto.response.AttendanceRecordResponse;
+import com.lumie.attendance.application.dto.response.ClassStudentAttendanceResponse;
 import com.lumie.attendance.application.dto.response.StudentAttendanceStatisticsResponse;
 import com.lumie.attendance.domain.entity.AttendanceRecord;
 import com.lumie.attendance.domain.entity.AttendanceSession;
 import com.lumie.attendance.domain.entity.StudentReadModel;
 import com.lumie.attendance.domain.repository.AttendanceRecordRepository;
+import com.lumie.attendance.domain.repository.AttendanceSessionRepository;
 import com.lumie.attendance.domain.repository.StudentReadRepository;
 import com.lumie.attendance.domain.vo.AttendanceStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +22,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,6 +31,9 @@ class AttendanceRecordQueryServiceTest {
 
     @Mock
     private AttendanceRecordRepository recordRepository;
+
+    @Mock
+    private AttendanceSessionRepository sessionRepository;
 
     @Mock
     private StudentReadRepository studentReadRepository;
@@ -131,5 +137,39 @@ class AttendanceRecordQueryServiceTest {
         // then
         assertThat(stats.totalSessions()).isEqualTo(0);
         assertThat(stats.attendanceRate()).isEqualTo(0.0);
+    }
+
+    @Test
+    @DisplayName("getClassStudentStatistics() 호출 시 학생 이름 가나다순으로 반환한다")
+    void getClassStudentStatistics_sortsByStudentName() throws Exception {
+        // given
+        Long classId = 10L;
+        LocalDate from = LocalDate.of(2026, 5, 1);
+        LocalDate to = LocalDate.of(2026, 6, 1);
+        AttendanceSession session = AttendanceSession.create("수업", to, classId, "수학", 10);
+        ReflectionTestUtils.setField(session, "id", 1L);
+
+        AttendanceRecord r1 = buildRecord(3L, AttendanceStatus.PRESENT);
+        AttendanceRecord r2 = buildRecord(1L, AttendanceStatus.PRESENT);
+        AttendanceRecord r3 = buildRecord(2L, AttendanceStatus.PRESENT);
+
+        given(sessionRepository.findByClassIdAndSessionDateBetween(classId, from, to))
+            .willReturn(List.of(session));
+        given(recordRepository.findBySessionIdIn(List.of(1L)))
+            .willReturn(List.of(r1, r2, r3));
+        given(studentReadRepository.findAllById(any()))
+            .willReturn(List.of(
+                buildStudent(1L, "다나"),
+                buildStudent(2L, "가나"),
+                buildStudent(3L, "나나")
+            ));
+
+        // when
+        List<ClassStudentAttendanceResponse> result = queryService.getClassStudentStatistics(classId, from, to);
+
+        // then
+        assertThat(result)
+            .extracting(ClassStudentAttendanceResponse::studentName)
+            .containsExactly("가나", "나나", "다나");
     }
 }

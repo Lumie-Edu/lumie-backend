@@ -182,7 +182,7 @@ public class AttendanceRecordQueryService {
                     c[0], c[1], c[2], c[3], c[4], rate
                 );
             })
-            .sorted(Comparator.comparingDouble(ClassStudentAttendanceResponse::attendanceRate))
+            .sorted(Comparator.comparing(ClassStudentAttendanceResponse::studentName, KOREAN_COLLATOR))
             .toList();
     }
 
