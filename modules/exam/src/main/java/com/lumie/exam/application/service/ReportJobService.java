@@ -8,6 +8,7 @@ import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
 import com.lumie.exam.domain.exception.ExamErrorCode;
+import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
@@ -63,6 +64,7 @@ public class ReportJobService {
         return savedJob.getId();
     }
 
+    @Transactional(readOnly = true)
     public ReportJobStatusResponse getJobStatus(Long jobId) {
         ReportGenerationJob job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
@@ -79,14 +81,33 @@ public class ReportJobService {
     }
 
     public byte[] getZipBytes(Long jobId) {
-        ReportGenerationJob job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+        ReportZipDownloadState state = tx.loadZipDownloadState(jobId);
 
-        if (job.getZipFileKey() == null) {
-            throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
+        if (state.zipFileKey() == null) {
+            if (!canCreateZip(state)) {
+                throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
+            }
+            createZipFileForDownload(jobId);
+            state = tx.loadZipDownloadState(jobId);
+            if (state.zipFileKey() == null) {
+                throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
+            }
         }
 
-        return storagePort.getObject(job.getZipFileKey());
+        try {
+            return storagePort.getObject(state.zipFileKey());
+        } catch (RuntimeException e) {
+            if (!canCreateZip(state)) {
+                throw e;
+            }
+            log.warn("Failed to download report ZIP; retrying after rebuild: jobId={}", jobId, e);
+            createZipFileForDownload(jobId);
+            ReportZipDownloadState refreshedState = tx.loadZipDownloadState(jobId);
+            if (refreshedState.zipFileKey() == null) {
+                throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
+            }
+            return storagePort.getObject(refreshedState.zipFileKey());
+        }
     }
 
     public void processCallback(ReportCallbackRequest request) {
@@ -123,35 +144,56 @@ public class ReportJobService {
 
     private void createZipFile(Long jobId) {
         try {
-            ReportGenerationJob job = jobRepository.findById(jobId)
-                    .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
-
-            String tenantId = TenantContextHolder.toStorageTenantId(job.getTenantSlug());
-            Long examId = job.getExam().getId();
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try (ZipOutputStream zos = new ZipOutputStream(baos)) {
-                for (Long studentId : job.getStudentIds()) {
-                    String fileKey = "tmp/" + tenantId + "/reports/" + examId + "/" + studentId + ".jpg";
-                    try {
-                        byte[] jpgBytes = storagePort.getObject(fileKey);
-                        zos.putNextEntry(new ZipEntry("report_" + studentId + ".jpg"));
-                        zos.write(jpgBytes);
-                        zos.closeEntry();
-                    } catch (Exception e) {
-                        log.warn("Failed to add report to ZIP: studentId={}", studentId, e);
-                    }
-                }
-            }
-
-            String zipKey = "tmp/" + tenantId + "/reports/" + examId + "/batch_" + jobId + ".zip";
-            storagePort.putObject(zipKey, baos.toByteArray(), "application/zip");
-            tx.setZipFileKey(jobId, zipKey);
-
-            log.info("ZIP created: jobId={}, key={}", jobId, zipKey);
+            createZipFileOrThrow(jobId);
         } catch (Exception e) {
             log.error("Failed to create ZIP: jobId={}", jobId, e);
         }
+    }
+
+    private void createZipFileForDownload(Long jobId) {
+        try {
+            createZipFileOrThrow(jobId);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to create report ZIP", e);
+        }
+    }
+
+    private boolean canCreateZip(ReportZipDownloadState state) {
+        return state.status() == JobStatus.COMPLETED && state.successCount() > 0;
+    }
+
+    private void createZipFileOrThrow(Long jobId) throws Exception {
+        ReportZipManifest manifest = tx.loadZipManifest(jobId);
+        String tenantId = TenantContextHolder.toStorageTenantId(manifest.tenantSlug());
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            for (Long studentId : manifest.studentIds()) {
+                String fileKey = "tmp/" + tenantId + "/reports/" + manifest.examId() + "/" + studentId + ".jpg";
+                try {
+                    byte[] jpgBytes = storagePort.getObject(fileKey);
+                    zos.putNextEntry(new ZipEntry("report_" + studentId + ".jpg"));
+                    zos.write(jpgBytes);
+                    zos.closeEntry();
+                } catch (Exception e) {
+                    log.warn("Failed to add report to ZIP: studentId={}", studentId, e);
+                }
+            }
+        }
+
+        String zipKey = "tmp/" + tenantId + "/reports/" + manifest.examId() + "/batch_" + jobId + ".zip";
+        storagePort.putObject(zipKey, baos.toByteArray(), "application/zip");
+        tx.setZipFileKey(jobId, zipKey);
+
+        log.info("ZIP created: jobId={}, key={}", jobId, zipKey);
+    }
+
+    private record ReportZipManifest(String tenantSlug, Long examId, List<Long> studentIds) {
+    }
+
+    private record ReportZipDownloadState(JobStatus status, int successCount, String zipFileKey) {
     }
 
     /**
@@ -183,6 +225,28 @@ public class ReportJobService {
         @Transactional
         public boolean finalizeIfDone(Long jobId, int totalReports) {
             return jobRepository.tryFinalize(jobId, totalReports);
+        }
+
+        @Transactional(readOnly = true)
+        public ReportZipManifest loadZipManifest(Long jobId) {
+            ReportGenerationJob job = jobRepository.findById(jobId)
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+            return new ReportZipManifest(
+                    job.getTenantSlug(),
+                    job.getExam().getId(),
+                    List.copyOf(job.getStudentIds())
+            );
+        }
+
+        @Transactional(readOnly = true)
+        public ReportZipDownloadState loadZipDownloadState(Long jobId) {
+            ReportGenerationJob job = jobRepository.findById(jobId)
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+            return new ReportZipDownloadState(
+                    job.getStatus(),
+                    job.getSuccessCount(),
+                    job.getZipFileKey()
+            );
         }
 
         @Transactional
