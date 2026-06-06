@@ -2,6 +2,12 @@
 # Activated via SPRING_PROFILES_ACTIVE=prod (set in lumie-infra Helm values).
 # Only override values that must differ from the dev/local defaults in application.yaml.
 
+logging:
+  level:
+    root: INFO
+    com.lumie: INFO
+    org.springframework.web.reactive.function.client: WARN
+
 lumie:
   cors:
     allowed-origins:
