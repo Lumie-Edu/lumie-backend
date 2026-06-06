@@ -24,6 +24,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 
 @Slf4j
 @Service
@@ -31,15 +32,21 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class ActivityLogQueryService {
 
+    private static final List<Role> STAFF_ACTIVITY_ROLES = List.of(Role.OWNER, Role.MANAGER, Role.INSTRUCTOR);
+
     private final ActivityLogRepository activityLogRepository;
 
     public CursorResponse<ActivityLogResponse> getLogs(ActivityLogFilterRequest filter,
                                                        String cursor,
                                                        int limit) {
         Role requesterRole = UserContextHolder.getUserRole();
+        if (!canViewStaffActivityLogs(requesterRole)) {
+            throw new BusinessException(ActivityLogErrorCode.INSUFFICIENT_ROLE);
+        }
+
         List<Role> visibleRoles = getVisibleRoles(requesterRole);
         if (visibleRoles.isEmpty()) {
-            throw new BusinessException(ActivityLogErrorCode.INSUFFICIENT_ROLE);
+            return CursorResponse.of(List.of(), null, limit);
         }
 
         Cursor decoded = decodeCursor(cursor);
@@ -97,7 +104,7 @@ public class ActivityLogQueryService {
             }
 
             if (filter != null && filter.search() != null && !filter.search().isBlank()) {
-                String pattern = "%" + filter.search().toLowerCase() + "%";
+                String pattern = "%" + filter.search().toLowerCase(Locale.ROOT) + "%";
                 predicates.add(cb.like(cb.lower(root.get("actorName")), pattern));
             }
 
@@ -115,11 +122,16 @@ public class ActivityLogQueryService {
     }
 
     private List<Role> getVisibleRoles(Role role) {
-        return switch (role) {
-            case OWNER -> List.of(Role.MANAGER, Role.INSTRUCTOR, Role.STUDENT);
-            case MANAGER -> List.of(Role.INSTRUCTOR, Role.STUDENT);
-            default -> List.of();
-        };
+        if (!canViewStaffActivityLogs(role)) {
+            return List.of();
+        }
+        return STAFF_ACTIVITY_ROLES.stream()
+                .filter(role::canManage)
+                .toList();
+    }
+
+    private boolean canViewStaffActivityLogs(Role role) {
+        return role != null && STAFF_ACTIVITY_ROLES.contains(role);
     }
 
     private String encodeCursor(Instant createdAt, Long id) {
