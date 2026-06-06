@@ -2,12 +2,18 @@ package com.lumie.lecture.application.service;
 
 import com.lumie.lecture.application.dto.response.LectureResponse;
 import com.lumie.lecture.application.dto.response.WatchResponse;
+import com.lumie.classroom.api.ClassService;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.lecture.domain.exception.LectureErrorCode;
+import com.lumie.lecture.domain.repository.LectureClassTargetRepository;
 import com.lumie.lecture.domain.repository.LectureRepository;
 import com.lumie.lecture.domain.vo.LectureSearchCriteria;
-import com.lumie.lecture.domain.vo.LectureStatus;
+import com.lumie.lecture.domain.vo.LectureVisibility;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -16,6 +22,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -24,35 +33,50 @@ import java.time.LocalDate;
 public class LectureQueryService {
 
     private final LectureRepository lectureRepository;
+    private final LectureClassTargetRepository targetRepository;
+    private final StudentService studentService;
+    private final ClassService classService;
 
     public Page<LectureResponse> findAll(Long classId, Long teacherId,
-                                          String status,
                                           LocalDate startDate, LocalDate endDate,
                                           String search, Pageable pageable) {
         LectureSearchCriteria criteria = new LectureSearchCriteria(
                 classId, teacherId,
-                status != null ? LectureStatus.valueOf(status) : null,
                 startDate, endDate, search
         );
 
-        return lectureRepository.findAll(criteria, pageable)
-                .map(LectureResponse::from);
+        Page<Lecture> lectures = lectureRepository.findAll(criteria, pageable);
+        Map<Long, List<Long>> classIdsByLecture = loadClassIds(lectures.getContent());
+        return lectures.map(lecture -> LectureResponse.from(
+                lecture,
+                primaryFirst(
+                        classIdsByLecture.getOrDefault(lecture.getId(), List.of()),
+                        lecture.getClassId()
+                )
+        ));
     }
 
     public LectureResponse findById(Long id) {
         Lecture lecture = lectureRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(LectureErrorCode.LECTURE_NOT_FOUND));
-        return LectureResponse.from(lecture);
+        return LectureResponse.from(lecture, classIdsForResponse(lecture));
     }
 
     public Page<LectureResponse> findByClassIdForStudent(Long classId, Pageable pageable) {
-        return lectureRepository.findVisibleByClassId(classId, pageable)
-                .map(LectureResponse::from);
+        validateCurrentStudentClassAccess(classId);
+        Page<Lecture> lectures = lectureRepository.findVisibleByTargetClassId(classId, pageable);
+        return lectures.map(lecture -> LectureResponse.from(lecture, List.of(classId)));
     }
 
-    public WatchResponse getWatchUrls(Long lectureId) {
+    public WatchResponse getWatchUrls(Long lectureId, Long classId) {
         Lecture lecture = lectureRepository.findById(lectureId)
                 .orElseThrow(() -> new BusinessException(LectureErrorCode.LECTURE_NOT_FOUND));
+        List<Long> classIds = classIdsForResponse(lecture);
+        Long visibleClassId = resolveVisibleClassId(classId, classIds);
+        if (lecture.getVisibility() != LectureVisibility.STUDENT
+                || visibleClassId == null) {
+            throw new BusinessException(LectureErrorCode.LECTURE_NOT_VISIBLE_TO_CLASS);
+        }
 
         return new WatchResponse(
                 lecture.getId(),
@@ -61,5 +85,71 @@ public class LectureQueryService {
                 lecture.getYoutubeUrl(),
                 lecture.getVisibility()
         );
+    }
+
+    private void validateCurrentStudentClassAccess(Long classId) {
+        if (classId == null) {
+            throw new BusinessException(LectureErrorCode.LECTURE_NOT_VISIBLE_TO_CLASS);
+        }
+        Long studentId = currentStudentId();
+        if (!classService.isStudentEnrolledInClass(TenantContextHolder.getRequiredTenant(), studentId, classId)) {
+            throw new BusinessException(LectureErrorCode.LECTURE_NOT_VISIBLE_TO_CLASS);
+        }
+    }
+
+    private Long resolveVisibleClassId(Long requestedClassId, List<Long> targetClassIds) {
+        if (requestedClassId != null) {
+            validateCurrentStudentClassAccess(requestedClassId);
+            return targetClassIds.contains(requestedClassId) ? requestedClassId : null;
+        }
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Long studentId = currentStudentId();
+        return targetClassIds.stream()
+                .filter(classId -> classService.isStudentEnrolledInClass(tenantSlug, studentId, classId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Long currentStudentId() {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Long userId = UserContextHolder.getRequiredUserId();
+        return studentService.getStudentsByUserIds(tenantSlug, List.of(userId)).students().stream()
+                .findFirst()
+                .map(StudentService.StudentData::id)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
+    }
+
+    private Map<Long, List<Long>> loadClassIds(List<Lecture> lectures) {
+        if (lectures.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> lectureIds = lectures.stream().map(Lecture::getId).toList();
+        Map<Long, List<Long>> grouped = new HashMap<>();
+        targetRepository.findRowsByLectureIds(lectureIds).forEach(row ->
+                grouped.computeIfAbsent(row.getLectureId(), ignored -> new java.util.ArrayList<>())
+                        .add(row.getClassId())
+        );
+        return grouped;
+    }
+
+    private List<Long> classIdsForResponse(Lecture lecture) {
+        List<Long> classIds = targetRepository.findByLectureIdOrderByClassIdAsc(lecture.getId()).stream()
+                .map(target -> target.getClassId())
+                .toList();
+        return primaryFirst(classIds, lecture.getClassId());
+    }
+
+    private static List<Long> primaryFirst(List<Long> classIds, Long primaryClassId) {
+        if (classIds.isEmpty()) {
+            return primaryClassId == null ? List.of() : List.of(primaryClassId);
+        }
+        if (primaryClassId == null || !classIds.contains(primaryClassId)) {
+            return classIds;
+        }
+        return java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(primaryClassId),
+                        classIds.stream().filter(id -> !id.equals(primaryClassId))
+                )
+                .toList();
     }
 }

@@ -12,11 +12,11 @@ public interface LectureService {
     record LectureData(
             Long id,
             Long classId,
+            List<Long> classIds,
             Long teacherId,
             String title,
             String description,
             String visibility,
-            String status,
             String createdAt,
             String updatedAt
     ) {}

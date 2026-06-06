@@ -15,4 +15,7 @@ dependencies {
 
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")
+
+    // Shared test fixtures (ReflectionTestUtils, TenantContextExtension)
+    testImplementation(testFixtures(project(":libs:common")))
 }

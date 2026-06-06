@@ -1,7 +1,6 @@
 package com.lumie.lecture.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
-import com.lumie.lecture.domain.vo.LectureStatus;
 import com.lumie.lecture.domain.vo.LectureVisibility;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -44,10 +43,6 @@ public class Lecture extends TenantScopedEntity {
     @Column(name = "visibility", nullable = false, length = 20)
     private LectureVisibility visibility;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    private LectureStatus status;
-
     @Column(name = "lecture_date")
     private LocalDate lectureDate;
 
@@ -62,7 +57,6 @@ public class Lecture extends TenantScopedEntity {
         this.youtubeUrl = youtubeUrl;
         this.visibility = visibility != null ? visibility : LectureVisibility.TEACHER_ONLY;
         this.lectureDate = lectureDate;
-        this.status = LectureStatus.ACTIVE;
     }
 
     public static Lecture create(Long classId, Long teacherId,
@@ -79,27 +73,27 @@ public class Lecture extends TenantScopedEntity {
                 .build();
     }
 
-    public void update(String title, String description, LectureVisibility visibility,
-                       LectureStatus status, LocalDate lectureDate) {
+    public void update(String title, String description, String youtubeUrl, LectureVisibility visibility,
+                       LocalDate lectureDate) {
         if (title != null && !title.isBlank()) {
             this.title = title;
         }
         if (description != null) {
             this.description = description;
         }
+        if (youtubeUrl != null) {
+            this.youtubeUrl = youtubeUrl;
+        }
         if (visibility != null) {
             this.visibility = visibility;
-        }
-        if (status != null) {
-            this.status = status;
         }
         if (lectureDate != null) {
             this.lectureDate = lectureDate;
         }
     }
 
-    public void close() {
-        this.status = LectureStatus.CLOSED;
+    public void updatePrimaryClassId(Long classId) {
+        this.classId = classId;
     }
 
     public boolean isVisibleToStudents() {

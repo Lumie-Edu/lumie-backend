@@ -1,9 +1,11 @@
 package com.lumie.lecture.domain.repository;
 
 import com.lumie.lecture.domain.entity.Lecture;
+import com.lumie.lecture.domain.entity.LectureClassTarget;
 import com.lumie.lecture.domain.vo.LectureSearchCriteria;
-import com.lumie.lecture.domain.vo.LectureStatus;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -14,31 +16,43 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public interface LectureRepository extends JpaRepository<Lecture, Long>,
         JpaSpecificationExecutor<Lecture> {
 
-    @Query("SELECT l FROM Lecture l WHERE l.classId = :classId " +
-           "AND l.status = 'ACTIVE' " +
-           "AND l.visibility = 'STUDENT'")
-    Page<Lecture> findVisibleByClassId(@Param("classId") Long classId, Pageable pageable);
+    @Query("""
+            SELECT DISTINCT l
+            FROM Lecture l
+            LEFT JOIN LectureClassTarget t ON t.lecture = l AND t.classId = :classId
+            WHERE (t.id IS NOT NULL OR l.classId = :classId)
+              AND l.visibility = 'STUDENT'
+            """)
+    Page<Lecture> findVisibleByTargetClassId(@Param("classId") Long classId, Pageable pageable);
 
     /**
-     * Search lectures by criteria. Excludes CLOSED status by default; defaults
-     * sort to createdAt DESC if the caller has not specified one.
+     * Search lectures by criteria. Defaults sort to createdAt DESC if the
+     * caller has not specified one.
      */
     default Page<Lecture> findAll(LectureSearchCriteria criteria, Pageable pageable) {
         Specification<Lecture> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.notEqual(root.get("status"), LectureStatus.CLOSED));
             if (criteria.classId() != null) {
-                predicates.add(cb.equal(root.get("classId"), criteria.classId()));
+                Subquery<Long> targetSubquery = query.subquery(Long.class);
+                Root<LectureClassTarget> target = targetSubquery.from(LectureClassTarget.class);
+                targetSubquery.select(target.get("id"))
+                        .where(
+                                cb.equal(target.get("lecture").get("id"), root.get("id")),
+                                cb.equal(target.get("classId"), criteria.classId())
+                        );
+                predicates.add(cb.or(
+                        cb.exists(targetSubquery),
+                        cb.equal(root.get("classId"), criteria.classId())
+                ));
+                query.distinct(true);
             }
             if (criteria.teacherId() != null) {
                 predicates.add(cb.equal(root.get("teacherId"), criteria.teacherId()));
-            }
-            if (criteria.status() != null) {
-                predicates.add(cb.equal(root.get("status"), criteria.status()));
             }
             if (criteria.startDate() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("lectureDate"), criteria.startDate()));
@@ -47,7 +61,7 @@ public interface LectureRepository extends JpaRepository<Lecture, Long>,
                 predicates.add(cb.lessThanOrEqualTo(root.get("lectureDate"), criteria.endDate()));
             }
             if (criteria.search() != null && !criteria.search().isBlank()) {
-                String pattern = "%" + criteria.search().toLowerCase() + "%";
+                String pattern = "%" + criteria.search().toLowerCase(Locale.ROOT) + "%";
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.get("title")), pattern),
                         cb.like(cb.lower(root.get("description")), pattern)

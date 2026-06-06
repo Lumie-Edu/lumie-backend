@@ -28,7 +28,9 @@ public class LectureStudentController {
     }
 
     @GetMapping("/{id}/watch")
-    public ResponseEntity<WatchResponse> getWatchUrls(@PathVariable Long id) {
-        return ResponseEntity.ok(queryService.getWatchUrls(id));
+    public ResponseEntity<WatchResponse> getWatchUrls(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long classId) {
+        return ResponseEntity.ok(queryService.getWatchUrls(id, classId));
     }
 }

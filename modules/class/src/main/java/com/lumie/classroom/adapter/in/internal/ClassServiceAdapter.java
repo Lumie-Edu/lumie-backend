@@ -91,6 +91,13 @@ public class ClassServiceAdapter implements ClassService {
         );
     }
 
+    @Override
+    public boolean isStudentEnrolledInClass(String tenantSlug, Long studentId, Long classId) {
+        return TenantContextHolder.withinContext(tenantSlug, () ->
+                classQueryService.isStudentEnrolledInClass(studentId, classId)
+        );
+    }
+
     private ClassData toClassData(ClassResponse response, Long tenantId) {
         var schedule = response.schedulePattern();
         return new ClassData(

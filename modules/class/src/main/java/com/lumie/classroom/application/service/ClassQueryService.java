@@ -111,6 +111,14 @@ public class ClassQueryService {
             .toList();
     }
 
+    public boolean isStudentEnrolledInClass(Long studentId, Long classId) {
+        return enrollmentRepository.existsByClassEntityIdAndStudentIdAndStatus(
+            classId,
+            studentId,
+            EnrollmentStatus.ENROLLED
+        );
+    }
+
     public record StudentClassRow(Long classId, String className, Long studentId) {}
 
     public Page<ClassEnrollmentResponse> getEnrollments(Long classId, Pageable pageable) {

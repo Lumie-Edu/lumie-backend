@@ -18,6 +18,8 @@ public interface ClassService {
 
     List<EnrolledClassData> getEnrolledClassesForStudents(String tenantSlug, Collection<Long> studentIds);
 
+    boolean isStudentEnrolledInClass(String tenantSlug, Long studentId, Long classId);
+
     record EnrolledClassData(Long classId, String className, Long studentId) {}
 
     record ClassData(

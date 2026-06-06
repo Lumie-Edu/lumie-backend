@@ -32,18 +32,16 @@ public class LectureController {
     }
 
     @GetMapping
-    @AllowedSortFields({"createdAt", "title", "lectureDate", "status"})
+    @AllowedSortFields({"createdAt", "title", "lectureDate"})
     public ResponseEntity<PageResponse<LectureResponse>> findAll(
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Long teacherId,
-            @RequestParam(required = false) String status,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(PageResponse.from(queryService.findAll(
-                classId, teacherId, status,
-                startDate, endDate, search, pageable)));
+                classId, teacherId, startDate, endDate, search, pageable)));
     }
 
     @GetMapping("/{id}")
