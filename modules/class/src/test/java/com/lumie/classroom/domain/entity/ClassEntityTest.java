@@ -38,6 +38,55 @@ class ClassEntityTest {
     }
 
     @Test
+    @DisplayName("legacy schedulePattern은 요일별 session으로 정규화된다")
+    void schedulePattern_legacyShape_normalizesSessions() {
+        SchedulePattern schedulePattern = new SchedulePattern(List.of("MON", "WED"), "14:00", "15:30");
+
+        assertThat(schedulePattern.sessions())
+                .extracting("day", "startTime", "endTime")
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("MON", "14:00", "15:30"),
+                        org.assertj.core.groups.Tuple.tuple("WED", "14:00", "15:30")
+                );
+    }
+
+    @Test
+    @DisplayName("같은 시간의 요일별 schedulePattern은 legacy 필드를 파생한다")
+    void schedulePattern_sessionsWithSharedTime_deriveLegacyFields() {
+        SchedulePattern schedulePattern = new SchedulePattern(
+                null,
+                null,
+                null,
+                List.of(
+                        new SchedulePattern.ScheduleSession("WED", "15:00", "16:00"),
+                        new SchedulePattern.ScheduleSession("FRI", "15:00", "16:00")
+                )
+        );
+
+        assertThat(schedulePattern.days()).containsExactly("WED", "FRI");
+        assertThat(schedulePattern.startTime()).isEqualTo("15:00");
+        assertThat(schedulePattern.endTime()).isEqualTo("16:00");
+    }
+
+    @Test
+    @DisplayName("다른 시간의 요일별 schedulePattern은 legacy 시간 필드를 비운다")
+    void schedulePattern_sessionsWithMixedTime_doNotProjectFalseLegacyTime() {
+        SchedulePattern schedulePattern = new SchedulePattern(
+                null,
+                null,
+                null,
+                List.of(
+                        new SchedulePattern.ScheduleSession("WED", "15:00", "16:00"),
+                        new SchedulePattern.ScheduleSession("FRI", "18:00", "19:00")
+                )
+        );
+
+        assertThat(schedulePattern.days()).containsExactly("WED", "FRI");
+        assertThat(schedulePattern.startTime()).isNull();
+        assertThat(schedulePattern.endTime()).isNull();
+    }
+
+    @Test
     @DisplayName("updateInfo() 호출 시 필드가 업데이트된다")
     void updateInfo_updatesFields() {
         ClassEntity entity = buildEntity();

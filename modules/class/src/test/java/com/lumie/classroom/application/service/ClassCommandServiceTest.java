@@ -4,6 +4,7 @@ import com.lumie.classroom.application.dto.ClassEnrollmentResponse;
 import com.lumie.classroom.application.dto.ClassResponse;
 import com.lumie.classroom.application.dto.CreateClassRequest;
 import com.lumie.classroom.application.dto.EnrollStudentsRequest;
+import com.lumie.classroom.application.dto.SchedulePatternRequest;
 import com.lumie.classroom.application.dto.UpdateClassRequest;
 import com.lumie.classroom.application.dto.UpdateEnrollmentRequest;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
@@ -12,6 +13,7 @@ import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
+import com.lumie.classroom.domain.vo.SchedulePattern;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.test.ReflectionTestUtils;
 import com.lumie.common.test.TenantContextExtension;
@@ -83,6 +85,145 @@ class ClassCommandServiceTest {
                     .isInstanceOf(BusinessException.class);
         }
 
+        @Test
+        @DisplayName("요일별 시간이 다르면 같은 강사 수업을 생성할 수 있다")
+        void createClass_perDaySchedule_allowsDifferentDayTime() throws Exception {
+            CreateClassRequest request = new CreateClassRequest(
+                    "수학 심화반",
+                    10L,
+                    new SchedulePatternRequest(
+                            null,
+                            null,
+                            null,
+                            List.of(
+                                    new SchedulePatternRequest.ScheduleSessionRequest("WED", "15:00", "16:00"),
+                                    new SchedulePatternRequest.ScheduleSessionRequest("FRI", "18:00", "19:00")
+                            )
+                    ),
+                    null);
+            ClassEntity existing = buildClassEntity(
+                    2L,
+                    new SchedulePattern(
+                            null,
+                            null,
+                            null,
+                            List.of(new SchedulePattern.ScheduleSession("WED", "16:00", "17:00"))
+                    )
+            );
+
+            given(staffService.getStaff(any(), eq(10L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "kim", "김선생", null, null, true, "ACTIVE", null, null)));
+            given(classRepository.findAllByTeacherId(10L)).willReturn(List.of(existing));
+            given(classRepository.save(any(ClassEntity.class)))
+                    .willAnswer(inv -> {
+                        ClassEntity entity = inv.getArgument(0);
+                        ReflectionTestUtils.setField(entity, "id", 1L);
+                        return entity;
+                    });
+
+            ClassResponse response = commandService.createClass(request);
+
+            assertThat(response.schedulePattern().sessions()).hasSize(2);
+            assertThat(response.schedulePattern().sessions())
+                    .extracting("day", "startTime", "endTime")
+                    .containsExactly(
+                            org.assertj.core.groups.Tuple.tuple("WED", "15:00", "16:00"),
+                            org.assertj.core.groups.Tuple.tuple("FRI", "18:00", "19:00")
+                    );
+        }
+
+        @Test
+        @DisplayName("요일별 시간 중 같은 요일 시간이 겹치면 생성할 수 없다")
+        void createClass_perDaySchedule_rejectsSameDayOverlap() throws Exception {
+            CreateClassRequest request = new CreateClassRequest(
+                    "수학 심화반",
+                    10L,
+                    new SchedulePatternRequest(
+                            null,
+                            null,
+                            null,
+                            List.of(new SchedulePatternRequest.ScheduleSessionRequest("WED", "15:30", "16:30"))
+                    ),
+                    null);
+            ClassEntity existing = buildClassEntity(
+                    2L,
+                    new SchedulePattern(
+                            null,
+                            null,
+                            null,
+                            List.of(new SchedulePattern.ScheduleSession("WED", "15:00", "16:00"))
+                    )
+            );
+
+            given(staffService.getStaff(any(), eq(10L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "kim", "김선생", null, null, true, "ACTIVE", null, null)));
+            given(classRepository.findAllByTeacherId(10L)).willReturn(List.of(existing));
+
+            assertThatThrownBy(() -> commandService.createClass(request))
+                    .isInstanceOf(BusinessException.class);
+        }
+
+    }
+
+    @Nested
+    @DisplayName("SchedulePatternRequest")
+    class SchedulePatternValidation {
+
+        @Test
+        @DisplayName("partial schedulePattern은 유효하지 않다")
+        void partialSchedulePattern_isInvalid() {
+            SchedulePatternRequest request = new SchedulePatternRequest(List.of("MON"), null, null, null);
+
+            assertThat(request.isScheduleShapeValid()).isFalse();
+        }
+
+        @Test
+        @DisplayName("empty sessions schedulePattern은 유효하지 않다")
+        void emptySessionsSchedulePattern_isInvalid() {
+            SchedulePatternRequest request = new SchedulePatternRequest(null, null, null, List.of());
+
+            assertThat(request.isScheduleShapeValid()).isFalse();
+        }
+
+        @Test
+        @DisplayName("null session을 포함한 schedulePattern은 유효하지 않다")
+        void nullSessionSchedulePattern_isInvalid() {
+            SchedulePatternRequest request = new SchedulePatternRequest(
+                    null,
+                    null,
+                    null,
+                    java.util.Arrays.asList((SchedulePatternRequest.ScheduleSessionRequest) null));
+
+            assertThat(request.isScheduleShapeValid()).isFalse();
+            assertThat(request.isScheduleTimeRangeValid()).isFalse();
+        }
+
+        @Test
+        @DisplayName("요일별 session schedulePattern은 유효하다")
+        void perDaySessionSchedulePattern_isValid() {
+            SchedulePatternRequest request = new SchedulePatternRequest(
+                    null,
+                    null,
+                    null,
+                    List.of(new SchedulePatternRequest.ScheduleSessionRequest("MON", "15:00", "16:00")));
+
+            assertThat(request.isScheduleShapeValid()).isTrue();
+            assertThat(request.isScheduleTimeRangeValid()).isTrue();
+        }
+
+        @Test
+        @DisplayName("역전된 시간 범위는 유효하지 않다")
+        void reversedTimeRange_isInvalid() {
+            SchedulePatternRequest request = new SchedulePatternRequest(
+                    null,
+                    null,
+                    null,
+                    List.of(new SchedulePatternRequest.ScheduleSessionRequest("MON", "16:00", "15:00")));
+
+            assertThat(request.isScheduleTimeRangeValid()).isFalse();
+        }
     }
 
     @Nested
@@ -242,6 +383,13 @@ class ClassCommandServiceTest {
     private ClassEntity buildClassEntity(Long id) throws Exception {
         ClassEntity entity = ClassEntity.create(
                 "수학 기초반", 10L, null, "설명");
+        ReflectionTestUtils.setField(entity, "id", id);
+        return entity;
+    }
+
+    private ClassEntity buildClassEntity(Long id, SchedulePattern schedulePattern) throws Exception {
+        ClassEntity entity = ClassEntity.create(
+                "수학 기초반", 10L, schedulePattern, "설명");
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;
     }

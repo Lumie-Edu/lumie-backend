@@ -176,7 +176,7 @@ public class ClassCommandService {
     }
 
     private void validateNoScheduleOverlap(Long teacherId, SchedulePattern newPattern, Long excludeClassId) {
-        if (teacherId == null || newPattern == null || newPattern.days().isEmpty()) {
+        if (teacherId == null || hasNoSessions(newPattern)) {
             return;
         }
 
@@ -187,7 +187,7 @@ public class ClassCommandService {
                 continue;
             }
             SchedulePattern ep = existing.getSchedulePattern();
-            if (ep == null || ep.days().isEmpty()) {
+            if (hasNoSessions(ep)) {
                 continue;
             }
             if (hasTimeOverlap(newPattern, ep)) {
@@ -200,7 +200,7 @@ public class ClassCommandService {
 
     private void validateNoStudentScheduleOverlap(Long studentId, ClassEntity targetClass) {
         SchedulePattern newPattern = targetClass.getSchedulePattern();
-        if (newPattern == null || newPattern.days().isEmpty()) {
+        if (hasNoSessions(newPattern)) {
             return;
         }
 
@@ -214,7 +214,7 @@ public class ClassCommandService {
                 continue;
             }
             SchedulePattern ep = existing.getSchedulePattern();
-            if (ep == null || ep.days().isEmpty()) {
+            if (hasNoSessions(ep)) {
                 continue;
             }
             if (hasTimeOverlap(newPattern, ep)) {
@@ -226,12 +226,23 @@ public class ClassCommandService {
     }
 
     private boolean hasTimeOverlap(SchedulePattern a, SchedulePattern b) {
-        boolean daysOverlap = a.days().stream().anyMatch(b.days()::contains);
-        if (!daysOverlap) {
-            return false;
+        for (SchedulePattern.ScheduleSession left : a.sessions()) {
+            for (SchedulePattern.ScheduleSession right : b.sessions()) {
+                if (left.day().equals(right.day()) && hasTimeOverlap(left, right)) {
+                    return true;
+                }
+            }
         }
+        return false;
+    }
+
+    private boolean hasTimeOverlap(SchedulePattern.ScheduleSession a, SchedulePattern.ScheduleSession b) {
         return a.startTime().compareTo(b.endTime()) < 0
                 && a.endTime().compareTo(b.startTime()) > 0;
+    }
+
+    private boolean hasNoSessions(SchedulePattern pattern) {
+        return pattern == null || pattern.sessions().isEmpty();
     }
 
     private EnrollmentStatus parseEnrollmentStatus(String status) {

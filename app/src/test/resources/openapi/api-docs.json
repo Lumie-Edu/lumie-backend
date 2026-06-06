@@ -4033,11 +4033,16 @@
           "endTime" : {
             "type" : "string"
           },
+          "sessions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ScheduleSessionRequest"
+            },
+            "type" : "array"
+          },
           "startTime" : {
             "type" : "string"
           }
         },
-        "required" : [ "days", "endTime", "startTime" ],
         "type" : "object"
       },
       "SchedulePatternResponse" : {
@@ -4050,13 +4055,21 @@
             "type" : "array"
           },
           "endTime" : {
+            "nullable" : true,
             "type" : "string"
           },
+          "sessions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ScheduleSessionResponse"
+            },
+            "type" : "array"
+          },
           "startTime" : {
+            "nullable" : true,
             "type" : "string"
           }
         },
-        "required" : [ "days", "endTime", "startTime" ],
+        "required" : [ "days", "endTime", "sessions", "startTime" ],
         "type" : "object"
       },
       "ScheduleResponse" : {
@@ -4105,6 +4118,36 @@
           }
         },
         "required" : [ "confirmedCount", "createdAt", "date", "description", "endTime", "hasReservation", "id", "isAvailable", "startTime", "updatedAt", "userId" ],
+        "type" : "object"
+      },
+      "ScheduleSessionRequest" : {
+        "properties" : {
+          "day" : {
+            "type" : "string"
+          },
+          "endTime" : {
+            "type" : "string"
+          },
+          "startTime" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "day", "endTime", "startTime" ],
+        "type" : "object"
+      },
+      "ScheduleSessionResponse" : {
+        "properties" : {
+          "day" : {
+            "type" : "string"
+          },
+          "endTime" : {
+            "type" : "string"
+          },
+          "startTime" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "day", "endTime", "startTime" ],
         "type" : "object"
       },
       "SchemaResponse" : {
