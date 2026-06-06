@@ -13,10 +13,19 @@ public interface LectureClassTargetRepository extends JpaRepository<LectureClass
 
     List<LectureClassTarget> findByLectureIdOrderByClassIdAsc(Long lectureId);
 
+    @Query("""
+            SELECT t.classId
+            FROM LectureClassTarget t
+            WHERE t.lecture.id = :lectureId
+            ORDER BY t.classId ASC
+            """)
+    List<Long> findClassIdsByLectureIdOrderByClassIdAsc(@Param("lectureId") Long lectureId);
+
     long countByLectureId(Long lectureId);
 
-    @Modifying
-    void deleteByLectureId(Long lectureId);
+    @Modifying(flushAutomatically = true)
+    @Query("delete from LectureClassTarget t where t.lecture.id = :lectureId")
+    void deleteByLectureId(@Param("lectureId") Long lectureId);
 
     @Query("""
             SELECT t.lecture.id AS lectureId, t.classId AS classId

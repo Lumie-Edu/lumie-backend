@@ -76,12 +76,14 @@ public class LectureCommandService {
                 ? LectureVisibility.valueOf(request.visibility()) : null;
         LectureVisibility effectiveVisibility = visibility != null ? visibility : lecture.getVisibility();
         boolean targetsProvided = request.classId() != null || request.classIds() != null;
+        List<Long> currentClassIds = classIdsForResponse(lecture.getId(), lecture.getClassId());
         List<Long> classIds = targetsProvided
                 ? normalizeClassIds(request.classId(), request.classIds())
-                : classIdsForResponse(lecture.getId(), lecture.getClassId());
+                : currentClassIds;
+        boolean targetsChanged = targetsProvided && !classIds.equals(currentClassIds);
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         requireCanManageLecture(tenantSlug, lecture.getTeacherId());
-        if (targetsProvided) {
+        if (targetsChanged) {
             validateTargets(tenantSlug, effectiveVisibility, classIds, lecture.getTeacherId());
         } else {
             validateTargetPresence(effectiveVisibility, classIds);
@@ -89,7 +91,7 @@ public class LectureCommandService {
 
         lecture.update(request.title(), request.description(), request.youtubeUrl(), visibility, request.lectureDate());
 
-        if (targetsProvided) {
+        if (targetsChanged) {
             lecture.updatePrimaryClassId(firstClassId(classIds));
             syncTargets(lecture, classIds);
         }
@@ -108,6 +110,7 @@ public class LectureCommandService {
 
     private void syncTargets(Lecture lecture, List<Long> classIds) {
         targetRepository.deleteByLectureId(lecture.getId());
+        targetRepository.flush();
         for (Long classId : classIds) {
             targetRepository.save(LectureClassTarget.create(lecture, classId));
         }
@@ -158,9 +161,7 @@ public class LectureCommandService {
     }
 
     private List<Long> classIdsForResponse(Long lectureId, Long fallbackClassId) {
-        List<Long> classIds = targetRepository.findByLectureIdOrderByClassIdAsc(lectureId).stream()
-                .map(LectureClassTarget::getClassId)
-                .toList();
+        List<Long> classIds = targetRepository.findClassIdsByLectureIdOrderByClassIdAsc(lectureId);
         return primaryFirst(classIds, fallbackClassId);
     }
 

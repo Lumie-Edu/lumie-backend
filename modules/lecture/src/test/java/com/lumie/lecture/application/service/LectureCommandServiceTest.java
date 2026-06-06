@@ -33,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 
 @ExtendWith({MockitoExtension.class, TenantContextExtension.class})
 @DisplayName("LectureCommandService 테스트")
@@ -93,8 +94,8 @@ class LectureCommandServiceTest {
             ReflectionTestUtils.setField(lecture, "id", 1L);
             return lecture;
         });
-        given(targetRepository.findByLectureIdOrderByClassIdAsc(1L))
-                .willReturn(List.of(target(2L), target(3L)));
+        given(targetRepository.findClassIdsByLectureIdOrderByClassIdAsc(1L))
+                .willReturn(List.of(2L, 3L));
 
         LectureResponse response = commandService.create(request);
 
@@ -148,7 +149,7 @@ class LectureCommandServiceTest {
                 null
         );
         given(lectureRepository.findById(1L)).willReturn(Optional.of(lecture));
-        given(targetRepository.findByLectureIdOrderByClassIdAsc(1L)).willReturn(List.of());
+        given(targetRepository.findClassIdsByLectureIdOrderByClassIdAsc(1L)).willReturn(List.of());
         given(lectureRepository.save(lecture)).willReturn(lecture);
 
         LectureResponse response = commandService.update(1L, request);
@@ -156,6 +157,33 @@ class LectureCommandServiceTest {
         assertThat(response.title()).isEqualTo("변경 제목");
         assertThat(response.classIds()).containsExactly(999L);
         verifyNoInteractions(classService);
+    }
+
+    @Test
+    @DisplayName("동일한 대상 수업으로 수정하면 target을 삭제하거나 재생성하지 않는다")
+    void update_sameTargetClasses_doesNotResyncTargets() throws Exception {
+        Lecture lecture = Lecture.create(2L, 10L, "기존 제목", null,
+                "https://www.youtube.com/watch?v=abc123", null, null);
+        ReflectionTestUtils.setField(lecture, "id", 1L);
+        UpdateLectureRequest request = new UpdateLectureRequest(
+                2L,
+                List.of(2L),
+                "기존 제목",
+                null,
+                "https://www.youtube.com/watch?v=abc123",
+                "STUDENT",
+                null
+        );
+        given(lectureRepository.findById(1L)).willReturn(Optional.of(lecture));
+        given(targetRepository.findClassIdsByLectureIdOrderByClassIdAsc(1L)).willReturn(List.of(2L));
+        given(lectureRepository.save(lecture)).willReturn(lecture);
+
+        LectureResponse response = commandService.update(1L, request);
+
+        assertThat(response.classIds()).containsExactly(2L);
+        verifyNoInteractions(classService);
+        verify(targetRepository, never()).deleteByLectureId(1L);
+        verify(targetRepository, never()).save(any(LectureClassTarget.class));
     }
 
     private static ClassService.ClassData classData(Long classId) {
@@ -191,10 +219,4 @@ class LectureCommandServiceTest {
         );
     }
 
-    private static LectureClassTarget target(Long classId) throws Exception {
-        Lecture lecture = Lecture.create(classId, 10L, "수업 영상", null,
-                "https://www.youtube.com/watch?v=abc123", null, null);
-        ReflectionTestUtils.setField(lecture, "id", 1L);
-        return LectureClassTarget.create(lecture, classId);
-    }
 }
