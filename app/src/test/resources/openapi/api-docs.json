@@ -1208,6 +1208,13 @@
             "format" : "int64",
             "type" : "integer"
           },
+          "classIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
           "description" : {
             "type" : "string"
           },
@@ -2230,7 +2237,15 @@
         "properties" : {
           "classId" : {
             "format" : "int64",
+            "nullable" : true,
             "type" : "integer"
+          },
+          "classIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           },
           "createdAt" : {
             "format" : "date-time",
@@ -2247,10 +2262,6 @@
           "lectureDate" : {
             "format" : "date",
             "nullable" : true,
-            "type" : "string"
-          },
-          "status" : {
-            "enum" : [ "ACTIVE", "DRAFT", "CLOSED" ],
             "type" : "string"
           },
           "teacherId" : {
@@ -2273,7 +2284,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "classId", "createdAt", "description", "id", "lectureDate", "status", "teacherId", "title", "updatedAt", "visibility", "youtubeUrl" ],
+        "required" : [ "classId", "classIds", "createdAt", "description", "id", "lectureDate", "teacherId", "title", "updatedAt", "visibility", "youtubeUrl" ],
         "type" : "object"
       },
       "LoginRequest" : {
@@ -5638,6 +5649,17 @@
       },
       "UpdateLectureRequest" : {
         "properties" : {
+          "classId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "classIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
           "description" : {
             "type" : "string"
           },
@@ -5645,13 +5667,13 @@
             "format" : "date",
             "type" : "string"
           },
-          "status" : {
-            "type" : "string"
-          },
           "title" : {
             "type" : "string"
           },
           "visibility" : {
+            "type" : "string"
+          },
+          "youtubeUrl" : {
             "type" : "string"
           }
         },
@@ -9848,13 +9870,6 @@
           }
         }, {
           "in" : "query",
-          "name" : "status",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
           "name" : "startDate",
           "required" : false,
           "schema" : {
@@ -9935,7 +9950,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -9943,7 +9958,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "lecture-controller" ]
@@ -10018,6 +10033,14 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "query",
+          "name" : "classId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -10047,8 +10070,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "lecture-controller" ]

@@ -7,6 +7,7 @@ import com.lumie.lecture.application.service.LectureCommandService;
 import com.lumie.lecture.application.service.LectureQueryService;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +28,7 @@ public class LectureController {
     private final LectureQueryService queryService;
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<LectureResponse> create(@Valid @RequestBody CreateLectureRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(commandService.create(request));
     }
@@ -56,6 +58,7 @@ public class LectureController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         commandService.delete(id);
         return ResponseEntity.noContent().build();
