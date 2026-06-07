@@ -110,7 +110,7 @@ public class Tenant extends BaseEntity {
 
     @Builder
     private Tenant(TenantSlug slug, String name, String displayName, String ownerEmail, TenantPlan plan,
-                   String instituteName, String businessRegistrationNumber) {
+                   String instituteName, String businessRegistrationNumber, String customId) {
         this.slug = slug;
         this.name = name;
         this.displayName = displayName;
@@ -119,6 +119,7 @@ public class Tenant extends BaseEntity {
         this.plan = plan != null ? plan : TenantPlan.FREE;
         this.instituteName = instituteName;
         this.businessRegistrationNumber = businessRegistrationNumber;
+        this.customId = customId;
     }
 
     public static Tenant create(String slug, String name, String displayName, String ownerEmail) {
@@ -128,6 +129,7 @@ public class Tenant extends BaseEntity {
     public static Tenant create(String slug, String name, String displayName, String ownerEmail, TenantPlan plan) {
         return Tenant.builder()
                 .slug(TenantSlug.of(slug))
+                .customId(slug.replaceFirst("^inst-", ""))
                 .name(name)
                 .displayName(displayName)
                 .ownerEmail(ownerEmail)
@@ -143,6 +145,7 @@ public class Tenant extends BaseEntity {
         String autoSlug = "inst-" + java.util.UUID.randomUUID().toString().substring(0, 8);
         return Tenant.builder()
                 .slug(TenantSlug.of(autoSlug))
+                .customId(autoSlug.replaceFirst("^inst-", ""))
                 .name(instituteName)
                 .displayName(instituteName)
                 .ownerEmail(ownerEmail)
@@ -157,10 +160,11 @@ public class Tenant extends BaseEntity {
     }
 
     public void updateCustomId(String customId) {
-        boolean alreadySet = this.customId != null && !this.customId.isBlank();
+        boolean isDefault = this.customId == null || this.customId.equals(this.slug.getValue()) || this.customId.equals(this.slug.getValue().replaceFirst("^inst-", ""));
+        boolean alreadySet = !isDefault;
 
         if (alreadySet) {
-            // Once set, the only permitted call is an idempotent no-op with the same value.
+            // Once set by user, the only permitted call is an idempotent no-op with the same value.
             // Clearing, blanking, or changing to a different value are all forbidden.
             String incoming = (customId == null || customId.isBlank())
                     ? null
@@ -173,9 +177,9 @@ public class Tenant extends BaseEntity {
             return;
         }
 
-        // First-set path: existing behavior preserved exactly.
+        // First-set path:
         if (customId == null || customId.isBlank()) {
-            this.customId = null;
+            this.customId = this.slug.getValue().replaceFirst("^inst-", "");
             return;
         }
         String normalized = customId.toLowerCase(java.util.Locale.ROOT).trim();

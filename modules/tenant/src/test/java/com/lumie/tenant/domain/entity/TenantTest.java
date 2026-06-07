@@ -199,7 +199,7 @@ class TenantTest {
     @DisplayName("customId가 null일 때 처음 설정하면 정상 저장됨")
     void setCustomIdFirstTime() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
-        assertThat(tenant.getCustomId()).isNull();
+        assertThat(tenant.getCustomId()).isEqualTo(tenant.getSlugValue());
 
         tenant.updateCustomId("my-academy");
 
@@ -254,7 +254,7 @@ class TenantTest {
     @DisplayName("customId가 null일 때 포맷 위반 값으로 설정하면 BusinessException(INVALID_CUSTOM_ID) 발생")
     void setCustomIdFirstTimeWithInvalidFormatThrows() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
-        assertThat(tenant.getCustomId()).isNull();
+        assertThat(tenant.getCustomId()).isEqualTo(tenant.getSlugValue());
 
         assertThatThrownBy(() -> tenant.updateCustomId("-bad"))
                 .isInstanceOf(BusinessException.class)
@@ -266,7 +266,7 @@ class TenantTest {
     @DisplayName("customId가 null일 때 예약어로 설정하면 BusinessException(RESERVED_CUSTOM_ID) 발생")
     void setCustomIdFirstTimeWithReservedValueThrows() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
-        assertThat(tenant.getCustomId()).isNull();
+        assertThat(tenant.getCustomId()).isEqualTo(tenant.getSlugValue());
 
         // "admin" satisfies CUSTOM_ID_PATTERN (format-valid) but is in RESERVED_CUSTOM_IDS
         assertThatThrownBy(() -> tenant.updateCustomId("admin"))
