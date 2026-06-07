@@ -87,6 +87,10 @@ public class BillingKeyCommandService {
         // we just replaced the active key, so the old reference is stale).
         subscriptionPersistencePort.findByTenantId(tenantId).ifPresent(sub -> {
             sub.attachBillingKey(saved.getId());
+            if (sub.isPaused() && com.lumie.billing.domain.vo.SuspensionReason.BILLING_KEY_REVOKED.equals(sub.getSuspensionReason())) {
+                sub.resume();
+                log.info("Subscription automatically resumed after billing key registration: subscriptionId={}", sub.getId());
+            }
             subscriptionPersistenceHelper.save(sub);
             log.info("BillingKey attached to subscription: subscriptionId={}, billingKeyId={}",
                     sub.getId(), saved.getId());
