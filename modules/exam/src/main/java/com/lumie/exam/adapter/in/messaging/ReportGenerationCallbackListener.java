@@ -11,6 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.TimeUnit;
+
+import static com.lumie.common.logging.LogFields.field;
+
 /**
  * Consumes report-svc generation callbacks from RabbitMQ.
  *
@@ -29,7 +33,20 @@ public class ReportGenerationCallbackListener {
 
     @RabbitListener(queues = "report.generation-callback")
     public void handle(ReportCallbackRequest request) {
+        long startNanos = System.nanoTime();
         if (request.tenantSlug() == null || request.tenantSlug().isBlank()) {
+            log.error("Background job callback rejected report_generation jobId={} missing tenantSlug",
+                    request.jobId(),
+                    field("eventType", "background_job"),
+                    field("jobName", "report_generation"),
+                    field("jobPhase", "callback_rejected"),
+                    field("jobId", request.jobId()),
+                    field("entityType", "exam"),
+                    field("entityId", request.examId()),
+                    field("queue", "report.generation-callback"),
+                    field("latencyMs", elapsedMillis(startNanos)),
+                    field("outcome", "failed"),
+                    field("errorCode", ExamErrorCode.MISSING_TENANT_SLUG.name()));
             throw new BusinessException(
                     ExamErrorCode.MISSING_TENANT_SLUG,
                     "Report callback missing tenantSlug for job " + request.jobId()
@@ -37,21 +54,65 @@ public class ReportGenerationCallbackListener {
         }
         Long tenantId = tenantService.getTenantBySlug(request.tenantSlug())
                 .map(TenantService.TenantData::id)
-                .orElseThrow(() -> new BusinessException(
-                        ExamErrorCode.MISSING_TENANT_SLUG,
-                        "Report callback references unknown tenant " + request.tenantSlug()
-                                + " for job " + request.jobId()
-                ));
+                .orElse(null);
+        if (tenantId == null) {
+            log.error("Background job callback rejected report_generation jobId={} unknown tenant",
+                    request.jobId(),
+                    field("eventType", "background_job"),
+                    field("jobName", "report_generation"),
+                    field("jobPhase", "callback_rejected"),
+                    field("jobId", request.jobId()),
+                    field("tenantSlug", request.tenantSlug()),
+                    field("entityType", "exam"),
+                    field("entityId", request.examId()),
+                    field("queue", "report.generation-callback"),
+                    field("latencyMs", elapsedMillis(startNanos)),
+                    field("outcome", "failed"),
+                    field("errorCode", ExamErrorCode.MISSING_TENANT_SLUG.name()));
+            throw new BusinessException(
+                    ExamErrorCode.MISSING_TENANT_SLUG,
+                    "Report callback references unknown tenant " + request.tenantSlug()
+                            + " for job " + request.jobId()
+            );
+        }
         TenantContextHolder.withinContext(request.tenantSlug(), tenantId, (Runnable) () -> {
             try {
                 reportJobService.processCallback(request);
+                log.info("Background job callback processed report_generation jobId={}",
+                        request.jobId(),
+                        field("eventType", "background_job"),
+                        field("jobName", "report_generation"),
+                        field("jobPhase", "callback_received"),
+                        field("jobId", request.jobId()),
+                        field("tenantSlug", request.tenantSlug()),
+                        field("entityType", "exam"),
+                        field("entityId", request.examId()),
+                        field("queue", "report.generation-callback"),
+                        field("latencyMs", elapsedMillis(startNanos)),
+                        field("outcome", "success"));
             } catch (RuntimeException e) {
                 log.error(
                         "Report callback processing failed for job {} (tenant {}): {}",
-                        request.jobId(), request.tenantSlug(), e.getMessage(), e
+                        request.jobId(), request.tenantSlug(), e.getMessage(),
+                        field("eventType", "background_job"),
+                        field("jobName", "report_generation"),
+                        field("jobPhase", "callback_failed"),
+                        field("jobId", request.jobId()),
+                        field("tenantSlug", request.tenantSlug()),
+                        field("entityType", "exam"),
+                        field("entityId", request.examId()),
+                        field("queue", "report.generation-callback"),
+                        field("latencyMs", elapsedMillis(startNanos)),
+                        field("outcome", "failed"),
+                        field("exceptionClass", e.getClass().getSimpleName()),
+                        e
                 );
                 throw e;
             }
         });
+    }
+
+    private long elapsedMillis(long startNanos) {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
     }
 }

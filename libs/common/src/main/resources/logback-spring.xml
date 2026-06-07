@@ -33,6 +33,14 @@
                 <includeMdcKeyName>entityType</includeMdcKeyName>
                 <includeMdcKeyName>entityId</includeMdcKeyName>
                 <includeMdcKeyName>entityName</includeMdcKeyName>
+                <includeMdcKeyName>jobId</includeMdcKeyName>
+                <includeMdcKeyName>jobName</includeMdcKeyName>
+                <includeMdcKeyName>jobPhase</includeMdcKeyName>
+                <includeMdcKeyName>queue</includeMdcKeyName>
+                <includeMdcKeyName>routingKey</includeMdcKeyName>
+                <includeMdcKeyName>dependency</includeMdcKeyName>
+                <includeMdcKeyName>operation</includeMdcKeyName>
+                <includeMdcKeyName>externalStatus</includeMdcKeyName>
                 <timeZone>UTC</timeZone>
                 <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
             </encoder>

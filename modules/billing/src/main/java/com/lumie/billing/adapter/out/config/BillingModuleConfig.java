@@ -1,5 +1,6 @@
 package com.lumie.billing.adapter.out.config;
 
+import com.lumie.common.logging.ExternalCallLoggingInterceptor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,7 @@ public class BillingModuleConfig {
     public RestClient tossBillingRestClient() {
         return RestClient.builder()
                 .baseUrl("https://api.tosspayments.com")
+                .requestInterceptor(new ExternalCallLoggingInterceptor())
                 .build();
     }
 }

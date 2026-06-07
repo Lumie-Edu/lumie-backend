@@ -1,5 +1,6 @@
 package com.lumie.exam.adapter.out.config;
 
+import com.lumie.common.logging.ExternalCallLoggingInterceptor;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +26,9 @@ public class RestClientConfig {
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     public RestClient.Builder restClientBuilder(ClientHttpRequestFactory requestFactory) {
-        return RestClient.builder().requestFactory(requestFactory);
+        return RestClient.builder()
+                .requestFactory(requestFactory)
+                .requestInterceptor(new ExternalCallLoggingInterceptor());
     }
 
     private static ClientHttpRequestFactory defaultRequestFactory() {

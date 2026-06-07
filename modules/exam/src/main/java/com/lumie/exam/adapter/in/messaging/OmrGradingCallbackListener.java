@@ -11,6 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.TimeUnit;
+
+import static com.lumie.common.logging.LogFields.field;
+
 /**
  * Consumes grading-svc completion callbacks from RabbitMQ.
  *
@@ -37,7 +41,20 @@ public class OmrGradingCallbackListener {
 
     @RabbitListener(queues = "grading.omr-callback")
     public void handle(OmrGradingCallbackRequest request) {
+        long startNanos = System.nanoTime();
         if (request.tenantSlug() == null || request.tenantSlug().isBlank()) {
+            log.error("Background job callback rejected omr_grading jobId={} missing tenantSlug",
+                    request.jobId(),
+                    field("eventType", "background_job"),
+                    field("jobName", "omr_grading"),
+                    field("jobPhase", "callback_rejected"),
+                    field("jobId", request.jobId()),
+                    field("entityType", "exam"),
+                    field("entityId", request.examId()),
+                    field("queue", "grading.omr-callback"),
+                    field("latencyMs", elapsedMillis(startNanos)),
+                    field("outcome", "failed"),
+                    field("errorCode", ExamErrorCode.MISSING_TENANT_SLUG.name()));
             throw new BusinessException(
                     ExamErrorCode.MISSING_TENANT_SLUG,
                     "OMR callback missing tenantSlug for job " + request.jobId()
@@ -45,21 +62,65 @@ public class OmrGradingCallbackListener {
         }
         Long tenantId = tenantService.getTenantBySlug(request.tenantSlug())
                 .map(TenantService.TenantData::id)
-                .orElseThrow(() -> new BusinessException(
-                        ExamErrorCode.MISSING_TENANT_SLUG,
-                        "OMR callback references unknown tenant " + request.tenantSlug()
-                                + " for job " + request.jobId()
-                ));
+                .orElse(null);
+        if (tenantId == null) {
+            log.error("Background job callback rejected omr_grading jobId={} unknown tenant",
+                    request.jobId(),
+                    field("eventType", "background_job"),
+                    field("jobName", "omr_grading"),
+                    field("jobPhase", "callback_rejected"),
+                    field("jobId", request.jobId()),
+                    field("tenantSlug", request.tenantSlug()),
+                    field("entityType", "exam"),
+                    field("entityId", request.examId()),
+                    field("queue", "grading.omr-callback"),
+                    field("latencyMs", elapsedMillis(startNanos)),
+                    field("outcome", "failed"),
+                    field("errorCode", ExamErrorCode.MISSING_TENANT_SLUG.name()));
+            throw new BusinessException(
+                    ExamErrorCode.MISSING_TENANT_SLUG,
+                    "OMR callback references unknown tenant " + request.tenantSlug()
+                            + " for job " + request.jobId()
+            );
+        }
         TenantContextHolder.withinContext(request.tenantSlug(), tenantId, (Runnable) () -> {
             try {
                 processor.processGradingCallback(request);
+                log.info("Background job callback processed omr_grading jobId={}",
+                        request.jobId(),
+                        field("eventType", "background_job"),
+                        field("jobName", "omr_grading"),
+                        field("jobPhase", "callback_received"),
+                        field("jobId", request.jobId()),
+                        field("tenantSlug", request.tenantSlug()),
+                        field("entityType", "exam"),
+                        field("entityId", request.examId()),
+                        field("queue", "grading.omr-callback"),
+                        field("latencyMs", elapsedMillis(startNanos)),
+                        field("outcome", "success"));
             } catch (RuntimeException e) {
                 log.error(
                         "OMR callback processing failed for job {} (tenant {}): {}",
-                        request.jobId(), request.tenantSlug(), e.getMessage(), e
+                        request.jobId(), request.tenantSlug(), e.getMessage(),
+                        field("eventType", "background_job"),
+                        field("jobName", "omr_grading"),
+                        field("jobPhase", "callback_failed"),
+                        field("jobId", request.jobId()),
+                        field("tenantSlug", request.tenantSlug()),
+                        field("entityType", "exam"),
+                        field("entityId", request.examId()),
+                        field("queue", "grading.omr-callback"),
+                        field("latencyMs", elapsedMillis(startNanos)),
+                        field("outcome", "failed"),
+                        field("exceptionClass", e.getClass().getSimpleName()),
+                        e
                 );
                 throw e;
             }
         });
+    }
+
+    private long elapsedMillis(long startNanos) {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
     }
 }
