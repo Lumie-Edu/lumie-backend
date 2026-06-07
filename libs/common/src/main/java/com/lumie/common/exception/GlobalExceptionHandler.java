@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
 /**
  * Global REST exception → {@link ProblemDetail} (RFC 7807 / RFC 9457) mapper.
  *
@@ -61,7 +63,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ProblemDetail> handleBusinessException(BusinessException ex,
                                                                  HttpServletRequest request) {
-        log.warn("Business exception [{}]: {}", ex.getErrorCode().getCode(), ex.getMessage());
+        logBusinessException(ex, request);
         ProblemDetail body = buildProblemDetail(ex, request);
         if (ex instanceof ExtensionProperties ep) {
             ep.extensionProperties().forEach(body::setProperty);
@@ -209,6 +211,43 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return (cause instanceof SQLException sql && sql.getSQLState() != null)
                 ? sql.getSQLState()
                 : "";
+    }
+
+    private void logBusinessException(BusinessException ex, HttpServletRequest request) {
+        ErrorCode errorCode = ex.getErrorCode();
+        int status = errorCode.getStatus();
+        if (status >= 500) {
+            log.error("Business exception [{}]: {}",
+                    errorCode.getCode(), ex.getMessage(),
+                    keyValue("eventType", "error"),
+                    keyValue("errorCode", errorCode.getCode()),
+                    keyValue("exceptionClass", ex.getClass().getSimpleName()),
+                    keyValue("httpStatus", status),
+                    keyValue("httpMethod", request.getMethod()),
+                    keyValue("rawPath", request.getRequestURI()),
+                    keyValue("outcome", "failure"),
+                    ex);
+        } else if (status == 401 || status == 403) {
+            log.warn("Business exception [{}]: {}",
+                    errorCode.getCode(), ex.getMessage(),
+                    keyValue("eventType", "error"),
+                    keyValue("errorCode", errorCode.getCode()),
+                    keyValue("exceptionClass", ex.getClass().getSimpleName()),
+                    keyValue("httpStatus", status),
+                    keyValue("httpMethod", request.getMethod()),
+                    keyValue("rawPath", request.getRequestURI()),
+                    keyValue("outcome", "failure"));
+        } else {
+            log.info("Business exception [{}]: {}",
+                    errorCode.getCode(), ex.getMessage(),
+                    keyValue("eventType", "error"),
+                    keyValue("errorCode", errorCode.getCode()),
+                    keyValue("exceptionClass", ex.getClass().getSimpleName()),
+                    keyValue("httpStatus", status),
+                    keyValue("httpMethod", request.getMethod()),
+                    keyValue("rawPath", request.getRequestURI()),
+                    keyValue("outcome", "failure"));
+        }
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

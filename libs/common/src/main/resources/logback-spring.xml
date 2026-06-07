@@ -18,10 +18,21 @@
                 <includeMdcKeyName>tenantId</includeMdcKeyName>
                 <includeMdcKeyName>userId</includeMdcKeyName>
                 <includeMdcKeyName>userRole</includeMdcKeyName>
+                <includeMdcKeyName>requestId</includeMdcKeyName>
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+                <includeMdcKeyName>eventType</includeMdcKeyName>
+                <includeMdcKeyName>outcome</includeMdcKeyName>
                 <includeMdcKeyName>httpMethod</includeMdcKeyName>
                 <includeMdcKeyName>httpPath</includeMdcKeyName>
                 <includeMdcKeyName>httpStatus</includeMdcKeyName>
                 <includeMdcKeyName>latencyMs</includeMdcKeyName>
+                <includeMdcKeyName>actorId</includeMdcKeyName>
+                <includeMdcKeyName>actorName</includeMdcKeyName>
+                <includeMdcKeyName>actorRole</includeMdcKeyName>
+                <includeMdcKeyName>action</includeMdcKeyName>
+                <includeMdcKeyName>entityType</includeMdcKeyName>
+                <includeMdcKeyName>entityId</includeMdcKeyName>
+                <includeMdcKeyName>entityName</includeMdcKeyName>
                 <timeZone>UTC</timeZone>
                 <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
             </encoder>

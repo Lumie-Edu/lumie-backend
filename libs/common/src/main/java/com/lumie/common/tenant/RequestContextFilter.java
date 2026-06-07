@@ -15,6 +15,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 /**
  * Filter that populates tenant and user context from SecurityContext (JWT)
@@ -28,6 +30,11 @@ public class RequestContextFilter extends OncePerRequestFilter {
     public static final String TENANT_SLUG_HEADER = "X-Tenant-Slug";
     public static final String TENANT_ID_HEADER = "X-Tenant-Id";
     public static final String USER_ROLE_HEADER = "X-User-Role";
+    public static final String REQUEST_ID_HEADER = "X-Request-Id";
+
+    private static final String TRACEPARENT_HEADER = "traceparent";
+    private static final int MAX_REQUEST_ID_LENGTH = 128;
+    private static final int TRACE_ID_LENGTH = 32;
 
     private final List<String> excludePaths;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
@@ -47,6 +54,8 @@ public class RequestContextFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
+            setRequestCorrelation(request, response);
+
             if (!populateFromSecurityContext()) {
                 populateFromHeaders(request);
             }
@@ -59,6 +68,61 @@ public class RequestContextFilter extends OncePerRequestFilter {
             TenantContextHolder.clear();
             UserContextHolder.clear();
         }
+    }
+
+    private void setRequestCorrelation(HttpServletRequest request, HttpServletResponse response) {
+        String requestId = resolveRequestId(request.getHeader(REQUEST_ID_HEADER));
+        MDC.put("requestId", requestId);
+        response.setHeader(REQUEST_ID_HEADER, requestId);
+
+        String traceId = extractTraceId(request.getHeader(TRACEPARENT_HEADER));
+        if (traceId != null) {
+            MDC.put("traceId", traceId);
+        }
+    }
+
+    private String resolveRequestId(String headerValue) {
+        if (headerValue == null || headerValue.isBlank()) {
+            return UUID.randomUUID().toString();
+        }
+        String trimmed = headerValue.trim();
+        if (trimmed.length() > MAX_REQUEST_ID_LENGTH) {
+            return UUID.randomUUID().toString();
+        }
+        return trimmed;
+    }
+
+    private String extractTraceId(String traceparent) {
+        if (traceparent == null || traceparent.isBlank()) {
+            return null;
+        }
+        String[] parts = traceparent.split("-", -1);
+        if (parts.length < 4) {
+            return null;
+        }
+        String traceId = parts[1].toLowerCase(Locale.ROOT);
+        if (traceId.length() != TRACE_ID_LENGTH || isAllZeros(traceId) || !isHex(traceId)) {
+            return null;
+        }
+        return traceId;
+    }
+
+    private boolean isAllZeros(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            if (value.charAt(i) != '0') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isHex(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            if (Character.digit(value.charAt(i), 16) == -1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean populateFromSecurityContext() {

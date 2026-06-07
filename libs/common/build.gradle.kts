@@ -49,6 +49,7 @@ dependencies {
 
     // Test (module-specific only — common test deps in root build.gradle.kts)
     testImplementation("org.springframework.boot:spring-boot-starter-web")
+    testImplementation("org.springframework.boot:spring-boot-starter-security")
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc")
     testRuntimeOnly("org.postgresql:postgresql")
 

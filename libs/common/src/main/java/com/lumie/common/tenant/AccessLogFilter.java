@@ -6,20 +6,22 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
 /**
  * Filter that logs each HTTP request with method, path, status, and latency.
  *
  * <p>Runs after {@link RequestContextFilter} so MDC already contains
- * tenant and user context. Adds request-specific MDC keys temporarily
- * for the access log line, then removes them.
+ * tenant, user, and request correlation context. Request-specific access fields
+ * are emitted as structured arguments to avoid duplicate JSON keys with MDC.
  */
 public class AccessLogFilter extends OncePerRequestFilter {
 
@@ -49,19 +51,37 @@ public class AccessLogFilter extends OncePerRequestFilter {
             long latencyMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             String method = request.getMethod();
             String path = request.getRequestURI();
+            String pathTemplate = resolvePathTemplate(request, path);
             int status = response.getStatus();
+            String outcome = status >= 500 ? "server_error"
+                    : status >= 400 ? "client_error"
+                    : "success";
 
-            MDC.put("httpMethod", method);
-            MDC.put("httpPath", path);
-            MDC.put("httpStatus", String.valueOf(status));
-            MDC.put("latencyMs", String.valueOf(latencyMs));
-
-            log.info("{} {} {} {}ms", method, path, status, latencyMs);
-
-            MDC.remove("httpMethod");
-            MDC.remove("httpPath");
-            MDC.remove("httpStatus");
-            MDC.remove("latencyMs");
+            log.info("HTTP request {} {} {} {}ms",
+                    method, pathTemplate, status, latencyMs,
+                    keyValue("eventType", "http_request"),
+                    keyValue("httpMethod", method),
+                    keyValue("pathTemplate", pathTemplate),
+                    keyValue("rawPath", path),
+                    keyValue("httpStatus", status),
+                    keyValue("latencyMs", latencyMs),
+                    keyValue("outcome", outcome),
+                    keyValue("clientIp", clientIp(request)),
+                    keyValue("userAgent", request.getHeader("User-Agent")));
         }
+    }
+
+    private String resolvePathTemplate(HttpServletRequest request, String fallback) {
+        Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+        return pattern instanceof String value && !value.isBlank() ? value : fallback;
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            int comma = forwarded.indexOf(',');
+            return (comma > 0 ? forwarded.substring(0, comma) : forwarded).trim();
+        }
+        return request.getRemoteAddr();
     }
 }
