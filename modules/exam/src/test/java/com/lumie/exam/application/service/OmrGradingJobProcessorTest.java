@@ -10,6 +10,7 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.exam.test.ExamFixtures;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -81,6 +82,8 @@ class OmrGradingJobProcessorTest {
         ExamResult resolvedResult = ExamResult.create(exam, studentId, 100);
 
         given(callbackDeduplication.markIfAbsent(any())).willReturn(true);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
         given(examRepository.findById(10L)).willReturn(Optional.of(exam));
         given(studentService.getStudentByPhone(any(), eq("01012345678"))).willReturn(Optional.of(student));
         given(resultCommandService.resolveResult(eq(exam), eq(studentId), any())).willReturn(resolvedResult);
@@ -109,6 +112,8 @@ class OmrGradingJobProcessorTest {
         );
 
         given(callbackDeduplication.markIfAbsent(any())).willReturn(true);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
         given(jobRepository.tryFinalize(1L, 1)).willReturn(true);
 
         processor.processGradingCallback(request);
@@ -131,6 +136,8 @@ class OmrGradingJobProcessorTest {
         );
 
         given(callbackDeduplication.markIfAbsent(any())).willReturn(true);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
         given(jobRepository.tryFinalize(1L, 1)).willReturn(true);
 
         processor.processGradingCallback(request);
@@ -138,5 +145,24 @@ class OmrGradingJobProcessorTest {
         verify(jobRepository).incrementFail(1L);
         verify(jobRepository, never()).incrementSuccess(any());
         verify(resultRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("terminal 상태 job의 늦은 콜백은 결과와 카운터를 건드리지 않는다")
+    void processGradingCallback_lateCallbackForTerminalJob_skipsMutation() {
+        OmrGradingCallbackRequest request = buildSuccessCallback();
+
+        given(callbackDeduplication.markIfAbsent(any())).willReturn(true);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(false);
+
+        processor.processGradingCallback(request);
+
+        verify(jobRepository, never()).startProcessingIfPending(any());
+        verify(jobRepository, never()).incrementSuccess(any());
+        verify(jobRepository, never()).incrementFail(any());
+        verify(jobRepository, never()).tryFinalize(any(), anyInt());
+        verify(resultRepository, never()).save(any());
+        verify(storagePort, never()).getObject(any());
     }
 }

@@ -1,17 +1,21 @@
 package com.lumie.exam.domain.repository;
 
 import com.lumie.exam.domain.entity.OmrGradingJob;
+import com.lumie.exam.domain.vo.JobStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 
 public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Long> {
 
     List<OmrGradingJob> findByExamIdOrderByCreatedAtDesc(Long examId);
+
+    boolean existsByIdAndStatusIn(Long id, Collection<JobStatus> statuses);
 
     @Modifying
     @Query(value = "UPDATE omr_grading_jobs SET processed_images = processed_images + 1, " +
@@ -57,13 +61,14 @@ public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Lo
     }
 
     /**
-     * Mark every {@code PROCESSING} job whose row was created before {@code cutoff}
-     * as {@code FAILED}. Used by the timeout sweeper to recover from worker pods
-     * that crashed mid-job without marking the job complete.
+     * Mark every open job whose row was created before {@code cutoff} as
+     * {@code FAILED}. Covers both worker crashes after the first callback
+     * ({@code PROCESSING}) and request messages that never reached a worker
+     * ({@code PENDING}).
      */
     @Modifying
     @Query(value = "UPDATE omr_grading_jobs " +
             "SET status = 'FAILED', updated_at = NOW() " +
-            "WHERE status = 'PROCESSING' AND created_at < :cutoff", nativeQuery = true)
+            "WHERE status IN ('PENDING', 'PROCESSING') AND created_at < :cutoff", nativeQuery = true)
     int markStaleAsFailed(@Param("cutoff") Instant cutoff);
 }

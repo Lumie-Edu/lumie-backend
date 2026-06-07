@@ -141,6 +141,12 @@ public class ReportJobService {
             return;
         }
 
+        if (!tx.isOpenJob(request.jobId())) {
+            log.warn("Late report callback skipped for terminal or missing job: jobId={}, reportIndex={}",
+                    request.jobId(), request.reportIndex());
+            return;
+        }
+
         tx.markProcessing(request.jobId());
 
         if (request.success()) {
@@ -270,6 +276,14 @@ public class ReportJobService {
         @Transactional
         public void markProcessing(Long jobId) {
             jobRepository.startProcessingIfPending(jobId);
+        }
+
+        @Transactional(readOnly = true)
+        public boolean isOpenJob(Long jobId) {
+            return jobRepository.existsByIdAndStatusIn(
+                    jobId,
+                    List.of(JobStatus.PENDING, JobStatus.PROCESSING)
+            );
         }
 
         @Transactional

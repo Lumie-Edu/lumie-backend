@@ -13,6 +13,7 @@ import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,12 @@ public class OmrGradingJobProcessor {
         String dedupKey = DEDUP_KEY_PREFIX + request.jobId() + ":" + request.imageIndex();
         if (!callbackDeduplication.markIfAbsent(dedupKey)) {
             log.warn("Duplicate OMR callback skipped: jobId={}, imageIndex={}",
+                    request.jobId(), request.imageIndex());
+            return;
+        }
+
+        if (!tx.isOpenJob(request.jobId())) {
+            log.warn("Late OMR callback skipped for terminal or missing job: jobId={}, imageIndex={}",
                     request.jobId(), request.imageIndex());
             return;
         }
@@ -133,6 +140,14 @@ public class OmrGradingJobProcessor {
         @Transactional
         public void markProcessing(Long jobId) {
             jobRepository.startProcessingIfPending(jobId);
+        }
+
+        @Transactional(readOnly = true)
+        public boolean isOpenJob(Long jobId) {
+            return jobRepository.existsByIdAndStatusIn(
+                    jobId,
+                    List.of(JobStatus.PENDING, JobStatus.PROCESSING)
+            );
         }
 
         @Transactional
