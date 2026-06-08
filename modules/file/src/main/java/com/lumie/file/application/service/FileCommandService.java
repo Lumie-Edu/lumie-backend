@@ -32,7 +32,22 @@ public class FileCommandService {
     private final FileMetadataRepository fileMetadataRepository;
     private final FileLinkRepository fileLinkRepository;
     private final TextbookFolderRepository textbookFolderRepository;
+    private final com.lumie.file.domain.repository.FileDownloadRepository fileDownloadRepository;
     private final StoragePort storagePort;
+
+    @Transactional
+    public void recordDownload(UUID fileId, Long userId) {
+        if (fileId == null || userId == null) return;
+
+        fileDownloadRepository.findByFileIdAndUserId(fileId, userId)
+                .ifPresentOrElse(
+                        download -> {
+                            download.incrementDownloadCount();
+                            fileDownloadRepository.save(download);
+                        },
+                        () -> fileDownloadRepository.save(com.lumie.file.domain.entity.FileDownload.create(fileId, userId))
+                );
+    }
 
     @Transactional
     public PresignedUploadResponse generatePresignedUploadUrl(PresignedUploadRequest request) {

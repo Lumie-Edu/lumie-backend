@@ -60,11 +60,17 @@ public class QnaQueryService {
         return enrichWithUserNames(page);
     }
 
+    @Transactional
     public QnaDetailResponse getQna(Long id) {
         log.debug("Getting Q&A detail: {}", id);
 
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(id)
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
+
+        Long currentUserId = com.lumie.common.tenant.UserContextHolder.getUserId();
+        if (currentUserId != null && currentUserId.equals(qnaBoard.getQnaUserId())) {
+            qnaBoard.markAsReadByAuthor();
+        }
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         String userName = studentService.getStudentsByUserIds(tenantSlug, List.of(qnaBoard.getQnaUserId()))
@@ -72,7 +78,7 @@ public class QnaQueryService {
                 .stream()
                 .findFirst()
                 .map(StudentService.StudentData::studentName)
-                .orElse(String.valueOf(qnaBoard.getQnaUserId()));
+                .orElse("삭제된 유저");
 
         List<Long> userIds = qnaBoard.getComments().stream()
                 .map(c -> c.getUserId())
@@ -122,7 +128,7 @@ public class QnaQueryService {
 
         return page.map(qna -> QnaBoardResponse.from(
                 qna,
-                nameMap.getOrDefault(qna.getQnaUserId(), String.valueOf(qna.getQnaUserId()))
+                nameMap.getOrDefault(qna.getQnaUserId(), "삭제된 유저")
         ));
     }
 }

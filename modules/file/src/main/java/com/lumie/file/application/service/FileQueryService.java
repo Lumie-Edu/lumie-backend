@@ -29,6 +29,9 @@ public class FileQueryService {
 
     private final FileMetadataRepository fileMetadataRepository;
     private final FileLinkRepository fileLinkRepository;
+    private final com.lumie.file.domain.repository.FileDownloadRepository fileDownloadRepository;
+    private final com.lumie.student.api.StudentService studentService;
+    private final com.lumie.staff.api.StaffService staffService;
     private final StoragePort storagePort;
 
     @Transactional(readOnly = true)
@@ -139,6 +142,42 @@ public class FileQueryService {
 
         return files.stream()
                 .map(FileMetadataResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.lumie.file.application.dto.response.FileDownloaderResponse> getFileDownloaders(UUID fileId) {
+        List<com.lumie.file.domain.entity.FileDownload> downloads = fileDownloadRepository.findByFileId(fileId);
+        if (downloads.isEmpty()) return List.of();
+
+        List<Long> userIds = downloads.stream().map(d -> d.getUserId()).toList();
+        String tenantSlug = com.lumie.common.tenant.TenantContextHolder.getRequiredTenant();
+
+        var studentDataList = studentService.getStudentsByUserIds(tenantSlug, userIds).students();
+        java.util.Map<Long, String> nameMap = studentDataList.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        com.lumie.student.api.StudentService.StudentData::userId,
+                        com.lumie.student.api.StudentService.StudentData::studentName,
+                        (a, b) -> a
+                ));
+
+        List<Long> unmappedUserIds = userIds.stream()
+                .filter(id -> !nameMap.containsKey(id))
+                .toList();
+
+        for (Long id : unmappedUserIds) {
+            staffService.getStaffByUserId(tenantSlug, id).ifPresent(staff -> {
+                nameMap.put(id, staff.name() + " (원장/강사)");
+            });
+        }
+
+        return downloads.stream()
+                .sorted(java.util.Comparator.comparing(com.lumie.file.domain.entity.FileDownload::getUpdatedAt).reversed())
+                .map(d -> new com.lumie.file.application.dto.response.FileDownloaderResponse(
+                        d.getUserId(),
+                        nameMap.getOrDefault(d.getUserId(), "삭제된 유저"),
+                        d.getUpdatedAt()
+                ))
                 .toList();
     }
 }

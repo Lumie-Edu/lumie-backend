@@ -44,6 +44,11 @@ public class AnnouncementController {
         return ResponseEntity.ok(queryService.getAnnouncement(id));
     }
 
+    @GetMapping("/{id}/readers")
+    public ResponseEntity<List<String>> getAnnouncementReaders(@PathVariable Long id) {
+        return ResponseEntity.ok(queryService.getAnnouncementReaders(id));
+    }
+
     @PostMapping
     public ResponseEntity<AnnouncementResponse> createAnnouncement(
             @Valid @RequestBody CreateAnnouncementRequest request) {

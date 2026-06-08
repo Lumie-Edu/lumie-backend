@@ -34,6 +34,7 @@ public class AnnouncementQueryService {
 
     private final AnnouncementRepository announcementRepository;
     private final AnnouncementClassTargetRepository classTargetRepository;
+    private final com.lumie.content.domain.repository.AnnouncementReadRepository announcementReadRepository;
     private final StaffService staffService;
     private final StudentService studentService;
     private final ClassService classService;
@@ -73,6 +74,7 @@ public class AnnouncementQueryService {
                 .toList();
     }
 
+    @Transactional
     public AnnouncementResponse getAnnouncement(Long id) {
         log.debug("Getting announcement: {}", id);
 
@@ -84,12 +86,38 @@ public class AnnouncementQueryService {
                 .toList();
         ensureVisibleToCurrentUser(classIds);
 
+        if (isStudentUser()) {
+            Long userId = UserContextHolder.getRequiredUserId();
+            if (!announcementReadRepository.existsByAnnouncementIdAndUserId(id, userId)) {
+                announcementReadRepository.save(com.lumie.content.domain.entity.AnnouncementRead.create(announcement, userId));
+            }
+        }
+
         Map<Long, String> authorNames = resolveAuthorNames(List.of(announcement));
         return AnnouncementResponse.from(
                 announcement,
                 authorNameOrFallback(announcement.getAuthorId(), authorNames),
                 responseClassIds(classIds)
         );
+    }
+
+    public List<String> getAnnouncementReaders(Long id) {
+        log.debug("Getting readers for announcement: {}", id);
+
+        List<Long> userIds = announcementReadRepository.findUserIdsByAnnouncementId(id);
+        if (userIds.isEmpty()) {
+            return List.of();
+        }
+
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        var students = studentService.getStudentsByUserIds(tenantSlug, userIds).students();
+
+        Map<Long, String> nameMap = students.stream()
+                .collect(Collectors.toMap(StudentService.StudentData::userId, StudentService.StudentData::studentName, (a, b) -> a));
+
+        return userIds.stream()
+                .map(uid -> nameMap.getOrDefault(uid, "삭제된 유저"))
+                .toList();
     }
 
     private List<Long> responseClassIds(List<Long> classIds) {

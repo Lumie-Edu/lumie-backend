@@ -39,7 +39,7 @@ public class TenantAwareTaskDecoratorConfig {
             String sid = UserContextHolder.getCurrentSid();
             Map<String, String> mdc = MDC.getCopyOfContextMap();
             org.springframework.security.core.context.SecurityContext securityContext = org.springframework.security.core.context.SecurityContextHolder.getContext();
-            
+
             return () -> {
                 try {
                     if (tenantSlug != null) TenantContextHolder.setTenant(tenantSlug);
@@ -50,7 +50,7 @@ public class TenantAwareTaskDecoratorConfig {
                     if (sid != null) UserContextHolder.setCurrentSid(sid);
                     if (mdc != null) MDC.setContextMap(mdc);
                     org.springframework.security.core.context.SecurityContextHolder.setContext(securityContext);
-                    
+
                     runnable.run();
                 } finally {
                     TenantContextHolder.clear();

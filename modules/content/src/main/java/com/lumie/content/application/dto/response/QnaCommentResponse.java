@@ -13,9 +13,15 @@ public record QnaCommentResponse(
         @Schema(nullable = true) String adminName,
         String commentContent,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        boolean isReadByAuthor
 ) {
     public static QnaCommentResponse from(QnaComment comment, String adminName) {
+        boolean isRead = false;
+        if (comment.getQnaBoard().getAuthorLastReadAt() != null) {
+            isRead = !comment.getCreatedAt().isAfter(comment.getQnaBoard().getAuthorLastReadAt());
+        }
+
         return new QnaCommentResponse(
                 comment.getId(),
                 comment.getQnaBoard().getId(),
@@ -24,7 +30,8 @@ public record QnaCommentResponse(
                 adminName,
                 comment.getCommentContent(),
                 comment.getCreatedAt(),
-                comment.getUpdatedAt()
+                comment.getUpdatedAt(),
+                isRead
         );
     }
 }

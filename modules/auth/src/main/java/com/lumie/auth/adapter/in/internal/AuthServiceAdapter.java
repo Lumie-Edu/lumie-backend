@@ -94,7 +94,17 @@ public class AuthServiceAdapter implements AuthService {
         }
         try {
             Role userRole = Role.valueOf(role);
-            String userLoginId = generateUniqueLoginId();
+
+            String userLoginId;
+            if (phone != null && !phone.isBlank()) {
+                userLoginId = phone.replaceAll("[^0-9]", "");
+                if (userLookupPort.existsByUserLoginId(userLoginId)) {
+                    return new CreateUserResult(false, "Login ID (phone) already exists: " + userLoginId, null, null);
+                }
+            } else {
+                userLoginId = generateUniqueLoginId();
+            }
+
             String passwordHash = passwordEncoder.encode(DEFAULT_PASSWORD);
             UserLookupPort.UserData user = userLookupPort.createUser(
                     userLoginId, name, phone, passwordHash, userRole);

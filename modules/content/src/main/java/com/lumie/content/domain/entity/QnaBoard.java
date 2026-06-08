@@ -36,6 +36,9 @@ public class QnaBoard extends TenantScopedEntity {
     @Column(name = "is_answered", nullable = false)
     private Boolean isAnswered;
 
+    @Column(name = "author_last_read_at")
+    private java.time.Instant authorLastReadAt;
+
     // @BatchSize avoids N+1 lazy-load when a Page<QnaBoard> iterates over comments.
     // Fetch joining via @EntityGraph would force in-memory pagination (HHH000104),
     // so batch fetching is the canonical pattern for Page + OneToMany.
@@ -86,5 +89,9 @@ public class QnaBoard extends TenantScopedEntity {
 
     public boolean hasAdminComment() {
         return comments.stream().anyMatch(c -> c.getUserId() != null);
+    }
+
+    public void markAsReadByAuthor() {
+        this.authorLastReadAt = java.time.Instant.now();
     }
 }

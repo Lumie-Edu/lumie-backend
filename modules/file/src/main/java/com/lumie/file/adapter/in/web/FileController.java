@@ -75,6 +75,11 @@ public class FileController {
 
     @GetMapping("/{fileId}/download")
     public ResponseEntity<InputStreamResource> downloadFile(@PathVariable UUID fileId) {
+        Long userId = com.lumie.common.tenant.UserContextHolder.getUserId();
+        if (userId != null) {
+            fileCommandService.recordDownload(fileId, userId);
+        }
+
         FileDownloadResult result = fileQueryService.downloadFile(fileId);
 
         ContentDisposition contentDisposition = ContentDisposition.attachment()
@@ -86,6 +91,12 @@ public class FileController {
                 .contentLength(result.fileSize())
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .body(new InputStreamResource(result.inputStream()));
+    }
+
+    @GetMapping("/{fileId}/downloaders")
+    public ResponseEntity<List<com.lumie.file.application.dto.response.FileDownloaderResponse>> getFileDownloaders(@PathVariable UUID fileId) {
+        List<com.lumie.file.application.dto.response.FileDownloaderResponse> response = fileQueryService.getFileDownloaders(fileId);
+        return ResponseEntity.ok(response);
     }
 
     private static final java.util.Set<EntityType> PUBLIC_ALLOWED_TYPES =
