@@ -37,6 +37,17 @@ final class StudentExcelParser {
         try (Workbook workbook = new XSSFWorkbook(input)) {
             Sheet sheet = workbook.getSheetAt(0);
             int lastRowNum = sheet.getLastRowNum();
+
+            Row headerRow = sheet.getRow(0);
+            if (headerRow == null ||
+                !"학생 이름".equals(getCellStringValue(headerRow.getCell(0))) ||
+                !"학생 연락처".equals(getCellStringValue(headerRow.getCell(1)))) {
+                throw new com.lumie.common.exception.BusinessException(
+                        com.lumie.student.domain.exception.StudentErrorCode.INVALID_EXCEL_FILE,
+                        "업로드된 엑셀 파일의 양식이 올바르지 않습니다. 정해진 템플릿을 사용해주세요."
+                );
+            }
+
             List<StudentRow> rows = new ArrayList<>(Math.max(0, lastRowNum));
             for (int i = 1; i <= lastRowNum; i++) {
                 Row row = sheet.getRow(i);

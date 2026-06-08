@@ -377,11 +377,17 @@ public class StudentCommandService {
         if (row.name() == null || row.name().isBlank()) {
             errors.add(rowError(row.rowNumber(), "name", row.name(),
                     StudentErrorCode.BULK_IMPORT_NAME_REQUIRED));
+        } else if (row.name().length() > 100) {
+            errors.add(rowError(row.rowNumber(), "name", row.name(),
+                    StudentErrorCode.BULK_IMPORT_INVALID_LENGTH, "이름은 100자를 초과할 수 없습니다."));
         }
 
         // phone: format + uniqueness (optional field — only validate when present)
         if (row.phone() != null && !row.phone().isBlank()) {
-            if (!PhoneNumberUtils.isValid(row.phone())) {
+            if (row.phone().length() > 20) {
+                errors.add(rowError(row.rowNumber(), "phone", row.phone(),
+                        StudentErrorCode.BULK_IMPORT_INVALID_LENGTH, "연락처는 20자를 초과할 수 없습니다."));
+            } else if (!PhoneNumberUtils.isValid(row.phone())) {
                 errors.add(rowError(row.rowNumber(), "phone", row.phone(),
                         StudentErrorCode.BULK_IMPORT_INVALID_PHONE));
             } else if (studentRepository.existsByPhoneInAnyField(PhoneNumberUtils.toDigits(row.phone()))) {
@@ -392,10 +398,19 @@ public class StudentCommandService {
 
         // parentPhone: format only (no uniqueness constraint required for parent phones)
         if (row.parentPhone() != null && !row.parentPhone().isBlank()) {
-            if (!PhoneNumberUtils.isValid(row.parentPhone())) {
+            if (row.parentPhone().length() > 20) {
+                errors.add(rowError(row.rowNumber(), "parentPhone", row.parentPhone(),
+                        StudentErrorCode.BULK_IMPORT_INVALID_LENGTH, "학부모 연락처는 20자를 초과할 수 없습니다."));
+            } else if (!PhoneNumberUtils.isValid(row.parentPhone())) {
                 errors.add(rowError(row.rowNumber(), "parentPhone", row.parentPhone(),
                         StudentErrorCode.BULK_IMPORT_INVALID_PHONE));
             }
+        }
+
+        // studentHighschool
+        if (row.studentHighschool() != null && row.studentHighschool().length() > 100) {
+            errors.add(rowError(row.rowNumber(), "studentHighschool", row.studentHighschool(),
+                    StudentErrorCode.BULK_IMPORT_INVALID_LENGTH, "학교명은 100자를 초과할 수 없습니다."));
         }
     }
 

@@ -18,7 +18,7 @@ class StudentExcelParserTest {
     @Test
     void skipsHeaderRowAndIndexesRowNumbersOneBased() throws IOException {
         byte[] bytes = workbook(sheet -> {
-            writeRow(sheet, 0, "name", "phone", "highschool", "birthYear", "parentPhone", "memo");
+            writeRow(sheet, 0, "학생 이름", "학생 연락처", "학교명", "출생 연도", "학부모 연락처", "메모");
             writeRow(sheet, 1, "김철수", "01012340001", "한빛고", 2008, "01012340002", "재원");
         });
 
@@ -33,7 +33,7 @@ class StudentExcelParserTest {
     @Test
     void skipsNullRowsButContinuesIteration() throws IOException {
         byte[] bytes = workbook(sheet -> {
-            writeRow(sheet, 0, "name", "phone", "highschool", "birthYear", "parentPhone", "memo");
+            writeRow(sheet, 0, "학생 이름", "학생 연락처", "학교명", "출생 연도", "학부모 연락처", "메모");
             writeRow(sheet, 1, "이영희", "01099990001", null, null, null, null);
             writeRow(sheet, 3, "박민수", "01099990002", null, null, null, null);
         });
@@ -48,7 +48,7 @@ class StudentExcelParserTest {
     @Test
     void coercesNumericPhoneCellToStringWithoutScientificNotation() throws IOException {
         byte[] bytes = workbook(sheet -> {
-            writeRow(sheet, 0, "name", "phone", "highschool", "birthYear", "parentPhone", "memo");
+            writeRow(sheet, 0, "학생 이름", "학생 연락처", "학교명", "출생 연도", "학부모 연락처", "메모");
             Row row = sheet.createRow(1);
             row.createCell(0).setCellValue("최지훈");
             row.createCell(1).setCellValue(1012345678d);
@@ -62,7 +62,7 @@ class StudentExcelParserTest {
     @Test
     void parsesIntegerStringBirthYearAndReturnsNullOnGarbage() throws IOException {
         byte[] bytes = workbook(sheet -> {
-            writeRow(sheet, 0, "name", "phone", "highschool", "birthYear", "parentPhone", "memo");
+            writeRow(sheet, 0, "학생 이름", "학생 연락처", "학교명", "출생 연도", "학부모 연락처", "메모");
             Row row = sheet.createRow(1);
             row.createCell(0).setCellValue("정유진");
             row.createCell(3).setCellValue("2007");
@@ -79,7 +79,7 @@ class StudentExcelParserTest {
 
     @Test
     void emptySheetReturnsEmptyList() throws IOException {
-        byte[] bytes = workbook(sheet -> writeRow(sheet, 0, "name", "phone", "highschool", "birthYear", "parentPhone", "memo"));
+        byte[] bytes = workbook(sheet -> writeRow(sheet, 0, "학생 이름", "학생 연락처", "학교명", "출생 연도", "학부모 연락처", "메모"));
 
         List<StudentExcelParser.StudentRow> rows = StudentExcelParser.parse(new ByteArrayInputStream(bytes));
 
