@@ -56,10 +56,10 @@ public class Student extends TenantScopedEntity {
         this.userId = userId;
         this.userLoginId = userLoginId;
         this.name = name;
-        this.phone = phone;
+        this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         this.studentHighschool = studentHighschool;
         this.studentBirthYear = studentBirthYear;
-        this.parentPhone = parentPhone;
+        this.parentPhone = com.lumie.common.util.PhoneNumberUtils.toDigits(parentPhone);
         this.studentMemo = studentMemo;
         this.isActive = isActive != null ? isActive : true;
     }
@@ -88,7 +88,7 @@ public class Student extends TenantScopedEntity {
             this.name = name;
         }
         if (phone != null) {
-            this.phone = phone;
+            this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         }
         if (studentHighschool != null) {
             this.studentHighschool = studentHighschool;
@@ -97,7 +97,7 @@ public class Student extends TenantScopedEntity {
             this.studentBirthYear = studentBirthYear;
         }
         if (parentPhone != null) {
-            this.parentPhone = parentPhone;
+            this.parentPhone = com.lumie.common.util.PhoneNumberUtils.toDigits(parentPhone);
         }
         if (studentMemo != null) {
             this.studentMemo = studentMemo;

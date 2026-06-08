@@ -22,6 +22,7 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.common.util.PhoneNumberUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -57,7 +58,8 @@ public class StaffCommandService {
 
         checkStaffQuota(tenantSlug);
 
-        if (request.phone() != null && staffRepository.existsByPhone(request.phone())) {
+        String normalizedPhone = PhoneNumberUtils.toDigits(request.phone());
+        if (normalizedPhone != null && staffRepository.existsByPhone(normalizedPhone)) {
             throw new BusinessException(StaffErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(request.phone()));
         }
 
@@ -97,7 +99,8 @@ public class StaffCommandService {
 
         validateActorAuthority(staff, "update");
 
-        if (request.phone() != null && staffRepository.existsByPhoneAndIdNot(request.phone(), id)) {
+        String normalizedPhone = PhoneNumberUtils.toDigits(request.phone());
+        if (normalizedPhone != null && staffRepository.existsByPhoneAndIdNot(normalizedPhone, id)) {
             throw new BusinessException(StaffErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(request.phone()));
         }
 

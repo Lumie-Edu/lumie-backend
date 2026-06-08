@@ -58,7 +58,7 @@ public class Staff extends TenantScopedEntity {
         this.userId = userId;
         this.userLoginId = userLoginId;
         this.name = name;
-        this.phone = phone;
+        this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         this.email = email;
         this.staffMemo = staffMemo;
         this.employmentStatus = employmentStatus != null ? employmentStatus : EmploymentStatus.ACTIVE;
@@ -88,7 +88,7 @@ public class Staff extends TenantScopedEntity {
             this.name = name;
         }
         if (phone != null) {
-            this.phone = phone;
+            this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         }
         if (email != null) {
             this.email = email;

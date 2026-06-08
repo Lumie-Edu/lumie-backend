@@ -14,7 +14,7 @@ import com.lumie.common.quota.MetricType;
 import com.lumie.common.exception.QuotaExceededException;
 import com.lumie.student.domain.exception.StudentErrorCode;
 import com.lumie.student.domain.repository.StudentRepository;
-import com.lumie.student.domain.vo.PhoneNumber;
+import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -381,10 +381,10 @@ public class StudentCommandService {
 
         // phone: format + uniqueness (optional field — only validate when present)
         if (row.phone() != null && !row.phone().isBlank()) {
-            if (!PhoneNumber.isValid(row.phone())) {
+            if (!PhoneNumberUtils.isValid(row.phone())) {
                 errors.add(rowError(row.rowNumber(), "phone", row.phone(),
                         StudentErrorCode.BULK_IMPORT_INVALID_PHONE));
-            } else if (studentRepository.existsByPhoneInAnyField(PhoneNumber.normalize(row.phone()))) {
+            } else if (studentRepository.existsByPhoneInAnyField(PhoneNumberUtils.toDigits(row.phone()))) {
                 errors.add(rowError(row.rowNumber(), "phone", row.phone(),
                         StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE));
             }
@@ -392,7 +392,7 @@ public class StudentCommandService {
 
         // parentPhone: format only (no uniqueness constraint required for parent phones)
         if (row.parentPhone() != null && !row.parentPhone().isBlank()) {
-            if (!PhoneNumber.isValid(row.parentPhone())) {
+            if (!PhoneNumberUtils.isValid(row.parentPhone())) {
                 errors.add(rowError(row.rowNumber(), "parentPhone", row.parentPhone(),
                         StudentErrorCode.BULK_IMPORT_INVALID_PHONE));
             }
@@ -410,21 +410,24 @@ public class StudentCommandService {
     }
 
     private void validatePhoneUniqueness(String phone, String parentPhone, Long excludeId) {
-        if (phone != null && phone.equals(parentPhone)) {
+        String p = PhoneNumberUtils.toDigits(phone);
+        String pp = PhoneNumberUtils.toDigits(parentPhone);
+
+        if (p != null && p.equals(pp)) {
             throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
         }
         if (excludeId == null) {
-            if (phone != null && studentRepository.existsByPhoneInAnyField(phone)) {
+            if (p != null && studentRepository.existsByPhoneInAnyField(p)) {
                 throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
             }
-            if (parentPhone != null && studentRepository.existsByPhoneInAnyField(parentPhone)) {
+            if (pp != null && studentRepository.existsByPhoneInAnyField(pp)) {
                 throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(parentPhone));
             }
         } else {
-            if (phone != null && studentRepository.existsByPhoneInAnyFieldExcluding(phone, excludeId)) {
+            if (p != null && studentRepository.existsByPhoneInAnyFieldExcluding(p, excludeId)) {
                 throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
             }
-            if (parentPhone != null && studentRepository.existsByPhoneInAnyFieldExcluding(parentPhone, excludeId)) {
+            if (pp != null && studentRepository.existsByPhoneInAnyFieldExcluding(pp, excludeId)) {
                 throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(parentPhone));
             }
         }
