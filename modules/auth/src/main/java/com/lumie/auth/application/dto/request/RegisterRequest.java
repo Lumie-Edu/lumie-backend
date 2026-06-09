@@ -28,6 +28,16 @@ public record RegisterRequest(
         String name,
 
         @Size(max = 20, message = "Phone must be at most 20 characters")
-        String phone
+        String phone,
+
+        @NotBlank(message = "Highschool is required")
+        @Size(min = 1, max = 100, message = "Highschool must be between 1 and 100 characters")
+        String studentHighschool,
+
+        @jakarta.validation.constraints.NotNull(message = "Birth year is required")
+        Integer studentBirthYear,
+
+        @Size(max = 20, message = "Parent phone must be at most 20 characters")
+        String parentPhone
 ) {
 }

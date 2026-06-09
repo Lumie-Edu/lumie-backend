@@ -4,6 +4,8 @@ import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.lumie.tenant.api.TenantCreatedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TenantRegistrationService {
 
     private final TenantPersistencePort tenantPersistencePort;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public TenantRegistrationResult registerTenant(String instituteName, String businessRegistrationNumber, String ownerEmail) {
@@ -33,6 +36,8 @@ public class TenantRegistrationService {
         savedTenant.startProvisioning();
         savedTenant.activate();
         tenantPersistencePort.save(savedTenant);
+
+        eventPublisher.publishEvent(new TenantCreatedEvent(savedTenant.getId(), savedTenant.getSlugValue()));
 
         log.info("Tenant registration completed: {}", savedTenant.getSlugValue());
 
