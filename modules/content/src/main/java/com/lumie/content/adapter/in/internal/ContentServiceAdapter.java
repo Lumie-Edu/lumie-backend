@@ -3,6 +3,8 @@ package com.lumie.content.adapter.in.internal;
 import com.lumie.content.application.dto.request.CreateAnnouncementRequest;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.application.service.AnnouncementCommandService;
+import com.lumie.content.application.service.AnnouncementQueryService;
+import com.lumie.content.application.service.QnaQueryService;
 import com.lumie.content.api.ContentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Component;
 public class ContentServiceAdapter implements ContentService {
 
     private final AnnouncementCommandService announcementCommandService;
+    private final AnnouncementQueryService announcementQueryService;
+    private final QnaQueryService qnaQueryService;
 
     @Override
     public String createAnnouncement(Long authorId, String title, String content,
@@ -22,5 +26,15 @@ public class ContentServiceAdapter implements ContentService {
                 authorId, title, content, isAsset, isImportant, null, null);
         AnnouncementResponse response = announcementCommandService.createAnnouncement(request);
         return "Announcement created successfully: " + response.announcementTitle();
+    }
+
+    @Override
+    public boolean canUserViewAnnouncement(Long announcementId, String role, Long userId) {
+        return announcementQueryService.canUserViewAnnouncement(announcementId, role, userId);
+    }
+
+    @Override
+    public boolean canUserViewQna(Long qnaId, String role, Long userId) {
+        return qnaQueryService.canUserViewQna(qnaId, role, userId);
     }
 }

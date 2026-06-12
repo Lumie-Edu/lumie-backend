@@ -13,6 +13,9 @@ public interface FileLinkRepository extends JpaRepository<FileLink, UUID> {
     @EntityGraph(attributePaths = "file")
     List<FileLink> findByEntityTypeAndEntityId(EntityType entityType, Long entityId);
 
+    @EntityGraph(attributePaths = "file")
+    List<FileLink> findByFile_Id(UUID fileId);
+
     void deleteByEntityTypeAndEntityId(EntityType entityType, Long entityId);
 
     boolean existsByFile_Id(UUID fileId);

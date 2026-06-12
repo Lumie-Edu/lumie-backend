@@ -2,7 +2,6 @@ package com.lumie.content.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -20,6 +19,9 @@ public class AnnouncementRead {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private Long tenantId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "announcement_id", nullable = false)
     private Announcement announcement;
@@ -29,18 +31,4 @@ public class AnnouncementRead {
 
     @Column(name = "read_at", nullable = false)
     private Instant readAt;
-
-    @Builder
-    private AnnouncementRead(Announcement announcement, Long userId) {
-        this.announcement = announcement;
-        this.userId = userId;
-        this.readAt = Instant.now();
-    }
-
-    public static AnnouncementRead create(Announcement announcement, Long userId) {
-        return AnnouncementRead.builder()
-                .announcement(announcement)
-                .userId(userId)
-                .build();
-    }
 }

@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "file_download", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"file_id", "user_id", "tenant_id"})
+        @UniqueConstraint(name = "uq_file_download_file_user", columnNames = {"tenant_id", "file_id", "user_id"})
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

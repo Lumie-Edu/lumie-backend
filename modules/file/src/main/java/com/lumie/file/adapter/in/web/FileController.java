@@ -75,12 +75,12 @@ public class FileController {
 
     @GetMapping("/{fileId}/download")
     public ResponseEntity<InputStreamResource> downloadFile(@PathVariable UUID fileId) {
+        FileDownloadResult result = fileQueryService.downloadFile(fileId);
+
         Long userId = com.lumie.common.tenant.UserContextHolder.getUserId();
         if (userId != null) {
             fileCommandService.recordDownload(fileId, userId);
         }
-
-        FileDownloadResult result = fileQueryService.downloadFile(fileId);
 
         ContentDisposition contentDisposition = ContentDisposition.attachment()
                 .filename(result.filename())

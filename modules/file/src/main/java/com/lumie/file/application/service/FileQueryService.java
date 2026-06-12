@@ -1,10 +1,13 @@
 package com.lumie.file.application.service;
 
+import com.lumie.common.auth.Role;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.application.dto.request.PresignedDownloadRequest;
 import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.application.dto.response.PresignedDownloadResponse;
 import com.lumie.file.application.port.out.StoragePort;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
@@ -32,25 +35,21 @@ public class FileQueryService {
     private final com.lumie.file.domain.repository.FileDownloadRepository fileDownloadRepository;
     private final com.lumie.student.api.StudentService studentService;
     private final com.lumie.staff.api.StaffService staffService;
+    private final FileMetadataLookupService fileMetadataLookupService;
     private final StoragePort storagePort;
 
-    @Transactional(readOnly = true)
     public FileDownloadResult downloadFile(UUID fileId) {
-        FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
-                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+        FileMetadataLookupService.DownloadMetadata metadata =
+                fileMetadataLookupService.getAuthorizedDownloadMetadata(fileId);
 
-        if (!fileMetadata.isUploadCompleted()) {
-            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
-        }
-
-        InputStream stream = storagePort.getObject(fileMetadata.getObjectKey());
+        InputStream stream = storagePort.getObject(metadata.objectKey());
         log.debug("Streaming download for file: {}", fileId);
 
         return new FileDownloadResult(
                 stream,
-                fileMetadata.getOriginalFilename(),
-                fileMetadata.getContentType(),
-                fileMetadata.getFileSize()
+                metadata.originalFilename(),
+                metadata.contentType(),
+                metadata.fileSize()
         );
     }
 
@@ -59,48 +58,35 @@ public class FileQueryService {
      * public (e.g. assets embedded in a published landing page). The caller
      * (controller) must guard which entity types are allowed here.
      */
-    @Transactional(readOnly = true)
     public FileDownloadResult downloadPublicFile(UUID fileId, java.util.Set<EntityType> allowedTypes) {
-        FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
-                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+        FileMetadataLookupService.DownloadMetadata metadata =
+                fileMetadataLookupService.getPublicDownloadMetadata(fileId, allowedTypes);
 
-        if (!allowedTypes.contains(fileMetadata.getEntityType())) {
-            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND);
-        }
-        if (!fileMetadata.isUploadCompleted()) {
-            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
-        }
-
-        InputStream stream = storagePort.getObject(fileMetadata.getObjectKey());
+        InputStream stream = storagePort.getObject(metadata.objectKey());
         return new FileDownloadResult(
                 stream,
-                fileMetadata.getOriginalFilename(),
-                fileMetadata.getContentType(),
-                fileMetadata.getFileSize()
+                metadata.originalFilename(),
+                metadata.contentType(),
+                metadata.fileSize()
         );
     }
 
-    @Transactional(readOnly = true)
     public PresignedDownloadResponse generatePresignedDownloadUrl(PresignedDownloadRequest request) {
-        FileMetadata fileMetadata = fileMetadataRepository.findById(request.fileId())
-                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-
-        if (!fileMetadata.isUploadCompleted()) {
-            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
-        }
+        FileMetadataLookupService.DownloadMetadata metadata =
+                fileMetadataLookupService.getAuthorizedDownloadMetadata(request.fileId());
 
         String downloadUrl = storagePort.generatePresignedDownloadUrl(
-                fileMetadata.getObjectKey(),
+                metadata.objectKey(),
                 DOWNLOAD_URL_EXPIRY_SECONDS
         );
 
         log.debug("Generated download URL for file: {}", request.fileId());
 
         return PresignedDownloadResponse.of(
-                fileMetadata.getId(),
+                metadata.id(),
                 downloadUrl,
-                fileMetadata.getOriginalFilename(),
-                fileMetadata.getContentType(),
+                metadata.originalFilename(),
+                metadata.contentType(),
                 DOWNLOAD_URL_EXPIRY_SECONDS
         );
     }
@@ -147,7 +133,11 @@ public class FileQueryService {
 
     @Transactional(readOnly = true)
     public List<com.lumie.file.application.dto.response.FileDownloaderResponse> getFileDownloaders(UUID fileId) {
-        List<com.lumie.file.domain.entity.FileDownload> downloads = fileDownloadRepository.findByFileId(fileId);
+        requireStaffUser();
+        FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+        List<com.lumie.file.domain.entity.FileDownload> downloads = fileDownloadRepository.findByFileIdOrderByUpdatedAtDesc(fileId);
         if (downloads.isEmpty()) return List.of();
 
         List<Long> userIds = downloads.stream().map(d -> d.getUserId()).toList();
@@ -172,7 +162,6 @@ public class FileQueryService {
         }
 
         return downloads.stream()
-                .sorted(java.util.Comparator.comparing(com.lumie.file.domain.entity.FileDownload::getUpdatedAt).reversed())
                 .map(d -> new com.lumie.file.application.dto.response.FileDownloaderResponse(
                         d.getUserId(),
                         nameMap.getOrDefault(d.getUserId(), "삭제된 유저"),
@@ -180,4 +169,12 @@ public class FileQueryService {
                 ))
                 .toList();
     }
+
+    private void requireStaffUser() {
+        Role role = UserContextHolder.getUserRole();
+        if (role == null || role == Role.STUDENT) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
+    }
+
 }

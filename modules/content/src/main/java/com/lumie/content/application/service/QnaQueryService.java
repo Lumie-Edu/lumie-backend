@@ -1,5 +1,6 @@
 package com.lumie.content.application.service;
 
+import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.application.dto.response.QnaBoardResponse;
 import com.lumie.content.application.dto.response.QnaDetailResponse;
@@ -100,6 +101,12 @@ public class QnaQueryService {
         Instant threshold = Instant.now().minusSeconds(thresholdHours * 3600L);
         long count = qnaBoardRepository.countByIsAnsweredFalseAndCreatedAtBefore(threshold);
         return new QnaUnansweredOverdueResponse(count, thresholdHours);
+    }
+
+    public boolean canUserViewQna(Long qnaId, String role, Long userId) {
+        return qnaBoardRepository.findById(qnaId)
+                .map(qna -> Role.fromString(role) != Role.STUDENT || qna.getQnaUserId().equals(userId))
+                .orElse(false);
     }
 
     private Page<QnaBoardResponse> enrichWithUserNames(Page<QnaBoard> page) {

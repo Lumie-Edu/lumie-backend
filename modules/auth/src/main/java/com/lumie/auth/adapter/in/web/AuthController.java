@@ -123,10 +123,10 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
-            @Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+            @Valid @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest) {
         var metadata = SessionMetadataExtractor.extract(httpRequest);
-        LoginResponse response = authRegistrationService.register(request, metadata);
-        return buildAuthResponse(response, 201);
+        return buildAuthResponse(authRegistrationService.register(request, metadata), 201);
     }
 
     @PostMapping("/register/owner")

@@ -2,6 +2,7 @@ package com.lumie.content.application.service;
 
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.auth.Role;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
@@ -88,9 +89,8 @@ public class AnnouncementQueryService {
 
         if (isStudentUser()) {
             Long userId = UserContextHolder.getRequiredUserId();
-            if (!announcementReadRepository.existsByAnnouncementIdAndUserId(id, userId)) {
-                announcementReadRepository.save(com.lumie.content.domain.entity.AnnouncementRead.create(announcement, userId));
-            }
+            Long tenantId = TenantContextHolder.getRequiredTenantId();
+            announcementReadRepository.insertIfAbsent(tenantId, id, userId);
         }
 
         Map<Long, String> authorNames = resolveAuthorNames(List.of(announcement));
@@ -103,6 +103,10 @@ public class AnnouncementQueryService {
 
     public List<String> getAnnouncementReaders(Long id) {
         log.debug("Getting readers for announcement: {}", id);
+
+        requireStaffUser();
+        Announcement announcement = announcementRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND));
 
         List<Long> userIds = announcementReadRepository.findUserIdsByAnnouncementId(id);
         if (userIds.isEmpty()) {
@@ -118,6 +122,18 @@ public class AnnouncementQueryService {
         return userIds.stream()
                 .map(uid -> nameMap.getOrDefault(uid, "삭제된 유저"))
                 .toList();
+    }
+
+    public boolean canUserViewAnnouncement(Long id, String role, Long userId) {
+        if (!announcementRepository.existsById(id)) {
+            return false;
+        }
+
+        List<Long> classIds = classTargetRepository.findByAnnouncementId(id).stream()
+                .map(AnnouncementClassTarget::getClassId)
+                .toList();
+        Role parsedRole = role == null ? null : Role.fromString(role);
+        return isVisibleToUser(classIds, parsedRole, userId);
     }
 
     private List<Long> responseClassIds(List<Long> classIds) {
@@ -146,15 +162,30 @@ public class AnnouncementQueryService {
     }
 
     private void ensureVisibleToCurrentUser(List<Long> classIds) {
-        List<Long> visibleClassIds = currentStudentClassIdsOrNull();
-        if (visibleClassIds == null || classIds.isEmpty()) {
+        if (isVisibleToCurrentUser(classIds)) {
             return;
         }
 
-        boolean visible = classIds.stream().anyMatch(visibleClassIds::contains);
-        if (!visible) {
-            throw new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND);
+        throw new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND);
+    }
+
+    private boolean isVisibleToCurrentUser(List<Long> classIds) {
+        return isVisibleToUser(classIds, UserContextHolder.getUserRole(), UserContextHolder.getUserId());
+    }
+
+    private boolean isVisibleToUser(List<Long> classIds, Role role, Long userId) {
+        if (role == null) {
+            return false;
         }
+        if (role != Role.STUDENT || classIds.isEmpty()) {
+            return true;
+        }
+        if (userId == null) {
+            return false;
+        }
+
+        List<Long> visibleClassIds = currentStudentClassIds(userId);
+        return classIds.stream().anyMatch(visibleClassIds::contains);
     }
 
     private List<Long> currentStudentClassIdsOrNull() {
@@ -164,6 +195,11 @@ public class AnnouncementQueryService {
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Long userId = UserContextHolder.getRequiredUserId();
+        return currentStudentClassIds(userId);
+    }
+
+    private List<Long> currentStudentClassIds(Long userId) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
         StudentService.StudentData student = studentService.getStudentsByUserIds(tenantSlug, List.of(userId))
                 .students()
                 .stream()
@@ -179,6 +215,13 @@ public class AnnouncementQueryService {
 
     private boolean isStudentUser() {
         return UserContextHolder.getUserRole() == Role.STUDENT;
+    }
+
+    private void requireStaffUser() {
+        Role role = UserContextHolder.getUserRole();
+        if (role == null || role == Role.STUDENT) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
     }
 
     private Map<Long, List<Long>> resolveClassTargets(List<Announcement> announcements) {

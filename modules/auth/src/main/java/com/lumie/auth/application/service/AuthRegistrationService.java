@@ -23,6 +23,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Registration use cases — student self-register and owner registration
@@ -41,6 +42,7 @@ public class AuthRegistrationService {
     private final PasswordEncoder passwordEncoder;
     private final LoginSessionHelper loginSessionHelper;
 
+    @Transactional
     public LoginResponse register(RegisterRequest request, SessionMetadata metadata) {
         log.info("Registration attempt for userLoginId: {} on tenant: {}", request.userLoginId(), request.tenantSlug());
 

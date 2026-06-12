@@ -8,6 +8,7 @@ import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.TextbookFolderRepository;
@@ -39,14 +40,7 @@ public class FileCommandService {
     public void recordDownload(UUID fileId, Long userId) {
         if (fileId == null || userId == null) return;
 
-        fileDownloadRepository.findByFileIdAndUserId(fileId, userId)
-                .ifPresentOrElse(
-                        download -> {
-                            download.incrementDownloadCount();
-                            fileDownloadRepository.save(download);
-                        },
-                        () -> fileDownloadRepository.save(com.lumie.file.domain.entity.FileDownload.create(fileId, userId))
-                );
+        fileDownloadRepository.upsertDownload(TenantContextHolder.getRequiredTenantId(), fileId, userId);
     }
 
     @Transactional
