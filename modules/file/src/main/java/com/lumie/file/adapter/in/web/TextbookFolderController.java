@@ -6,6 +6,7 @@ import com.lumie.file.application.dto.response.TextbookFolderPathResponse;
 import com.lumie.file.application.dto.response.TextbookFolderResponse;
 import com.lumie.file.application.service.TextbookFolderCommandService;
 import com.lumie.file.application.service.TextbookFolderQueryService;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@ public class TextbookFolderController {
     private final TextbookFolderQueryService textbookFolderQueryService;
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<TextbookFolderResponse> createFolder(
             @Valid @RequestBody CreateTextbookFolderRequest request) {
         TextbookFolderResponse response = textbookFolderCommandService.createFolder(request);
@@ -58,6 +60,7 @@ public class TextbookFolderController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteFolder(@PathVariable UUID id) {
         textbookFolderCommandService.deleteFolder(id);
         return ResponseEntity.noContent().build();

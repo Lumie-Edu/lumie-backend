@@ -20,6 +20,7 @@ import com.lumie.auth.application.service.UserProfileService;
 import com.lumie.auth.adapter.out.config.CookieConfig;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -122,6 +123,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request,
             HttpServletRequest httpRequest) {
@@ -130,6 +132,7 @@ public class AuthController {
     }
 
     @PostMapping("/register/owner")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<AuthResponse> registerOwner(
             @Valid @RequestBody OwnerRegisterRequest request, HttpServletRequest httpRequest) {
         var metadata = SessionMetadataExtractor.extract(httpRequest);
