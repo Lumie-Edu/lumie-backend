@@ -1,5 +1,6 @@
 package com.lumie.app;
 
+import java.time.Duration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -35,16 +36,20 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 abstract class FullContextTestBase {
 
+    private static final Duration CONTAINER_STARTUP_TIMEOUT = Duration.ofMinutes(3);
+
     @Container
     @SuppressWarnings("resource")
     static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("postgres:18-alpine");
+            new PostgreSQLContainer<>("postgres:18-alpine")
+                    .withStartupTimeout(CONTAINER_STARTUP_TIMEOUT);
 
     @Container
     @SuppressWarnings("resource")
     static final GenericContainer<?> REDIS =
             new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-                    .withExposedPorts(6379);
+                    .withExposedPorts(6379)
+                    .withStartupTimeout(CONTAINER_STARTUP_TIMEOUT);
 
     @Container
     @SuppressWarnings("resource")
@@ -52,7 +57,8 @@ abstract class FullContextTestBase {
             new GenericContainer<>(DockerImageName.parse("rabbitmq:3-alpine"))
                     .withExposedPorts(5672)
                     .withEnv("RABBITMQ_DEFAULT_USER", "guest")
-                    .withEnv("RABBITMQ_DEFAULT_PASS", "guest");
+                    .withEnv("RABBITMQ_DEFAULT_PASS", "guest")
+                    .withStartupTimeout(CONTAINER_STARTUP_TIMEOUT);
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
