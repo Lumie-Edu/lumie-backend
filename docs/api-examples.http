@@ -78,11 +78,6 @@ Content-Type: application/json
   "content": "[루미] 수강료 납부 안내입니다."
 }
 
-### Activity Logs — List
-GET {{host}}/v1/activity-logs?page=0&size=50
-Authorization: Bearer {{token}}
-X-Tenant-Slug: {{tenant}}
-
 ### Files — Upload (multipart)
 POST {{host}}/v1/files/upload
 Authorization: Bearer {{token}}

@@ -3,11 +3,6 @@ plugins {
     id("java-test-fixtures")
 }
 
-// libs/internal-api is a pure-interfaces library with no deps — safe to pull
-// into libs/common to wire the LogActivityAspect without a circular graph.
-// Direction: libs/internal-api ← libs/common ← modules/*
-//            libs/internal-api ← modules/* (direct, for adapter implementations)
-
 dependencyManagement {
     imports {
         mavenBom(libs.spring.modulith.bom.get().toString())
@@ -15,7 +10,6 @@ dependencyManagement {
 }
 
 dependencies {
-    // Internal API — pure interfaces; no transitive deps. Used by LogActivityAspect.
     implementation(project(":libs:internal-api"))
 
     // Spring

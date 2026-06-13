@@ -34,7 +34,7 @@ public record UpdateTenantRequest(
                 "classes", "attendance", "assignments", "lectures",
                 "grades", "omr-grading", "reports",
                 "announcements", "sms", "resources", "qna", "schedules",
-                "textbooks", "spreadsheets", "reviews", "activity-logs"
+                "textbooks", "spreadsheets", "reviews"
         }))
         @Size(max = 100, message = "Hidden sidebar item ids must contain at most 100 entries")
         List<@Size(max = 80, message = "Sidebar item id must be at most 80 characters")

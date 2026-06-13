@@ -20,7 +20,6 @@ dependencies {
     implementation(project(":modules:homepage"))
     implementation(project(":modules:student"))
     implementation(project(":modules:staff"))
-    implementation(project(":modules:activity-log"))
     implementation(project(":modules:exam"))
     implementation(project(":modules:content"))
     implementation(project(":modules:class"))

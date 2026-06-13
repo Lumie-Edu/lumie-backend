@@ -16,7 +16,6 @@ include(
     "modules:student",
     "modules:attendance",
     "modules:staff",
-    "modules:activity-log",
     "modules:exam",
     "modules:content",
     "modules:class",

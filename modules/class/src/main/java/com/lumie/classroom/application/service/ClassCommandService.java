@@ -15,9 +15,6 @@ import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import com.lumie.classroom.domain.vo.SchedulePattern;
-import com.lumie.common.activitylog.LogActivity;
-import com.lumie.common.auth.ActionType;
-import com.lumie.common.auth.EntityType;
 import com.lumie.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +35,6 @@ public class ClassCommandService {
     private final ClassEnrollmentRepository enrollmentRepository;
     private final StaffService staffService;
 
-    @LogActivity(action = ActionType.CREATE, entity = EntityType.CLASS)
     public ClassResponse createClass(CreateClassRequest request) {
         if (request.teacherId() != null) {
             staffService.getStaff(TenantContextHolder.getRequiredTenant(), request.teacherId())
@@ -63,7 +59,6 @@ public class ClassCommandService {
         return ClassResponse.from(saved, teacherName);
     }
 
-    @LogActivity(action = ActionType.UPDATE, entity = EntityType.CLASS, entityIdArg = "id")
     public ClassResponse updateClass(Long id, UpdateClassRequest request) {
         ClassEntity entity = classRepository.findById(id)
             .orElseThrow(() -> new BusinessException(ClassErrorCode.CLASS_NOT_FOUND,
@@ -94,7 +89,6 @@ public class ClassCommandService {
             .orElse(DELETED_TEACHER_NAME);
     }
 
-    @LogActivity(action = ActionType.DELETE, entity = EntityType.CLASS, entityIdArg = "id")
     public void deleteClass(Long id) {
         ClassEntity entity = classRepository.findById(id)
             .orElseThrow(() -> new BusinessException(ClassErrorCode.CLASS_NOT_FOUND,
@@ -105,7 +99,6 @@ public class ClassCommandService {
         log.info("Class deleted: {}", id);
     }
 
-    @LogActivity(action = ActionType.ENROLL, entity = EntityType.CLASS, entityIdArg = "classId")
     public List<ClassEnrollmentResponse> enrollStudents(Long classId, EnrollStudentsRequest request) {
         ClassEntity classEntity = classRepository.findByIdWithLock(classId)
             .orElseThrow(() -> new BusinessException(ClassErrorCode.CLASS_NOT_FOUND,
@@ -131,7 +124,6 @@ public class ClassCommandService {
             .toList();
     }
 
-    @LogActivity(action = ActionType.DROP, entity = EntityType.CLASS, entityIdArg = "classId")
     public void removeEnrollment(Long classId, Long enrollmentId) {
         ClassEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
             .orElseThrow(() -> new BusinessException(ClassErrorCode.ENROLLMENT_NOT_FOUND,
@@ -147,7 +139,6 @@ public class ClassCommandService {
         log.info("Enrollment {} removed from class: {}", enrollmentId, classId);
     }
 
-    @LogActivity(action = ActionType.DROP, entity = EntityType.CLASS, entityIdArg = "classId")
     public void removeEnrollmentByStudent(Long classId, Long studentId) {
         ClassEnrollment enrollment = enrollmentRepository.findByClassEntityIdAndStudentId(classId, studentId)
             .orElseThrow(() -> new BusinessException(ClassErrorCode.ENROLLMENT_NOT_FOUND,

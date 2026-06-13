@@ -167,8 +167,8 @@ class MigrationsRlsIntegrationTest {
                     + " LOGIN PASSWORD '" + APP_ROLE_PASSWORD + "' NOSUPERUSER NOBYPASSRLS");
             // Mirror the prod lumie_app privilege set (HARD_RULES_CROSS:
             // SELECT,INSERT,UPDATE,DELETE) so the role is a faithful stand-in.
-            st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON activity_logs TO " + APP_ROLE);
-            st.execute("GRANT USAGE ON SEQUENCE activity_logs_id_seq TO " + APP_ROLE);
+            st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON classes TO " + APP_ROLE);
+            st.execute("GRANT USAGE ON SEQUENCE classes_id_seq TO " + APP_ROLE);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to provision restricted app role", e);
         }
@@ -179,22 +179,21 @@ class MigrationsRlsIntegrationTest {
         try (Connection conn = appRoleConnection()) {
             conn.setAutoCommit(true);
 
-            // Tenant 1 writes one activity_logs row under its own GUC.
+            // Tenant 1 writes one classes row under its own GUC.
             setTenant(conn, "1");
             try (Statement st = conn.createStatement()) {
                 st.executeUpdate(
-                        "INSERT INTO activity_logs "
-                        + "(id, actor_id, actor_name, actor_role, action, entity_type, tenant_id) "
-                        + "VALUES (nextval('activity_logs_id_seq'), 1, 'tenant1-actor', "
-                        + "'OWNER', 'CREATE', 'STUDENT', 1)");
+                        "INSERT INTO classes "
+                        + "(id, name, tenant_id) "
+                        + "VALUES (nextval('classes_id_seq'), 'tenant1-class', 1)");
             }
-            assertThat(countActivityLogs(conn))
+            assertThat(countClasses(conn))
                     .as("tenant 1 sees its own row")
                     .isEqualTo(1);
 
             // Tenant 2 must not see tenant 1's row.
             setTenant(conn, "2");
-            assertThat(countActivityLogs(conn))
+            assertThat(countClasses(conn))
                     .as("tenant 2 cannot read tenant 1 rows (RLS isolation)")
                     .isZero();
 
@@ -202,14 +201,14 @@ class MigrationsRlsIntegrationTest {
             try (Statement st = conn.createStatement()) {
                 st.execute("RESET app.tenant_id");
             }
-            assertThat(countActivityLogs(conn))
+            assertThat(countClasses(conn))
                     .as("with no app.tenant_id set, all tenant-scoped rows are invisible")
                     .isZero();
 
             // Back to tenant 1 → row visible again (proves it was hidden,
             // not deleted).
             setTenant(conn, "1");
-            assertThat(countActivityLogs(conn))
+            assertThat(countClasses(conn))
                     .as("tenant 1 still sees its row after the hostile reads")
                     .isEqualTo(1);
         }
@@ -283,15 +282,14 @@ class MigrationsRlsIntegrationTest {
             admin.setAutoCommit(true);
             try (Statement st = admin.createStatement()) {
                 st.executeUpdate(
-                        "INSERT INTO activity_logs "
-                        + "(id, actor_id, actor_name, actor_role, action, entity_type, tenant_id) "
-                        + "VALUES (nextval('activity_logs_id_seq'), 999, 'tenant-b-actor', "
-                        + "'OWNER', 'CREATE', 'EXAM', " + tenantB + ")");
+                        "INSERT INTO classes "
+                        + "(id, name, tenant_id) "
+                        + "VALUES (nextval('classes_id_seq'), 'tenant-b-class', " + tenantB + ")");
             }
             // Capture the exact id to make subsequent assertions row-specific,
             // not vulnerable to cross-test row contamination.
             try (Statement st = admin.createStatement();
-                 ResultSet rs = st.executeQuery("SELECT currval('activity_logs_id_seq')")) {
+                 ResultSet rs = st.executeQuery("SELECT currval('classes_id_seq')")) {
                 rs.next();
                 insertedId = rs.getLong(1);
             }
@@ -304,7 +302,7 @@ class MigrationsRlsIntegrationTest {
 
             try (Statement st = appConn.createStatement();
                  ResultSet rs = st.executeQuery(
-                         "SELECT count(*) FROM activity_logs WHERE id = " + insertedId)) {
+                         "SELECT count(*) FROM classes WHERE id = " + insertedId)) {
                 rs.next();
                 assertThat(rs.getInt(1))
                         .as("app-role session for tenant %d must not see row id=%d "
@@ -318,7 +316,7 @@ class MigrationsRlsIntegrationTest {
             setTenant(appConn, String.valueOf(tenantB));
             try (Statement st = appConn.createStatement();
                  ResultSet rs = st.executeQuery(
-                         "SELECT count(*) FROM activity_logs WHERE id = " + insertedId)) {
+                         "SELECT count(*) FROM classes WHERE id = " + insertedId)) {
                 rs.next();
                 assertThat(rs.getInt(1))
                         .as("app-role session switched to tenant %d must now see row id=%d "
@@ -338,9 +336,9 @@ class MigrationsRlsIntegrationTest {
         }
     }
 
-    private static int countActivityLogs(Connection conn) throws Exception {
+    private static int countClasses(Connection conn) throws Exception {
         try (Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery("SELECT count(*) FROM activity_logs")) {
+             ResultSet rs = st.executeQuery("SELECT count(*) FROM classes")) {
             rs.next();
             return rs.getInt(1);
         }

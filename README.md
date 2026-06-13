@@ -60,7 +60,6 @@ Configuration cache is enabled (`org.gradle.configuration-cache=true`) — incre
 
 | Module | Purpose |
 |---|---|
-| `activity-log` | Audit trail — records user actions across the platform |
 | `admin` | Admin-facing management operations (tenant provisioning, system config) |
 | `ai` | AI feature integrations (Spring AI; tutoring, content generation) |
 | `assignment` | Assignment creation, submission, and grading workflows |

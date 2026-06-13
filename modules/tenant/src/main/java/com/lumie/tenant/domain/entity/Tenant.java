@@ -84,7 +84,7 @@ public class Tenant extends BaseEntity {
             "classes", "attendance", "assignments", "lectures",
             "grades", "omr-grading", "reports",
             "announcements", "sms", "resources", "qna", "schedules",
-            "textbooks", "spreadsheets", "reviews", "activity-logs"
+            "textbooks", "spreadsheets", "reviews"
     );
 
     private static final java.util.regex.Pattern CUSTOM_ID_PATTERN =

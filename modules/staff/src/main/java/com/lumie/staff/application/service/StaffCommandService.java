@@ -15,9 +15,6 @@ import com.lumie.staff.domain.exception.StaffErrorCode;
 import com.lumie.staff.domain.repository.StaffPermissionRepository;
 import com.lumie.staff.domain.repository.StaffRepository;
 import com.lumie.staff.domain.vo.AccessLevel;
-import com.lumie.common.activitylog.LogActivity;
-import com.lumie.common.auth.ActionType;
-import com.lumie.common.auth.EntityType;
 import com.lumie.common.auth.Role;
 import com.lumie.common.cache.CacheConfig;
 import com.lumie.common.exception.BusinessException;
@@ -51,7 +48,6 @@ public class StaffCommandService {
     private final ClassService classService;
     private final ContentService contentService;
 
-    @LogActivity(action = ActionType.CREATE, entity = EntityType.ADMIN)
     public StaffResponse registerStaff(StaffRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Long tenantId = TenantContextHolder.getRequiredTenantId();
@@ -94,7 +90,6 @@ public class StaffCommandService {
         return StaffResponse.from(saved);
     }
 
-    @LogActivity(action = ActionType.UPDATE, entity = EntityType.ADMIN, entityIdArg = "id")
     public StaffResponse updateStaff(Long id, StaffUpdateRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
@@ -118,7 +113,6 @@ public class StaffCommandService {
     }
 
     @CacheEvict(value = CacheConfig.CACHE_ADMIN_PERMISSIONS, key = "#staffId")
-    @LogActivity(action = ActionType.UPDATE, entity = EntityType.PERMISSION, entityIdArg = "staffId")
     public void setStaffPermissions(Long staffId, Map<String, AccessLevel> permissions) {
         Staff staff = staffRepository.findById(staffId)
                 .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(staffId)));
@@ -135,7 +129,6 @@ public class StaffCommandService {
         log.info("Staff {} permissions updated: {} entries", staffId, entries.size());
     }
 
-    @LogActivity(action = ActionType.DEACTIVATE, entity = EntityType.ADMIN, entityIdArg = "id")
     public void deactivateStaff(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Staff staff = staffRepository.findById(id)
@@ -146,7 +139,6 @@ public class StaffCommandService {
         log.info("Staff deactivated: {} in tenant: {}", id, tenantSlug);
     }
 
-    @LogActivity(action = ActionType.REACTIVATE, entity = EntityType.ADMIN, entityIdArg = "id")
     public void reactivateStaff(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         checkStaffQuota(tenantSlug);
@@ -158,7 +150,6 @@ public class StaffCommandService {
         log.info("Staff reactivated: {} in tenant: {}", id, tenantSlug);
     }
 
-    @LogActivity(action = ActionType.TERMINATE, entity = EntityType.ADMIN, entityIdArg = "id")
     public void terminateStaff(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Staff staff = staffRepository.findById(id)
@@ -169,7 +160,6 @@ public class StaffCommandService {
         log.info("Staff terminated: {} in tenant: {}", id, tenantSlug);
     }
 
-    @LogActivity(action = ActionType.RESET_PASSWORD, entity = EntityType.ADMIN, entityIdArg = "id")
     public void resetStaffPassword(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
@@ -187,7 +177,6 @@ public class StaffCommandService {
         log.info("Password reset for staff: {} in tenant: {}", id, tenantSlug);
     }
 
-    @LogActivity(action = ActionType.CHANGE_LOGIN_ID, entity = EntityType.ADMIN, entityIdArg = "id")
     public String changeStaffLoginId(Long id, String newLoginId) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
@@ -209,7 +198,6 @@ public class StaffCommandService {
         return result.newLoginId();
     }
 
-    @LogActivity(action = ActionType.DELETE, entity = EntityType.ADMIN, entityIdArg = "id")
     public void deleteStaff(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Staff staff = staffRepository.findById(id)
