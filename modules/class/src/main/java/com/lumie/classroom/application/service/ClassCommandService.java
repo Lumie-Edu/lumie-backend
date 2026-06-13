@@ -182,6 +182,17 @@ public class ClassCommandService {
         return ClassEnrollmentResponse.from(saved);
     }
 
+    public void dropActiveEnrollmentsForStudent(Long studentId) {
+        List<ClassEnrollment> enrollments = enrollmentRepository.findAllByStudentIdAndStatus(
+                studentId,
+                EnrollmentStatus.ENROLLED
+        );
+        enrollments.forEach(ClassEnrollment::drop);
+        enrollmentRepository.saveAll(enrollments);
+
+        log.info("Dropped {} active enrollments for student: {}", enrollments.size(), studentId);
+    }
+
     private void validateNoScheduleOverlap(Long teacherId, SchedulePattern newPattern, Long excludeClassId) {
         if (teacherId == null || hasNoSessions(newPattern)) {
             return;

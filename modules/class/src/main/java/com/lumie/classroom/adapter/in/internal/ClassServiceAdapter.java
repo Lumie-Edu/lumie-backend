@@ -1,6 +1,7 @@
 package com.lumie.classroom.adapter.in.internal;
 
 import com.lumie.classroom.application.dto.ClassResponse;
+import com.lumie.classroom.application.service.ClassCommandService;
 import com.lumie.classroom.application.service.ClassQueryService;
 import com.lumie.classroom.domain.exception.ClassErrorCode;
 import com.lumie.common.exception.BusinessException;
@@ -22,6 +23,7 @@ import java.util.Optional;
 public class ClassServiceAdapter implements ClassService {
 
     private final ClassQueryService classQueryService;
+    private final ClassCommandService classCommandService;
 
     @Override
     public Optional<ClassData> getClass(String tenantSlug, Long classId) {
@@ -103,6 +105,12 @@ public class ClassServiceAdapter implements ClassService {
         return TenantContextHolder.withinContext(tenantSlug, () ->
                 classQueryService.hasActiveEnrollment(studentId)
         );
+    }
+
+    @Override
+    public void dropActiveEnrollmentsForStudent(String tenantSlug, Long studentId) {
+        TenantContextHolder.withinContext(tenantSlug, null,
+                () -> classCommandService.dropActiveEnrollmentsForStudent(studentId));
     }
 
     @Override
