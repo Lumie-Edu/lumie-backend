@@ -54,6 +54,7 @@
           },
           "authorId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           },
           "authorName": {
@@ -263,6 +264,7 @@
           },
           "studentId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           },
           "studentName": {
@@ -900,6 +902,7 @@
           },
           "studentId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           },
           "updatedAt": {
@@ -1050,6 +1053,7 @@
           },
           "studentId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           },
           "studentName": {
@@ -2718,6 +2722,7 @@
           },
           "teacherId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           },
           "title": {
@@ -4689,6 +4694,7 @@
           },
           "studentId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           },
           "updatedAt": {
@@ -4697,6 +4703,7 @@
           },
           "userId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           }
         },
@@ -4957,6 +4964,7 @@
           },
           "userId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           }
         },
@@ -5224,6 +5232,7 @@
           },
           "senderId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           },
           "sentAt": {
@@ -5683,6 +5692,7 @@
             "type": "number"
           },
           "phoneNumber": {
+            "nullable": true,
             "type": "string"
           },
           "rank": {
@@ -5911,6 +5921,7 @@
           },
           "studentId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           },
           "studentName": {
@@ -6007,6 +6018,7 @@
           },
           "studentId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           },
           "submittedAt": {
@@ -6391,6 +6403,7 @@
           },
           "studentId": {
             "format": "int64",
+            "nullable": true,
             "type": "integer"
           },
           "studentName": {
