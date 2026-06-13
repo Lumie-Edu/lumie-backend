@@ -29,12 +29,12 @@ import java.util.UUID;
 public class FileQueryService {
 
     private static final int DOWNLOAD_URL_EXPIRY_SECONDS = 3600; // 1 hour
+    private static final String DELETED_STUDENT_NAME = "삭제된 학생";
 
     private final FileMetadataRepository fileMetadataRepository;
     private final FileLinkRepository fileLinkRepository;
     private final com.lumie.file.domain.repository.FileDownloadRepository fileDownloadRepository;
     private final com.lumie.student.api.StudentService studentService;
-    private final com.lumie.staff.api.StaffService staffService;
     private final FileMetadataLookupService fileMetadataLookupService;
     private final StoragePort storagePort;
 
@@ -151,20 +151,10 @@ public class FileQueryService {
                         (a, b) -> a
                 ));
 
-        List<Long> unmappedUserIds = userIds.stream()
-                .filter(id -> !nameMap.containsKey(id))
-                .toList();
-
-        for (Long id : unmappedUserIds) {
-            staffService.getStaffByUserId(tenantSlug, id).ifPresent(staff -> {
-                nameMap.put(id, staff.name() + " (원장/강사)");
-            });
-        }
-
         return downloads.stream()
                 .map(d -> new com.lumie.file.application.dto.response.FileDownloaderResponse(
                         d.getUserId(),
-                        nameMap.getOrDefault(d.getUserId(), "삭제된 유저"),
+                        nameMap.getOrDefault(d.getUserId(), DELETED_STUDENT_NAME),
                         d.getUpdatedAt()
                 ))
                 .toList();

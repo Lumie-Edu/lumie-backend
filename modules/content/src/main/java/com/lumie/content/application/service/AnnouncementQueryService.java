@@ -31,7 +31,8 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class AnnouncementQueryService {
 
-    private static final String DELETED_USER_NAME = "삭제된 유저";
+    private static final String DELETED_STUDENT_NAME = "삭제된 학생";
+    private static final String DELETED_STAFF_NAME = "삭제된 직원";
 
     private final AnnouncementRepository announcementRepository;
     private final AnnouncementClassTargetRepository classTargetRepository;
@@ -120,7 +121,7 @@ public class AnnouncementQueryService {
                 .collect(Collectors.toMap(StudentService.StudentData::userId, StudentService.StudentData::studentName, (a, b) -> a));
 
         return userIds.stream()
-                .map(uid -> nameMap.getOrDefault(uid, "삭제된 유저"))
+                .map(uid -> nameMap.getOrDefault(uid, DELETED_STUDENT_NAME))
                 .toList();
     }
 
@@ -260,8 +261,8 @@ public class AnnouncementQueryService {
 
     private String authorNameOrFallback(Long authorId, Map<Long, String> authorNames) {
         if (authorId == null) {
-            return DELETED_USER_NAME;
+            return DELETED_STAFF_NAME;
         }
-        return authorNames.getOrDefault(authorId, DELETED_USER_NAME);
+        return authorNames.getOrDefault(authorId, DELETED_STAFF_NAME);
     }
 }

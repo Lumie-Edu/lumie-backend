@@ -3,6 +3,9 @@ package com.lumie.ai.adapter.in.web;
 import com.lumie.ai.adapter.out.external.ChatbotClient;
 import com.lumie.ai.application.dto.response.ChatReplyResponse;
 import com.lumie.ai.application.service.ChatService;
+import com.lumie.common.auth.Role;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
@@ -38,6 +41,7 @@ public class ChatController {
 
     @PostMapping
     public ResponseEntity<ChatReplyResponse> chat(@Valid @RequestBody ChatRequest request) {
+        requireStaffUser();
         return ResponseEntity.ok(chatbotClient.chat(
                 request.conversationId(), request.message(),
                 TenantContextHolder.getRequiredTenant(),
@@ -49,6 +53,7 @@ public class ChatController {
     public SseEmitter chatStream(
             @Valid @RequestBody ChatRequest request,
             HttpServletResponse response) {
+        requireStaffUser();
         response.setHeader("X-Accel-Buffering", "no");
         response.setHeader("Cache-Control", "no-cache, no-transform");
         return chatbotClient.streamChat(
@@ -62,6 +67,7 @@ public class ChatController {
     public ResponseEntity<ChatReplyResponse> confirm(
             @Valid @RequestBody ConfirmRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        requireStaffUser();
         if (idempotencyKey != null) {
             return idempotencyService.executeOnce(
                     idempotencyKey,
@@ -82,6 +88,13 @@ public class ChatController {
                 TenantContextHolder.getRequiredTenant(),
                 TenantContextHolder.getRequiredTenantId(),
                 UserContextHolder.getRequiredUserId());
+    }
+
+    private void requireStaffUser() {
+        Role role = UserContextHolder.getUserRole();
+        if (role == null || role == Role.STUDENT) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
     }
 
     public record ChatRequest(

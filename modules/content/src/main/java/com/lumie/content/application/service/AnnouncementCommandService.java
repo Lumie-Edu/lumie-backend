@@ -12,6 +12,7 @@ import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
 import com.lumie.content.domain.repository.AnnouncementRepository;
 import com.lumie.file.api.FileService;
+import com.lumie.staff.api.StaffService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,10 +25,13 @@ import java.util.List;
 @Slf4j
 public class AnnouncementCommandService {
 
+    private static final String DELETED_STAFF_NAME = "삭제된 직원";
+
     private final AnnouncementRepository announcementRepository;
     private final AnnouncementClassTargetRepository classTargetRepository;
     private final FileService fileService;
     private final ClassService classService;
+    private final StaffService staffService;
 
     @Transactional
     public AnnouncementResponse createAnnouncement(CreateAnnouncementRequest request) {
@@ -46,7 +50,7 @@ public class AnnouncementCommandService {
         fileService.replaceFileLinks("announcement", saved.getId(), request.textbookFileIds());
         log.info("Announcement created with id: {}", saved.getId());
 
-        return AnnouncementResponse.from(saved, null, classIds);
+        return AnnouncementResponse.from(saved, authorNameOrFallback(saved.getAuthorId()), classIds);
     }
 
     @Transactional
@@ -76,7 +80,7 @@ public class AnnouncementCommandService {
         Announcement updated = announcementRepository.save(announcement);
         log.info("Announcement updated: {}", updated.getId());
 
-        return AnnouncementResponse.from(updated, null, classIds);
+        return AnnouncementResponse.from(updated, authorNameOrFallback(updated.getAuthorId()), classIds);
     }
 
     @Transactional
@@ -126,5 +130,15 @@ public class AnnouncementCommandService {
         return classIds.stream()
                 .distinct()
                 .toList();
+    }
+
+    private String authorNameOrFallback(Long authorId) {
+        if (authorId == null) {
+            return DELETED_STAFF_NAME;
+        }
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        return staffService.getStaffByUserId(tenantSlug, authorId)
+                .map(StaffService.StaffData::name)
+                .orElse(DELETED_STAFF_NAME);
     }
 }

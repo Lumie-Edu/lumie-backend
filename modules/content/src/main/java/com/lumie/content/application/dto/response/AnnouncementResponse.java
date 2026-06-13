@@ -8,7 +8,7 @@ import java.util.List;
 
 public record AnnouncementResponse(
         Long id,
-        Long authorId,
+        @Schema(nullable = true) Long authorId,
         String authorName,
         String announcementTitle,
         String announcementContent,

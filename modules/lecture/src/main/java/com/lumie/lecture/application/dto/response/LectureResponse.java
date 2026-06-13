@@ -12,6 +12,7 @@ public record LectureResponse(
         Long id,
         @Schema(nullable = true) Long classId,
         List<Long> classIds,
+        @Schema(nullable = true)
         Long teacherId,
         String title,
         @Schema(nullable = true) String description,

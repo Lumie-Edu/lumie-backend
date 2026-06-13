@@ -18,11 +18,19 @@ public record QnaDetailResponse(
         Instant createdAt,
         Instant updatedAt
 ) {
-    private static final String DELETED_USER_NAME = "삭제된 유저";
+    private static final String DELETED_STAFF_NAME = "삭제된 직원";
 
     public static QnaDetailResponse from(QnaBoard qnaBoard, String qnaUserName, Map<Long, String> adminNames) {
+        return from(qnaBoard, qnaUserName, adminNames, DELETED_STAFF_NAME);
+    }
+
+    public static QnaDetailResponse from(
+            QnaBoard qnaBoard,
+            String qnaUserName,
+            Map<Long, String> adminNames,
+            String deletedStaffName) {
         List<QnaCommentResponse> commentResponses = qnaBoard.getComments().stream()
-                .map(comment -> QnaCommentResponse.from(comment, resolveAdminName(comment, adminNames)))
+                .map(comment -> QnaCommentResponse.from(comment, resolveAdminName(comment, adminNames, deletedStaffName)))
                 .toList();
 
         return new QnaDetailResponse(
@@ -38,13 +46,13 @@ public record QnaDetailResponse(
         );
     }
 
-    private static String resolveAdminName(QnaComment comment, Map<Long, String> adminNames) {
+    private static String resolveAdminName(QnaComment comment, Map<Long, String> adminNames, String deletedStaffName) {
         if (comment.getStudentId() != null) {
             return null;
         }
         if (comment.getUserId() == null) {
-            return DELETED_USER_NAME;
+            return deletedStaffName;
         }
-        return adminNames.getOrDefault(comment.getUserId(), DELETED_USER_NAME);
+        return adminNames.getOrDefault(comment.getUserId(), deletedStaffName);
     }
 }

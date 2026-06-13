@@ -29,6 +29,9 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class QnaQueryService {
 
+    private static final String DELETED_STUDENT_NAME = "삭제된 학생";
+    private static final String DELETED_STAFF_NAME = "삭제된 직원";
+
     private final QnaBoardRepository qnaBoardRepository;
     private final StudentService studentService;
     private final StaffService staffService;
@@ -79,7 +82,7 @@ public class QnaQueryService {
                 .stream()
                 .findFirst()
                 .map(StudentService.StudentData::studentName)
-                .orElse("삭제된 유저");
+                .orElse(DELETED_STUDENT_NAME);
 
         List<Long> userIds = qnaBoard.getComments().stream()
                 .map(c -> c.getUserId())
@@ -93,7 +96,7 @@ public class QnaQueryService {
                         .stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
 
-        return QnaDetailResponse.from(qnaBoard, userName, adminNameMap);
+        return QnaDetailResponse.from(qnaBoard, userName, adminNameMap, DELETED_STAFF_NAME);
     }
 
     public QnaUnansweredOverdueResponse getUnansweredOverdueStatistics(long thresholdHours) {
@@ -119,12 +122,8 @@ public class QnaQueryService {
             return page.map(qna -> QnaBoardResponse.from(qna, null));
         }
 
-        log.info("[QNA] Looking up names for userIds: {}", userIds);
-
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         var students = studentService.getStudentsByUserIds(tenantSlug, userIds).students();
-        log.info("[QNA] Found {} students", students.size());
-        students.forEach(s -> log.info("[QNA] student userId={} name={}", s.userId(), s.studentName()));
 
         Map<Long, String> nameMap = students.stream()
                 .collect(Collectors.toMap(
@@ -135,7 +134,7 @@ public class QnaQueryService {
 
         return page.map(qna -> QnaBoardResponse.from(
                 qna,
-                nameMap.getOrDefault(qna.getQnaUserId(), "삭제된 유저")
+                nameMap.getOrDefault(qna.getQnaUserId(), DELETED_STUDENT_NAME)
         ));
     }
 }
