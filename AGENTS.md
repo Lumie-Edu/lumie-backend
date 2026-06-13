@@ -11,10 +11,16 @@ Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot
 ```
 modules/{module}/
 └── src/main/java/com/lumie/{module}/
-    ├── domain/{entity,vo,repository,exception}/
-    ├── application/{service,port/in,port/out,dto/{request,response}}/
+    ├── domain/{entity,vo,exception}/
+    ├── application/{service,port/out,dto/{request,response}}/
     └── adapter/{in/web,in/messaging,in/internal,out/persistence,out/external}/
 ```
+
+`domain/entity` contains persistence-backed JPA aggregate entities with
+domain behavior. JPA mapping annotations are intentional here. New or
+refactored persistence access should use `application/port/out` plus
+`adapter/out/persistence`; existing `domain/repository` Spring Data
+interfaces are legacy tolerated and should migrate opportunistically.
 
 ## Multi-tenancy
 

@@ -16,7 +16,7 @@ Spring Boot monolith for the Lumie LMS platform — handles all business logic (
 
 ## Architecture
 
-Modular monolith with hexagonal architecture per module. Each module under `modules/` owns a `domain/` layer (pure Java, no Spring), an `application/` layer (services, ports, DTOs), and an `adapter/` layer (web controllers, JPA persistence, AMQP listeners, external HTTP clients). Cross-module calls are only permitted through interfaces declared in `libs/internal-api`; no direct entity imports across modules. Multi-tenancy is enforced via Postgres RLS: every tenant-scoped table carries `tenant_id`, set from JWT (HTTP) or message payload (RabbitListener) into `TenantContextHolder`, and bound to the active transaction by `RlsTenantContextAspect` in `libs/common`. Runtime app connects as `lumie_app` (NOSUPERUSER, NOBYPASSRLS); Flyway migrates as `postgres`.
+Modular monolith with pragmatic hexagonal boundaries per module. Each module under `modules/` owns a `domain/` layer (JPA aggregate entities with domain behavior), an `application/` layer (services, outbound ports, DTOs), and an `adapter/` layer (web controllers, persistence adapters, AMQP listeners, external HTTP clients). Cross-module calls are only permitted through interfaces declared in `libs/internal-api`; no direct entity imports across modules. Multi-tenancy is enforced via Postgres RLS: every tenant-scoped table carries `tenant_id`, set from JWT (HTTP) or message payload (RabbitListener) into `TenantContextHolder`, and bound to the active transaction by `RlsTenantContextAspect` in `libs/common`. Runtime app connects as `lumie_app` (NOSUPERUSER, NOBYPASSRLS); Flyway migrates as `postgres`.
 
 ## Prerequisites
 
