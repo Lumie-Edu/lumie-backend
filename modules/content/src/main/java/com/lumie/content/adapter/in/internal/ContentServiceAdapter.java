@@ -3,9 +3,11 @@ package com.lumie.content.adapter.in.internal;
 import com.lumie.content.application.dto.request.CreateAnnouncementRequest;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.application.service.AnnouncementCommandService;
+import com.lumie.content.application.service.DeletionReadinessService;
 import com.lumie.content.application.service.AnnouncementQueryService;
 import com.lumie.content.application.service.QnaQueryService;
 import com.lumie.content.api.ContentService;
+import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,7 @@ public class ContentServiceAdapter implements ContentService {
     private final AnnouncementCommandService announcementCommandService;
     private final AnnouncementQueryService announcementQueryService;
     private final QnaQueryService qnaQueryService;
+    private final DeletionReadinessService deletionReadinessService;
 
     @Override
     public String createAnnouncement(Long authorId, String title, String content,
@@ -36,5 +39,19 @@ public class ContentServiceAdapter implements ContentService {
     @Override
     public boolean canUserViewQna(Long qnaId, String role, Long userId) {
         return qnaQueryService.canUserViewQna(qnaId, role, userId);
+    }
+
+    @Override
+    public boolean hasActiveOrUpcomingReservationsForStudent(String tenantSlug, Long studentId) {
+        return TenantContextHolder.withinContext(tenantSlug, () ->
+                deletionReadinessService.hasActiveOrUpcomingReservationsForStudent(studentId)
+        );
+    }
+
+    @Override
+    public boolean hasUpcomingSchedulesForUser(String tenantSlug, Long userId) {
+        return TenantContextHolder.withinContext(tenantSlug, () ->
+                deletionReadinessService.hasUpcomingSchedulesForUser(userId)
+        );
     }
 }

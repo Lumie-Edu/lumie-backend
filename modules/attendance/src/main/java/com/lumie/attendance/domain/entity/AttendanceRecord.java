@@ -28,7 +28,7 @@ public class AttendanceRecord extends TenantScopedEntity {
     @JoinColumn(name = "session_id", nullable = false)
     private AttendanceSession session;
 
-    @Column(name = "student_id", nullable = false)
+    @Column(name = "student_id")
     private Long studentId;
 
     @Enumerated(EnumType.STRING)

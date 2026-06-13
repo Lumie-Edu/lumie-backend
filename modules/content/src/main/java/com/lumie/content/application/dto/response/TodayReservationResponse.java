@@ -15,7 +15,7 @@ public record TodayReservationResponse(
         LocalDate date,
         @JsonFormat(pattern = "HH:mm") LocalTime startTime,
         @JsonFormat(pattern = "HH:mm") LocalTime endTime,
-        Long studentId,
+        @Schema(nullable = true) Long studentId,
         @Schema(nullable = true) String studentName,
         @Schema(nullable = true) String consultationContent,
         ReservationStatus status,

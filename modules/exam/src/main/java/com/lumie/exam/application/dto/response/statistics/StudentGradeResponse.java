@@ -7,7 +7,7 @@ import java.time.Instant;
 
 public record StudentGradeResponse(
         @Schema(nullable = true) Long studentId,
-        String phoneNumber,
+        @Schema(nullable = true) String phoneNumber,
         boolean isRegistered,
         String studentName,
         int score,

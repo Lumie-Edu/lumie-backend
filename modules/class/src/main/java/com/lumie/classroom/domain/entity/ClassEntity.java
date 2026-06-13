@@ -34,6 +34,9 @@ public class ClassEntity extends TenantScopedEntity {
     @Column(name = "teacher_id")
     private Long teacherId;
 
+    @Column(name = "teacher_deleted", nullable = false)
+    private boolean teacherDeleted;
+
     @Convert(converter = SchedulePatternConverter.class)
     @Column(name = "schedule_pattern", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
@@ -47,6 +50,9 @@ public class ClassEntity extends TenantScopedEntity {
                         SchedulePattern schedulePattern, String description) {
         this.name = name;
         this.teacherId = teacherId;
+        if (teacherId != null) {
+            this.teacherDeleted = false;
+        }
         this.schedulePattern = schedulePattern;
         this.description = description;
     }
@@ -65,6 +71,9 @@ public class ClassEntity extends TenantScopedEntity {
                            SchedulePattern schedulePattern, String description) {
         this.name = name;
         this.teacherId = teacherId;
+        if (teacherId != null) {
+            this.teacherDeleted = false;
+        }
         this.schedulePattern = schedulePattern;
         this.description = description;
     }

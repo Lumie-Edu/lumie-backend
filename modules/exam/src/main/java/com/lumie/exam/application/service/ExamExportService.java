@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ExamExportService {
 
+    private static final String DELETED_STUDENT_NAME = "삭제된 학생";
+
     private static final List<String> HEADERS = List.of(
         "학생명", "휴대폰", "시험명", "응시일", "점수", "만점",
         "정답수", "오답수", "등수", "백분위", "등급"
@@ -111,10 +113,14 @@ public class ExamExportService {
     private static StudentService.StudentData resolveStudent(
         Map<Long, StudentService.StudentData> studentMap, ExamResult result) {
         if (result.getStudentId() == null) {
+            if (result.isStudentDeleted()) {
+                return new StudentService.StudentData(
+                    null, null, DELETED_STUDENT_NAME, null, false, null, null);
+            }
             String displayName = result.getPhoneNumber() != null ? result.getPhoneNumber() : "미등록 학생";
             return new StudentService.StudentData(null, null, displayName, result.getPhoneNumber(), false, null, null);
         }
         return studentMap.getOrDefault(result.getStudentId(),
-            new StudentService.StudentData(result.getStudentId(), null, "학생 " + result.getStudentId(), null, true, null, null));
+            new StudentService.StudentData(result.getStudentId(), null, DELETED_STUDENT_NAME, null, false, null, null));
     }
 }

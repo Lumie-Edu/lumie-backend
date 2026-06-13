@@ -36,6 +36,9 @@ public class ExamResult extends TenantScopedEntity {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
+    @Column(name = "student_deleted", nullable = false)
+    private boolean studentDeleted;
+
     @Column(name = "total_score", nullable = false)
     private Integer totalScore;
 

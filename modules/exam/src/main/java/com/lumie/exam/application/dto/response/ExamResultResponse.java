@@ -26,14 +26,16 @@ public record ExamResultResponse(
     }
 
     public static ExamResultResponse from(ExamResult result, String studentName) {
+        boolean studentDeleted = result.isStudentDeleted();
+        Long studentId = studentDeleted ? null : result.getStudentId();
         return new ExamResultResponse(
                 result.getId(),
                 result.getExam().getId(),
                 result.getExam().getName(),
-                result.getStudentId(),
+                studentId,
                 studentName,
-                result.getPhoneNumber(),
-                result.getStudentId() != null,
+                studentDeleted ? null : result.getPhoneNumber(),
+                studentId != null,
                 result.getTotalScore(),
                 result.getExam().calculateTotalPossibleScore(),
                 result.getGrade(),

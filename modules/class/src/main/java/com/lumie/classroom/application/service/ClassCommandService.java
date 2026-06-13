@@ -32,6 +32,8 @@ import java.util.List;
 @Transactional
 public class ClassCommandService {
 
+    private static final String DELETED_TEACHER_NAME = "삭제된 강사";
+
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
     private final StaffService staffService;
@@ -57,9 +59,7 @@ public class ClassCommandService {
         ClassEntity saved = classRepository.save(entity);
 
         log.info("Class created: {}", saved.getId());
-        String teacherName = saved.getTeacherId() != null
-            ? staffService.getStaff(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(StaffService.StaffData::name).orElse(null)
-            : null;
+        String teacherName = resolveTeacherName(saved);
         return ClassResponse.from(saved, teacherName);
     }
 
@@ -81,10 +81,17 @@ public class ClassCommandService {
         ClassEntity saved = classRepository.save(entity);
 
         log.info("Class updated: {}", saved.getId());
-        String updatedTeacherName = saved.getTeacherId() != null
-            ? staffService.getStaff(TenantContextHolder.getRequiredTenant(), saved.getTeacherId()).map(StaffService.StaffData::name).orElse(null)
-            : null;
+        String updatedTeacherName = resolveTeacherName(saved);
         return ClassResponse.from(saved, updatedTeacherName);
+    }
+
+    private String resolveTeacherName(ClassEntity entity) {
+        if (entity.getTeacherId() == null) {
+            return entity.isTeacherDeleted() ? DELETED_TEACHER_NAME : null;
+        }
+        return staffService.getStaff(TenantContextHolder.getRequiredTenant(), entity.getTeacherId())
+            .map(StaffService.StaffData::name)
+            .orElse(DELETED_TEACHER_NAME);
     }
 
     @LogActivity(action = ActionType.DELETE, entity = EntityType.CLASS, entityIdArg = "id")

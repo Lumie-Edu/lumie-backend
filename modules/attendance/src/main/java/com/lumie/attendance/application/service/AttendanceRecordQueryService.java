@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class AttendanceRecordQueryService {
 
+    private static final String DELETED_STUDENT_NAME = "삭제된 학생";
     private static final Collator KOREAN_COLLATOR = Collator.getInstance(Locale.KOREAN);
 
     private final AttendanceRecordRepository recordRepository;
@@ -42,6 +43,7 @@ public class AttendanceRecordQueryService {
 
         List<Long> studentIds = records.stream()
             .map(AttendanceRecord::getStudentId)
+            .filter(Objects::nonNull)
             .distinct()
             .toList();
 
@@ -51,7 +53,7 @@ public class AttendanceRecordQueryService {
         return records.stream()
             .map(record -> {
                 StudentReadModel student = studentMap.get(record.getStudentId());
-                String studentName = student != null ? student.getName() : "Unknown";
+                String studentName = student != null ? student.getName() : DELETED_STUDENT_NAME;
                 return AttendanceRecordResponse.from(record, studentName);
             })
             .sorted(Comparator.comparing(AttendanceRecordResponse::studentName, KOREAN_COLLATOR))
@@ -60,7 +62,7 @@ public class AttendanceRecordQueryService {
 
     public Page<AttendanceRecordResponse> getRecordsByStudent(Long studentId, Pageable pageable) {
         StudentReadModel student = studentReadRepository.findById(studentId).orElse(null);
-        String studentName = student != null ? student.getName() : "Unknown";
+        String studentName = student != null ? student.getName() : DELETED_STUDENT_NAME;
 
         return recordRepository.findByStudentId(studentId, pageable)
             .map(record -> AttendanceRecordResponse.from(record, studentName));
@@ -68,7 +70,7 @@ public class AttendanceRecordQueryService {
 
     public List<StudentAttendanceRecordResponse> getStudentRecordsWithSession(Long studentId) {
         StudentReadModel student = studentReadRepository.findById(studentId).orElse(null);
-        String studentName = student != null ? student.getName() : "Unknown";
+        String studentName = student != null ? student.getName() : DELETED_STUDENT_NAME;
 
         return recordRepository.findByStudentIdWithSession(studentId).stream()
             .map(record -> StudentAttendanceRecordResponse.from(record, studentName))
@@ -166,7 +168,10 @@ public class AttendanceRecordQueryService {
             }
         }
 
-        Map<Long, String> studentNames = studentReadRepository.findAllById(studentCounts.keySet()).stream()
+        List<Long> existingStudentIds = studentCounts.keySet().stream()
+            .filter(Objects::nonNull)
+            .toList();
+        Map<Long, String> studentNames = studentReadRepository.findAllById(existingStudentIds).stream()
             .collect(Collectors.toMap(StudentReadModel::getId, StudentReadModel::getName));
 
         return studentCounts.entrySet().stream()
@@ -178,7 +183,7 @@ public class AttendanceRecordQueryService {
                     ? Math.round((double) (c[1] + c[3] + c[4]) / decided * 1000) / 10.0
                     : 0.0;
                 return new ClassStudentAttendanceResponse(
-                    studentId, studentNames.getOrDefault(studentId, "Unknown"),
+                    studentId, studentNames.getOrDefault(studentId, DELETED_STUDENT_NAME),
                     c[0], c[1], c[2], c[3], c[4], rate
                 );
             })

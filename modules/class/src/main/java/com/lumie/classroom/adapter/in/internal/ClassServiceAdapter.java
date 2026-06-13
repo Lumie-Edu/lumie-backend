@@ -98,6 +98,20 @@ public class ClassServiceAdapter implements ClassService {
         );
     }
 
+    @Override
+    public boolean hasActiveEnrollment(String tenantSlug, Long studentId) {
+        return TenantContextHolder.withinContext(tenantSlug, () ->
+                classQueryService.hasActiveEnrollment(studentId)
+        );
+    }
+
+    @Override
+    public boolean hasAssignedClasses(String tenantSlug, Long staffId) {
+        return TenantContextHolder.withinContext(tenantSlug, () ->
+                classQueryService.hasAssignedClasses(staffId)
+        );
+    }
+
     private ClassData toClassData(ClassResponse response, Long tenantId) {
         var schedule = response.schedulePattern();
         return new ClassData(

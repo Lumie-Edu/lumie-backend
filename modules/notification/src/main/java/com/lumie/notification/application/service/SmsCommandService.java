@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -80,7 +81,9 @@ public class SmsCommandService {
             .orElseThrow(() -> new BusinessException(SmsErrorCode.CLASS_NOT_FOUND,
                 "Class not found with id: " + classId));
 
-        List<Long> studentIds = classService.getEnrolledStudentIds(slug, classId);
+        List<Long> studentIds = classService.getEnrolledStudentIds(slug, classId).stream()
+            .filter(Objects::nonNull)
+            .toList();
         if (studentIds.isEmpty()) {
             throw new BusinessException(SmsErrorCode.EMPTY_RECIPIENTS, "No students enrolled in class: " + classId);
         }

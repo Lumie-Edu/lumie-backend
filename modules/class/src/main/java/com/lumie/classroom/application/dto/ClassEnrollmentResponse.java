@@ -9,6 +9,7 @@ import java.time.Instant;
 public record ClassEnrollmentResponse(
     Long id,
     Long classId,
+    @Schema(nullable = true)
     Long studentId,
     Instant enrolledAt,
     @Schema(nullable = true) Instant droppedAt,

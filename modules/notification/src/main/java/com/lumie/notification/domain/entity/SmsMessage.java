@@ -30,7 +30,7 @@ public class SmsMessage extends TenantScopedEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "sender_id", nullable = false)
+    @Column(name = "sender_id")
     private Long senderId;
 
     @Enumerated(EnumType.STRING)

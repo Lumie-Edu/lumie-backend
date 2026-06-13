@@ -20,6 +20,10 @@ public interface ClassService {
 
     boolean isStudentEnrolledInClass(String tenantSlug, Long studentId, Long classId);
 
+    boolean hasActiveEnrollment(String tenantSlug, Long studentId);
+
+    boolean hasAssignedClasses(String tenantSlug, Long staffId);
+
     record EnrolledClassData(Long classId, String className, Long studentId) {}
 
     record ClassData(

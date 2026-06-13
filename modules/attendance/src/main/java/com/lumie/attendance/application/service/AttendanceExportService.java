@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class AttendanceExportService {
 
+    private static final String DELETED_STUDENT_NAME = "삭제된 학생";
     private static final List<String> HEADERS = List.of(
         "날짜", "세션명", "수업명", "학생명", "출결상태", "체크인 시간", "메모"
     );
@@ -69,7 +70,11 @@ public class AttendanceExportService {
         for (AttendanceSession session : sessions) {
             List<AttendanceRecord> records = recordRepository.findBySessionId(session.getId());
             recordsBySession.put(session.getId(), records);
-            for (AttendanceRecord r : records) studentIds.add(r.getStudentId());
+            for (AttendanceRecord r : records) {
+                if (r.getStudentId() != null) {
+                    studentIds.add(r.getStudentId());
+                }
+            }
         }
 
         Map<Long, String> studentNames = studentReadRepository.findAllById(List.copyOf(studentIds))
@@ -82,7 +87,7 @@ public class AttendanceExportService {
                     session.getSessionDate().format(DATE_FMT),
                     nullToEmpty(session.getName()),
                     nullToEmpty(session.getClassName()),
-                    studentNames.getOrDefault(record.getStudentId(), "학생 " + record.getStudentId()),
+                    studentNames.getOrDefault(record.getStudentId(), DELETED_STUDENT_NAME),
                     statusLabel(record.getStatus()),
                     record.getCheckedAt() == null ? ""
                         : LocalTime.ofInstant(record.getCheckedAt(), ZoneId.systemDefault()).format(TIME_FMT),

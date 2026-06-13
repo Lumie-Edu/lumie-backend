@@ -32,7 +32,7 @@ public class ReservationCommandService {
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.SCHEDULE_NOT_FOUND));
 
         // Check if schedule is available
-        if (!schedule.getIsAvailable()) {
+        if (schedule.getUserId() == null || !schedule.getIsAvailable()) {
             throw new BusinessException(ContentErrorCode.SCHEDULE_NOT_AVAILABLE);
         }
 

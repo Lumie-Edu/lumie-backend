@@ -26,10 +26,10 @@ public class Reservation extends TenantScopedEntity {
     @JoinColumn(name = "schedule_id", nullable = false)
     private Schedule schedule;
 
-    @Column(name = "student_id", nullable = false)
+    @Column(name = "student_id")
     private Long studentId;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private Long userId;
 
     @Column(name = "consultation_content", columnDefinition = "TEXT")

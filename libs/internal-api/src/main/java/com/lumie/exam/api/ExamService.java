@@ -6,8 +6,9 @@ package com.lumie.exam.api;
 public interface ExamService {
 
     /**
-     * Links previously unregistered exam results (student_id IS NULL, matching phone_number)
-     * to a newly registered student. Runs within the current tenant scope.
+     * Links previously unregistered exam results (student_id IS NULL, matching phone_number,
+     * not marked as deleted-student history) to a newly registered student. Runs within the
+     * current tenant scope.
      *
      * @param phoneNumber the phone number recorded on unregistered exam results
      * @param studentId   the student id to backfill

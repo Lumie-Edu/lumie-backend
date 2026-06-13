@@ -28,7 +28,7 @@ public class Schedule extends TenantScopedEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private Long userId;
 
     @Column(name = "date", nullable = false)
@@ -88,11 +88,14 @@ public class Schedule extends TenantScopedEntity {
     }
 
     public void open() {
+        if (this.userId == null) {
+            return;
+        }
         this.isAvailable = true;
     }
 
     public boolean canAcceptReservation() {
-        if (!this.isAvailable) {
+        if (this.userId == null || !this.isAvailable) {
             return false;
         }
         return reservations.stream()

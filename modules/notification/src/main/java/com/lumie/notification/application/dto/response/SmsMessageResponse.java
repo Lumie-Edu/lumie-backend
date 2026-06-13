@@ -10,6 +10,7 @@ import java.util.List;
 
 public record SmsMessageResponse(
     Long id,
+    @Schema(nullable = true)
     Long senderId,
     RecipientType recipientType,
     List<RecipientResponse> recipients,

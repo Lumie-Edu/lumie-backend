@@ -54,7 +54,7 @@ class AttendanceRecordQueryServiceTest {
         AttendanceSession session = AttendanceSession.create("수업", LocalDate.now(), null, null, 10);
         ReflectionTestUtils.setField(session, "id", 1L);
         AttendanceRecord record = AttendanceRecord.create(session, studentId);
-        ReflectionTestUtils.setField(record, "id", studentId * 10L);
+        ReflectionTestUtils.setField(record, "id", studentId == null ? 999L : studentId * 10L);
         record.checkIn(status, 1L);
         return record;
     }
@@ -80,7 +80,7 @@ class AttendanceRecordQueryServiceTest {
     }
 
     @Test
-    @DisplayName("getRecordsBySession() 호출 시 학생 정보가 없으면 이름이 'Unknown'이다")
+    @DisplayName("getRecordsBySession() 호출 시 학생 정보가 없으면 이름이 '삭제된 학생'이다")
     void getRecordsBySession_unknownStudent_usesDefaultName() throws Exception {
         // given
         Long sessionId = 1L;
@@ -94,7 +94,25 @@ class AttendanceRecordQueryServiceTest {
 
         // then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).studentName()).isEqualTo("Unknown");
+        assertThat(result.get(0).studentName()).isEqualTo("삭제된 학생");
+    }
+
+    @Test
+    @DisplayName("getRecordsBySession() 호출 시 studentId가 null이면 이름이 '삭제된 학생'이다")
+    void getRecordsBySession_nullStudent_usesDeletedStudentName() throws Exception {
+        // given
+        Long sessionId = 1L;
+        AttendanceRecord record = buildRecord(null, AttendanceStatus.ABSENT);
+
+        given(recordRepository.findBySessionId(sessionId)).willReturn(List.of(record));
+        given(studentReadRepository.findAllById(List.of())).willReturn(List.of());
+
+        // when
+        List<AttendanceRecordResponse> result = queryService.getRecordsBySession(sessionId);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).studentName()).isEqualTo("삭제된 학생");
     }
 
     @Test

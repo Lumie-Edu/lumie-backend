@@ -29,7 +29,7 @@ public class ClassEnrollment extends TenantScopedEntity {
     @JoinColumn(name = "class_id", nullable = false)
     private ClassEntity classEntity;
 
-    @Column(name = "student_id", nullable = false)
+    @Column(name = "student_id")
     private Long studentId;
 
     @Column(name = "enrolled_at", nullable = false)

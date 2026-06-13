@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ReservationQueryService {
 
+    private static final String DELETED_STUDENT_NAME = "삭제된 학생";
+
     private final ReservationRepository reservationRepository;
     private final StudentService studentService;
 
@@ -85,7 +87,9 @@ public class ReservationQueryService {
                                 StudentService.StudentData::studentName
                         ));
         return reservations.stream()
-                .map(r -> TodayReservationResponse.from(r, nameById.get(r.getStudentId())))
+                .map(r -> TodayReservationResponse.from(
+                        r,
+                        nameById.getOrDefault(r.getStudentId(), DELETED_STUDENT_NAME)))
                 .toList();
     }
 

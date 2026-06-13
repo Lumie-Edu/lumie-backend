@@ -25,6 +25,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @EntityGraph(attributePaths = {"schedule"})
     List<Reservation> findByStudentIdAndStatus(Long studentId, ReservationStatus status);
 
+    @Query("""
+        SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END
+        FROM Reservation r
+        WHERE r.studentId = :studentId
+          AND r.status IN (
+              com.lumie.content.domain.vo.ReservationStatus.PENDING,
+              com.lumie.content.domain.vo.ReservationStatus.CONFIRMED
+          )
+        """)
+    boolean existsActiveOrUpcomingByStudentId(@Param("studentId") Long studentId);
+
     boolean existsByScheduleIdAndStudentIdAndStatusNot(Long scheduleId, Long studentId, ReservationStatus status);
 
     @Query("""

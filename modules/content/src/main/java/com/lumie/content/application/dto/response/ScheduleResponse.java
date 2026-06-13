@@ -10,6 +10,7 @@ import java.time.LocalTime;
 
 public record ScheduleResponse(
         Long id,
+        @Schema(nullable = true)
         Long userId,
         LocalDate date,
         @JsonFormat(pattern = "HH:mm") LocalTime startTime,

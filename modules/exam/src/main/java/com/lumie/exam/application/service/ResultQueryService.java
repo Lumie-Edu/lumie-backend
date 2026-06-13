@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ResultQueryService {
 
+    private static final String DELETED_STUDENT_NAME = "삭제된 학생";
+
     private final ExamResultRepository resultRepository;
     private final OmrGradingJobRepository jobRepository;
     private final OmrStoragePort storagePort;
@@ -40,8 +42,7 @@ public class ResultQueryService {
         Map<Long, String> nameByStudentId = resolveStudentNames(results);
 
         return results.stream()
-                .map(r -> ExamResultResponse.from(r,
-                        r.getStudentId() == null ? null : nameByStudentId.get(r.getStudentId())))
+                .map(r -> ExamResultResponse.from(r, resolveStudentName(r, nameByStudentId)))
                 .toList();
     }
 
@@ -61,8 +62,7 @@ public class ResultQueryService {
         Map<Long, String> nameByStudentId = resolveStudentNames(results);
 
         return results.stream()
-                .map(r -> ExamResultResponse.from(r,
-                        r.getStudentId() == null ? null : nameByStudentId.get(r.getStudentId())))
+                .map(r -> ExamResultResponse.from(r, resolveStudentName(r, nameByStudentId)))
                 .toList();
     }
 
@@ -73,15 +73,14 @@ public class ResultQueryService {
         Map<Long, String> nameByStudentId = resolveStudentNames(results);
 
         return results.stream()
-                .map(r -> ExamResultResponse.from(r,
-                        r.getStudentId() == null ? null : nameByStudentId.get(r.getStudentId())))
+                .map(r -> ExamResultResponse.from(r, resolveStudentName(r, nameByStudentId)))
                 .toList();
     }
 
     /**
      * Batched student-name lookup for a result list — single internal-api call
      * even when the list contains hundreds of rows. Null/unregistered student_id
-     * entries are skipped so the response remains "missing key = unregistered".
+     * entries are skipped so the response keeps unregistered/deleted fallback semantics.
      */
     private Map<Long, String> resolveStudentNames(List<ExamResult> results) {
         List<Long> studentIds = results.stream()
@@ -100,6 +99,16 @@ public class ResultQueryService {
                 ));
     }
 
+    private static String resolveStudentName(ExamResult result, Map<Long, String> nameByStudentId) {
+        if (result.isStudentDeleted()) {
+            return DELETED_STUDENT_NAME;
+        }
+        if (result.getStudentId() == null) {
+            return result.getPhoneNumber();
+        }
+        return nameByStudentId.getOrDefault(result.getStudentId(), DELETED_STUDENT_NAME);
+    }
+
     public List<TopStudentMonthlyResponse> getTopStudentsMonthly(int limit) {
         log.debug("Getting top {} students for current month", limit);
 
@@ -107,7 +116,10 @@ public class ResultQueryService {
         if (rows.isEmpty()) {
             return List.of();
         }
-        List<Long> studentIds = rows.stream().map(r -> r.getStudentId()).toList();
+        List<Long> studentIds = rows.stream()
+                .map(r -> r.getStudentId())
+                .filter(Objects::nonNull)
+                .toList();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Map<Long, String> nameById = studentService.getStudentsByIds(tenantSlug, studentIds).students().stream()
                 .collect(Collectors.toMap(
@@ -117,7 +129,7 @@ public class ResultQueryService {
         return rows.stream()
                 .map(r -> new TopStudentMonthlyResponse(
                         r.getStudentId(),
-                        nameById.get(r.getStudentId()),
+                        nameById.getOrDefault(r.getStudentId(), DELETED_STUDENT_NAME),
                         r.getAvgScore(),
                         r.getAttemptCount()
                 ))
@@ -139,9 +151,12 @@ public class ResultQueryService {
     public OmrJobStatusResponse getOmrJobStatus(Long examId, Long jobId) {
         log.debug("Getting OMR job status: examId={}, jobId={}", examId, jobId);
 
-        return jobRepository.findById(jobId)
-                .map(OmrJobStatusResponse::from)
+        var job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+        if (!job.getExam().getId().equals(examId)) {
+            throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
+        }
+        return OmrJobStatusResponse.from(job);
     }
 
     public List<OmrJobStatusResponse> getOmrJobs(Long examId) {

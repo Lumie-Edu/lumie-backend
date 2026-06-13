@@ -2,6 +2,7 @@ package com.lumie.exam.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.response.statistics.StudentGradeResponse;
+import com.lumie.exam.application.dto.response.statistics.StudentResultSummaryResponse;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
@@ -12,6 +13,7 @@ import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.test.ExamFixtures;
+import com.lumie.common.test.ReflectionTestUtils;
 import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -440,6 +442,49 @@ class StudentGradeQueryServiceTest {
                 .map(StudentGradeResponse::isRegistered)
                 .toList();
         assertThat(registeredFlags).contains(true, false);
+        assertThat(page.getContent())
+                .filteredOn(response -> !response.isRegistered())
+                .extracting(StudentGradeResponse::studentName)
+                .containsExactly("01099998888");
+    }
+
+    @Test
+    @DisplayName("getStudentGrades: 삭제된 학생 결과는 미등록 학생과 구분해 '삭제된 학생'으로 반환된다")
+    void getStudentGrades_deletedStudentResult_usesDeletedStudentName() throws Exception {
+        Exam exam = gradedExam();
+        ExamResult deletedStudentResult = ExamResult.createForUnregistered(exam, "01099998888", 60);
+        ReflectionTestUtils.setField(deletedStudentResult, "studentDeleted", true);
+
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(List.of(deletedStudentResult));
+
+        Page<StudentGradeResponse> page = service.getStudentGrades(
+                EXAM_ID, PageRequest.of(0, Integer.MAX_VALUE));
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent().get(0).studentName()).isEqualTo("삭제된 학생");
+        assertThat(page.getContent().get(0).isRegistered()).isFalse();
+        assertThat(page.getContent().get(0).studentId()).isNull();
+        assertThat(page.getContent().get(0).phoneNumber()).isNull();
+    }
+
+    @Test
+    @DisplayName("getStudentResultSummaries: 삭제된 학생 결과는 리포트 생성 대상에서 제외되도록 studentId를 숨긴다")
+    void getStudentResultSummaries_deletedStudentResult_hidesStudentId() throws Exception {
+        Exam exam = gradedExam();
+        ExamResult deletedStudentResult = ExamResult.createForUnregistered(exam, "01099998888", 60);
+        ReflectionTestUtils.setField(deletedStudentResult, "studentDeleted", true);
+
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(List.of(deletedStudentResult));
+
+        List<StudentResultSummaryResponse> summaries = service.getStudentResultSummaries(EXAM_ID);
+
+        assertThat(summaries).hasSize(1);
+        assertThat(summaries.get(0).studentId()).isNull();
+        assertThat(summaries.get(0).phoneNumber()).isNull();
+        assertThat(summaries.get(0).isRegistered()).isFalse();
+        assertThat(summaries.get(0).studentName()).isEqualTo("삭제된 학생");
     }
 
     @Test

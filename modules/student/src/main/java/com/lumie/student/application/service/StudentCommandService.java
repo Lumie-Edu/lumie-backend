@@ -7,7 +7,9 @@ import com.lumie.student.application.dto.response.BulkImportResult;
 import com.lumie.student.application.dto.response.StudentResponse;
 import com.lumie.auth.api.AuthService;
 import com.lumie.billing.api.BillingService;
+import com.lumie.classroom.api.ClassService;
 import com.lumie.student.api.StudentRegisteredEvent;
+import com.lumie.content.api.ContentService;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.quota.MetricType;
@@ -16,7 +18,6 @@ import com.lumie.student.domain.exception.StudentErrorCode;
 import com.lumie.student.domain.repository.StudentRepository;
 import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.common.auth.Role;
-import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,8 @@ public class StudentCommandService {
     private final StudentRepository studentRepository;
     private final AuthService authService;
     private final BillingService billingService;
+    private final ClassService classService;
+    private final ContentService contentService;
     private final EntityManager entityManager;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -142,6 +145,7 @@ public class StudentCommandService {
         if (student.isActive()) {
             throw new BusinessException(StudentErrorCode.CANNOT_DELETE_ACTIVE_STUDENT);
         }
+        validateNoCurrentOrFutureOperations(id, tenantSlug);
 
         Long userId = student.getUserId();
         // Detach so the FK CASCADE from auth-svc deletion does not race the JPA dirty-check.
@@ -263,6 +267,8 @@ public class StudentCommandService {
                 failures.add(new BatchOperationResult.FailedItem(id, "Student not found"));
             } else if (student.isActive()) {
                 failures.add(new BatchOperationResult.FailedItem(id, "Cannot delete active student"));
+            } else if (hasCurrentOrFutureOperations(student.getId(), tenantSlug)) {
+                failures.add(new BatchOperationResult.FailedItem(id, "현재 수강 또는 예정 상담 예약을 먼저 정리해야 삭제할 수 있습니다."));
             } else {
                 toDelete.add(student);
             }
@@ -446,6 +452,24 @@ public class StudentCommandService {
                 throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(parentPhone));
             }
         }
+    }
+
+    private void validateNoCurrentOrFutureOperations(Long studentId, String tenantSlug) {
+        if (classService.hasActiveEnrollment(tenantSlug, studentId)) {
+            throw new BusinessException(
+                    StudentErrorCode.CANNOT_DELETE_STUDENT_WITH_ACTIVE_ENROLLMENT,
+                    "현재 수강 중인 수업이 있어 학생을 삭제할 수 없습니다. 먼저 수강을 종료하거나 취소해 주세요.");
+        }
+        if (contentService.hasActiveOrUpcomingReservationsForStudent(tenantSlug, studentId)) {
+            throw new BusinessException(
+                    StudentErrorCode.CANNOT_DELETE_STUDENT_WITH_UPCOMING_RESERVATION,
+                    "예정된 상담 예약이 있어 학생을 삭제할 수 없습니다. 먼저 예약을 취소하거나 완료 처리해 주세요.");
+        }
+    }
+
+    private boolean hasCurrentOrFutureOperations(Long studentId, String tenantSlug) {
+        return classService.hasActiveEnrollment(tenantSlug, studentId)
+                || contentService.hasActiveOrUpcomingReservationsForStudent(tenantSlug, studentId);
     }
 
     private void checkStudentQuota(String tenantSlug) {

@@ -36,5 +36,7 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
             EnrollmentStatus status
     );
 
+    boolean existsByStudentIdAndStatus(Long studentId, EnrollmentStatus status);
+
     Optional<ClassEnrollment> findByClassEntityIdAndStudentId(Long classEntityId, Long studentId);
 }

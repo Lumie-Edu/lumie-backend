@@ -44,6 +44,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
            SET r.studentId = :studentId
          WHERE r.phoneNumber = :phoneNumber
            AND r.studentId IS NULL
+           AND r.studentDeleted = false
         """)
     int linkUnregisteredByPhone(@Param("phoneNumber") String phoneNumber,
                                 @Param("studentId") Long studentId);

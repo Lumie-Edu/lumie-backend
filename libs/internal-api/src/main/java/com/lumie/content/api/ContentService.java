@@ -9,4 +9,8 @@ public interface ContentService {
     boolean canUserViewAnnouncement(Long announcementId, String role, Long userId);
 
     boolean canUserViewQna(Long qnaId, String role, Long userId);
+
+    boolean hasActiveOrUpcomingReservationsForStudent(String tenantSlug, Long studentId);
+
+    boolean hasUpcomingSchedulesForUser(String tenantSlug, Long userId);
 }

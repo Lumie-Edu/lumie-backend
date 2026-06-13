@@ -36,7 +36,7 @@ public class AssignmentSubmission extends TenantScopedEntity {
     @Column(name = "assignment_id", nullable = false)
     private Long assignmentId;
 
-    @Column(name = "student_id", nullable = false)
+    @Column(name = "student_id")
     private Long studentId;
 
     @Column(name = "content", columnDefinition = "TEXT")

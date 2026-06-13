@@ -2,6 +2,7 @@ package com.lumie.classroom.application.service;
 
 import com.lumie.classroom.application.dto.ClassEnrollmentResponse;
 import com.lumie.classroom.application.dto.ClassResponse;
+import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.staff.api.StaffService;
@@ -31,6 +32,8 @@ import java.util.Objects;
 @Transactional(readOnly = true)
 public class ClassQueryService {
 
+    private static final String DELETED_TEACHER_NAME = "삭제된 강사";
+
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
     private final StaffService staffService;
@@ -40,7 +43,7 @@ public class ClassQueryService {
             .orElseThrow(() -> new BusinessException(ClassErrorCode.CLASS_NOT_FOUND,
                 "Class not found with id: %d".formatted(id)));
 
-        String teacherName = resolveTeacherName(entity.getTeacherId());
+        String teacherName = resolveTeacherName(entity);
         return ClassResponse.from(entity, teacherName);
     }
 
@@ -51,7 +54,7 @@ public class ClassQueryService {
         Map<Long, String> teacherNames = resolveTeacherNames(page.getContent());
 
         return page.map(entity ->
-            ClassResponse.from(entity, teacherNames.get(entity.getTeacherId()))
+            ClassResponse.from(entity, resolveTeacherName(entity, teacherNames))
         );
     }
 
@@ -68,17 +71,37 @@ public class ClassQueryService {
         return enrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED, pageable)
             .map(enrollment -> {
                 ClassEntity entity = enrollment.getClassEntity();
-                String teacherName = resolveTeacherName(entity.getTeacherId());
+                String teacherName = resolveTeacherName(entity);
                 return ClassResponse.from(entity, teacherName);
             });
     }
 
-    private String resolveTeacherName(Long teacherId) {
-        if (teacherId == null) return null;
+    private String resolveTeacherName(ClassEntity entity) {
+        return resolveTeacherName(entity, Map.of());
+    }
+
+    private String resolveTeacherName(ClassEntity entity, Map<Long, String> knownNames) {
+        Long teacherId = entity.getTeacherId();
+        if (teacherId == null) {
+            return entity.isTeacherDeleted() ? DELETED_TEACHER_NAME : null;
+        }
+        if (knownNames.containsKey(teacherId)) {
+            return knownNames.get(teacherId);
+        }
         String slug = TenantContextHolder.getRequiredTenant();
         return staffService.getStaff(slug, teacherId)
             .map(StaffService.StaffData::name)
-            .orElse(null);
+            .orElse(DELETED_TEACHER_NAME);
+    }
+
+    private String resolveTeacherName(Long teacherId) {
+        if (teacherId == null) {
+            return null;
+        }
+        String slug = TenantContextHolder.getRequiredTenant();
+        return staffService.getStaff(slug, teacherId)
+            .map(StaffService.StaffData::name)
+            .orElse(DELETED_TEACHER_NAME);
     }
 
     private Map<Long, String> resolveTeacherNames(List<ClassEntity> classes) {
@@ -94,7 +117,8 @@ public class ClassQueryService {
     public List<Long> getEnrolledStudentIds(Long classId) {
         return enrollmentRepository.findByClassEntityIdAndStatus(classId, EnrollmentStatus.ENROLLED)
             .stream()
-            .map(enrollment -> enrollment.getStudentId())
+            .map(ClassEnrollment::getStudentId)
+            .filter(Objects::nonNull)
             .toList();
     }
 
@@ -117,6 +141,14 @@ public class ClassQueryService {
             studentId,
             EnrollmentStatus.ENROLLED
         );
+    }
+
+    public boolean hasActiveEnrollment(Long studentId) {
+        return enrollmentRepository.existsByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED);
+    }
+
+    public boolean hasAssignedClasses(Long staffId) {
+        return classRepository.existsByTeacherId(staffId);
     }
 
     public record StudentClassRow(Long classId, String className, Long studentId) {}

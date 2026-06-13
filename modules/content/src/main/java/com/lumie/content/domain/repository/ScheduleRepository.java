@@ -23,4 +23,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     @EntityGraph(attributePaths = {"reservations"})
     List<Schedule> findByUserIdAndDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
+
+    boolean existsByUserIdAndDateGreaterThanEqual(Long userId, LocalDate date);
 }

@@ -9,6 +9,7 @@ import java.time.Instant;
 public record AttendanceRecordResponse(
     Long id,
     Long sessionId,
+    @Schema(nullable = true)
     Long studentId,
     String studentName,
     AttendanceStatus status,

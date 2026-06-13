@@ -10,6 +10,7 @@ import java.util.List;
 public record SubmissionResponse(
     Long id,
     Long assignmentId,
+    @Schema(nullable = true)
     Long studentId,
     @Schema(nullable = true) String content,
     @Schema(nullable = true) List<Long> attachments,

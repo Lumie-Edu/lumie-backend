@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -66,9 +67,7 @@ public class AttendanceSessionCommandService {
                 .toList();
         }
 
-        List<AttendanceRecord> records = studentIds.stream()
-            .map(studentId -> AttendanceRecord.create(saved, studentId))
-            .toList();
+        List<AttendanceRecord> records = createRecords(saved, studentIds);
 
         recordRepository.saveAll(records);
 
@@ -107,14 +106,19 @@ public class AttendanceSessionCommandService {
         AttendanceSession saved = sessionRepository.save(session);
 
         List<Long> studentIds = classService.getEnrolledStudentIds(tenantSlug, classId);
-        List<AttendanceRecord> records = studentIds.stream()
-            .map(studentId -> AttendanceRecord.create(saved, studentId))
-            .toList();
+        List<AttendanceRecord> records = createRecords(saved, studentIds);
         recordRepository.saveAll(records);
 
         log.info("Created attendance session for class {} on {} with {} students",
             classId, date, records.size());
         return AttendanceSessionResponse.fromWithoutRecords(saved);
+    }
+
+    private static List<AttendanceRecord> createRecords(AttendanceSession session, List<Long> studentIds) {
+        return studentIds.stream()
+            .filter(Objects::nonNull)
+            .map(studentId -> AttendanceRecord.create(session, studentId))
+            .toList();
     }
 
     public AttendanceSessionResponse regenerateCode(Long id) {

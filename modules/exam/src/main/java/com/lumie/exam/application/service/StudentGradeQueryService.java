@@ -30,6 +30,7 @@ import java.util.*;
 @Transactional(readOnly = true)
 public class StudentGradeQueryService {
 
+    private static final String DELETED_STUDENT_NAME = "삭제된 학생";
     public static final String SORT_FIELD_RANK = "rank";
     public static final String SORT_FIELD_TOTAL_SCORE = "totalScore";
 
@@ -83,10 +84,11 @@ public class StudentGradeQueryService {
                         grade = gradeCalculator.calculateRelativeGrade(result.getTotalScore(), allScores, gradeScale);
                     }
 
+                    boolean isRegistered = isRegisteredStudent(studentMap, result);
                     return new StudentGradeResponse(
-                            result.getStudentId(),
+                            isRegistered ? result.getStudentId() : null,
                             student.studentPhone(),
-                            result.getStudentId() != null,
+                            isRegistered,
                             student.studentName(),
                             result.getTotalScore(),
                             rank,
@@ -178,11 +180,12 @@ public class StudentGradeQueryService {
         return results.stream()
                 .map(result -> {
                     StudentService.StudentData student = resolveStudent(studentMap, result);
+                    boolean isRegistered = isRegisteredStudent(studentMap, result);
                     return new StudentResultSummaryResponse(
                             result.getId(),
-                            result.getStudentId(),
-                            result.getPhoneNumber(),
-                            result.getStudentId() != null,
+                            isRegistered ? result.getStudentId() : null,
+                            student.studentPhone(),
+                            isRegistered,
                             student.studentName(),
                             student.isActive(),
                             result.getTotalScore(),
@@ -193,6 +196,13 @@ public class StudentGradeQueryService {
                 })
                 .sorted(Comparator.comparing(StudentResultSummaryResponse::studentName))
                 .toList();
+    }
+
+    private static boolean isRegisteredStudent(
+            Map<Long, StudentService.StudentData> studentMap, ExamResult result) {
+        return result.getStudentId() != null
+                && !result.isStudentDeleted()
+                && studentMap.containsKey(result.getStudentId());
     }
 
     private Map<Long, StudentService.StudentData> fetchStudentMap(List<ExamResult> results) {
@@ -212,6 +222,10 @@ public class StudentGradeQueryService {
     private static StudentService.StudentData resolveStudent(
             Map<Long, StudentService.StudentData> studentMap, ExamResult result) {
         if (result.getStudentId() == null) {
+            if (result.isStudentDeleted()) {
+                return new StudentService.StudentData(
+                        null, null, DELETED_STUDENT_NAME, null, false, null, null);
+            }
             String displayName = result.getPhoneNumber() != null
                     ? result.getPhoneNumber() : "미등록 학생";
             return new StudentService.StudentData(
@@ -219,7 +233,7 @@ public class StudentGradeQueryService {
         }
         return studentMap.getOrDefault(result.getStudentId(),
                 new StudentService.StudentData(
-                        result.getStudentId(), null, "학생 " + result.getStudentId(),
-                        null, true, null, null));
+                        result.getStudentId(), null, DELETED_STUDENT_NAME,
+                        null, false, null, null));
     }
 }

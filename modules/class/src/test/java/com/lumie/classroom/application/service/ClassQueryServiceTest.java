@@ -52,6 +52,7 @@ class ClassQueryServiceTest {
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("수학 기초반");
+        assertThat(response.teacherName()).isEqualTo("삭제된 강사");
     }
 
     @Test
@@ -61,6 +62,31 @@ class ClassQueryServiceTest {
 
         assertThatThrownBy(() -> queryService.getClass(999L))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("getClass 미배정 수업은 teacherName을 null로 반환한다")
+    void getClass_unassignedTeacher_returnsNullTeacherName() throws Exception {
+        ClassEntity entity = buildClassEntity(1L);
+        ReflectionTestUtils.setField(entity, "teacherId", null);
+        given(classRepository.findById(1L)).willReturn(Optional.of(entity));
+
+        ClassResponse response = queryService.getClass(1L);
+
+        assertThat(response.teacherName()).isNull();
+    }
+
+    @Test
+    @DisplayName("getClass 삭제된 강사 수업은 teacherName을 '삭제된 강사'로 반환한다")
+    void getClass_deletedTeacher_returnsDeletedTeacherName() throws Exception {
+        ClassEntity entity = buildClassEntity(1L);
+        ReflectionTestUtils.setField(entity, "teacherId", null);
+        ReflectionTestUtils.setField(entity, "teacherDeleted", true);
+        given(classRepository.findById(1L)).willReturn(Optional.of(entity));
+
+        ClassResponse response = queryService.getClass(1L);
+
+        assertThat(response.teacherName()).isEqualTo("삭제된 강사");
     }
 
     @Test
@@ -137,6 +163,22 @@ class ClassQueryServiceTest {
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).studentId()).isEqualTo(42L);
+    }
+
+    @Test
+    @DisplayName("hasActiveEnrollment은 ENROLLED 수강 이력이 있으면 true를 반환한다")
+    void hasActiveEnrollment_returnsRepositoryResult() {
+        given(enrollmentRepository.existsByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED)).willReturn(true);
+
+        assertThat(queryService.hasActiveEnrollment(42L)).isTrue();
+    }
+
+    @Test
+    @DisplayName("hasAssignedClasses는 담당 수업이 있으면 true를 반환한다")
+    void hasAssignedClasses_returnsRepositoryResult() {
+        given(classRepository.existsByTeacherId(10L)).willReturn(true);
+
+        assertThat(queryService.hasAssignedClasses(10L)).isTrue();
     }
 
     // -- helpers --

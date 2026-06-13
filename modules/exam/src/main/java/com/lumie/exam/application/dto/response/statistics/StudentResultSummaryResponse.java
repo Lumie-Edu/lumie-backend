@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public record StudentResultSummaryResponse(
         Long resultId,
+        @Schema(nullable = true)
         Long studentId,
         @Schema(nullable = true) String phoneNumber,
         boolean isRegistered,

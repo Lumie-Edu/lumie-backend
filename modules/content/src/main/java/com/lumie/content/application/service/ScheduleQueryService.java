@@ -50,6 +50,7 @@ public class ScheduleQueryService {
         }
 
         return scheduleRepository.findByDateBetweenAndIsAvailableTrue(startDate, endDate).stream()
+                .filter(schedule -> schedule.getUserId() != null)
                 .map(ScheduleResponse::from)
                 .toList();
     }

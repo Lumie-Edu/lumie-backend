@@ -28,6 +28,8 @@ public interface ClassRepository extends JpaRepository<ClassEntity, Long>,
 
     List<ClassEntity> findAllByTeacherId(Long teacherId);
 
+    boolean existsByTeacherId(Long teacherId);
+
     default Page<ClassEntity> findAll(ClassSearchCriteria criteria, Pageable pageable) {
         Specification<ClassEntity> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
