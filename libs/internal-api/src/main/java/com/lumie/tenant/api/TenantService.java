@@ -1,5 +1,6 @@
 package com.lumie.tenant.api;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,6 +50,7 @@ public interface TenantService {
             String name,
             TenantStatus status,
             String customId,
+            Instant onboardingCompletedAt,
             String createdAt,
             String updatedAt
     ) {

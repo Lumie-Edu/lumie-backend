@@ -26,6 +26,7 @@ public record TenantResponse(
         @Schema(nullable = true) String logoUrl,
         @Schema(nullable = true) String customId,
         @Schema(nullable = true) String customDomain,
+        @Schema(nullable = true) Instant onboardingCompletedAt,
         @ArraySchema(schema = @Schema(allowableValues = {
                 "ai",
                 "students", "employees",
@@ -56,6 +57,7 @@ public record TenantResponse(
                 .logoUrl(hasLogo ? "/api/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
                 .customId(tenant.getCustomId())
                 .customDomain(tenant.getCustomDomain())
+                .onboardingCompletedAt(tenant.getOnboardingCompletedAt())
                 .hiddenSidebarItemIds(tenant.getHiddenSidebarItemIds())
                 .createdAt(tenant.getCreatedAt())
                 .updatedAt(tenant.getUpdatedAt())

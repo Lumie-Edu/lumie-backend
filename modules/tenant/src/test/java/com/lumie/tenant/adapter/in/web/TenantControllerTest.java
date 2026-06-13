@@ -2,9 +2,11 @@ package com.lumie.tenant.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.api.TenantStatus;
+import com.lumie.tenant.application.dto.request.CompleteTenantOnboardingRequest;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.PublicTenantResponse;
@@ -206,6 +208,95 @@ class TenantControllerTest {
                                 {"hiddenSidebarItemIds":["not-a-menu"]}
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /v1/tenants/{slug}/complete-onboarding - 온보딩 완료")
+    void completeOnboardingSuccess() throws Exception {
+        CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
+                .customId("academy")
+                .phone("02-1234-5678")
+                .address("서울시 강남구")
+                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .build();
+        Instant completedAt = Instant.now();
+        TenantResponse response = TenantResponse.builder()
+                .id(1L)
+                .slug("test-academy")
+                .name("Test Academy")
+                .status(TenantStatus.ACTIVE)
+                .customId("academy")
+                .phone("02-1234-5678")
+                .address("서울시 강남구")
+                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .onboardingCompletedAt(completedAt)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(tenantCommandService.completeOnboarding(any(), any())).thenReturn(response);
+
+        mockMvc.perform(post("/v1/tenants/test-academy/complete-onboarding")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.customId").value("academy"))
+                .andExpect(jsonPath("$.phone").value("02-1234-5678"))
+                .andExpect(jsonPath("$.hiddenSidebarItemIds[0]").value("attendance"))
+                .andExpect(jsonPath("$.onboardingCompletedAt").exists());
+
+        ArgumentCaptor<CompleteTenantOnboardingRequest> requestCaptor =
+                ArgumentCaptor.forClass(CompleteTenantOnboardingRequest.class);
+        verify(tenantCommandService).completeOnboarding(any(), requestCaptor.capture());
+        assertThat(requestCaptor.getValue().hiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+    }
+
+    @Test
+    @DisplayName("POST /v1/tenants/{slug}/complete-onboarding - 다른 테넌트 slug는 403")
+    void completeOnboardingDifferentTenantForbidden() throws Exception {
+        doThrow(new BusinessException(TenantErrorCode.TENANT_CONTEXT_MISMATCH,
+                "요청 학원과 인증 학원이 일치하지 않습니다."))
+                .when(tenantCommandService).completeOnboarding(any(), any());
+
+        mockMvc.perform(post("/v1/tenants/test-academy/complete-onboarding")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"customId":"academy"}
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("TENANT_019"));
+    }
+
+    @Test
+    @DisplayName("POST /v1/tenants/{slug}/complete-onboarding - 학생은 403")
+    void completeOnboardingStudentForbidden() throws Exception {
+        doThrow(new BusinessException(CommonErrorCode.FORBIDDEN, "Owner role required"))
+                .when(tenantCommandService).completeOnboarding(any(), any());
+
+        mockMvc.perform(post("/v1/tenants/test-academy/complete-onboarding")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"customId":"academy"}
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMMON_006"));
+    }
+
+    @Test
+    @DisplayName("POST /v1/tenants/{slug}/complete-onboarding - 매니저와 강사는 403")
+    void completeOnboardingStaffForbidden() throws Exception {
+        doThrow(new BusinessException(CommonErrorCode.FORBIDDEN, "Owner role required"))
+                .when(tenantCommandService).completeOnboarding(any(), any());
+
+        for (int i = 0; i < 2; i++) {
+            mockMvc.perform(post("/v1/tenants/test-academy/complete-onboarding")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"customId":"academy"}
+                                    """))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("COMMON_006"));
+        }
     }
 
     @Test

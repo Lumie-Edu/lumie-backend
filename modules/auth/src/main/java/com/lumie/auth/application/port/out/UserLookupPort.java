@@ -3,6 +3,7 @@ package com.lumie.auth.application.port.out;
 import com.lumie.auth.application.dto.response.UserResponse;
 import com.lumie.common.auth.Role;
 
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -61,6 +62,10 @@ public interface UserLookupPort {
             String avatarSeed
     ) {
         public UserResponse toUserResponse(String tenantSlug) {
+            return toUserResponse(tenantSlug, null);
+        }
+
+        public UserResponse toUserResponse(String tenantSlug, Instant tenantOnboardingCompletedAt) {
             return UserResponse.builder()
                     .id(id)
                     .userLoginId(userLoginId)
@@ -70,6 +75,7 @@ public interface UserLookupPort {
                     .role(role)
                     .tenantSlug(tenantSlug)
                     .tenantId(tenantId)
+                    .tenantOnboardingCompletedAt(tenantOnboardingCompletedAt)
                     .avatarSeed(avatarSeed)
                     .build();
         }

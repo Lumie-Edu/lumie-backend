@@ -10,6 +10,7 @@ import com.lumie.auth.application.port.out.UserLookupPort.UserData;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.adapter.out.security.JwtTokenProvider;
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class AuthQueryService {
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenPersistencePort tokenPersistencePort;
     private final UserLookupPort userLookupPort;
+    private final TenantService tenantService;
     private final ObjectMapper objectMapper;
 
     public Optional<TokenClaims> validate(String token) {
@@ -63,7 +65,9 @@ public class AuthQueryService {
     public UserResponse getMe(Long userId, String tenantSlug) {
         UserData user = userLookupPort.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
-        return user.toUserResponse(tenantSlug);
+        TenantService.TenantData tenant = tenantService.getTenantBySlug(tenantSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
+        return user.toUserResponse(tenantSlug, tenant.onboardingCompletedAt());
     }
 
     public List<SessionResponse> getSessions(Long userId, String tenantSlug, String currentSid) {

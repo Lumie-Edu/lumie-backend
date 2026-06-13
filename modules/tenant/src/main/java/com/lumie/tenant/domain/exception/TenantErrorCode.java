@@ -20,6 +20,8 @@ public enum TenantErrorCode implements ErrorCode {
     INVALID_STATUS_TRANSITION("TENANT_005", "Invalid tenant status transition", 409),
     CUSTOM_ID_IMMUTABLE("TENANT_012", "Custom ID cannot be changed once set", 409),
     INVALID_TENANT_STATE("TENANT_016", "Invalid tenant state: current={0}, required={1}", 409),
+    ONBOARDING_ALREADY_COMPLETED("TENANT_018", "Tenant onboarding is already completed", 409),
+    TENANT_CONTEXT_MISMATCH("TENANT_019", "Tenant context does not match request tenant", 403),
 
     // 400 Bad Request
     INVALID_CUSTOM_ID("TENANT_007", "Invalid custom ID format", 400),

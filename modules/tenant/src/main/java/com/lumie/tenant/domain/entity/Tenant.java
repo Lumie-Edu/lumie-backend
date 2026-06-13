@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -73,6 +74,9 @@ public class Tenant extends BaseEntity {
 
     @Column(name = "custom_domain", length = 253)
     private String customDomain;
+
+    @Column(name = "onboarding_completed_at")
+    private Instant onboardingCompletedAt;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "hidden_sidebar_item_ids", nullable = false)
@@ -256,6 +260,14 @@ public class Tenant extends BaseEntity {
                 .map(this::validatedSidebarItemId)
                 .distinct()
                 .toList();
+    }
+
+    public void completeOnboarding(Instant completedAt) {
+        if (this.onboardingCompletedAt != null) {
+            throw new BusinessException(TenantErrorCode.ONBOARDING_ALREADY_COMPLETED,
+                    "이미 완료된 온보딩입니다.");
+        }
+        this.onboardingCompletedAt = completedAt != null ? completedAt : Instant.now();
     }
 
     public List<String> getHiddenSidebarItemIds() {

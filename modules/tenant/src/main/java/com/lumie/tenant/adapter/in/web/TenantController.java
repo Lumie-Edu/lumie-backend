@@ -1,6 +1,7 @@
 package com.lumie.tenant.adapter.in.web;
 
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
+import com.lumie.tenant.application.dto.request.CompleteTenantOnboardingRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.PublicTenantResponse;
 import com.lumie.tenant.application.dto.response.TenantResponse;
@@ -70,6 +71,14 @@ public class TenantController {
             @PathVariable String slug,
             @Valid @RequestBody UpdateTenantRequest request) {
         TenantResponse response = tenantCommandService.updateTenant(slug, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{slug}/complete-onboarding")
+    public ResponseEntity<TenantResponse> completeOnboarding(
+            @PathVariable String slug,
+            @Valid @RequestBody CompleteTenantOnboardingRequest request) {
+        TenantResponse response = tenantCommandService.completeOnboarding(slug, request);
         return ResponseEntity.ok(response);
     }
 

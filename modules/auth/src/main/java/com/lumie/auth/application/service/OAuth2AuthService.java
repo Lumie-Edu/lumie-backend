@@ -143,7 +143,10 @@ public class OAuth2AuthService {
 
         log.info("OAuth2 login successful for user: {} via {}", user.userLoginId(), provider);
 
-        return LoginResponse.of(tokenPair, user.toUserResponse(tenantSlug));
+        return LoginResponse.of(tokenPair, user.toUserResponse(
+                tenantSlug,
+                tenant.onboardingCompletedAt()
+        ));
     }
 
     private String generateNonce() {

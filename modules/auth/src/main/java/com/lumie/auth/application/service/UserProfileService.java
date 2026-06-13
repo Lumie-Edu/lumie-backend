@@ -9,6 +9,7 @@ import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +28,7 @@ public class UserProfileService {
     private final UserLookupPort userLookupPort;
     private final TokenPersistencePort tokenPersistencePort;
     private final PasswordEncoder passwordEncoder;
+    private final TenantService tenantService;
 
     public UserResponse updateProfile(Long userId, String tenantSlug, UpdateProfileRequest request) {
         log.info("Profile update request for user: {}", userId);
@@ -38,7 +40,9 @@ public class UserProfileService {
 
         UserData user = userLookupPort.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
-        return user.toUserResponse(tenantSlug);
+        TenantService.TenantData tenant = tenantService.getTenantBySlug(tenantSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
+        return user.toUserResponse(tenantSlug, tenant.onboardingCompletedAt());
     }
 
     public void changePassword(Long userId, String tenantSlug, ChangePasswordRequest request) {

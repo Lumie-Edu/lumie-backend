@@ -2,6 +2,10 @@ package com.lumie.tenant.application.service;
 
 import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.common.auth.Role;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.tenant.application.dto.request.CompleteTenantOnboardingRequest;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
@@ -10,6 +14,7 @@ import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.api.TenantStatus;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +54,12 @@ class TenantCommandServiceTest {
                 .displayName("테스트 학원")
                 .ownerEmail("owner@test.com")
                 .build();
+    }
+
+    @AfterEach
+    void clearContext() {
+        TenantContextHolder.clear();
+        UserContextHolder.clear();
     }
 
     @Test
@@ -109,6 +120,68 @@ class TenantCommandServiceTest {
 
         assertThatThrownBy(() -> tenantCommandService.updateTenant("non-existent", updateRequest))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("테넌트 온보딩 완료")
+    void completeOnboarding() {
+        TenantContextHolder.setTenant("test-academy");
+        UserContextHolder.setUserRole(Role.OWNER);
+        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null, null);
+        when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(existingTenant));
+        when(tenantPersistencePort.existsByCustomId("academy")).thenReturn(false);
+        when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
+                .customId("academy")
+                .phone("02-1234-5678")
+                .address("서울시 강남구")
+                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .build();
+
+        TenantResponse response = tenantCommandService.completeOnboarding("test-academy", request);
+
+        assertThat(response.customId()).isEqualTo("academy");
+        assertThat(response.phone()).isEqualTo("02-1234-5678");
+        assertThat(response.address()).isEqualTo("서울시 강남구");
+        assertThat(response.hiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+        assertThat(response.onboardingCompletedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("완료된 온보딩 재시도 시 정보 변경 없이 예외")
+    void completeOnboardingAlreadyCompleted() {
+        TenantContextHolder.setTenant("test-academy");
+        UserContextHolder.setUserRole(Role.OWNER);
+        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null, null);
+        existingTenant.completeOnboarding(java.time.Instant.now());
+        when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(existingTenant));
+
+        CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
+                .phone("02-9999-9999")
+                .build();
+
+        assertThatThrownBy(() -> tenantCommandService.completeOnboarding("test-academy", request))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+
+        verify(tenantPersistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("원장이 아닌 사용자는 온보딩을 완료할 수 없음")
+    void completeOnboardingRequiresOwner() {
+        TenantContextHolder.setTenant("test-academy");
+        UserContextHolder.setUserRole(Role.MANAGER);
+
+        CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
+                .phone("02-1234-5678")
+                .build();
+
+        assertThatThrownBy(() -> tenantCommandService.completeOnboarding("test-academy", request))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+
+        verify(tenantPersistencePort, never()).findBySlug(any());
+        verify(tenantPersistencePort, never()).save(any());
     }
 
     @Test

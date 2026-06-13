@@ -73,7 +73,10 @@ public class AuthSessionService {
 
             IssuedTokens issued = loginSessionHelper.issueTokensForLogin(user, tenant.slug(), tenant.id(), metadata);
             log.info("Login successful for user: {} on tenant: {}", user.id(), tenant.slug());
-            return LoginResponse.of(issued.tokenPair(), user.toUserResponse(tenant.slug()));
+            return LoginResponse.of(issued.tokenPair(), user.toUserResponse(
+                    tenant.slug(),
+                    tenant.onboardingCompletedAt()
+            ));
         });
     }
 
