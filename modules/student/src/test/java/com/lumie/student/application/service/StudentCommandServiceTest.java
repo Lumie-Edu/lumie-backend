@@ -71,17 +71,17 @@ class StudentCommandServiceTest {
     }
 
     @Test
-    @DisplayName("deleteStudent는 현재 수강 중인 학생을 자동 탈퇴시키고 삭제한다")
-    void deleteStudent_activeEnrollment_dropsEnrollmentAndDeletes() {
+    @DisplayName("deleteStudent는 현재 수강 중인 학생 삭제를 막는다")
+    void deleteStudent_activeEnrollment_blocksDeletion() {
         Student student = inactiveStudent(42L, 100L);
         given(studentRepository.findById(42L)).willReturn(Optional.of(student));
-        given(contentService.hasActiveOrUpcomingReservationsForStudent(TENANT, 42L)).willReturn(false);
-        given(authService.deleteUser(100L)).willReturn(new AuthService.DeleteUserResult(true, "ok"));
+        given(classService.hasActiveEnrollment(TENANT, 42L)).willReturn(true);
 
-        service.deleteStudent(42L);
+        assertThatThrownBy(() -> service.deleteStudent(42L))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.CANNOT_DELETE_STUDENT_WITH_ACTIVE_ENROLLMENT));
 
-        verify(classService).dropActiveEnrollmentsForStudent(TENANT, 42L);
-        verify(authService).deleteUser(100L);
+        verify(authService, never()).deleteUser(anyLong());
     }
 
     @Test
@@ -89,6 +89,7 @@ class StudentCommandServiceTest {
     void deleteStudent_upcomingReservation_blocksDeletion() {
         Student student = inactiveStudent(42L, 100L);
         given(studentRepository.findById(42L)).willReturn(Optional.of(student));
+        given(classService.hasActiveEnrollment(TENANT, 42L)).willReturn(false);
         given(contentService.hasActiveOrUpcomingReservationsForStudent(TENANT, 42L)).willReturn(true);
 
         assertThatThrownBy(() -> service.deleteStudent(42L))
@@ -96,7 +97,6 @@ class StudentCommandServiceTest {
                         assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.CANNOT_DELETE_STUDENT_WITH_UPCOMING_RESERVATION));
 
         verify(authService, never()).deleteUser(anyLong());
-        verify(classService, never()).dropActiveEnrollmentsForStudent(TENANT, 42L);
     }
 
     private static Student inactiveStudent(Long id, Long userId) {

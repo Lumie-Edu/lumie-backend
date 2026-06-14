@@ -146,7 +146,6 @@ public class StudentCommandService {
             throw new BusinessException(StudentErrorCode.CANNOT_DELETE_ACTIVE_STUDENT);
         }
         validateNoCurrentOrFutureOperations(id, tenantSlug);
-        classService.dropActiveEnrollmentsForStudent(tenantSlug, id);
 
         Long userId = student.getUserId();
         // Detach so the FK CASCADE from auth-svc deletion does not race the JPA dirty-check.
@@ -456,6 +455,11 @@ public class StudentCommandService {
     }
 
     private void validateNoCurrentOrFutureOperations(Long studentId, String tenantSlug) {
+        if (classService.hasActiveEnrollment(tenantSlug, studentId)) {
+            throw new BusinessException(
+                    StudentErrorCode.CANNOT_DELETE_STUDENT_WITH_ACTIVE_ENROLLMENT,
+                    "현재 수강 중인 수업이 있어 학생을 삭제할 수 없습니다. 먼저 수강을 종료하거나 취소해 주세요.");
+        }
         if (contentService.hasActiveOrUpcomingReservationsForStudent(tenantSlug, studentId)) {
             throw new BusinessException(
                     StudentErrorCode.CANNOT_DELETE_STUDENT_WITH_UPCOMING_RESERVATION,
@@ -464,7 +468,8 @@ public class StudentCommandService {
     }
 
     private boolean hasCurrentOrFutureOperations(Long studentId, String tenantSlug) {
-        return contentService.hasActiveOrUpcomingReservationsForStudent(tenantSlug, studentId);
+        return classService.hasActiveEnrollment(tenantSlug, studentId)
+                || contentService.hasActiveOrUpcomingReservationsForStudent(tenantSlug, studentId);
     }
 
     private void checkStudentQuota(String tenantSlug) {

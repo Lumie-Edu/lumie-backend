@@ -378,24 +378,6 @@ class ClassCommandServiceTest {
         }
     }
 
-    @Test
-    @DisplayName("dropActiveEnrollmentsForStudent는 활성 수강을 DROPPED로 변경한다")
-    void dropActiveEnrollmentsForStudent_dropsActiveEnrollments() throws Exception {
-        ClassEntity classEntity = buildClassEntity(1L);
-        ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 100L);
-        ReflectionTestUtils.setField(enrollment, "id", 10L);
-        List<ClassEnrollment> enrollments = List.of(enrollment);
-
-        given(enrollmentRepository.findAllByStudentIdAndStatus(100L, EnrollmentStatus.ENROLLED))
-                .willReturn(enrollments);
-
-        commandService.dropActiveEnrollmentsForStudent(100L);
-
-        assertThat(enrollment.getStatus()).isEqualTo(EnrollmentStatus.DROPPED);
-        assertThat(enrollment.getDroppedAt()).isNotNull();
-        verify(enrollmentRepository).saveAll(enrollments);
-    }
-
     // -- helpers --
 
     private ClassEntity buildClassEntity(Long id) throws Exception {
