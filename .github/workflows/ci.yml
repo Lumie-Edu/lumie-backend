@@ -1,0 +1,86 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: zot.lumie-infra.com
+  IMAGE_NAME: applications/lumie-backend
+
+jobs:
+  test:
+    name: Gradle test
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2
+      JAVA_TOOL_OPTIONS: -Xmx1536m -XX:MaxRAMPercentage=75.0
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Run tests
+        run: |
+          chmod +x ./gradlew
+          ./gradlew test --no-daemon --console=plain
+
+  build-push:
+    name: Build and push ARM image
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    needs:
+      - test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare tags
+        id: tags
+        run: |
+          short_sha="${GITHUB_SHA::8}"
+          image="${REGISTRY}/${IMAGE_NAME}"
+          {
+            echo "short_sha=${short_sha}"
+            echo "image=${image}"
+            echo "tags=${image}:${short_sha},${image}:main"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Zot
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ZOT_USERNAME }}
+          password: ${{ secrets.ZOT_PASSWORD }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
