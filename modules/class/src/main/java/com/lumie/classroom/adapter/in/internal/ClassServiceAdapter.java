@@ -108,6 +108,12 @@ public class ClassServiceAdapter implements ClassService {
     }
 
     @Override
+    public void dropActiveEnrollmentsForStudent(String tenantSlug, Long studentId) {
+        TenantContextHolder.withinContext(tenantSlug, null,
+                () -> classCommandService.dropActiveEnrollmentsForStudent(studentId));
+    }
+
+    @Override
     public boolean hasAssignedClasses(String tenantSlug, Long staffId) {
         return TenantContextHolder.withinContext(tenantSlug, () ->
                 classQueryService.hasAssignedClasses(staffId)

@@ -22,6 +22,8 @@ public interface ClassService {
 
     boolean hasActiveEnrollment(String tenantSlug, Long studentId);
 
+    void dropActiveEnrollmentsForStudent(String tenantSlug, Long studentId);
+
     boolean hasAssignedClasses(String tenantSlug, Long staffId);
 
     record EnrolledClassData(Long classId, String className, Long studentId) {}
