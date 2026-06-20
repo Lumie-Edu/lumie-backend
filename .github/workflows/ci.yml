@@ -84,3 +84,36 @@ jobs:
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Update image tag values
+        if: github.ref == 'refs/heads/main'
+        env:
+          TAG_REPO: Lumie-Edu/lumie-image-tags
+          TAG_FILE: applications/lumie/backend/image-values.yaml
+          IMAGE_TAG: ${{ steps.tags.outputs.short_sha }}
+          TAG_REPO_TOKEN: ${{ secrets.IMAGE_TAGS_TOKEN || secrets.DOCS_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TAG_REPO_TOKEN}" ]; then
+            echo "::error::IMAGE_TAGS_TOKEN or DOCS_GITHUB_TOKEN is required to update ${TAG_REPO}."
+            exit 1
+          fi
+
+          workdir="$(mktemp -d)"
+          git clone --depth=1 "https://x-access-token:${TAG_REPO_TOKEN}@github.com/${TAG_REPO}.git" "${workdir}"
+          mkdir -p "${workdir}/$(dirname "${TAG_FILE}")"
+          cat > "${workdir}/${TAG_FILE}" <<EOF
+          common:
+            image:
+              tag: "${IMAGE_TAG}"
+          EOF
+
+          cd "${workdir}"
+          git config user.name "Lumie CI"
+          git config user.email "ci@lumie-edu.com"
+          git add "${TAG_FILE}"
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "CI(images): update lumie-backend tag"
+          git push
