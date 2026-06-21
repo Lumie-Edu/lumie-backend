@@ -154,18 +154,7 @@ public class ReportJobService {
         tx.markProcessing(request.jobId());
 
         if (request.success()) {
-            byte[] reportBytes = decodeReportBytes(request.reportBytes());
-            if (!ReportFileFormat.isPdf(reportBytes)) {
-                log.warn("Report callback returned non-PDF bytes: jobId={}, studentId={}",
-                        request.jobId(), request.studentId());
-                tx.recordFail(request.jobId());
-            } else {
-                String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
-                String fileKey = buildReportFileKey(tenantId, request.examId(), request.studentId());
-                // storage call outside any @Transactional boundary
-                storagePort.putObject(fileKey, reportBytes, ReportFileFormat.PDF_CONTENT_TYPE);
-                tx.recordSuccess(request.jobId());
-            }
+            processSuccessfulCallback(request);
         } else {
             log.warn("Report generation failed: jobId={}, studentId={}, error={}",
                     request.jobId(), request.studentId(), request.error());
@@ -175,6 +164,48 @@ public class ReportJobService {
         if (tx.finalizeIfDone(request.jobId(), request.totalReports())) {
             log.info("Report job reached terminal state: jobId={}", request.jobId());
             createZipFile(request.jobId());
+        }
+    }
+
+    private void processSuccessfulCallback(ReportCallbackRequest request) {
+        String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
+        String expectedFileKey = buildReportFileKey(tenantId, request.examId(), request.studentId());
+        if (request.fileKey() != null && !request.fileKey().isBlank()) {
+            if (!expectedFileKey.equals(request.fileKey())) {
+                log.warn("Report callback returned unexpected fileKey: jobId={}, studentId={}, fileKey={}",
+                        request.jobId(), request.studentId(), request.fileKey());
+                tx.recordFail(request.jobId());
+                return;
+            }
+            if (!isReadablePdf(expectedFileKey)) {
+                log.warn("Report callback fileKey is not a readable PDF: jobId={}, studentId={}, fileKey={}",
+                        request.jobId(), request.studentId(), request.fileKey());
+                tx.recordFail(request.jobId());
+                return;
+            }
+            tx.recordSuccess(request.jobId());
+            return;
+        }
+
+        byte[] reportBytes = decodeReportBytes(request.reportBytes());
+        if (!ReportFileFormat.isPdf(reportBytes)) {
+            log.warn("Report callback returned non-PDF bytes: jobId={}, studentId={}",
+                    request.jobId(), request.studentId());
+            tx.recordFail(request.jobId());
+            return;
+        }
+
+        // storage call outside any @Transactional boundary
+        storagePort.putObject(expectedFileKey, reportBytes, ReportFileFormat.PDF_CONTENT_TYPE);
+        tx.recordSuccess(request.jobId());
+    }
+
+    private boolean isReadablePdf(String fileKey) {
+        try {
+            return ReportFileFormat.isPdf(storagePort.getObject(fileKey));
+        } catch (RuntimeException e) {
+            log.warn("Failed to read report fileKey before callback success: fileKey={}", fileKey, e);
+            return false;
         }
     }
 

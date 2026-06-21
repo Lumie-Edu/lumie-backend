@@ -39,7 +39,7 @@ public class InternalReportController {
     public ResponseEntity<ReportBatchDataResponse> getReportBatchData(
             @PathVariable Long examId,
             @Valid @RequestBody ReportBatchDataRequest request) {
-        return ResponseEntity.ok(reportBatchDataQueryService.getBatchData(examId, request.studentIds()));
+        return ResponseEntity.ok(reportBatchDataQueryService.getBatchData(examId, request.studentIds(), request.jobId()));
     }
 
     @GetMapping("/students/{studentId}/stability")

@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record ReportBatchDataRequest(
+        Long jobId,
         @NotEmpty
         @Size(max = 30)
         List<@NotNull Long> studentIds

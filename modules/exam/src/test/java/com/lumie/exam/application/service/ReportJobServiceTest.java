@@ -124,6 +124,63 @@ class ReportJobServiceTest {
     }
 
     @Test
+    void processCallback_acceptsPreUploadedPdfFileKey() {
+        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
+                .willReturn("%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII));
+
+        service.processCallback(successCallbackWithFileKey("tmp/test-tenant/reports/10/99.pdf"));
+
+        verify(storagePort, never()).putObject(anyString(), any(), anyString());
+        verify(jobRepository).incrementSuccess(1L);
+        verify(jobRepository, never()).incrementFail(1L);
+    }
+
+    @Test
+    void processCallback_rejectsUnexpectedFileKey() {
+        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
+
+        service.processCallback(successCallbackWithFileKey("tmp/other/reports/10/99.pdf"));
+
+        verify(storagePort, never()).putObject(anyString(), any(), anyString());
+        verify(jobRepository).incrementFail(1L);
+        verify(jobRepository, never()).incrementSuccess(1L);
+    }
+
+    @Test
+    void processCallback_rejectsUnreadableFileKey() {
+        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
+                .willReturn(new byte[]{(byte) 0xFF, (byte) 0xD8, 0x00});
+
+        service.processCallback(successCallbackWithFileKey("tmp/test-tenant/reports/10/99.pdf"));
+
+        verify(storagePort, never()).putObject(anyString(), any(), anyString());
+        verify(jobRepository).incrementFail(1L);
+        verify(jobRepository, never()).incrementSuccess(1L);
+    }
+
+    @Test
+    void processCallback_recordsFailureWhenFileKeyReadFails() {
+        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
+                .willThrow(new IllegalStateException("missing object"));
+
+        service.processCallback(successCallbackWithFileKey("tmp/test-tenant/reports/10/99.pdf"));
+
+        verify(jobRepository).incrementFail(1L);
+        verify(jobRepository, never()).incrementSuccess(1L);
+    }
+
+    @Test
     void processCallback_marksNonPdfPayloadAsFailed() {
         byte[] jpgBytes = new byte[]{(byte) 0xFF, (byte) 0xD8, 0x00};
         given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
@@ -176,7 +233,23 @@ class ReportJobServiceTest {
                 1,
                 true,
                 null,
+                null,
                 reportBytes
+        );
+    }
+
+    private static ReportCallbackRequest successCallbackWithFileKey(String fileKey) {
+        return new ReportCallbackRequest(
+                1L,
+                10L,
+                99L,
+                "test-tenant",
+                0,
+                1,
+                true,
+                null,
+                fileKey,
+                null
         );
     }
 
