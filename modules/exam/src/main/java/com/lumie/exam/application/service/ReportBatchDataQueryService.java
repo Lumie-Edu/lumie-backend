@@ -34,8 +34,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -46,8 +44,6 @@ import java.util.stream.Collectors;
 public class ReportBatchDataQueryService {
 
     public static final int MAX_BATCH_SIZE = 30;
-    private static final long JOB_CONTEXT_TTL_NANOS = 5L * 60 * 1_000_000_000L;
-    private static final int MAX_CACHED_JOB_CONTEXTS = 128;
 
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
@@ -56,7 +52,6 @@ public class ReportBatchDataQueryService {
     private final StudentService studentService;
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
-    private final ConcurrentMap<JobContextKey, CachedBatchContext> jobContextCache = new ConcurrentHashMap<>();
 
     public ReportBatchDataResponse getBatchData(Long examId, List<Long> studentIds) {
         return getBatchData(examId, studentIds, null);
@@ -71,9 +66,10 @@ public class ReportBatchDataQueryService {
                 .toList();
 
         long startedAt = System.nanoTime();
-        BatchContext context = jobId == null
-                ? buildUncachedContext(examId, distinctStudentIds)
-                : getCachedJobContext(jobId, examId).context();
+        Exam exam = jobId == null
+                ? getExam(examId)
+                : validateJobAndGetExam(jobId, examId, distinctStudentIds);
+        BatchContext context = buildContext(exam, distinctStudentIds);
 
         List<ReportBatchDataResponse.Item> items = studentIds.stream()
                 .map(studentId -> buildItem(context.exam(), studentId, context.resultByStudentId(),
@@ -87,45 +83,26 @@ public class ReportBatchDataQueryService {
         return new ReportBatchDataResponse(context.examStatistics(), items);
     }
 
-    private BatchContext buildUncachedContext(Long examId, List<Long> studentIds) {
-        Exam exam = examRepository.findById(examId)
+    private Exam getExam(Long examId) {
+        return examRepository.findById(examId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
-        return buildContext(exam, studentIds);
     }
 
-    private CachedBatchContext getCachedJobContext(Long jobId, Long examId) {
-        purgeExpiredJobContexts();
-        long now = System.nanoTime();
-        JobContextKey cacheKey = new JobContextKey(TenantContextHolder.getRequiredTenant(), jobId, examId);
-        CachedBatchContext cached = jobContextCache.get(cacheKey);
-        if (cached != null && !cached.isExpired(now)) {
-            return cached;
-        }
-
-        CachedBatchContext refreshed = new CachedBatchContext(buildJobContext(cacheKey, examId), now);
-        jobContextCache.put(cacheKey, refreshed);
-        return refreshed;
-    }
-
-    private void purgeExpiredJobContexts() {
-        long now = System.nanoTime();
-        jobContextCache.entrySet().removeIf(entry -> entry.getValue().isExpired(now));
-        if (jobContextCache.size() > MAX_CACHED_JOB_CONTEXTS) {
-            jobContextCache.clear();
-        }
-    }
-
-    private BatchContext buildJobContext(JobContextKey cacheKey, Long examId) {
-        ReportGenerationJob job = jobRepository.findById(cacheKey.jobId())
+    private Exam validateJobAndGetExam(Long jobId, Long examId, List<Long> studentIds) {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        ReportGenerationJob job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
-        if (!Objects.equals(job.getTenantSlug(), cacheKey.tenantSlug())) {
+        if (!Objects.equals(job.getTenantSlug(), tenantSlug)) {
             throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA, "jobId does not belong to tenant");
         }
         Exam exam = job.getExam();
         if (!Objects.equals(exam.getId(), examId)) {
             throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA, "jobId does not belong to examId");
         }
-        return buildContext(exam, List.copyOf(job.getStudentIds()));
+        if (!job.getStudentIds().containsAll(studentIds)) {
+            throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA, "studentIds do not belong to jobId");
+        }
+        return exam;
     }
 
     private BatchContext buildContext(Exam exam, List<Long> contextStudentIds) {
@@ -387,12 +364,4 @@ public class ReportBatchDataQueryService {
     ) {
     }
 
-    private record CachedBatchContext(BatchContext context, long createdAtNanos) {
-        boolean isExpired(long nowNanos) {
-            return nowNanos - createdAtNanos > JOB_CONTEXT_TTL_NANOS;
-        }
-    }
-
-    private record JobContextKey(String tenantSlug, Long jobId, Long examId) {
-    }
 }
