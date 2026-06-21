@@ -60,9 +60,13 @@ public class ExamSummaryStatisticsService {
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
 
+        return buildExamStatistics(exam, results);
+    }
+
+    ExamStatisticsResponse buildExamStatistics(Exam exam, List<ExamResult> results) {
         if (results.isEmpty()) {
             return new ExamStatisticsResponse(
-                    examId, exam.getName(), exam.getCategory(), exam.getGradingType(), exam.getGradeScale(),
+                    exam.getId(), exam.getName(), exam.getCategory(), exam.getGradingType(), exam.getGradeScale(),
                     0, 0.0, 0, 0, 0.0,
                     null, null, null,
                     Collections.emptyList(), Collections.emptyList(),
@@ -98,7 +102,7 @@ public class ExamSummaryStatisticsService {
         List<ExamStatisticsResponse.TopIncorrectQuestion> topIncorrectQuestions = calculateExamTopIncorrect(exam, results);
 
         return new ExamStatisticsResponse(
-                examId, exam.getName(), exam.getCategory(), exam.getGradingType(), exam.getGradeScale(),
+                exam.getId(), exam.getName(), exam.getCategory(), exam.getGradingType(), exam.getGradeScale(),
                 results.size(),
                 Math.round(average * 10) / 10.0, highest, lowest,
                 Math.round(stdDev * 10) / 10.0,

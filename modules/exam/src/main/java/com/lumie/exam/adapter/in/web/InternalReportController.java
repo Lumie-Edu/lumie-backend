@@ -2,12 +2,15 @@ package com.lumie.exam.adapter.in.web;
 
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
+import com.lumie.exam.application.dto.request.ReportBatchDataRequest;
+import com.lumie.exam.application.dto.response.ReportBatchDataResponse;
 import com.lumie.exam.application.dto.response.statistics.ExamStatisticsResponse;
 import com.lumie.exam.application.dto.response.statistics.StabilityIndexResponse;
 import com.lumie.exam.application.dto.response.statistics.StudentRankResponse;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.service.*;
 import com.lumie.student.api.StudentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,10 +28,18 @@ public class InternalReportController {
     private final StudentAnalyticsQueryService studentAnalyticsQueryService;
     private final ResultQueryService resultQueryService;
     private final StudentService studentService;
+    private final ReportBatchDataQueryService reportBatchDataQueryService;
 
     @GetMapping("/exams/{examId}/statistics")
     public ResponseEntity<ExamStatisticsResponse> getExamStatistics(@PathVariable Long examId) {
         return ResponseEntity.ok(examSummaryStatisticsService.getExamStatistics(examId));
+    }
+
+    @PostMapping("/exams/{examId}/batch-data")
+    public ResponseEntity<ReportBatchDataResponse> getReportBatchData(
+            @PathVariable Long examId,
+            @Valid @RequestBody ReportBatchDataRequest request) {
+        return ResponseEntity.ok(reportBatchDataQueryService.getBatchData(examId, request.studentIds()));
     }
 
     @GetMapping("/students/{studentId}/stability")

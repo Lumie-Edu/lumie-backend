@@ -8,7 +8,7 @@ public interface ReportServicePort {
      * @param studentId Student ID
      * @param examId Exam ID
      * @param tenantSlug Tenant slug
-     * @return JPG image bytes
+     * @return PDF report bytes
      */
     byte[] generateReport(Long studentId, Long examId, String tenantSlug);
 }

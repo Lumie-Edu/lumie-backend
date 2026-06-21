@@ -1,8 +1,10 @@
 package com.lumie.exam.adapter.out.messaging;
 
 import com.lumie.exam.application.dto.message.OmrGradingImageMessage;
+import com.lumie.exam.application.dto.message.ReportBatchGenerationMessage;
 import com.lumie.exam.application.dto.message.ReportGenerationMessage;
 import com.lumie.exam.application.event.OmrGradingRequestedEvent;
+import com.lumie.exam.application.event.ReportBatchGenerationRequestedEvent;
 import com.lumie.exam.application.event.ReportGenerationRequestedEvent;
 import com.lumie.messaging.config.RabbitMqConstants;
 import lombok.RequiredArgsConstructor;
@@ -114,6 +116,53 @@ public class JobRequestForwarder {
                     field("routingKey", RabbitMqConstants.REPORT_REQUEST_ROUTING_KEY),
                     field("itemIndex", event.reportIndex()),
                     field("totalItems", event.totalReports()),
+                    field("outcome", "failed"),
+                    field("exceptionClass", e.getClass().getSimpleName()),
+                    e);
+            throw e;
+        }
+    }
+
+    @ApplicationModuleListener
+    public void onReportBatchGenerationRequested(ReportBatchGenerationRequestedEvent event) {
+        ReportBatchGenerationMessage message = new ReportBatchGenerationMessage(
+                event.jobId(), event.examId(), event.studentIds(),
+                event.tenantSlug(), event.startIndex(), event.totalReports(), 2);
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE,
+                    RabbitMqConstants.REPORT_REQUEST_ROUTING_KEY,
+                    message);
+            log.info("Background job enqueued report_generation batch jobId={} startIndex={} size={} total={}",
+                    event.jobId(), event.startIndex(), event.studentIds().size(), event.totalReports(),
+                    field("eventType", "background_job"),
+                    field("jobName", "report_generation"),
+                    field("jobPhase", "enqueued"),
+                    field("jobId", event.jobId()),
+                    field("tenantSlug", event.tenantSlug()),
+                    field("entityType", "exam"),
+                    field("entityId", event.examId()),
+                    field("queue", "report.generation-request"),
+                    field("routingKey", RabbitMqConstants.REPORT_REQUEST_ROUTING_KEY),
+                    field("itemIndex", event.startIndex()),
+                    field("totalItems", event.totalReports()),
+                    field("schemaVersion", 2),
+                    field("outcome", "success"));
+        } catch (RuntimeException e) {
+            log.error("Background job enqueue failed report_generation batch jobId={}",
+                    event.jobId(),
+                    field("eventType", "background_job"),
+                    field("jobName", "report_generation"),
+                    field("jobPhase", "enqueue_failed"),
+                    field("jobId", event.jobId()),
+                    field("tenantSlug", event.tenantSlug()),
+                    field("entityType", "exam"),
+                    field("entityId", event.examId()),
+                    field("queue", "report.generation-request"),
+                    field("routingKey", RabbitMqConstants.REPORT_REQUEST_ROUTING_KEY),
+                    field("itemIndex", event.startIndex()),
+                    field("totalItems", event.totalReports()),
+                    field("schemaVersion", 2),
                     field("outcome", "failed"),
                     field("exceptionClass", e.getClass().getSimpleName()),
                     e);

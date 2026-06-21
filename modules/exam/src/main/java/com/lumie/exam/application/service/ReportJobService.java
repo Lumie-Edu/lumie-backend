@@ -1,6 +1,6 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.exam.application.event.ReportGenerationRequestedEvent;
+import com.lumie.exam.application.event.ReportBatchGenerationRequestedEvent;
 import com.lumie.exam.application.dto.request.ReportCallbackRequest;
 import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
 import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
@@ -34,6 +34,8 @@ import java.util.zip.ZipOutputStream;
 @RequiredArgsConstructor
 public class ReportJobService {
 
+    private static final int REPORT_BATCH_CHUNK_SIZE = 30;
+
     private final ExamRepository examRepository;
     private final ReportGenerationJobRepository jobRepository;
     private final OmrStoragePort storagePort;
@@ -57,10 +59,12 @@ public class ReportJobService {
         // Outbox: each event is persisted to event_publication in THIS transaction,
         // atomically with the job row, then forwarded to RabbitMQ after commit by
         // GradingRequestForwarder. Closes the commit→broker gap.
-        for (int i = 0; i < studentIds.size(); i++) {
-            eventPublisher.publishEvent(new ReportGenerationRequestedEvent(
-                    savedJob.getId(), examId, studentIds.get(i),
-                    tenantSlug, i, studentIds.size()));
+        for (int startIndex = 0; startIndex < studentIds.size(); startIndex += REPORT_BATCH_CHUNK_SIZE) {
+            int endIndex = Math.min(startIndex + REPORT_BATCH_CHUNK_SIZE, studentIds.size());
+            eventPublisher.publishEvent(new ReportBatchGenerationRequestedEvent(
+                    savedJob.getId(), examId,
+                    List.copyOf(studentIds.subList(startIndex, endIndex)),
+                    tenantSlug, startIndex, studentIds.size()));
         }
         log.info("Batch report job queued: jobId={}, reports={}",
                 savedJob.getId(), studentIds.size());
@@ -122,7 +126,7 @@ public class ReportJobService {
         String studentName = studentService.getStudent(tenantSlug, studentId)
                 .map(StudentService.StudentData::studentName)
                 .orElse("학생 " + studentId);
-        return buildReportImageFilename(studentName, exam.getName());
+        return buildReportFilename(studentName, exam.getName());
     }
 
     public String getZipFilename(Long jobId) {
@@ -150,12 +154,18 @@ public class ReportJobService {
         tx.markProcessing(request.jobId());
 
         if (request.success()) {
-            byte[] jpgBytes = Base64.getDecoder().decode(request.reportBytes());
-            String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
-            String fileKey = "tmp/" + tenantId + "/reports/" + request.examId() + "/" + request.studentId() + ".jpg";
-            // storage call outside any @Transactional boundary
-            storagePort.putObject(fileKey, jpgBytes, "image/jpeg");
-            tx.recordSuccess(request.jobId());
+            byte[] reportBytes = decodeReportBytes(request.reportBytes());
+            if (!ReportFileFormat.isPdf(reportBytes)) {
+                log.warn("Report callback returned non-PDF bytes: jobId={}, studentId={}",
+                        request.jobId(), request.studentId());
+                tx.recordFail(request.jobId());
+            } else {
+                String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
+                String fileKey = buildReportFileKey(tenantId, request.examId(), request.studentId());
+                // storage call outside any @Transactional boundary
+                storagePort.putObject(fileKey, reportBytes, ReportFileFormat.PDF_CONTENT_TYPE);
+                tx.recordSuccess(request.jobId());
+            }
         } else {
             log.warn("Report generation failed: jobId={}, studentId={}, error={}",
                     request.jobId(), request.studentId(), request.error());
@@ -198,16 +208,15 @@ public class ReportJobService {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zos = new ZipOutputStream(baos)) {
             for (Long studentId : manifest.studentIds()) {
-                String fileKey = "tmp/" + tenantId + "/reports/" + manifest.examId() + "/" + studentId + ".jpg";
                 try {
-                    byte[] jpgBytes = storagePort.getObject(fileKey);
+                    StoredReport storedReport = getStoredReport(tenantId, manifest.examId(), studentId);
                     String studentName = manifest.studentNamesById()
                             .getOrDefault(studentId, "학생 " + studentId);
                     String entryName = uniqueFilename(
-                            buildReportImageFilename(studentName, manifest.examName()),
+                            buildReportFilename(studentName, manifest.examName(), storedReport.extension()),
                             entryNameCounts);
                     zos.putNextEntry(new ZipEntry(entryName));
-                    zos.write(jpgBytes);
+                    zos.write(storedReport.bytes());
                     zos.closeEntry();
                 } catch (Exception e) {
                     log.warn("Failed to add report to ZIP: studentId={}", studentId, e);
@@ -222,8 +231,46 @@ public class ReportJobService {
         log.info("ZIP created: jobId={}, key={}", jobId, zipKey);
     }
 
-    private static String buildReportImageFilename(String studentName, String examName) {
-        return sanitizeFilenamePart(studentName) + "_" + sanitizeFilenamePart(examName) + ".jpg";
+    private StoredReport getStoredReport(String tenantId, Long examId, Long studentId) {
+        String fileKey = buildReportFileKey(tenantId, examId, studentId);
+        try {
+            return new StoredReport(storagePort.getObject(fileKey), ReportFileFormat.PDF_EXTENSION);
+        } catch (RuntimeException pdfFailure) {
+            String legacyFileKey = buildLegacyReportFileKey(tenantId, examId, studentId);
+            try {
+                return new StoredReport(storagePort.getObject(legacyFileKey), ReportFileFormat.LEGACY_JPG_EXTENSION);
+            } catch (RuntimeException legacyFailure) {
+                pdfFailure.addSuppressed(legacyFailure);
+                throw pdfFailure;
+            }
+        }
+    }
+
+    private static byte[] decodeReportBytes(String reportBytes) {
+        if (reportBytes == null) {
+            return null;
+        }
+        try {
+            return Base64.getDecoder().decode(reportBytes);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static String buildReportFileKey(String tenantId, Long examId, Long studentId) {
+        return "tmp/" + tenantId + "/reports/" + examId + "/" + studentId + ReportFileFormat.PDF_EXTENSION;
+    }
+
+    private static String buildLegacyReportFileKey(String tenantId, Long examId, Long studentId) {
+        return "tmp/" + tenantId + "/reports/" + examId + "/" + studentId + ReportFileFormat.LEGACY_JPG_EXTENSION;
+    }
+
+    private static String buildReportFilename(String studentName, String examName) {
+        return buildReportFilename(studentName, examName, ReportFileFormat.PDF_EXTENSION);
+    }
+
+    private static String buildReportFilename(String studentName, String examName, String extension) {
+        return sanitizeFilenamePart(studentName) + "_" + sanitizeFilenamePart(examName) + extension;
     }
 
     private static String buildZipFilename(String examName) {
@@ -259,6 +306,9 @@ public class ReportJobService {
     }
 
     private record ReportZipDownloadState(JobStatus status, int successCount, String zipFileKey) {
+    }
+
+    private record StoredReport(byte[] bytes, String extension) {
     }
 
     /**

@@ -8,11 +8,11 @@ import com.lumie.common.api.JobAcceptedResponse;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.ContentDisposition;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -29,29 +29,29 @@ public class ReportController {
     private final ReportJobService reportJobService;
     private final IdempotencyService idempotencyService;
 
-    @GetMapping("/reports/students/{studentId}/exams/{examId}")
+    @GetMapping(value = "/reports/students/{studentId}/exams/{examId}", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> generateReport(
             @PathVariable Long studentId,
             @PathVariable Long examId
     ) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
-        byte[] jpgBytes = reportServicePort.generateReport(studentId, examId, tenantSlug);
+        byte[] reportBytes = reportServicePort.generateReport(studentId, examId, tenantSlug);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.IMAGE_JPEG);
+        headers.setContentType(MediaType.APPLICATION_PDF);
         headers.set(HttpHeaders.CONTENT_DISPOSITION,
                 ContentDisposition.inline()
                         .filename(reportJobService.getSingleReportFilename(studentId, examId), StandardCharsets.UTF_8)
                         .build()
                         .toString());
-        // Generation is expensive (worker call) — prevent browser/proxy re-fetch on every render.
+        // Generation is expensive (worker call) — prevent client/proxy re-fetch on every render.
         // Server-side is naturally idempotent for (studentId, examId), so caching would be safe,
         // but no-store keeps the simplest contract until a real caching strategy is decided.
         headers.setCacheControl("no-store");
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(jpgBytes);
+                .body(reportBytes);
     }
 
     @PostMapping("/exams/{examId}/reports/batch")
@@ -87,7 +87,7 @@ public class ReportController {
         return ResponseEntity.ok(reportJobService.getJobStatus(jobId));
     }
 
-    @GetMapping("/exams/{examId}/reports/jobs/{jobId}/download")
+    @GetMapping(value = "/exams/{examId}/reports/jobs/{jobId}/download", produces = "application/zip")
     public ResponseEntity<byte[]> downloadZip(
             @PathVariable Long examId,
             @PathVariable Long jobId

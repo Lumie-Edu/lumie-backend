@@ -1,6 +1,7 @@
 package com.lumie.exam.adapter.out.external;
 
 import com.lumie.exam.application.port.out.ReportServicePort;
+import com.lumie.exam.application.service.ReportFileFormat;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import lombok.extern.slf4j.Slf4j;
@@ -38,8 +39,13 @@ public class ReportServiceClient implements ReportServicePort {
                     .retrieve()
                     .toEntity(byte[].class);
 
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
+            byte[] reportBytes = response.getBody();
+            if (response.getStatusCode().is2xxSuccessful() && ReportFileFormat.isPdf(reportBytes)) {
+                return reportBytes;
+            }
+            if (response.getStatusCode().is2xxSuccessful()) {
+                throw new BusinessException(ExamErrorCode.REPORT_GENERATION_FAILED,
+                        "Report service returned non-PDF bytes");
             }
 
             throw new BusinessException(ExamErrorCode.REPORT_GENERATION_FAILED, "Report service returned error");

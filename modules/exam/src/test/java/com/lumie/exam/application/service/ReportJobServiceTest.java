@@ -1,0 +1,199 @@
+package com.lumie.exam.application.service;
+
+import com.lumie.common.test.TenantContextExtension;
+import com.lumie.exam.application.dto.request.ReportCallbackRequest;
+import com.lumie.exam.application.event.ReportBatchGenerationRequestedEvent;
+import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
+import com.lumie.exam.application.port.out.OmrStoragePort;
+import com.lumie.exam.domain.entity.Exam;
+import com.lumie.exam.domain.entity.ReportGenerationJob;
+import com.lumie.exam.domain.repository.ExamRepository;
+import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
+import com.lumie.exam.domain.vo.JobStatus;
+import com.lumie.exam.test.ExamFixtures;
+import com.lumie.student.api.StudentService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.List;
+import java.util.Optional;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
+@ExtendWith({MockitoExtension.class, TenantContextExtension.class})
+class ReportJobServiceTest {
+
+    @Mock
+    private ExamRepository examRepository;
+    @Mock
+    private ReportGenerationJobRepository jobRepository;
+    @Mock
+    private OmrStoragePort storagePort;
+    @Mock
+    private CallbackDeduplicationPort callbackDeduplication;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private StudentService studentService;
+
+    private ReportJobService service;
+
+    @BeforeEach
+    void setUp() {
+        ReportJobService.Tx tx = new ReportJobService.Tx(jobRepository, studentService);
+        service = new ReportJobService(
+                examRepository,
+                jobRepository,
+                storagePort,
+                callbackDeduplication,
+                eventPublisher,
+                studentService,
+                tx
+        );
+    }
+
+    @Test
+    void createBatchJob_publishesChunkedBatchEvents() {
+        Exam exam = ExamFixtures.aGradedExam();
+        ReflectionTestUtils.setField(exam, "id", 10L);
+        given(examRepository.findById(10L)).willReturn(Optional.of(exam));
+        given(jobRepository.save(any(ReportGenerationJob.class))).willAnswer(invocation -> {
+            ReportGenerationJob job = invocation.getArgument(0);
+            ReflectionTestUtils.setField(job, "id", 1L);
+            return job;
+        });
+        List<Long> studentIds = java.util.stream.LongStream.rangeClosed(1, 65)
+                .boxed()
+                .toList();
+
+        Long jobId = service.createBatchJob(10L, studentIds);
+
+        assertThat(jobId).isEqualTo(1L);
+        ArgumentCaptor<ReportBatchGenerationRequestedEvent> eventCaptor =
+                ArgumentCaptor.forClass(ReportBatchGenerationRequestedEvent.class);
+        verify(eventPublisher, org.mockito.Mockito.times(3)).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getAllValues())
+                .extracting(ReportBatchGenerationRequestedEvent::startIndex)
+                .containsExactly(0, 30, 60);
+        assertThat(eventCaptor.getAllValues())
+                .extracting(event -> event.studentIds().size())
+                .containsExactly(30, 30, 5);
+        assertThat(eventCaptor.getAllValues())
+                .allSatisfy(event -> {
+                    assertThat(event.jobId()).isEqualTo(1L);
+                    assertThat(event.examId()).isEqualTo(10L);
+                    assertThat(event.totalReports()).isEqualTo(65);
+                    assertThat(event.tenantSlug()).isEqualTo("test-tenant");
+                });
+    }
+
+    @Test
+    void processCallback_storesOnlyPdfReports() {
+        byte[] pdfBytes = "%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII);
+        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
+
+        service.processCallback(successCallback(Base64.getEncoder().encodeToString(pdfBytes)));
+
+        verify(storagePort).putObject(
+                "tmp/test-tenant/reports/10/99.pdf",
+                pdfBytes,
+                ReportFileFormat.PDF_CONTENT_TYPE
+        );
+        verify(jobRepository).incrementSuccess(1L);
+        verify(jobRepository, never()).incrementFail(1L);
+    }
+
+    @Test
+    void processCallback_marksNonPdfPayloadAsFailed() {
+        byte[] jpgBytes = new byte[]{(byte) 0xFF, (byte) 0xD8, 0x00};
+        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
+
+        service.processCallback(successCallback(Base64.getEncoder().encodeToString(jpgBytes)));
+
+        verify(storagePort, never()).putObject(anyString(), any(), anyString());
+        verify(jobRepository).incrementFail(1L);
+        verify(jobRepository, never()).incrementSuccess(1L);
+    }
+
+    @Test
+    void getZipBytes_fallsBackToLegacyJpgObjectsDuringMigration() throws Exception {
+        ReportGenerationJob job = completedJob();
+        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
+        given(studentService.getStudentsByIds(eq("test-tenant"), eq(List.of(99L))))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(99L, 7L, "강다은", "010", true, null, null)),
+                        1,
+                        0,
+                        1
+                ));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
+                .willThrow(new IllegalStateException("missing pdf"));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.jpg"))
+                .willReturn(new byte[]{1, 2, 3});
+        given(storagePort.putObject(eq("tmp/test-tenant/reports/10/batch_1.zip"), any(), eq("application/zip")))
+                .willReturn("tmp/test-tenant/reports/10/batch_1.zip");
+        doAnswer(invocation -> {
+            ReflectionTestUtils.setField(job, "zipFileKey", invocation.getArgument(1));
+            return null;
+        }).when(jobRepository).setZipFileKey(eq(1L), anyString());
+
+        service.getZipBytes(1L);
+
+        ArgumentCaptor<byte[]> zipCaptor = ArgumentCaptor.forClass(byte[].class);
+        verify(storagePort).putObject(eq("tmp/test-tenant/reports/10/batch_1.zip"), zipCaptor.capture(), eq("application/zip"));
+        assertThat(firstZipEntryName(zipCaptor.getValue())).isEqualTo("강다은_테스트_시험.jpg");
+    }
+
+    private static ReportCallbackRequest successCallback(String reportBytes) {
+        return new ReportCallbackRequest(
+                1L,
+                10L,
+                99L,
+                "test-tenant",
+                0,
+                1,
+                true,
+                null,
+                reportBytes
+        );
+    }
+
+    private static ReportGenerationJob completedJob() {
+        Exam exam = ExamFixtures.aGradedExam();
+        ReflectionTestUtils.setField(exam, "id", 10L);
+        ReportGenerationJob job = ReportGenerationJob.create(exam, "test-tenant", List.of(99L));
+        ReflectionTestUtils.setField(job, "id", 1L);
+        ReflectionTestUtils.setField(job, "status", JobStatus.COMPLETED);
+        ReflectionTestUtils.setField(job, "successCount", 1);
+        return job;
+    }
+
+    private static String firstZipEntryName(byte[] zipBytes) throws Exception {
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
+            ZipEntry entry = zis.getNextEntry();
+            return entry == null ? null : entry.getName();
+        }
+    }
+}

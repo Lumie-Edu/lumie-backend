@@ -36,6 +36,9 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     @EntityGraph(attributePaths = {"exam", "questionResults"})
     List<ExamResult> findByStudentId(Long studentId);
 
+    @EntityGraph(attributePaths = {"exam"})
+    List<ExamResult> findByStudentIdIn(Collection<Long> studentIds);
+
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);
 
     @Modifying(clearAutomatically = true)

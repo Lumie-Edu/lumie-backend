@@ -2118,6 +2118,41 @@
         "required" : [ "amount", "billingPeriodEnd", "billingPeriodStart", "createdAt", "description", "dueDate", "id", "invoiceNumber", "overdue", "paidAt", "paymentKey", "status", "subscriptionId", "tenantId", "vatAmount" ],
         "type" : "object"
       },
+      "Item" : {
+        "properties" : {
+          "error" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "examResult" : {
+            "$ref" : "#/components/schemas/ExamResultResponse"
+          },
+          "questionResults" : {
+            "items" : {
+              "$ref" : "#/components/schemas/QuestionResultResponse"
+            },
+            "type" : "array"
+          },
+          "stabilityIndex" : {
+            "$ref" : "#/components/schemas/StabilityIndexResponse"
+          },
+          "student" : {
+            "$ref" : "#/components/schemas/StudentInfo"
+          },
+          "studentId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "studentRank" : {
+            "$ref" : "#/components/schemas/StudentRankResponse"
+          },
+          "success" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "error", "examResult", "questionResults", "stabilityIndex", "student", "studentId", "studentRank", "success" ],
+        "type" : "object"
+      },
       "ItemAnalysisResponse" : {
         "properties" : {
           "examId" : {
@@ -3744,6 +3779,36 @@
         "required" : [ "name" ],
         "type" : "object"
       },
+      "ReportBatchDataRequest" : {
+        "properties" : {
+          "studentIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "maxItems" : 30,
+            "minItems" : 0,
+            "type" : "array"
+          }
+        },
+        "required" : [ "studentIds" ],
+        "type" : "object"
+      },
+      "ReportBatchDataResponse" : {
+        "properties" : {
+          "examStatistics" : {
+            "$ref" : "#/components/schemas/ExamStatisticsResponse"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Item"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "examStatistics", "items" ],
+        "type" : "object"
+      },
       "ReportBatchRequest" : {
         "properties" : {
           "studentIds" : {
@@ -4653,7 +4718,26 @@
         "required" : [ "examCategory", "grade", "isPassed", "isRegistered", "percentile", "phoneNumber", "rank", "resultId", "score", "studentId", "studentName", "submittedAt" ],
         "type" : "object"
       },
+      "StudentInfo" : {
+        "nullable" : true,
+        "properties" : {
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "studentName" : {
+            "type" : "string"
+          },
+          "studentPhone" : {
+            "nullable" : true,
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "studentName", "studentPhone" ],
+        "type" : "object"
+      },
       "StudentRankResponse" : {
+        "nullable" : true,
         "properties" : {
           "examId" : {
             "format" : "int64",
@@ -6142,6 +6226,43 @@
           }
         },
         "tags" : [ "internal-omr-controller" ]
+      }
+    },
+    "/internal/reports/exams/{examId}/batch-data" : {
+      "post" : {
+        "operationId" : "getReportBatchData",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportBatchDataRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportBatchDataResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-report-controller" ]
       }
     },
     "/internal/reports/exams/{examId}/statistics" : {
@@ -8988,7 +9109,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/zip" : {
                 "schema" : {
                   "format" : "byte",
                   "type" : "string"
@@ -11075,7 +11196,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/pdf" : {
                 "schema" : {
                   "format" : "byte",
                   "type" : "string"
