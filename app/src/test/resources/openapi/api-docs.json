@@ -3781,6 +3781,10 @@
       },
       "ReportBatchDataRequest" : {
         "properties" : {
+          "jobId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
           "studentIds" : {
             "items" : {
               "format" : "int64",
