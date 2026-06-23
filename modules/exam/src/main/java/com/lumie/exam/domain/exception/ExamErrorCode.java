@@ -22,9 +22,11 @@ public enum ExamErrorCode implements ErrorCode {
     TEMPLATE_NOT_FOUND("EXAM_104", "Exam template not found", 404),
     OMR_JOB_NOT_FOUND("EXAM_105", "OMR grading job not found", 404),
     OMR_IMAGE_NOT_FOUND("EXAM_106", "OMR image not found", 404),
+    QUESTION_TYPE_NOT_FOUND("EXAM_107", "Exam question type not found", 404),
 
     // 409 Conflict
     DUPLICATE_RESULT("EXAM_201", "Exam result already exists for this student", 409),
+    DUPLICATE_QUESTION_TYPE("EXAM_202", "Exam question type already exists", 409),
 
     // 403 Forbidden
     OMR_QUOTA_EXCEEDED("EXAM_301", "OMR grading quota exceeded", 403),

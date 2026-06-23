@@ -1112,6 +1112,17 @@
         },
         "type" : "object"
       },
+      "CreateExamQuestionTypeRequest" : {
+        "properties" : {
+          "name" : {
+            "maxLength" : 50,
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "name" ],
+        "type" : "object"
+      },
       "CreateExamRequest" : {
         "properties" : {
           "category" : {
@@ -1534,6 +1545,31 @@
           }
         },
         "required" : [ "category", "correctAnswers", "createdAt", "id", "name", "passScore", "questionScores", "questionTypes", "totalPossibleScore", "totalQuestions", "updatedAt" ],
+        "type" : "object"
+      },
+      "ExamQuestionTypeResponse" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "displayOrder" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "displayOrder", "id", "name", "updatedAt" ],
         "type" : "object"
       },
       "ExamResponse" : {
@@ -3380,6 +3416,36 @@
           }
         },
         "required" : [ "expiresInSeconds", "fileId", "uploadUrl" ],
+        "type" : "object"
+      },
+      "ProblemDetail" : {
+        "properties" : {
+          "detail" : {
+            "type" : "string"
+          },
+          "instance" : {
+            "format" : "uri",
+            "type" : "string"
+          },
+          "properties" : {
+            "additionalProperties" : {
+              "type" : "object"
+            },
+            "type" : "object"
+          },
+          "status" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "type" : {
+            "format" : "uri",
+            "type" : "string"
+          }
+        },
+        "required" : [ "detail", "instance", "properties", "status", "title", "type" ],
         "type" : "object"
       },
       "PublicTenantResponse" : {
@@ -8625,6 +8691,113 @@
           }
         },
         "tags" : [ "conversation-controller" ]
+      }
+    },
+    "/v1/exam-question-types" : {
+      "get" : {
+        "operationId" : "listQuestionTypes",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExamQuestionTypeResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "exam-question-type-controller" ]
+      },
+      "post" : {
+        "operationId" : "createQuestionType",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateExamQuestionTypeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamQuestionTypeResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Staff role required"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Question type already exists"
+          }
+        },
+        "tags" : [ "exam-question-type-controller" ]
+      }
+    },
+    "/v1/exam-question-types/{id}" : {
+      "delete" : {
+        "operationId" : "deleteQuestionType",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Staff role required"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Question type not found"
+          }
+        },
+        "tags" : [ "exam-question-type-controller" ]
       }
     },
     "/v1/exam-results/statistics/top-students-monthly" : {
