@@ -1,6 +1,8 @@
 package com.lumie.notification.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.common.auth.Role;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.student.api.StudentService;
@@ -9,17 +11,19 @@ import com.lumie.notification.application.dto.request.SendSmsRequest;
 import com.lumie.notification.application.dto.request.SendToClassRequest;
 import com.lumie.notification.application.dto.request.CreateTemplateRequest;
 import com.lumie.notification.application.dto.request.UpdateTemplateRequest;
+import com.lumie.notification.application.port.out.SmsRecipientGroupPersistencePort;
 import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.dto.response.SmsTemplateResponse;
 import com.lumie.notification.domain.entity.SmsMessage;
+import com.lumie.notification.domain.entity.SmsRecipientGroup;
 import com.lumie.notification.domain.entity.SmsTemplate;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.repository.SmsTemplateRepository;
+import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
 import com.lumie.notification.domain.vo.TemplateCategory;
-import com.lumie.common.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -29,6 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,6 +43,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,16 +55,20 @@ class SmsCommandServiceTest {
     @Mock private StudentService studentService;
     @Mock private StaffService staffService;
     @Mock private ClassService classService;
+    @Mock private SmsRecipientGroupPersistencePort recipientGroupPersistencePort;
     @InjectMocks private SmsCommandService commandService;
 
     @org.junit.jupiter.api.BeforeEach
     void setupTenant() {
         TenantContextHolder.setTenant("test-tenant");
+        UserContextHolder.setUserId(100L);
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
     }
 
     @org.junit.jupiter.api.AfterEach
     void clearTenant() {
         TenantContextHolder.clear();
+        UserContextHolder.clear();
     }
 
     @Nested
@@ -69,11 +79,11 @@ class SmsCommandServiceTest {
         @DisplayName("정상 발송 시 SmsMessageResponse를 반환한다")
         void sendSms_success() {
             SendSmsRequest request = new SendSmsRequest(
-                    10L, RecipientType.STUDENT,
+                    RecipientType.STUDENT,
                     List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)),
                     "제목", "내용", null);
 
-            given(staffService.getStaff(anyString(), eq(10L)))
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
                     .willReturn(Optional.of(new StaffService.StaffData(
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(messageRepository.save(any(SmsMessage.class)))
@@ -94,10 +104,10 @@ class SmsCommandServiceTest {
         @DisplayName("빈 수신자 목록으로 발송 시 BusinessException이 발생한다")
         void sendSms_emptyRecipients_throwsException() {
             SendSmsRequest request = new SendSmsRequest(
-                    10L, RecipientType.STUDENT,
+                    RecipientType.STUDENT,
                     List.of(), "제목", "내용", null);
 
-            given(staffService.getStaff(anyString(), eq(10L)))
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
                     .willReturn(Optional.of(new StaffService.StaffData(
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
 
@@ -109,11 +119,178 @@ class SmsCommandServiceTest {
         @DisplayName("존재하지 않는 발송자로 발송 시 BusinessException이 발생한다")
         void sendSms_senderNotFound_throwsException() {
             SendSmsRequest request = new SendSmsRequest(
-                    999L, RecipientType.STUDENT,
+                    RecipientType.STUDENT,
                     List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)),
                     "제목", "내용", null);
 
-            given(staffService.getStaff(anyString(), eq(999L))).willReturn(Optional.empty());
+            given(staffService.getStaffByUserId(anyString(), eq(100L))).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> commandService.sendSms(request))
+                    .isInstanceOf(BusinessException.class);
+        }
+
+        @Test
+        @DisplayName("recipientGroupId가 있으면 서버에서 현재 staff 소유 그룹으로 수신자를 로드한다")
+        void sendSms_withRecipientGroupId_usesStoredRecipients() throws Exception {
+            SendSmsRequest request = new SendSmsRequest(
+                    RecipientType.GUARDIAN,
+                    null,
+                    "제목",
+                    55L,
+                    "{학생명} 안내",
+                    null,
+                    null
+            );
+            SmsRecipientGroup group = SmsRecipientGroup.create(
+                    10L,
+                    "학부모 그룹",
+                    "mic",
+                    List.of(Recipient.pending("01012345678", "홍길동", 100L, "수학반", null))
+            );
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(recipientGroupPersistencePort.findByIdAndOwnerStaffId(55L, 10L))
+                    .willReturn(Optional.of(group));
+            given(messageRepository.save(any(SmsMessage.class)))
+                    .willAnswer(inv -> {
+                        SmsMessage msg = inv.getArgument(0);
+                        setField(msg, "id", 1L);
+                        return msg;
+                    });
+
+            SmsMessageResponse response = commandService.sendSms(request);
+
+            assertThat(response.recipientGroupId()).isEqualTo(55L);
+            assertThat(response.recipients()).singleElement().satisfies(recipient -> {
+                assertThat(recipient.phone()).isEqualTo("010-****-5678");
+                assertThat(recipient.name()).isEqualTo("홍길동");
+            });
+            verify(recipientGroupPersistencePort).findByIdAndOwnerStaffId(55L, 10L);
+        }
+
+        @Test
+        @DisplayName("recipientGroupId가 현재 staff 소유 범위에 없으면 발송하지 않는다")
+        void sendSms_withUnknownRecipientGroup_throwsException() {
+            SendSmsRequest request = new SendSmsRequest(
+                    RecipientType.GUARDIAN,
+                    null,
+                    "제목",
+                    55L,
+                    "내용",
+                    null,
+                    null
+            );
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(recipientGroupPersistencePort.findByIdAndOwnerStaffId(55L, 10L))
+                    .willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> commandService.sendSms(request))
+                    .isInstanceOf(BusinessException.class);
+        }
+
+        @Test
+        @DisplayName("그룹 발송에 inline recipients를 함께 보내면 거절한다")
+        void sendSms_groupSendWithInlineRecipients_throwsException() {
+            SendSmsRequest request = new SendSmsRequest(
+                    RecipientType.GUARDIAN,
+                    List.of(new RecipientRequest("010-9999-9999", "무시됨", 999L)),
+                    "제목",
+                    55L,
+                    "내용",
+                    null,
+                    null
+            );
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+
+            assertThatThrownBy(() -> commandService.sendSms(request))
+                    .isInstanceOf(BusinessException.class);
+            verify(recipientGroupPersistencePort, never()).findByIdAndOwnerStaffId(any(), any());
+        }
+
+        @Test
+        @DisplayName("그룹 발송은 guardian recipientType만 허용한다")
+        void sendSms_groupSendWithMismatchedRecipientType_throwsException() {
+            SendSmsRequest request = new SendSmsRequest(
+                    RecipientType.STUDENT,
+                    null,
+                    "제목",
+                    55L,
+                    "내용",
+                    null,
+                    null
+            );
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+
+            assertThatThrownBy(() -> commandService.sendSms(request))
+                    .isInstanceOf(BusinessException.class);
+            verify(recipientGroupPersistencePort, never()).findByIdAndOwnerStaffId(any(), any());
+        }
+
+        @Test
+        @DisplayName("미래 예약 발송은 대기 상태로 저장한다")
+        void sendSms_futureSchedule_persistsPending() {
+            Instant scheduledAt = Instant.now().plusSeconds(3600);
+            SendSmsRequest request = new SendSmsRequest(
+                    RecipientType.GUARDIAN,
+                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)),
+                    "제목", "{학생명} 안내", null, scheduledAt);
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(messageRepository.save(any(SmsMessage.class)))
+                    .willAnswer(inv -> {
+                        SmsMessage msg = inv.getArgument(0);
+                        setField(msg, "id", 1L);
+                        return msg;
+                    });
+
+            SmsMessageResponse response = commandService.sendSms(request);
+
+            assertThat(response.status()).isEqualTo(SmsStatus.PENDING);
+            assertThat(response.scheduledAt()).isEqualTo(scheduledAt);
+            assertThat(response.recipients()).singleElement()
+                    .satisfies(recipient -> assertThat(recipient.name()).isEqualTo("홍길동"));
+        }
+
+        @Test
+        @DisplayName("과거 예약 시간으로 발송 시 BusinessException이 발생한다")
+        void sendSms_pastSchedule_throwsException() {
+            SendSmsRequest request = new SendSmsRequest(
+                    RecipientType.GUARDIAN,
+                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)),
+                    "제목", "내용", null, Instant.now().minusSeconds(60));
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+
+            assertThatThrownBy(() -> commandService.sendSms(request))
+                    .isInstanceOf(BusinessException.class);
+        }
+
+        @Test
+        @DisplayName("유효하지 않은 수신자 번호로 발송 시 BusinessException이 발생한다")
+        void sendSms_invalidRecipientPhone_throwsException() {
+            SendSmsRequest request = new SendSmsRequest(
+                    RecipientType.GUARDIAN,
+                    List.of(new RecipientRequest("1234", "홍길동", 100L)),
+                    "제목", "내용", null);
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
 
             assertThatThrownBy(() -> commandService.sendSms(request))
                     .isInstanceOf(BusinessException.class);
@@ -127,9 +304,9 @@ class SmsCommandServiceTest {
         @Test
         @DisplayName("반 전체 발송 시 성공한다")
         void sendToClass_success() {
-            SendToClassRequest request = new SendToClassRequest(10L, "제목", "내용", null);
+            SendToClassRequest request = new SendToClassRequest("제목", "내용", null);
 
-            given(staffService.getStaff(anyString(), eq(10L)))
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
                     .willReturn(Optional.of(new StaffService.StaffData(
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(classService.getClass(anyString(), eq(5L)))
@@ -140,8 +317,8 @@ class SmsCommandServiceTest {
             given(studentService.getStudentsByIds(anyString(), eq(List.of(100L, 200L))))
                     .willReturn(new StudentService.StudentListData(
                             List.of(
-                                    new StudentService.StudentData(100L, 1000L, "홍길동", "010-1111-1111", true, null, null),
-                                    new StudentService.StudentData(200L, 2000L, "김철수", "010-2222-2222", true, null, null)
+                                    new StudentService.StudentData(100L, 1000L, "홍길동", "010-1111-1111", "010-3333-3333", true, null, null),
+                                    new StudentService.StudentData(200L, 2000L, "김철수", "010-2222-2222", "010-4444-4444", true, null, null)
                             ), 2L, 0, 2));
             given(messageRepository.save(any(SmsMessage.class)))
                     .willAnswer(inv -> {
@@ -154,15 +331,15 @@ class SmsCommandServiceTest {
 
             assertThat(response.status()).isEqualTo(SmsStatus.SENT);
             assertThat(response.successCount()).isEqualTo(2);
-            assertThat(response.recipientType()).isEqualTo(RecipientType.STUDENT);
+            assertThat(response.recipientType()).isEqualTo(RecipientType.GUARDIAN);
         }
 
         @Test
         @DisplayName("수강생이 없는 반에 발송 시 BusinessException이 발생한다")
         void sendToClass_noStudents_throwsException() {
-            SendToClassRequest request = new SendToClassRequest(10L, "제목", "내용", null);
+            SendToClassRequest request = new SendToClassRequest("제목", "내용", null);
 
-            given(staffService.getStaff(anyString(), eq(10L)))
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
                     .willReturn(Optional.of(new StaffService.StaffData(
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(classService.getClass(anyString(), eq(5L)))
@@ -172,6 +349,152 @@ class SmsCommandServiceTest {
                     .willReturn(List.of());
 
             assertThatThrownBy(() -> commandService.sendToClass(5L, request))
+                    .isInstanceOf(BusinessException.class);
+        }
+
+        @Test
+        @DisplayName("학부모 전화번호가 없는 반 발송 시 BusinessException이 발생한다")
+        void sendToClass_missingParentPhone_throwsException() {
+            SendToClassRequest request = new SendToClassRequest("제목", "내용", null);
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(classService.getClass(anyString(), eq(5L)))
+                    .willReturn(Optional.of(new ClassService.ClassData(
+                            5L, "수학반", null, null, null, null, null, null, null)));
+            given(classService.getEnrolledStudentIds(anyString(), eq(5L)))
+                    .willReturn(List.of(100L));
+            given(studentService.getStudentsByIds(anyString(), eq(List.of(100L))))
+                    .willReturn(new StudentService.StudentListData(
+                            List.of(new StudentService.StudentData(
+                                    100L, 1000L, "홍길동", "010-1111-1111", null, true, null, null)),
+                            1L, 0, 1));
+
+            assertThatThrownBy(() -> commandService.sendToClass(5L, request))
+                    .isInstanceOf(BusinessException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("cancelScheduled")
+    class CancelScheduled {
+
+        @Test
+        @DisplayName("예약 대기 문자를 취소한다")
+        void cancelScheduled_success() throws Exception {
+            Instant scheduledAt = Instant.now().plusSeconds(3600);
+            SmsMessage message = SmsMessage.create(
+                    10L,
+                    RecipientType.GUARDIAN,
+                    List.of(com.lumie.notification.domain.vo.Recipient.pending(
+                            "01012345678", "홍길동", 100L, null, "내용")),
+                    "제목",
+                    "내용",
+                    null,
+                    scheduledAt,
+                    com.lumie.notification.domain.vo.SmsMessageType.SMS,
+                    1,
+                    20,
+                    20);
+            setField(message, "id", 1L);
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(messageRepository.findByIdAndSenderId(1L, 10L)).willReturn(Optional.of(message));
+            given(messageRepository.save(any(SmsMessage.class))).willAnswer(inv -> inv.getArgument(0));
+
+            SmsMessageResponse response = commandService.cancelScheduled(1L);
+
+            assertThat(response.status()).isEqualTo(SmsStatus.CANCELLED);
+            assertThat(response.cancelledAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("이미 발송된 문자는 취소할 수 없다")
+        void cancelScheduled_sentMessage_throwsException() throws Exception {
+            SmsMessage message = SmsMessage.create(
+                    10L,
+                    RecipientType.GUARDIAN,
+                    List.of(com.lumie.notification.domain.vo.Recipient.pending(
+                            "01012345678", "홍길동", 100L, null, "내용")),
+                    "제목",
+                    "내용",
+                    null,
+                    null,
+                    com.lumie.notification.domain.vo.SmsMessageType.SMS,
+                    1,
+                    20,
+                    20);
+            setField(message, "id", 1L);
+            message.markAsSent();
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(messageRepository.findByIdAndSenderId(1L, 10L)).willReturn(Optional.of(message));
+
+            assertThatThrownBy(() -> commandService.cancelScheduled(1L))
+                    .isInstanceOf(BusinessException.class);
+        }
+
+        @Test
+        @DisplayName("이미 취소된 예약 문자는 현재 상태를 그대로 반환한다")
+        void cancelScheduled_alreadyCancelled_returnsExistingState() throws Exception {
+            Instant scheduledAt = Instant.now().plusSeconds(3600);
+            SmsMessage message = SmsMessage.create(
+                    10L,
+                    RecipientType.GUARDIAN,
+                    List.of(com.lumie.notification.domain.vo.Recipient.pending(
+                            "01012345678", "홍길동", 100L, null, "내용")),
+                    "제목",
+                    "내용",
+                    null,
+                    scheduledAt,
+                    com.lumie.notification.domain.vo.SmsMessageType.SMS,
+                    1,
+                    20,
+                    20);
+            setField(message, "id", 1L);
+            message.cancel();
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(messageRepository.findByIdAndSenderId(1L, 10L)).willReturn(Optional.of(message));
+
+            SmsMessageResponse response = commandService.cancelScheduled(1L);
+
+            assertThat(response.status()).isEqualTo(SmsStatus.CANCELLED);
+            assertThat(response.cancelledAt()).isEqualTo(message.getCancelledAt());
+            verify(messageRepository, never()).save(any(SmsMessage.class));
+        }
+
+        @Test
+        @DisplayName("강사는 다른 직원의 예약 문자를 취소할 수 없다")
+        void cancelScheduled_otherSender_throwsException() throws Exception {
+            SmsMessage message = SmsMessage.create(
+                    20L,
+                    RecipientType.GUARDIAN,
+                    List.of(com.lumie.notification.domain.vo.Recipient.pending(
+                            "01012345678", "홍길동", 100L, null, "내용")),
+                    "제목",
+                    "내용",
+                    null,
+                    Instant.now().plusSeconds(3600),
+                    com.lumie.notification.domain.vo.SmsMessageType.SMS,
+                    1,
+                    20,
+                    20);
+            setField(message, "id", 1L);
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(messageRepository.findByIdAndSenderId(1L, 10L)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> commandService.cancelScheduled(1L))
                     .isInstanceOf(BusinessException.class);
         }
     }

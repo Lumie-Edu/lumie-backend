@@ -95,6 +95,7 @@ public class StudentServiceAdapter implements StudentService {
                 s.getUserId(),
                 s.getStudentName(),
                 s.getStudentPhone(),
+                s.getParentPhone(),
                 s.isActive(),
                 formatTs(s.getCreatedAt()),
                 formatTs(s.getUpdatedAt())

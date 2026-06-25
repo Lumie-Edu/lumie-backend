@@ -26,10 +26,16 @@ public interface StudentService {
             Long userId,
             String studentName,
             String studentPhone,
+            String parentPhone,
             boolean isActive,
             String createdAt,
             String updatedAt
-    ) {}
+    ) {
+        public StudentData(Long id, Long userId, String studentName, String studentPhone,
+                           boolean isActive, String createdAt, String updatedAt) {
+            this(id, userId, studentName, studentPhone, null, isActive, createdAt, updatedAt);
+        }
+    }
 
     record StudentListData(
             List<StudentData> students,

@@ -14,7 +14,13 @@ public enum SmsErrorCode implements ErrorCode {
     INVALID_STATUS("SMS_004", "Invalid SMS status value", 400),
     SENDER_NOT_FOUND("SMS_005", "Sender not found", 404),
     CLASS_NOT_FOUND("SMS_006", "Class not found", 404),
-    JSON_SERIALIZATION_FAILED("SMS_007", "Failed to serialize or deserialize JSON field", 500);
+    JSON_SERIALIZATION_FAILED("SMS_007", "Failed to serialize or deserialize JSON field", 500),
+    MESSAGE_NOT_PENDING("SMS_008", "SMS message is not pending", 400),
+    INVALID_SCHEDULED_AT("SMS_009", "Scheduled time must be in the future", 400),
+    INVALID_RECIPIENTS("SMS_010", "Recipients contain invalid phone numbers", 400),
+    RECIPIENT_GROUP_NOT_FOUND("SMS_011", "SMS recipient group not found", 404),
+    INVALID_SEND_TARGET("SMS_012", "Provide either recipients or recipient group for SMS sending", 400),
+    INVALID_RECIPIENT_GROUP_TYPE("SMS_013", "Recipient groups only support guardian recipients", 400);
 
     private final String code;
     private final String message;

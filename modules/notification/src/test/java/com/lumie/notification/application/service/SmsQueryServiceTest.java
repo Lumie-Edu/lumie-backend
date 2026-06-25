@@ -1,5 +1,8 @@
 package com.lumie.notification.application.service;
 
+import com.lumie.common.auth.Role;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.dto.response.SmsTemplateResponse;
 import com.lumie.notification.domain.entity.SmsMessage;
@@ -8,6 +11,9 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.repository.SmsTemplateRepository;
 import com.lumie.notification.domain.vo.*;
+import com.lumie.staff.api.StaffService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SmsQueryService 테스트")
@@ -35,7 +42,21 @@ class SmsQueryServiceTest {
 
     @Mock private SmsMessageRepository messageRepository;
     @Mock private SmsTemplateRepository templateRepository;
+    @Mock private StaffService staffService;
     @InjectMocks private SmsQueryService queryService;
+
+    @BeforeEach
+    void setupTenant() {
+        TenantContextHolder.setTenant("test-tenant");
+        UserContextHolder.setUserId(100L);
+        UserContextHolder.setUserRole(Role.OWNER);
+    }
+
+    @AfterEach
+    void clearTenant() {
+        TenantContextHolder.clear();
+        UserContextHolder.clear();
+    }
 
     @Test
     @DisplayName("getMessage 성공 시 SmsMessageResponse를 반환한다")
@@ -67,10 +88,11 @@ class SmsQueryServiceTest {
 
         given(messageRepository.findAll(any(SmsSearchCriteria.class), eq(pageable))).willReturn(page);
 
-        Page<SmsMessageResponse> response = queryService.listMessages(null, null, null, pageable);
+        Page<SmsMessageResponse> response = queryService.listMessages(null, null, null, null, pageable);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).id()).isEqualTo(1L);
+        assertThat(response.getContent().get(0).content()).isNull();
     }
 
     @Test
@@ -82,9 +104,39 @@ class SmsQueryServiceTest {
         given(messageRepository.findAll(any(SmsSearchCriteria.class), eq(pageable))).willReturn(emptyPage);
 
         Page<SmsMessageResponse> response = queryService.listMessages(
-            SmsStatus.SENT, RecipientType.STUDENT, "검색어", pageable);
+            SmsStatus.SENT, RecipientType.STUDENT, "검색어", 99L, pageable);
 
         assertThat(response.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("강사는 본인 senderId로 문자 이력을 제한한다")
+    void listMessages_instructor_scopesBySenderId() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<SmsMessage> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+
+        given(staffService.getStaffByUserId("test-tenant", 100L))
+                .willReturn(Optional.of(new StaffService.StaffData(
+                        10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+        given(messageRepository.findAll(any(SmsSearchCriteria.class), eq(pageable))).willReturn(emptyPage);
+
+        queryService.listMessages(null, null, null, null, pageable);
+
+        verify(messageRepository).findAll(eq(new SmsSearchCriteria(null, null, null, null, 10L)), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("강사는 다른 senderId의 문자 상세를 조회하지 못한다")
+    void getMessage_instructor_scopesBySenderId() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        given(staffService.getStaffByUserId("test-tenant", 100L))
+                .willReturn(Optional.of(new StaffService.StaffData(
+                        10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+        given(messageRepository.findByIdAndSenderId(1L, 10L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> queryService.getMessage(1L))
+                .isInstanceOf(BusinessException.class);
     }
 
     @Test

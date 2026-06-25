@@ -8,6 +8,7 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.notification.domain.exception.SmsErrorCode;
 import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.RecipientType;
+import com.lumie.notification.domain.vo.SmsMessageType;
 import com.lumie.notification.domain.vo.SmsStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -30,6 +31,10 @@ public class SmsMessage extends TenantScopedEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "sender_id")
     private Long senderId;
 
@@ -45,14 +50,36 @@ public class SmsMessage extends TenantScopedEntity {
     @Column(name = "title", length = 200)
     private String title;
 
+    @Column(name = "recipient_group_id")
+    private Long recipientGroupId;
+
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "template_id")
     private Long templateId;
 
+    @Column(name = "scheduled_at")
+    private Instant scheduledAt;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
     @Column(name = "sent_at")
     private Instant sentAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "message_type", nullable = false, length = 10)
+    private SmsMessageType messageType;
+
+    @Column(name = "estimated_segments", nullable = false)
+    private int estimatedSegments;
+
+    @Column(name = "unit_price", nullable = false)
+    private int unitPrice;
+
+    @Column(name = "total_price", nullable = false)
+    private int totalPrice;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -66,14 +93,21 @@ public class SmsMessage extends TenantScopedEntity {
 
     @Builder
     private SmsMessage(Long senderId, RecipientType recipientType,
-                       List<Recipient> recipients, String title, String content,
-                       Long templateId, SmsStatus status) {
+                       List<Recipient> recipients, String title, Long recipientGroupId, String content,
+                       Long templateId, Instant scheduledAt, SmsMessageType messageType,
+                       int estimatedSegments, int unitPrice, int totalPrice, SmsStatus status) {
         this.senderId = senderId;
         this.recipientType = recipientType;
         this.recipients = recipients;
         this.title = title;
+        this.recipientGroupId = recipientGroupId;
         this.content = content;
         this.templateId = templateId;
+        this.scheduledAt = scheduledAt;
+        this.messageType = messageType != null ? messageType : SmsMessageType.SMS;
+        this.estimatedSegments = Math.max(1, estimatedSegments);
+        this.unitPrice = Math.max(0, unitPrice);
+        this.totalPrice = Math.max(0, totalPrice);
         this.status = status != null ? status : SmsStatus.PENDING;
         this.successCount = 0;
         this.failCount = 0;
@@ -81,37 +115,79 @@ public class SmsMessage extends TenantScopedEntity {
 
     public static SmsMessage create(Long senderId, RecipientType recipientType,
                                     List<Recipient> recipients, String title, String content,
-                                    Long templateId) {
+                                    Long templateId, Instant scheduledAt, SmsMessageType messageType,
+                                    int estimatedSegments, int unitPrice, int totalPrice) {
+        return create(senderId, recipientType, recipients, title, null, content, templateId,
+                scheduledAt, messageType, estimatedSegments, unitPrice, totalPrice);
+    }
+
+    public static SmsMessage create(Long senderId, RecipientType recipientType,
+                                    List<Recipient> recipients, String title, Long recipientGroupId, String content,
+                                    Long templateId, Instant scheduledAt, SmsMessageType messageType,
+                                    int estimatedSegments, int unitPrice, int totalPrice) {
         return SmsMessage.builder()
                 .senderId(senderId)
                 .recipientType(recipientType)
                 .recipients(recipients)
                 .title(title)
+                .recipientGroupId(recipientGroupId)
                 .content(content)
                 .templateId(templateId)
+                .scheduledAt(scheduledAt)
+                .messageType(messageType)
+                .estimatedSegments(estimatedSegments)
+                .unitPrice(unitPrice)
+                .totalPrice(totalPrice)
                 .status(SmsStatus.PENDING)
                 .build();
     }
 
+    public static SmsMessage create(Long senderId, RecipientType recipientType,
+                                    List<Recipient> recipients, String title, String content,
+                                    Long templateId) {
+        return create(senderId, recipientType, recipients, title, content, templateId,
+                null, SmsMessageType.SMS, 1, 0, 0);
+    }
+
     public void markAsSent() {
+        markAsSent(this.recipients.stream().map(Recipient::sent).toList());
+    }
+
+    public void markAsSent(List<Recipient> recipients) {
         this.status = SmsStatus.SENT;
         this.sentAt = Instant.now();
-        this.successCount = this.recipients.size();
+        this.recipients = recipients;
+        this.successCount = recipients.size();
         this.failCount = 0;
     }
 
     public void markAsFailed() {
+        markAsFailed(this.recipients.stream().map(recipient -> recipient.failed(null)).toList());
+    }
+
+    public void markAsFailed(List<Recipient> recipients) {
         this.status = SmsStatus.FAILED;
         this.sentAt = Instant.now();
+        this.recipients = recipients;
         this.successCount = 0;
-        this.failCount = this.recipients.size();
+        this.failCount = recipients.size();
     }
 
     public void markAsPartial(int successCount, int failCount) {
+        markAsPartial(this.recipients, successCount, failCount);
+    }
+
+    public void markAsPartial(List<Recipient> recipients, int successCount, int failCount) {
         this.status = SmsStatus.PARTIAL;
         this.sentAt = Instant.now();
+        this.recipients = recipients;
         this.successCount = successCount;
         this.failCount = failCount;
+    }
+
+    public void cancel() {
+        this.status = SmsStatus.CANCELLED;
+        this.cancelledAt = Instant.now();
     }
 
     public boolean isPending() {

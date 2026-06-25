@@ -4,5 +4,6 @@ public enum SmsStatus {
     PENDING,
     SENT,
     FAILED,
-    PARTIAL
+    PARTIAL,
+    CANCELLED
 }

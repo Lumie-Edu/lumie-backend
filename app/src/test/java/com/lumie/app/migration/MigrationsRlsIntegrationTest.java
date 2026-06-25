@@ -60,10 +60,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@code CONCURRENTLY}'s lock-wait scan and eliminates the deadlock.
  *
  * <p><b>Prod-role pre-creation</b> — V22 issues a {@code GRANT} to the
- * {@code lumie_app} runtime role. In production that role is provisioned by
- * the DBA before Flyway runs. TestContainers starts a blank cluster with
- * only the default superuser, so {@link #migrate()} pre-creates a minimal
- * {@code lumie_app} placeholder role before calling {@code flyway.migrate()}.
+ * {@code lumie_app} runtime role, and V27 issues
+ * {@code ALTER DEFAULT PRIVILEGES FOR ROLE postgres ...}. In production those
+ * role names already exist before Flyway runs. TestContainers starts a blank
+ * cluster with only the container's default superuser, so {@link #migrate()}
+ * pre-creates minimal placeholder roles for {@code lumie_app} and
+ * {@code postgres} before calling {@code flyway.migrate()}.
  */
 @Tag("integration")
 @Testcontainers
@@ -79,10 +81,13 @@ class MigrationsRlsIntegrationTest {
 
     @BeforeAll
     static void migrate() {
-        // Pre-create production prerequisite roles so role-scoped grants/default
-        // privileges in the migration chain resolve inside the blank container.
-        createProdRole("postgres");
+        // Pre-create the prod role names that migrations assume already exist.
+        // V22 grants to lumie_app; V27 alters default privileges for role
+        // postgres. In production the DBA provisions those roles before
+        // Flyway runs; TestContainers provides a blank cluster with only the
+        // container's default superuser, so we mirror that prerequisite here.
         createProdRole("lumie_app");
+        createProdRole("postgres");
 
         // baselineOnMigrate/baselineVersion deliberately mirror the prod
         // Flyway config (application.yaml spring.flyway.baseline-*). The
@@ -147,8 +152,13 @@ class MigrationsRlsIntegrationTest {
     private static void createProdRole(String roleName) {
         try (Connection admin = adminConnection();
              Statement st = admin.createStatement()) {
-            st.execute("CREATE ROLE " + roleName
-                    + " NOSUPERUSER NOBYPASSRLS NOLOGIN");
+            st.execute(
+                    "DO $$ "
+                    + "BEGIN "
+                    + "IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '" + roleName + "') THEN "
+                    + "CREATE ROLE " + roleName + " NOSUPERUSER NOBYPASSRLS NOLOGIN; "
+                    + "END IF; "
+                    + "END $$");
         } catch (Exception e) {
             throw new IllegalStateException("Failed to pre-create prod role: " + roleName, e);
         }

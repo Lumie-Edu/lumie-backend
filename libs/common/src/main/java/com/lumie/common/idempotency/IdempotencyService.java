@@ -105,6 +105,30 @@ public class IdempotencyService {
             Object requestBody,
             Supplier<ResponseEntity<T>> action
     ) {
+        return executeOnce(idempotencyKey, endpointPath, requestBody, true, action);
+    }
+
+    /**
+     * Run {@code action} once while storing only replay metadata, not the
+     * response body. Use this for endpoints whose successful response may carry
+     * phone numbers, rendered message bodies, or other recipient PII.
+     */
+    public <T> ResponseEntity<T> executeOnceWithoutResponseBody(
+            String idempotencyKey,
+            String endpointPath,
+            Object requestBody,
+            Supplier<ResponseEntity<T>> action
+    ) {
+        return executeOnce(idempotencyKey, endpointPath, requestBody, false, action);
+    }
+
+    private <T> ResponseEntity<T> executeOnce(
+            String idempotencyKey,
+            String endpointPath,
+            Object requestBody,
+            boolean storeResponseBody,
+            Supplier<ResponseEntity<T>> action
+    ) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             // Caller chose not to enable idempotency (header missing or empty).
             return action.get();
@@ -119,7 +143,7 @@ public class IdempotencyService {
 
         ResponseEntity<T> response = action.get();
         try {
-            persist(tenantSlug, endpointPath, idempotencyKey, fingerprint, response);
+            persist(tenantSlug, endpointPath, idempotencyKey, fingerprint, response, storeResponseBody);
         } catch (DuplicateKeyException raceLost) {
             // A concurrent first call beat us. Re-read and replay whatever's there.
             log.debug("Idempotency-Key write lost race for key={}, replaying", idempotencyKey);
@@ -173,9 +197,10 @@ public class IdempotencyService {
             String endpointPath,
             String idempotencyKey,
             String fingerprint,
-            ResponseEntity<?> response
+            ResponseEntity<?> response,
+            boolean storeResponseBody
     ) {
-        String body = serialize(response.getBody());
+        String body = storeResponseBody ? serialize(response.getBody()) : null;
         requiresNewTx.executeWithoutResult(status ->
                 jdbcTemplate.update(
                         """

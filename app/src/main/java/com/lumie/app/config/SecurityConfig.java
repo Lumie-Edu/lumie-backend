@@ -46,6 +46,8 @@ public class SecurityConfig {
                         .requestMatchers("/v1/tenants/public/**").permitAll()
                         .requestMatchers("/v1/homepage/public/**").permitAll()
                         .requestMatchers("/v1/files/public/**").permitAll()
+                        .requestMatchers("/v1/sms/**", "/v1/sms-templates/**")
+                        .hasAnyRole("OWNER", "MANAGER", "INSTRUCTOR")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

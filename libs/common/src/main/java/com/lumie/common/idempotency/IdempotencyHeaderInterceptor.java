@@ -47,8 +47,8 @@ import java.util.regex.Pattern;
 public class IdempotencyHeaderInterceptor implements HandlerInterceptor {
 
     public static final String HEADER_NAME = "Idempotency-Key";
-    static final int MIN_LENGTH = 16;
-    static final int MAX_LENGTH = 128;
+    public static final int MIN_LENGTH = 16;
+    public static final int MAX_LENGTH = 128;
 
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
     private static final List<String> ENFORCED_PATTERNS = List.of(
@@ -62,7 +62,7 @@ public class IdempotencyHeaderInterceptor implements HandlerInterceptor {
             "/internal/webhooks/**",
             "/v1/internal/webhooks/**"
     );
-    private static final Pattern KEY_FORMAT = Pattern.compile("^[A-Za-z0-9._:\\-]+$");
+    public static final Pattern KEY_FORMAT = Pattern.compile("^[A-Za-z0-9._:\\-]+$");
 
     private final AntPathMatcher matcher = new AntPathMatcher();
 

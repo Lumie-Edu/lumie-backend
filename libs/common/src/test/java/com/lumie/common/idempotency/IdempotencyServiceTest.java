@@ -214,4 +214,40 @@ class IdempotencyServiceTest {
                 .containsEntry("planId", "PRO")
                 .containsEntry("startedAt", "2026-06-02T09:15:00Z");
     }
+
+    @Test
+    void executeOnceWithoutResponseBody_persistsOnlyStatus_andReplaysEmptyBody() {
+        AtomicInteger callCount = new AtomicInteger();
+        Map<String, Object> request = Map.of("content", "안녕하세요", "phone", "01012345678");
+
+        ResponseEntity<Map<String, Object>> first = service.executeOnceWithoutResponseBody(
+                "sms-key",
+                "POST /v1/sms/send",
+                request,
+                () -> {
+                    callCount.incrementAndGet();
+                    return ResponseEntity.status(HttpStatus.CREATED)
+                            .body(Map.of("phone", "01012345678", "renderedContent", "안녕하세요"));
+                });
+
+        assertThat(first.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(first.getBody()).containsEntry("phone", "01012345678");
+        String stored = jdbcTemplate.queryForObject(
+                "SELECT response_body FROM idempotency_keys WHERE idempotency_key = 'sms-key'",
+                String.class);
+        assertThat(stored).isNull();
+
+        ResponseEntity<Map<String, Object>> replay = service.executeOnceWithoutResponseBody(
+                "sms-key",
+                "POST /v1/sms/send",
+                request,
+                () -> {
+                    callCount.incrementAndGet();
+                    return ResponseEntity.ok(Map.of("phone", "should-not-run"));
+                });
+
+        assertThat(callCount.get()).isEqualTo(1);
+        assertThat(replay.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(replay.getBody()).isNull();
+    }
 }

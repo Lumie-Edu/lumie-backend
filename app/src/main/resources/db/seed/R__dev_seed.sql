@@ -35,14 +35,18 @@ BEGIN
 
   -- Converge: wipe demo-tenant domain rows (FK-safe order) then
   -- re-insert from this file. Dev-only, demo-tenant-scoped.
-  DELETE FROM exam_results  WHERE tenant_id = t_id;
-  DELETE FROM classes       WHERE tenant_id = t_id;
-  DELETE FROM exams         WHERE tenant_id = t_id;
-  DELETE FROM reviews       WHERE tenant_id = t_id;
-  DELETE FROM announcements WHERE tenant_id = t_id;
-  DELETE FROM students      WHERE tenant_id = t_id;
-  DELETE FROM staff         WHERE tenant_id = t_id;
-  DELETE FROM users         WHERE tenant_id = t_id;
+  DELETE FROM exam_results           WHERE tenant_id = t_id;
+  DELETE FROM omr_grading_jobs       WHERE tenant_id = t_id;
+  DELETE FROM report_generation_jobs WHERE tenant_id = t_id;
+  DELETE FROM classes                WHERE tenant_id = t_id;
+  DELETE FROM exams                  WHERE tenant_id = t_id;
+  DELETE FROM reviews                WHERE tenant_id = t_id;
+  DELETE FROM announcements          WHERE tenant_id = t_id;
+  DELETE FROM sms_messages           WHERE tenant_id = t_id;
+  DELETE FROM sms_recipient_groups   WHERE tenant_id = t_id;
+  DELETE FROM students               WHERE tenant_id = t_id;
+  DELETE FROM staff                  WHERE tenant_id = t_id;
+  DELETE FROM users                  WHERE tenant_id = t_id;
 
   -- Users: 1 owner + 1 manager + 1 instructor + 8 students.
   INSERT INTO users (user_login_id, password_hash, name, phone, email, role, status, tenant_id) VALUES
