@@ -11,6 +11,7 @@ import com.lumie.notification.application.dto.response.SmsRecipientGroupSummaryR
 import com.lumie.notification.application.port.out.SmsRecipientGroupPersistencePort;
 import com.lumie.notification.domain.entity.SmsRecipientGroup;
 import com.lumie.notification.domain.vo.Recipient;
+import com.lumie.notification.domain.vo.RecipientRole;
 import com.lumie.staff.api.StaffService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,7 +71,7 @@ class SmsRecipientGroupServiceTest {
         CreateSmsRecipientGroupRequest request = new CreateSmsRecipientGroupRequest(
                 " 전체 학부모 ",
                 "mic",
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)));
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)));
 
         SmsRecipientGroupResponse response = service.createGroup(request);
 
@@ -96,6 +97,8 @@ class SmsRecipientGroupServiceTest {
                         "전체 학부모",
                         "mic",
                         1,
+                        0,
+                        1,
                         null,
                         null
                 )
@@ -106,6 +109,8 @@ class SmsRecipientGroupServiceTest {
         assertThat(response).hasSize(1);
         assertThat(response.get(0).name()).isEqualTo("전체 학부모");
         assertThat(response.get(0).recipientCount()).isEqualTo(1);
+        assertThat(response.get(0).studentRecipientCount()).isZero();
+        assertThat(response.get(0).guardianRecipientCount()).isEqualTo(1);
     }
 
     @Test
@@ -118,7 +123,7 @@ class SmsRecipientGroupServiceTest {
                 10L,
                 "전체 학부모",
                 "mic",
-                List.of(Recipient.pending("01012345678", "홍길동", 100L, null, null)));
+                List.of(Recipient.pending("01012345678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null)));
         setField(group, "id", 1L);
         given(groupPersistencePort.findByIdAndOwnerStaffId(1L, 10L)).willReturn(Optional.of(group));
 
@@ -150,7 +155,22 @@ class SmsRecipientGroupServiceTest {
         CreateSmsRecipientGroupRequest request = new CreateSmsRecipientGroupRequest(
                 "전체 학부모",
                 "mic",
-                List.of(new RecipientRequest("1234", "홍길동", 100L)));
+                List.of(new RecipientRequest("1234", "홍길동", 100L, null, RecipientRole.GUARDIAN)));
+
+        assertThatThrownBy(() -> service.createGroup(request))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("수신자 역할이 없으면 그룹을 생성하지 않는다")
+    void createGroup_missingRecipientRole_throwsException() {
+        given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                .willReturn(Optional.of(new StaffService.StaffData(
+                        10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+        CreateSmsRecipientGroupRequest request = new CreateSmsRecipientGroupRequest(
+                "전체 학부모",
+                "mic",
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, null)));
 
         assertThatThrownBy(() -> service.createGroup(request))
                 .isInstanceOf(BusinessException.class);

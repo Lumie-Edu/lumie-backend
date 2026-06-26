@@ -1,11 +1,16 @@
 package com.lumie.notification.application.dto.request;
 
+import com.lumie.notification.domain.vo.RecipientRole;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
 
 public record SendToClassRequest(
+    @NotNull(message = "Recipient role is required")
+    RecipientRole recipientRole,
+
     @Size(max = 200, message = "Title must be at most 200 characters")
     String title,
 
@@ -17,7 +22,7 @@ public record SendToClassRequest(
 
     Instant scheduledAt
 ) {
-    public SendToClassRequest(String title, String content, Long templateId) {
-        this(title, content, templateId, null);
+    public SendToClassRequest(RecipientRole recipientRole, String title, String content, Long templateId) {
+        this(recipientRole, title, content, templateId, null);
     }
 }

@@ -159,8 +159,8 @@ class SmsQueryServiceTest {
 
     private SmsMessage buildSmsMessage(Long id) throws Exception {
         SmsMessage message = SmsMessage.create(
-                10L, RecipientType.STUDENT,
-                List.of(new Recipient("010-1234-5678", "홍길동", 100L)),
+                10L, RecipientType.GUARDIAN,
+                List.of(Recipient.pending("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null)),
                 "테스트 제목", "테스트 내용", null);
         setField(message, "id", id);
         return message;

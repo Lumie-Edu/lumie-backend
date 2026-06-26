@@ -1316,6 +1316,30 @@
         "required" : [ "date", "endTime", "startTime" ],
         "type" : "object"
       },
+      "CreateSmsRecipientGroupRequest" : {
+        "properties" : {
+          "icon" : {
+            "maxLength" : 50,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "name" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "recipients" : {
+            "items" : {
+              "$ref" : "#/components/schemas/RecipientRequest"
+            },
+            "maxItems" : 500,
+            "minItems" : 0,
+            "type" : "array"
+          }
+        },
+        "required" : [ "name", "recipients" ],
+        "type" : "object"
+      },
       "CreateSubmissionRequest" : {
         "properties" : {
           "attachments" : {
@@ -3736,10 +3760,23 @@
       },
       "RecipientRequest" : {
         "properties" : {
+          "className" : {
+            "maxLength" : 100,
+            "minLength" : 0,
+            "type" : "string"
+          },
           "name" : {
+            "maxLength" : 100,
+            "minLength" : 0,
             "type" : "string"
           },
           "phone" : {
+            "maxLength" : 30,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "recipientRole" : {
+            "enum" : [ "STUDENT", "GUARDIAN" ],
             "type" : "string"
           },
           "studentId" : {
@@ -3747,15 +3784,28 @@
             "type" : "integer"
           }
         },
-        "required" : [ "name", "phone" ],
+        "required" : [ "name", "phone", "recipientRole" ],
         "type" : "object"
       },
       "RecipientResponse" : {
         "properties" : {
+          "className" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "deliveryStatus" : {
+            "enum" : [ "PENDING", "SENT", "FAILED", "PARTIAL", "CANCELLED" ],
+            "nullable" : true,
+            "type" : "string"
+          },
           "name" : {
             "type" : "string"
           },
           "phone" : {
+            "type" : "string"
+          },
+          "recipientRole" : {
+            "enum" : [ "STUDENT", "GUARDIAN" ],
             "type" : "string"
           },
           "studentId" : {
@@ -3764,7 +3814,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "name", "phone", "studentId" ],
+        "required" : [ "className", "deliveryStatus", "name", "phone", "recipientRole", "studentId" ],
         "type" : "object"
       },
       "RegisterBillingKeyRequest" : {
@@ -4290,51 +4340,65 @@
       "SendSmsRequest" : {
         "properties" : {
           "content" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
             "type" : "string"
           },
-          "recipientType" : {
-            "enum" : [ "STUDENT", "TEACHER", "CUSTOM" ],
-            "type" : "string"
+          "recipientGroupId" : {
+            "format" : "int64",
+            "type" : "integer"
           },
           "recipients" : {
             "items" : {
               "$ref" : "#/components/schemas/RecipientRequest"
             },
+            "maxItems" : 500,
+            "minItems" : 0,
             "type" : "array"
           },
-          "senderId" : {
-            "format" : "int64",
-            "type" : "integer"
+          "scheduledAt" : {
+            "format" : "date-time",
+            "type" : "string"
           },
           "templateId" : {
             "format" : "int64",
             "type" : "integer"
           },
           "title" : {
+            "maxLength" : 200,
+            "minLength" : 0,
             "type" : "string"
           }
         },
-        "required" : [ "content", "recipientType", "recipients", "senderId" ],
+        "required" : [ "content" ],
         "type" : "object"
       },
       "SendToClassRequest" : {
         "properties" : {
           "content" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
             "type" : "string"
           },
-          "senderId" : {
-            "format" : "int64",
-            "type" : "integer"
+          "recipientRole" : {
+            "enum" : [ "STUDENT", "GUARDIAN" ],
+            "type" : "string"
+          },
+          "scheduledAt" : {
+            "format" : "date-time",
+            "type" : "string"
           },
           "templateId" : {
             "format" : "int64",
             "type" : "integer"
           },
           "title" : {
+            "maxLength" : 200,
+            "minLength" : 0,
             "type" : "string"
           }
         },
-        "required" : [ "content", "senderId" ],
+        "required" : [ "content", "recipientRole" ],
         "type" : "object"
       },
       "SessionResponse" : {
@@ -4374,12 +4438,22 @@
       },
       "SmsMessageResponse" : {
         "properties" : {
+          "cancelledAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
           "content" : {
+            "nullable" : true,
             "type" : "string"
           },
           "createdAt" : {
             "format" : "date-time",
             "type" : "string"
+          },
+          "estimatedSegments" : {
+            "format" : "int32",
+            "type" : "integer"
           },
           "failCount" : {
             "format" : "int32",
@@ -4389,8 +4463,21 @@
             "format" : "int64",
             "type" : "integer"
           },
+          "messageType" : {
+            "enum" : [ "SMS", "LMS" ],
+            "type" : "string"
+          },
+          "recipientCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "recipientGroupId" : {
+            "format" : "int64",
+            "nullable" : true,
+            "type" : "integer"
+          },
           "recipientType" : {
-            "enum" : [ "STUDENT", "TEACHER", "CUSTOM" ],
+            "enum" : [ "STUDENT", "GUARDIAN", "CUSTOM" ],
             "type" : "string"
           },
           "recipients" : {
@@ -4398,6 +4485,11 @@
               "$ref" : "#/components/schemas/RecipientResponse"
             },
             "type" : "array"
+          },
+          "scheduledAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
           },
           "senderId" : {
             "format" : "int64",
@@ -4410,7 +4502,7 @@
             "type" : "string"
           },
           "status" : {
-            "enum" : [ "PENDING", "SENT", "FAILED", "PARTIAL" ],
+            "enum" : [ "PENDING", "SENT", "FAILED", "PARTIAL", "CANCELLED" ],
             "type" : "string"
           },
           "successCount" : {
@@ -4426,12 +4518,86 @@
             "nullable" : true,
             "type" : "string"
           },
+          "totalPrice" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "unitPrice" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "updatedAt" : {
             "format" : "date-time",
             "type" : "string"
           }
         },
-        "required" : [ "content", "createdAt", "failCount", "id", "recipientType", "recipients", "senderId", "sentAt", "status", "successCount", "templateId", "title", "updatedAt" ],
+        "required" : [ "cancelledAt", "content", "createdAt", "estimatedSegments", "failCount", "id", "messageType", "recipientCount", "recipientGroupId", "recipientType", "recipients", "scheduledAt", "senderId", "sentAt", "status", "successCount", "templateId", "title", "totalPrice", "unitPrice", "updatedAt" ],
+        "type" : "object"
+      },
+      "SmsRecipientGroupResponse" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "icon" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "recipients" : {
+            "items" : {
+              "$ref" : "#/components/schemas/RecipientResponse"
+            },
+            "type" : "array"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "icon", "id", "name", "recipients", "updatedAt" ],
+        "type" : "object"
+      },
+      "SmsRecipientGroupSummaryResponse" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "guardianRecipientCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "icon" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "recipientCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "studentRecipientCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "guardianRecipientCount", "icon", "id", "name", "recipientCount", "studentRecipientCount", "updatedAt" ],
         "type" : "object"
       },
       "SmsTemplateResponse" : {
@@ -4718,6 +4884,9 @@
           "isActive" : {
             "type" : "boolean"
           },
+          "parentPhone" : {
+            "type" : "string"
+          },
           "studentName" : {
             "type" : "string"
           },
@@ -4732,7 +4901,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "createdAt", "id", "isActive", "studentName", "studentPhone", "updatedAt", "userId" ],
+        "required" : [ "createdAt", "id", "isActive", "parentPhone", "studentName", "studentPhone", "updatedAt", "userId" ],
         "type" : "object"
       },
       "StudentGradeResponse" : {
@@ -12161,7 +12330,7 @@
           "name" : "status",
           "required" : false,
           "schema" : {
-            "enum" : [ "PENDING", "SENT", "FAILED", "PARTIAL" ],
+            "enum" : [ "PENDING", "SENT", "FAILED", "PARTIAL", "CANCELLED" ],
             "type" : "string"
           }
         }, {
@@ -12169,7 +12338,7 @@
           "name" : "recipientType",
           "required" : false,
           "schema" : {
-            "enum" : [ "STUDENT", "TEACHER", "CUSTOM" ],
+            "enum" : [ "STUDENT", "GUARDIAN", "CUSTOM" ],
             "type" : "string"
           }
         }, {
@@ -12178,6 +12347,14 @@
           "required" : false,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recipientGroupId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
           }
         }, {
           "description" : "Zero-based page index (0..N)",
@@ -12253,13 +12430,122 @@
         "tags" : [ "sms-controller" ]
       }
     },
+    "/v1/sms/history/{id}/cancel" : {
+      "post" : {
+        "operationId" : "cancelScheduled",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SmsMessageResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sms-controller" ]
+      }
+    },
+    "/v1/sms/recipient-groups" : {
+      "get" : {
+        "operationId" : "listRecipientGroups",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SmsRecipientGroupSummaryResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sms-controller" ]
+      },
+      "post" : {
+        "operationId" : "createRecipientGroup",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateSmsRecipientGroupRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SmsRecipientGroupResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "sms-controller" ]
+      }
+    },
+    "/v1/sms/recipient-groups/{id}" : {
+      "get" : {
+        "operationId" : "getRecipientGroup",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SmsRecipientGroupResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sms-controller" ]
+      }
+    },
     "/v1/sms/send" : {
       "post" : {
         "operationId" : "sendSms",
         "parameters" : [ {
           "in" : "header",
           "name" : "Idempotency-Key",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -12275,7 +12561,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -12283,7 +12569,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "sms-controller" ]
@@ -12303,7 +12589,7 @@
         }, {
           "in" : "header",
           "name" : "Idempotency-Key",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -12319,7 +12605,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -12327,7 +12613,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "sms-controller" ]

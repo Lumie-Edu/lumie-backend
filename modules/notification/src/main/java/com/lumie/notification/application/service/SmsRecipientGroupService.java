@@ -82,6 +82,7 @@ public class SmsRecipientGroupService {
                         recipient.name(),
                         recipient.studentId(),
                         recipient.className(),
+                        recipient.recipientRole(),
                         null
                 ))
                 .toList();
@@ -95,6 +96,11 @@ public class SmsRecipientGroupService {
                 .anyMatch(recipient -> !PhoneNumberUtils.isValid(recipient.phone()));
         if (hasInvalidPhone) {
             throw new BusinessException(SmsErrorCode.INVALID_RECIPIENTS, "Recipients contain invalid phone numbers");
+        }
+        boolean hasMissingRole = recipients.stream()
+                .anyMatch(recipient -> recipient.recipientRole() == null);
+        if (hasMissingRole) {
+            throw new BusinessException(SmsErrorCode.INVALID_RECIPIENTS, "Recipients contain missing recipient roles");
         }
     }
 }

@@ -18,6 +18,8 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.idempotency.IdempotencyHeaderInterceptor;
 import com.lumie.common.idempotency.IdempotencyService;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -46,8 +48,10 @@ public class SmsController {
     private final IdempotencyService idempotencyService;
 
     @PostMapping("/send")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<SmsMessageResponse> sendSms(
             @Valid @RequestBody SendSmsRequest request,
+            @Parameter(required = true)
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         requireIdempotencyKey(idempotencyKey);
         return idempotencyService.executeOnceWithoutResponseBody(
@@ -69,8 +73,10 @@ public class SmsController {
     }
 
     @PostMapping("/recipient-groups")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<SmsRecipientGroupResponse> createRecipientGroup(
             @Valid @RequestBody CreateSmsRecipientGroupRequest request,
+            @Parameter(required = true)
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         requireIdempotencyKey(idempotencyKey);
         return idempotencyService.executeOnceWithoutResponseBody(
@@ -107,9 +113,11 @@ public class SmsController {
     }
 
     @PostMapping("/send/class/{classId}")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<SmsMessageResponse> sendToClass(
             @PathVariable Long classId,
             @Valid @RequestBody SendToClassRequest request,
+            @Parameter(required = true)
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         requireIdempotencyKey(idempotencyKey);
         return idempotencyService.executeOnceWithoutResponseBody(
@@ -132,7 +140,6 @@ public class SmsController {
     }
 
     private record SendSmsIdempotencyBody(
-            RecipientType recipientType,
             List<RecipientRequest> recipients,
             String title,
             Long recipientGroupId,
@@ -143,7 +150,6 @@ public class SmsController {
         private static SendSmsIdempotencyBody from(SendSmsRequest request) {
             if (request.recipientGroupId() != null) {
                 return new SendSmsIdempotencyBody(
-                        request.recipientType(),
                         null,
                         request.title(),
                         request.recipientGroupId(),
@@ -153,7 +159,6 @@ public class SmsController {
                 );
             }
             return new SendSmsIdempotencyBody(
-                    request.recipientType(),
                     request.recipients(),
                     request.title(),
                     null,

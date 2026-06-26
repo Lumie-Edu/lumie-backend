@@ -33,6 +33,8 @@ public class SmsRecipientGroupPersistenceAdapter implements SmsRecipientGroupPer
                         summary.getName(),
                         summary.getIcon(),
                         summary.getRecipientCount(),
+                        summary.getStudentRecipientCount(),
+                        summary.getGuardianRecipientCount(),
                         summary.getCreatedAt(),
                         summary.getUpdatedAt()
                 ))

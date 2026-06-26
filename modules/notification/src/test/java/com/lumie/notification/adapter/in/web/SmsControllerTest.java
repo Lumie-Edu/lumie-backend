@@ -16,6 +16,7 @@ import com.lumie.notification.application.service.SmsRecipientGroupService;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.notification.domain.exception.SmsErrorCode;
+import com.lumie.notification.domain.vo.RecipientRole;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
@@ -73,8 +74,7 @@ class SmsControllerTest {
                 .willAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(3)).get());
 
         SendSmsRequest request = new SendSmsRequest(
-                RecipientType.STUDENT,
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)),
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
                 "제목", "내용", null);
 
         mockMvc.perform(post("/v1/sms/send")
@@ -90,8 +90,7 @@ class SmsControllerTest {
     @DisplayName("POST /v1/sms/send - Idempotency-Key 누락 시 400을 반환한다")
     void sendSms_missingIdempotencyKey_returns400() throws Exception {
         SendSmsRequest request = new SendSmsRequest(
-                RecipientType.STUDENT,
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)),
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
                 "제목", "내용", null);
 
         mockMvc.perform(post("/v1/sms/send")
@@ -104,14 +103,32 @@ class SmsControllerTest {
     @DisplayName("POST /v1/sms/send - Idempotency-Key 형식 오류 시 400을 반환한다")
     void sendSms_invalidIdempotencyKey_returns400() throws Exception {
         SendSmsRequest request = new SendSmsRequest(
-                RecipientType.STUDENT,
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)),
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
                 "제목", "내용", null);
 
         mockMvc.perform(post("/v1/sms/send")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "bad key")
                         .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /v1/sms/send - 수신자 역할 누락 시 400을 반환한다")
+    void sendSms_missingRecipientRole_returns400() throws Exception {
+        String request = """
+                {
+                  "recipients": [
+                    {"phone": "010-1234-5678", "name": "홍길동", "studentId": 100}
+                  ],
+                  "content": "내용"
+                }
+                """;
+
+        mockMvc.perform(post("/v1/sms/send")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "sms-test-key-0002")
+                        .content(request))
                 .andExpect(status().isBadRequest());
     }
 
@@ -152,7 +169,7 @@ class SmsControllerTest {
         CreateSmsRecipientGroupRequest request = new CreateSmsRecipientGroupRequest(
                 "레벨업학원 전체 학부모님",
                 "mic",
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)));
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)));
 
         mockMvc.perform(post("/v1/sms/recipient-groups")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -170,7 +187,7 @@ class SmsControllerTest {
         CreateSmsRecipientGroupRequest request = new CreateSmsRecipientGroupRequest(
                 "레벨업학원 전체 학부모님",
                 "mic",
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L)));
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)));
 
         mockMvc.perform(post("/v1/sms/recipient-groups")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -221,7 +238,7 @@ class SmsControllerTest {
         given(idempotencyService.executeOnceWithoutResponseBody(anyString(), anyString(), any(), any()))
                 .willAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(3)).get());
 
-        SendToClassRequest request = new SendToClassRequest("제목", "내용", null);
+        SendToClassRequest request = new SendToClassRequest(RecipientRole.GUARDIAN, "제목", "내용", null);
 
         mockMvc.perform(post("/v1/sms/send/class/5")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -231,10 +248,24 @@ class SmsControllerTest {
                 .andExpect(jsonPath("$.id").value(2));
     }
 
+    @Test
+    @DisplayName("POST /v1/sms/send/class/{classId} - 수신자 역할 누락 시 400을 반환한다")
+    void sendToClass_missingRecipientRole_returns400() throws Exception {
+        String request = """
+                {"title": "제목", "content": "내용"}
+                """;
+
+        mockMvc.perform(post("/v1/sms/send/class/5")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "sms-class-key-0002")
+                        .content(request))
+                .andExpect(status().isBadRequest());
+    }
+
     private SmsMessageResponse buildSmsResponse(Long id) {
         return new SmsMessageResponse(
-                id, 10L, RecipientType.STUDENT,
-                List.of(new RecipientResponse("010-1234-5678", "홍길동", 100L)),
+                id, 10L, RecipientType.GUARDIAN,
+                List.of(new RecipientResponse("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null)),
                 "테스트 제목", "테스트 내용", null,
                 Instant.now(), SmsStatus.SENT, 1, 0,
                 Instant.now(), Instant.now());
@@ -245,7 +276,7 @@ class SmsControllerTest {
                 id,
                 "레벨업학원 전체 학부모님",
                 "mic",
-                List.of(new RecipientResponse("010-****-5678", "홍길동", 100L)),
+                List.of(new RecipientResponse("010-****-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null)),
                 Instant.now(),
                 Instant.now());
     }
@@ -255,6 +286,8 @@ class SmsControllerTest {
                 id,
                 "레벨업학원 전체 학부모님",
                 "mic",
+                1,
+                0,
                 1,
                 Instant.now(),
                 Instant.now());

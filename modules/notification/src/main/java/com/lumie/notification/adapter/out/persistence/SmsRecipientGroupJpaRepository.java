@@ -19,6 +19,16 @@ public interface SmsRecipientGroupJpaRepository extends JpaRepository<SmsRecipie
                 g.name as name,
                 g.icon as icon,
                 jsonb_array_length(g.recipients) as recipientCount,
+                (
+                    select count(*)::int
+                    from jsonb_array_elements(g.recipients) recipient
+                    where recipient ->> 'recipientRole' = 'STUDENT'
+                ) as studentRecipientCount,
+                (
+                    select count(*)::int
+                    from jsonb_array_elements(g.recipients) recipient
+                    where recipient ->> 'recipientRole' = 'GUARDIAN'
+                ) as guardianRecipientCount,
                 g.created_at as createdAt,
                 g.updated_at as updatedAt
             from sms_recipient_groups g
@@ -34,6 +44,8 @@ public interface SmsRecipientGroupJpaRepository extends JpaRepository<SmsRecipie
         String getName();
         String getIcon();
         Integer getRecipientCount();
+        Integer getStudentRecipientCount();
+        Integer getGuardianRecipientCount();
         Instant getCreatedAt();
         Instant getUpdatedAt();
     }

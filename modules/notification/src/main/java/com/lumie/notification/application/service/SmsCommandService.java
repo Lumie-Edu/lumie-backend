@@ -20,6 +20,7 @@ import com.lumie.notification.domain.exception.SmsErrorCode;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.repository.SmsTemplateRepository;
 import com.lumie.notification.domain.vo.Recipient;
+import com.lumie.notification.domain.vo.RecipientRole;
 import com.lumie.notification.domain.vo.RecipientType;
 import com.lumie.notification.domain.vo.SmsMessageType;
 import com.lumie.common.exception.BusinessException;
@@ -60,10 +61,11 @@ public class SmsCommandService {
             .toList();
         validateRecipients(recipients);
         MessageEstimate estimate = estimate(recipients, request.content());
+        RecipientType messageRecipientType = inferRecipientType(recipients);
 
         SmsMessage message = SmsMessage.create(
             senderId,
-            sendTarget.recipientType(),
+            messageRecipientType,
             recipients,
             request.title(),
             sendTarget.recipientGroupId(),
@@ -106,7 +108,8 @@ public class SmsCommandService {
                 studentService.getStudentsByIds(slug, studentIds).students();
 
         List<Recipient> recipients = students.stream()
-            .map(s -> Recipient.pending(s.parentPhone(), s.studentName(), s.id(), classData.name(), null))
+            .map(s -> Recipient.pending(resolveClassRecipientPhone(s, request.recipientRole()),
+                    s.studentName(), s.id(), classData.name(), request.recipientRole(), null))
             .map(recipient -> renderRecipient(recipient, request.content(), classData.name()))
             .toList();
 
@@ -118,7 +121,7 @@ public class SmsCommandService {
 
         SmsMessage message = SmsMessage.create(
             senderId,
-            RecipientType.GUARDIAN,
+            request.recipientRole().toRecipientType(),
             recipients,
             request.title(),
             request.content(),
@@ -138,6 +141,16 @@ public class SmsCommandService {
         log.info("SMS message queued to class {}: {} to {} recipients status={}",
             classId, saved.getId(), saved.getRecipients().size(), saved.getStatus());
         return SmsMessageResponse.from(saved);
+    }
+
+    private String resolveClassRecipientPhone(StudentService.StudentData student, RecipientRole recipientType) {
+        if (recipientType == RecipientRole.STUDENT) {
+            return student.studentPhone();
+        }
+        if (recipientType == RecipientRole.GUARDIAN) {
+            return student.parentPhone();
+        }
+        throw new BusinessException(SmsErrorCode.INVALID_RECIPIENTS, "Class SMS requests must target students or guardians");
     }
 
     public SmsMessageResponse cancelScheduled(Long id) {
@@ -222,19 +235,13 @@ public class SmsCommandService {
                         "Group SMS requests must use recipientGroupId without inline recipients"
                 );
             }
-            if (request.recipientType() != RecipientType.GUARDIAN) {
-                throw new BusinessException(
-                        SmsErrorCode.INVALID_RECIPIENT_GROUP_TYPE,
-                        "Recipient groups currently support guardian recipients only"
-                );
-            }
-            return new SendTarget(true, request.recipientGroupId(), RecipientType.GUARDIAN);
+            return new SendTarget(true, request.recipientGroupId());
         }
 
         if (request.recipients() == null || request.recipients().isEmpty()) {
             throw new BusinessException(SmsErrorCode.EMPTY_RECIPIENTS, "Recipients list cannot be empty");
         }
-        return new SendTarget(false, null, request.recipientType());
+        return new SendTarget(false, null);
     }
 
     private Long resolveSenderId(String slug) {
@@ -257,17 +264,28 @@ public class SmsCommandService {
     }
 
     private Recipient renderRecipient(Recipient recipient, String template, String className) {
+        RecipientRole recipientRole = recipient.recipientRole();
         String rendered = template
                 .replace("{학생명}", nullToEmpty(recipient.name()))
                 .replace("{반이름}", nullToEmpty(recipient.className() != null ? recipient.className() : className))
+                .replace("{수신자호칭}", renderRecipientTitle(recipient.name(), recipientRole))
                 .replace("{날짜}", java.time.LocalDate.now(clock).toString());
         return Recipient.pending(
                 PhoneNumberUtils.toDigits(recipient.phone()),
                 recipient.name(),
                 recipient.studentId(),
                 recipient.className() != null ? recipient.className() : className,
+                recipientRole,
                 rendered
         );
+    }
+
+    private String renderRecipientTitle(String name, RecipientRole recipientRole) {
+        String safeName = nullToEmpty(name);
+        if (recipientRole == RecipientRole.STUDENT) {
+            return safeName.isBlank() ? "학생" : safeName + " 학생";
+        }
+        return safeName.isBlank() ? "학부모님" : safeName + " 학부모님";
     }
 
     private void applyMockDispatch(SmsMessage message, List<Recipient> recipients) {
@@ -308,6 +326,11 @@ public class SmsCommandService {
         if (hasInvalidPhone) {
             throw new BusinessException(SmsErrorCode.INVALID_RECIPIENTS, "Recipients contain invalid phone numbers");
         }
+        boolean hasMissingRole = recipients.stream()
+                .anyMatch(recipient -> recipient.recipientRole() == null);
+        if (hasMissingRole) {
+            throw new BusinessException(SmsErrorCode.INVALID_RECIPIENTS, "Recipients contain missing recipient roles");
+        }
     }
 
     private MessageEstimate estimate(List<Recipient> recipients, String fallbackContent) {
@@ -330,6 +353,20 @@ public class SmsCommandService {
     private record MessageEstimate(SmsMessageType messageType, int segments, int unitPrice, int totalPrice) {
     }
 
-    private record SendTarget(boolean groupSend, Long recipientGroupId, RecipientType recipientType) {
+    private RecipientType inferRecipientType(List<Recipient> recipients) {
+        boolean hasStudent = recipients.stream()
+                .anyMatch(recipient -> recipient.recipientRole() == RecipientRole.STUDENT);
+        boolean hasGuardian = recipients.stream()
+                .anyMatch(recipient -> recipient.recipientRole() == RecipientRole.GUARDIAN);
+        if (hasStudent && hasGuardian) {
+            return RecipientType.CUSTOM;
+        }
+        if (hasStudent) {
+            return RecipientType.STUDENT;
+        }
+        return RecipientType.GUARDIAN;
+    }
+
+    private record SendTarget(boolean groupSend, Long recipientGroupId) {
     }
 }
