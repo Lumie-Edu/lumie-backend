@@ -35,7 +35,6 @@ public class RedisTokenRepository implements TokenRepository, TokenPersistencePo
     private static final String REFRESH_PREFIX = "auth:refresh:";
     private static final String SESSION_SUFFIX = ":session:";
     private static final String SESSION_INDEX_SUFFIX = ":sessions:";
-    private static final String OAUTH2_NONCE_PREFIX = "auth:oauth2_nonce:";
 
     @Override
     public void saveRefreshToken(AuthToken token) {
@@ -174,18 +173,6 @@ public class RedisTokenRepository implements TokenRepository, TokenPersistencePo
             }
         }
         return result;
-    }
-
-    @Override
-    public void saveOAuth2Nonce(String nonce, String tenantSlug, long ttlSeconds) {
-        String key = OAUTH2_NONCE_PREFIX + nonce;
-        redisTemplate.opsForValue().set(key, tenantSlug, Duration.ofSeconds(ttlSeconds));
-    }
-
-    @Override
-    public Optional<String> consumeOAuth2Nonce(String nonce) {
-        String key = OAUTH2_NONCE_PREFIX + nonce;
-        return Optional.ofNullable(redisTemplate.opsForValue().getAndDelete(key));
     }
 
     private RedisToken toRedisToken(AuthToken token) {

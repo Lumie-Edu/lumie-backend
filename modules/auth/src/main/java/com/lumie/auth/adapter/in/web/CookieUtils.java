@@ -30,12 +30,22 @@ public class CookieUtils {
     }
 
     private ResponseCookie buildCookie(String name, String value, long maxAgeSeconds) {
+        return buildCookie(name, value, maxAgeSeconds, cookieConfig.getPath(), cookieConfig.getSameSite());
+    }
+
+    private ResponseCookie buildCookie(
+            String name,
+            String value,
+            long maxAgeSeconds,
+            String path,
+            String sameSite
+    ) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value)
                 .httpOnly(cookieConfig.isHttpOnly())
                 .secure(cookieConfig.isSecure())
-                .path(cookieConfig.getPath())
+                .path(path)
                 .maxAge(maxAgeSeconds)
-                .sameSite(cookieConfig.getSameSite());
+                .sameSite(sameSite);
 
         if (cookieConfig.getDomain() != null && !cookieConfig.getDomain().isEmpty()) {
             builder.domain(cookieConfig.getDomain());

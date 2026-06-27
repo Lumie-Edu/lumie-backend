@@ -39,7 +39,6 @@ public class SecurityConfig {
                         .requestMatchers("/v1/register/owner").permitAll()
                         .requestMatchers("/v1/login").permitAll()
                         .requestMatchers("/v1/refresh").permitAll()
-                        .requestMatchers("/v1/oauth2/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/internal/**").hasRole("INTERNAL")

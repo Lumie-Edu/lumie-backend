@@ -47,13 +47,6 @@ public final class AuthErrors {
         }
     }
 
-    /** Unsupported OAuth2 provider name supplied by the caller — maps to 400. */
-    public static class UnsupportedOAuth2ProviderException extends BusinessException {
-        public UnsupportedOAuth2ProviderException(String message) {
-            super(AuthErrorCode.UNSUPPORTED_OAUTH_PROVIDER, message);
-        }
-    }
-
     /** Token signing succeeded but the resulting JWT could not be re-parsed — maps to 500. */
     public static class TokenIssuanceFailedException extends BusinessException {
         public TokenIssuanceFailedException(String message) {
@@ -96,14 +89,4 @@ public final class AuthErrors {
         }
     }
 
-    /** OAuth2 state parameter is missing, malformed, or expired — maps to 400. */
-    public static class InvalidStateException extends BusinessException {
-        public InvalidStateException(String message) {
-            super(AuthErrorCode.INVALID_STATE, message);
-        }
-
-        public InvalidStateException(String message, Throwable cause) {
-            super(AuthErrorCode.INVALID_STATE, cause);
-        }
-    }
 }

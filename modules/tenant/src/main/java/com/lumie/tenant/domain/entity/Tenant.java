@@ -109,7 +109,7 @@ public class Tenant extends BaseEntity {
             "_next", "favicon.ico", "favicon", "images", "fonts",
             "public", "static", "robots", "sitemap",
             // Defensive reserves
-            "account", "settings", "oauth", "refresh", "home", "app"
+            "account", "settings", "refresh", "home", "app"
     );
 
     @Builder

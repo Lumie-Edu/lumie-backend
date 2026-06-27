@@ -37,9 +37,10 @@ import java.util.Set;
 /**
  * Session-lifecycle use cases: login, logout, refresh, revoke.
  *
- * <p>Login routes via the OWNER directory (root entry — no header) or via
- * {@link TenantContextHolder} populated from {@code X-Tenant-Slug} (portal
- * entry). Both paths converge on a tenant-scoped {@code users} lookup.
+ * <p>Login routes via {@link TenantContextHolder} populated from
+ * {@code X-Tenant-Slug} (portal entry), via {@code customId} on tenant public
+ * pages, or via the OWNER directory (root entry). All paths converge on a
+ * tenant-scoped {@code users} lookup.
  */
 @Slf4j
 @Service
@@ -91,8 +92,17 @@ public class AuthSessionService {
             }
             return tenant;
         }
-        // Root entry — directory lookup. Must be an OWNER (only OWNERs are in
-        // public.users); otherwise reject with the standard generic error.
+        if (request.customId() != null && !request.customId().isBlank()) {
+            // Tenant public page entry — URL customId provides the tenant when
+            // no X-Tenant-Slug header is available. The lookup is active-only,
+            // so missing and inactive customIds both use the generic login
+            // error without falling back to the OWNER directory.
+            return tenantService.getTenantByCustomId(request.customId())
+                    .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
+        }
+        // Root entry — directory lookup. Must be an OWNER because only OWNERs
+        // are mirrored into public.owner_directory; otherwise reject with the
+        // standard generic error.
         UserDirectoryPort.DirectoryEntry entry = userDirectoryPort.findByUserLoginId(request.userLoginId())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
 

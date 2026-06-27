@@ -25,10 +25,9 @@ import lombok.NoArgsConstructor;
  * have {@code TenantContextHolder.setTenantId(...)} populated before
  * invoking any JPA operation, or rows will be invisible.
  *
- * <p>The legacy {@code public.users} table (which once held all users globally)
- * has been slimmed down to an OWNER-only directory; access it via
- * {@link com.lumie.auth.application.port.out.UserDirectoryPort}, NOT via this
- * entity.
+ * <p>The root-entry OWNER directory lives in {@code public.owner_directory};
+ * access it via {@link com.lumie.auth.application.port.out.UserDirectoryPort},
+ * NOT via this entity.
  *
  * <p>Audit timestamps ({@code created_at}, {@code updated_at}) and
  * {@code tenant_id} binding are provided by {@link TenantScopedEntity}.
@@ -86,10 +85,6 @@ public class User extends TenantScopedEntity {
     public static User create(String userLoginId, String name, String phone,
                               String passwordHash, Role role) {
         return new User(userLoginId, passwordHash, name, phone, role, UserStatus.ACTIVE);
-    }
-
-    public static User createOAuth2User(String userLoginId, String name, Role role) {
-        return new User(userLoginId, "", name, null, role, UserStatus.ACTIVE);
     }
 
     public boolean isEnabled() {

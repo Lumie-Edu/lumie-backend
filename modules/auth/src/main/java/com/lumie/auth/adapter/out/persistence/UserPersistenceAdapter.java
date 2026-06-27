@@ -13,9 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 /**
- * Tenant-scoped JPA implementation of {@link UserLookupPort}. All operations
- * require {@code TenantContextHolder} to be set; Hibernate multi-tenancy
- * routes queries to the correct {@code tenant_*.users} table.
+ * Tenant-scoped JPA implementation of {@link UserLookupPort}.
+ *
+ * <p>All operations require {@code TenantContextHolder} to carry both slug and
+ * tenant id so RLS can expose the matching rows in {@code users}. This adapter
+ * does not read the root-entry {@code public.owner_directory}; use
+ * {@code UserDirectoryPort} for that platform-scoped lookup.
  */
 @Slf4j
 @Component
@@ -39,22 +42,6 @@ public class UserPersistenceAdapter implements UserLookupPort {
         log.debug("Looking up user by ID: {}", userId);
         return userRepository.findById(userId)
                 .map(this::toUserData);
-    }
-
-    @Override
-    @Transactional
-    public UserData findOrCreateOAuth2User(String userLoginId, String name, String provider) {
-        log.debug("Finding or creating OAuth2 user: {} provider: {}", userLoginId, provider);
-
-        return userRepository.findByUserLoginId(userLoginId)
-                .map(this::toUserData)
-                .orElseGet(() -> {
-                    User newUser = User.createOAuth2User(userLoginId, name, Role.STUDENT);
-                    User savedUser = userRepository.save(newUser);
-                    log.info("Created new OAuth2 user: {} via {} in tenant: {}",
-                            userLoginId, provider, TenantContextHolder.getTenant());
-                    return toUserData(savedUser);
-                });
     }
 
     @Override

@@ -98,8 +98,8 @@ public class AuthRegistrationService {
                 userLookupPort.createUser(
                         request.userLoginId(), request.name(), request.phone(), passwordHash, Role.OWNER));
 
-        // Mirror a slim row into the public.users directory so root-entry login
-        // can resolve this owner's tenant from the OWNER login_id.
+        // Mirror a slim row into public.owner_directory so root-entry login can
+        // resolve this owner's tenant from the OWNER login_id.
         userDirectoryPort.createDirectoryEntry(
                 user.id(), request.userLoginId(), tenantResult.tenantId(), null);
 

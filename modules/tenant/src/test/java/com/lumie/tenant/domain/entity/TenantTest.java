@@ -274,4 +274,15 @@ class TenantTest {
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(TenantErrorCode.RESERVED_CUSTOM_ID));
     }
+
+    @Test
+    @DisplayName("customId가 null일 때 oauth는 더 이상 예약어가 아니므로 설정할 수 있다")
+    void setCustomIdFirstTimeWithOauthSucceeds() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        assertThat(tenant.getCustomId()).isEqualTo(tenant.getSlugValue());
+
+        tenant.updateCustomId("oauth");
+
+        assertThat(tenant.getCustomId()).isEqualTo("oauth");
+    }
 }

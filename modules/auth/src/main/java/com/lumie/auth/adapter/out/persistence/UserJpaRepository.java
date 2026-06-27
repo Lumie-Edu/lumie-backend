@@ -11,8 +11,11 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * JPA repository for User entity.
- * Queries the public.users table directly (no multi-tenancy schema switching).
+ * JPA repository for RLS-scoped {@link User} rows.
+ *
+ * <p>Queries run against the regular {@code users} table with
+ * {@code app.tenant_id} bound by {@code TenantContextHolder}; root-entry owner
+ * lookup uses {@code public.owner_directory} through {@code UserDirectoryPort}.
  */
 @Repository
 public interface UserJpaRepository extends JpaRepository<User, Long> {

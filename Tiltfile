@@ -32,12 +32,6 @@ COMMON_ENV = {
     # MinIO
     'MINIO_BUCKET_NAME': 'lumie-dev',
     'MINIO_EXTERNAL_ENDPOINT': 'https://dev.lumie-infra.com',
-    # Frontend callback
-    'FRONTEND_CALLBACK_URL': 'https://dev.lumie-infra.com/auth/callback',
-    # OAuth redirect URIs (also register these in each provider's console)
-    'GOOGLE_REDIRECT_URI': 'https://dev.lumie-infra.com/api/auth/v1/oauth2/google/callback',
-    'KAKAO_REDIRECT_URI': 'https://dev.lumie-infra.com/api/auth/v1/oauth2/kakao/callback',
-    'NAVER_REDIRECT_URI': 'https://dev.lumie-infra.com/api/auth/v1/oauth2/naver/callback',
 }
 
 def generate_env_yaml():
@@ -143,14 +137,6 @@ spec:
             secretKeyRef:
               name: lumie-dev-internal-secrets
               key: LUMIE_INTERNAL_HMAC_SECRET
-        - name: GOOGLE_CLIENT_ID
-          value: "dev-google-client-id"
-        - name: GOOGLE_CLIENT_SECRET
-          value: "dev-google-client-secret"
-        - name: KAKAO_CLIENT_ID
-          value: "dev-kakao-client-id"
-        - name: KAKAO_CLIENT_SECRET
-          value: "dev-kakao-client-secret"
         - name: MINIO_ACCESS_KEY
           valueFrom:
             secretKeyRef:

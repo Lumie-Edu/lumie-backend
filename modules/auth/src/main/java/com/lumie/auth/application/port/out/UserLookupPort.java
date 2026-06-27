@@ -7,14 +7,20 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Tenant-scoped user lookup port.
+ * RLS-scoped user lookup port.
  *
- * <p>All operations require {@code TenantContextHolder} to be set to the
- * target tenant before invocation. The persistence adapter routes queries to
- * {@code tenant_*.users} via Hibernate multi-tenancy.
+ * <p>All operations require {@code TenantContextHolder} to be bound to the
+ * target tenant before invocation. {@code tenantId} is the load-bearing value:
+ * Postgres RLS filters visibility via {@code app.tenant_id}, while the slug is
+ * retained for routing, logging, and headers.
  *
- * <p>For OWNER directory routing (the {@code lumie-edu.com} root entry point),
- * use {@link UserDirectoryPort} which queries {@code public.users} explicitly.
+ * <p>This port models tenant-scoped user rows in Lumie's single-schema RLS
+ * design. It is not the deleted Hibernate schema multi-tenancy flow and does
+ * not route to {@code tenant_*.users}.
+ *
+ * <p>For OWNER directory routing at the {@code lumie-edu.com} root entry point,
+ * use {@link UserDirectoryPort}, which reads the platform-scoped
+ * {@code public.owner_directory} before any tenant RLS context exists.
  */
 public interface UserLookupPort {
 
@@ -23,15 +29,10 @@ public interface UserLookupPort {
     Optional<UserData> findById(Long userId);
 
     /**
-     * Find an OAuth2 user by login ID, or create a new row in the current
-     * tenant context if none exists. Defaults to {@code STUDENT} role for
-     * backward compatibility (only students self-register via OAuth today).
-     */
-    UserData findOrCreateOAuth2User(String userLoginId, String name, String provider);
-
-    /**
-     * Create a new user in the current tenant's {@code users} table. The
-     * tenant is resolved implicitly from {@code TenantContextHolder}.
+     * Create a new user in the current tenant's RLS-scoped {@code users}
+     * rows. The caller must bind the target {@code tenantId} in
+     * {@code TenantContextHolder}; that value governs row visibility and
+     * downstream provisioning.
      */
     UserData createUser(String userLoginId, String name, String phone, String passwordHash, Role role);
 
