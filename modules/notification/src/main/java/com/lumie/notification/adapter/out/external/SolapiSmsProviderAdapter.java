@@ -7,12 +7,15 @@ import com.lumie.notification.application.port.out.SmsProviderPort;
 import com.lumie.notification.domain.exception.SmsErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
@@ -23,13 +26,22 @@ import java.util.UUID;
 @Component
 public class SolapiSmsProviderAdapter implements SmsProviderPort {
 
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
+
     private final SmsProperties properties;
     private final RestClient restClient;
 
     public SolapiSmsProviderAdapter(SmsProperties properties) {
         this.properties = properties;
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(READ_TIMEOUT);
         this.restClient = RestClient.builder()
                 .baseUrl(properties.solapi().baseUrl())
+                .requestFactory(requestFactory)
                 .requestInterceptor(new ExternalCallLoggingInterceptor())
                 .build();
     }
@@ -43,10 +55,11 @@ public class SolapiSmsProviderAdapter implements SmsProviderPort {
     public void validateConfiguration() {
         if (isBlank(properties.solapi().apiKey())
                 || isBlank(properties.solapi().apiSecret())
-                || isBlank(properties.fromNumber())) {
+                || isBlank(properties.fromNumber())
+                || isBlank(properties.solapi().webhookToken())) {
             throw new BusinessException(
                     SmsErrorCode.PROVIDER_CONFIGURATION_INVALID,
-                    "SOLAPI requires SOLAPI_API_KEY, SOLAPI_API_SECRET, and SOLAPI_FROM_NUMBER"
+                    "SOLAPI requires SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_FROM_NUMBER, and SOLAPI_WEBHOOK_TOKEN"
             );
         }
     }

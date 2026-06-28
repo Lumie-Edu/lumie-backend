@@ -18,6 +18,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -32,6 +33,7 @@ public class SmsDispatchService {
     private final SmsProviderRegistry providerRegistry;
     private final SmsProperties properties;
     private final TransactionTemplate transactionTemplate;
+    private static final Duration DISPATCH_CLAIM_TIMEOUT = Duration.ofMinutes(5);
 
     public void dispatchAfterCommit(Long messageId) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
@@ -73,6 +75,7 @@ public class SmsDispatchService {
                 SmsStatus.PENDING,
                 now,
                 properties.maxDispatchAttempts(),
+                now.minus(DISPATCH_CLAIM_TIMEOUT),
                 PageRequest.of(0, properties.dispatchBatchSize())
         ));
         if (ids == null || ids.isEmpty()) {
@@ -84,19 +87,23 @@ public class SmsDispatchService {
 
     private DispatchSnapshot prepareDispatch(Long messageId, String providerName) {
         return transactionTemplate.execute(status -> {
+            Instant now = Instant.now();
+            int claimed = messageRepository.claimDispatchAttempt(
+                    messageId,
+                    SmsStatus.PENDING,
+                    providerName,
+                    properties.maxDispatchAttempts(),
+                    now.minus(DISPATCH_CLAIM_TIMEOUT),
+                    now
+            );
+            if (claimed == 0) {
+                return null;
+            }
             SmsMessage message = messageRepository.findById(messageId)
                     .orElseThrow(() -> new BusinessException(
                             SmsErrorCode.MESSAGE_NOT_FOUND,
                             "SMS message not found with id: " + messageId
                     ));
-            if (message.getStatus() != SmsStatus.PENDING) {
-                return null;
-            }
-            if (message.getDispatchAttemptCount() >= properties.maxDispatchAttempts()) {
-                return null;
-            }
-            message.recordDispatchAttempt(providerName);
-            messageRepository.save(message);
             return DispatchSnapshot.from(TenantContextHolder.getRequiredTenant(), message);
         });
     }
@@ -126,23 +133,41 @@ public class SmsDispatchService {
 
     SmsMessageResponse applyWebhookReport(SolapiWebhookReport report) {
         return transactionTemplate.execute(status -> {
-            SmsMessage message = messageRepository.findById(report.messageId())
-                    .orElseThrow(() -> new BusinessException(SmsErrorCode.MESSAGE_NOT_FOUND));
+            SmsMessage message = messageRepository.findByProviderGroupId(report.providerGroupId())
+                    .orElseThrow(() -> new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Webhook provider group not found"));
+            validateWebhookBinding(message, report);
             List<Recipient> recipients = message.getRecipients();
             if (report.recipientIndex() < 0 || report.recipientIndex() >= recipients.size()) {
                 throw new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Recipient index is outside message recipients");
             }
             List<Recipient> updated = new java.util.ArrayList<>(recipients);
             Recipient current = updated.get(report.recipientIndex());
-            updated.set(report.recipientIndex(), withProviderStatus(
-                    current,
-                    report.providerMessageId(),
-                    report.statusCode(),
-                    report.statusMessage()
-            ));
+            validateRecipientBinding(current, report.providerMessageId());
+            if (isTerminal(current.deliveryStatus())) {
+                return SmsMessageResponse.from(message);
+            }
+            updated.set(report.recipientIndex(), withProviderStatus(current, report));
             applyAggregateState(message, "solapi", report.providerGroupId(), updated);
             return SmsMessageResponse.from(messageRepository.save(message));
         });
+    }
+
+    private void validateWebhookBinding(SmsMessage message, SolapiWebhookReport report) {
+        if (!"solapi".equals(message.getProvider())) {
+            throw new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Webhook provider does not match message provider");
+        }
+        if (!Objects.equals(message.getId(), report.messageId())) {
+            throw new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Webhook message id does not match provider group");
+        }
+        if (!Objects.equals(message.getProviderGroupId(), report.providerGroupId())) {
+            throw new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Webhook provider group does not match message");
+        }
+    }
+
+    private void validateRecipientBinding(Recipient recipient, String providerMessageId) {
+        if (!Objects.equals(recipient.providerMessageId(), providerMessageId)) {
+            throw new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Webhook provider message does not match recipient");
+        }
     }
 
     private List<Recipient> mergeProviderResults(
@@ -162,15 +187,31 @@ public class SmsDispatchService {
         return List.copyOf(updated);
     }
 
+    private Recipient withProviderStatus(Recipient recipient, SolapiWebhookReport report) {
+        if (isTerminal(recipient.deliveryStatus())) {
+            return recipient;
+        }
+        return withProviderStatus(
+                recipient,
+                report.providerMessageId(),
+                report.statusCode(),
+                report.statusMessage()
+        );
+    }
+
     private Recipient withProviderStatus(Recipient recipient, String providerMessageId,
                                          String statusCode, String statusMessage) {
         if ("4000".equals(statusCode)) {
             return recipient.sent(providerMessageId, statusCode, statusMessage);
         }
-        if (statusCode != null && statusCode.startsWith("5")) {
+        if (statusCode != null && !"2000".equals(statusCode) && !"3000".equals(statusCode)) {
             return recipient.failed(statusMessage, providerMessageId, statusCode, statusMessage);
         }
         return recipient.dispatched(providerMessageId, statusCode, statusMessage);
+    }
+
+    private boolean isTerminal(SmsStatus status) {
+        return status == SmsStatus.SENT || status == SmsStatus.FAILED;
     }
 
     private void applyAggregateState(SmsMessage message, String provider, String providerGroupId,

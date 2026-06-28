@@ -24,13 +24,20 @@ import static org.mockito.Mockito.verify;
 class SmsWebhookServiceTest {
 
     @Test
-    void verifyToken_rejectsMissingOrInvalidToken() {
+    void verifySecretHash_rejectsMissingOrInvalidSecretHash() {
         SmsWebhookService service = service(mock(TenantService.class), mock(SmsDispatchService.class));
 
-        assertThatThrownBy(() -> service.verifyToken(null))
+        assertThatThrownBy(() -> service.verifySecretHash(null))
                 .isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> service.verifyToken("wrong"))
+        assertThatThrownBy(() -> service.verifySecretHash("wrong"))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void verifySecretHash_acceptsSolapiSha1SecretHeader() {
+        SmsWebhookService service = service(mock(TenantService.class), mock(SmsDispatchService.class));
+
+        service.verifySecretHash("ee977806d7286510da8b9a7492ba58e2484c0ecc");
     }
 
     @Test

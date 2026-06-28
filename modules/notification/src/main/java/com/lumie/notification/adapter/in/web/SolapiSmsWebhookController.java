@@ -1,8 +1,11 @@
 package com.lumie.notification.adapter.in.web;
 
+import com.lumie.common.exception.BusinessException;
 import com.lumie.notification.application.service.SmsWebhookService;
+import com.lumie.notification.domain.exception.SmsErrorCode;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @Hidden
+@Slf4j
 @RestController
 @RequestMapping("/v1/sms/solapi/webhook")
 @RequiredArgsConstructor
@@ -19,32 +23,29 @@ public class SolapiSmsWebhookController {
 
     @PostMapping
     public ResponseEntity<Void> receive(
-            @RequestHeader(value = "X-Solapi-Webhook-Token", required = false) String token,
-            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "X-Solapi-Secret", required = false) String secretHash,
             @RequestBody List<SolapiWebhookEvent> events) {
-        webhookService.verifyToken(resolveToken(token, authorization));
+        webhookService.verifySecretHash(secretHash);
         for (SolapiWebhookEvent event : events) {
-            webhookService.applySolapiReport(
-                    value(event.customFields(), "lumieTenant"),
-                    parseLong(value(event.customFields(), "lumieSmsId")),
-                    parseInt(value(event.customFields(), "lumieRecipient")),
-                    event.messageId(),
-                    event.groupId(),
-                    event.statusCode(),
-                    event.statusMessage()
-            );
+            try {
+                webhookService.applySolapiReport(
+                        value(event.customFields(), "lumieTenant"),
+                        parseLong(value(event.customFields(), "lumieSmsId")),
+                        parseInt(value(event.customFields(), "lumieRecipient")),
+                        event.messageId(),
+                        event.groupId(),
+                        event.statusCode(),
+                        event.statusMessage()
+                );
+            } catch (BusinessException e) {
+                if (e.getErrorCode() != SmsErrorCode.WEBHOOK_IGNORED) {
+                    throw e;
+                }
+                log.info("Ignored SOLAPI webhook event: groupId={}, messageId={}, reason={}",
+                        event.groupId(), event.messageId(), e.getMessage());
+            }
         }
         return ResponseEntity.ok().build();
-    }
-
-    private String resolveToken(String token, String authorization) {
-        if (token != null && !token.isBlank()) {
-            return token;
-        }
-        if (authorization != null && authorization.startsWith("Bearer ")) {
-            return authorization.substring("Bearer ".length());
-        }
-        return null;
     }
 
     private String value(Map<String, String> customFields, String key) {

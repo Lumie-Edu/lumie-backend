@@ -221,6 +221,7 @@ public class SmsMessage extends TenantScopedEntity {
     public void recordDispatchAttempt(String provider) {
         this.provider = provider;
         this.dispatchAttemptCount++;
+        this.lastProviderStatus = "DISPATCHING";
         this.lastProviderError = null;
     }
 
@@ -239,6 +240,7 @@ public class SmsMessage extends TenantScopedEntity {
         this.provider = provider;
         this.lastProviderStatus = "FAILED_RETRYABLE";
         this.lastProviderError = errorMessage;
+        this.status = SmsStatus.PENDING;
     }
 
     public void recordTerminalDispatchFailure(String provider, String errorMessage) {

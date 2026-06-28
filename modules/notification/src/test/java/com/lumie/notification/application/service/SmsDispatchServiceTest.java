@@ -20,12 +20,19 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.lang.reflect.Field;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,11 +55,14 @@ class SmsDispatchServiceTest {
             org.springframework.transaction.support.TransactionCallback<?> callback = inv.getArgument(0);
             return callback.doInTransaction(new SimpleTransactionStatus());
         });
-        org.mockito.Mockito.doAnswer(inv -> {
+        lenient().doAnswer(inv -> {
             java.util.function.Consumer<org.springframework.transaction.TransactionStatus> callback = inv.getArgument(0);
             callback.accept(new SimpleTransactionStatus());
             return null;
         }).when(transactionTemplate).executeWithoutResult(any());
+        lenient().when(messageRepository.claimDispatchAttempt(
+                anyLong(), any(), any(), anyInt(), any(), any()
+        )).thenReturn(1);
     }
 
     @AfterEach
@@ -78,11 +88,12 @@ class SmsDispatchServiceTest {
         assertThat(message.getStatus()).isEqualTo(SmsStatus.DISPATCHED);
         assertThat(message.getProvider()).isEqualTo("solapi");
         assertThat(message.getProviderGroupId()).isEqualTo("G4V_TEST");
-        assertThat(message.getDispatchAttemptCount()).isEqualTo(1);
+        assertThat(message.getLastProviderStatus()).isEqualTo("DISPATCHED");
         assertThat(message.getRecipients()).singleElement().satisfies(recipient -> {
             assertThat(recipient.deliveryStatus()).isEqualTo(SmsStatus.DISPATCHED);
             assertThat(recipient.providerMessageId()).isEqualTo("M_TEST_1");
         });
+        verify(messageRepository).claimDispatchAttempt(eq(7L), eq(SmsStatus.PENDING), eq("solapi"), eq(3), any(), any());
         verify(providerPort).send(any());
     }
 
@@ -107,6 +118,114 @@ class SmsDispatchServiceTest {
         assertThat(message.getProviderGroupId()).isEqualTo("mock-7");
     }
 
+    @Test
+    void dispatchMessage_doesNotSendWhenAtomicClaimFails() {
+        given(providerRegistry.provider()).willReturn(providerPort);
+        given(providerPort.providerName()).willReturn("solapi");
+        given(messageRepository.claimDispatchAttempt(anyLong(), any(), any(), anyInt(), any(), any()))
+                .willReturn(0);
+
+        service.dispatchMessage(7L);
+
+        verify(providerPort, never()).send(any());
+    }
+
+    @Test
+    void dispatchDueMessages_excludesFreshDispatchClaimsFromSelector() {
+        Instant now = Instant.parse("2026-06-28T00:00:00Z");
+        given(messageRepository.findDueDispatchIds(
+                eq(SmsStatus.PENDING),
+                eq(now),
+                eq(3),
+                eq(now.minus(java.time.Duration.ofMinutes(5))),
+                any()
+        )).willReturn(List.of());
+
+        int count = service.dispatchDueMessages(now);
+
+        assertThat(count).isZero();
+        verify(messageRepository).findDueDispatchIds(
+                eq(SmsStatus.PENDING),
+                eq(now),
+                eq(3),
+                eq(now.minus(java.time.Duration.ofMinutes(5))),
+                any()
+        );
+    }
+
+    @Test
+    void dispatchMessage_mapsSolapiFailureCodeAsFailed() throws Exception {
+        SmsMessage message = message();
+        given(providerRegistry.provider()).willReturn(providerPort);
+        given(providerPort.providerName()).willReturn("solapi");
+        given(providerPort.send(any())).willReturn(new SmsProviderPort.SendResult(
+                "solapi",
+                "G4V_TEST",
+                List.of(new SmsProviderPort.RecipientResult(0, "M_TEST_1", "2062", "잔액 부족"))
+        ));
+        given(messageRepository.findById(7L)).willReturn(Optional.of(message));
+        given(messageRepository.save(any(SmsMessage.class))).willAnswer(inv -> inv.getArgument(0));
+
+        service.dispatchMessage(7L);
+
+        assertThat(message.getStatus()).isEqualTo(SmsStatus.FAILED);
+        assertThat(message.getSuccessCount()).isZero();
+        assertThat(message.getFailCount()).isEqualTo(1);
+        assertThat(message.getRecipients()).singleElement().satisfies(recipient -> {
+            assertThat(recipient.deliveryStatus()).isEqualTo(SmsStatus.FAILED);
+            assertThat(recipient.providerStatusCode()).isEqualTo("2062");
+        });
+    }
+
+    @Test
+    void applyWebhookReport_verifiesStoredProviderIdentifiersBeforeUpdating() throws Exception {
+        SmsMessage message = dispatchedMessage();
+        given(messageRepository.findByProviderGroupId("G4V_TEST")).willReturn(Optional.of(message));
+
+        assertThatThrownBy(() -> service.applyWebhookReport(new SmsDispatchService.SolapiWebhookReport(
+                7L,
+                0,
+                "M_OTHER",
+                "G4V_TEST",
+                "4000",
+                "수신 완료"
+        ))).isInstanceOf(com.lumie.common.exception.BusinessException.class);
+
+        assertThat(message.getStatus()).isEqualTo(SmsStatus.DISPATCHED);
+        assertThat(message.getRecipients()).singleElement()
+                .extracting(Recipient::deliveryStatus)
+                .isEqualTo(SmsStatus.DISPATCHED);
+    }
+
+    @Test
+    void applyWebhookReport_ignoresStaleCallbackAfterTerminalState() throws Exception {
+        SmsMessage message = dispatchedMessage();
+        given(messageRepository.findByProviderGroupId("G4V_TEST")).willReturn(Optional.of(message));
+        given(messageRepository.save(any(SmsMessage.class))).willAnswer(inv -> inv.getArgument(0));
+
+        service.applyWebhookReport(new SmsDispatchService.SolapiWebhookReport(
+                7L,
+                0,
+                "M_TEST_1",
+                "G4V_TEST",
+                "4000",
+                "수신 완료"
+        ));
+        service.applyWebhookReport(new SmsDispatchService.SolapiWebhookReport(
+                7L,
+                0,
+                "M_TEST_1",
+                "G4V_TEST",
+                "3000",
+                "통신사 처리 중"
+        ));
+
+        assertThat(message.getStatus()).isEqualTo(SmsStatus.SENT);
+        assertThat(message.getRecipients()).singleElement()
+                .extracting(Recipient::deliveryStatus)
+                .isEqualTo(SmsStatus.SENT);
+    }
+
     private SmsMessage message() throws Exception {
         SmsMessage message = SmsMessage.create(
                 10L,
@@ -124,6 +243,17 @@ class SmsDispatchServiceTest {
         Field id = SmsMessage.class.getDeclaredField("id");
         id.setAccessible(true);
         id.set(message, 7L);
+        return message;
+    }
+
+    private SmsMessage dispatchedMessage() throws Exception {
+        SmsMessage message = message();
+        message.markAsDispatched(
+                "solapi",
+                "G4V_TEST",
+                List.of(message.getRecipients().get(0).dispatched("M_TEST_1", "2000", "정상 접수")),
+                "DISPATCHED"
+        );
         return message;
     }
 }

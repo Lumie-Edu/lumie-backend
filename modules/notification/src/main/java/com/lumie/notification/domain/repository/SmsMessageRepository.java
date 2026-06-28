@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -30,14 +31,47 @@ public interface SmsMessageRepository extends JpaRepository<SmsMessage, Long>,
             from SmsMessage m
             where m.status = :status
               and (m.scheduledAt is null or m.scheduledAt <= :now)
-              and m.dispatchAttemptCount < :maxAttempts
+              and coalesce(m.dispatchAttemptCount, 0) < :maxAttempts
+              and (
+                    m.lastProviderStatus is null
+                    or m.lastProviderStatus <> 'DISPATCHING'
+                    or m.updatedAt <= :claimBefore
+                  )
             order by coalesce(m.scheduledAt, m.createdAt) asc, m.id asc
             """)
     List<Long> findDueDispatchIds(
             @Param("status") SmsStatus status,
             @Param("now") Instant now,
             @Param("maxAttempts") int maxAttempts,
+            @Param("claimBefore") Instant claimBefore,
             Pageable pageable
+    );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update SmsMessage m
+            set m.provider = :provider,
+                m.dispatchAttemptCount = coalesce(m.dispatchAttemptCount, 0) + 1,
+                m.lastProviderStatus = 'DISPATCHING',
+                m.lastProviderError = null,
+                m.updatedAt = :now,
+                m.version = m.version + 1
+            where m.id = :id
+              and m.status = :status
+              and coalesce(m.dispatchAttemptCount, 0) < :maxAttempts
+              and (
+                    m.lastProviderStatus is null
+                    or m.lastProviderStatus <> 'DISPATCHING'
+                    or m.updatedAt <= :claimBefore
+                  )
+            """)
+    int claimDispatchAttempt(
+            @Param("id") Long id,
+            @Param("status") SmsStatus status,
+            @Param("provider") String provider,
+            @Param("maxAttempts") int maxAttempts,
+            @Param("claimBefore") Instant claimBefore,
+            @Param("now") Instant now
     );
 
     default Page<SmsMessage> findAll(SmsSearchCriteria criteria, Pageable pageable) {

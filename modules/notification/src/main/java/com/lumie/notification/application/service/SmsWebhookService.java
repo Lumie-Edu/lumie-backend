@@ -9,6 +9,11 @@ import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -19,9 +24,14 @@ public class SmsWebhookService {
     private final TenantService tenantService;
     private final SmsDispatchService dispatchService;
 
-    public void verifyToken(String token) {
-        String expected = properties.solapi().webhookToken();
-        if (expected == null || expected.isBlank() || token == null || !expected.equals(token)) {
+    public void verifySecretHash(String receivedSecretHash) {
+        String expectedSecret = properties.solapi().webhookToken();
+        if (expectedSecret == null || expectedSecret.isBlank()
+                || receivedSecretHash == null || receivedSecretHash.isBlank()
+                || !MessageDigest.isEqual(
+                        sha1Hex(expectedSecret).getBytes(StandardCharsets.UTF_8),
+                        receivedSecretHash.trim().toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8)
+                )) {
             throw new BusinessException(SmsErrorCode.WEBHOOK_UNAUTHORIZED);
         }
     }
@@ -29,7 +39,10 @@ public class SmsWebhookService {
     public Optional<SmsMessageResponse> applySolapiReport(String tenantSlug, Long messageId, int recipientIndex,
                                                           String providerMessageId, String providerGroupId,
                                                           String statusCode, String statusMessage) {
-        if (tenantSlug == null || tenantSlug.isBlank() || messageId == null || recipientIndex < 0) {
+        if (tenantSlug == null || tenantSlug.isBlank()
+                || providerMessageId == null || providerMessageId.isBlank()
+                || providerGroupId == null || providerGroupId.isBlank()
+                || messageId == null || recipientIndex < 0) {
             return Optional.empty();
         }
         TenantService.TenantData tenant = tenantService.getTenantBySlug(tenantSlug)
@@ -44,5 +57,14 @@ public class SmsWebhookService {
                         statusMessage
                 ))
         ));
+    }
+
+    private String sha1Hex(String secret) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            return HexFormat.of().formatHex(digest.digest(secret.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-1 digest is unavailable", e);
+        }
     }
 }
