@@ -79,10 +79,9 @@ class MigrationsRlsIntegrationTest {
 
     @BeforeAll
     static void migrate() {
-        // Pre-create the lumie_app runtime role so that V22's GRANT succeeds.
-        // In production this role is provisioned by the DBA before Flyway runs;
-        // TestContainers provides a blank cluster with only the container's
-        // default superuser, so we mirror that prerequisite here.
+        // Pre-create production prerequisite roles so role-scoped grants/default
+        // privileges in the migration chain resolve inside the blank container.
+        createProdRole("postgres");
         createProdRole("lumie_app");
 
         // baselineOnMigrate/baselineVersion deliberately mirror the prod
