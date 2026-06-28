@@ -15,4 +15,7 @@ dependencies {
 
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")
+
+    // Testing
+    testImplementation("org.wiremock:wiremock-standalone:3.10.0")
 }

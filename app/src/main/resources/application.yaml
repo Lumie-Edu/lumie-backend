@@ -196,6 +196,17 @@ lumie:
       - http://localhost:3000
   internal:
     hmac-secret: ${LUMIE_INTERNAL_HMAC_SECRET:?LUMIE_INTERNAL_HMAC_SECRET env var required (Vault → VSO → K8s Secret)}
+  sms:
+    provider: ${LUMIE_SMS_PROVIDER:mock}
+    from-number: ${SOLAPI_FROM_NUMBER:}
+    dispatch-batch-size: ${LUMIE_SMS_DISPATCH_BATCH_SIZE:50}
+    max-dispatch-attempts: ${LUMIE_SMS_MAX_DISPATCH_ATTEMPTS:3}
+    dispatch-fixed-delay-ms: ${LUMIE_SMS_DISPATCH_FIXED_DELAY_MS:60000}
+    solapi:
+      api-key: ${SOLAPI_API_KEY:}
+      api-secret: ${SOLAPI_API_SECRET:}
+      base-url: ${SOLAPI_BASE_URL:https://api.solapi.com}
+      webhook-token: ${SOLAPI_WEBHOOK_TOKEN:}
   # Boot-time guard: refuses to start if the runtime DB role has SUPERUSER/BYPASSRLS (RLS leak risk).
   # Disable only in TestContainers-backed tests where the DB user is a superuser by default.
   security:

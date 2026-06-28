@@ -68,6 +68,27 @@ public class SmsMessage extends TenantScopedEntity {
     @Column(name = "sent_at")
     private Instant sentAt;
 
+    @Column(name = "dispatched_at")
+    private Instant dispatchedAt;
+
+    @Column(name = "confirmed_at")
+    private Instant confirmedAt;
+
+    @Column(name = "provider", length = 30)
+    private String provider;
+
+    @Column(name = "provider_group_id", length = 80)
+    private String providerGroupId;
+
+    @Column(name = "dispatch_attempt_count", nullable = false)
+    private int dispatchAttemptCount;
+
+    @Column(name = "last_provider_status", length = 50)
+    private String lastProviderStatus;
+
+    @Column(name = "last_provider_error", columnDefinition = "TEXT")
+    private String lastProviderError;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "message_type", nullable = false, length = 10)
     private SmsMessageType messageType;
@@ -156,6 +177,7 @@ public class SmsMessage extends TenantScopedEntity {
     public void markAsSent(List<Recipient> recipients) {
         this.status = SmsStatus.SENT;
         this.sentAt = Instant.now();
+        this.confirmedAt = this.sentAt;
         this.recipients = recipients;
         this.successCount = recipients.size();
         this.failCount = 0;
@@ -168,6 +190,7 @@ public class SmsMessage extends TenantScopedEntity {
     public void markAsFailed(List<Recipient> recipients) {
         this.status = SmsStatus.FAILED;
         this.sentAt = Instant.now();
+        this.confirmedAt = this.sentAt;
         this.recipients = recipients;
         this.successCount = 0;
         this.failCount = recipients.size();
@@ -180,6 +203,7 @@ public class SmsMessage extends TenantScopedEntity {
     public void markAsPartial(List<Recipient> recipients, int successCount, int failCount) {
         this.status = SmsStatus.PARTIAL;
         this.sentAt = Instant.now();
+        this.confirmedAt = this.sentAt;
         this.recipients = recipients;
         this.successCount = successCount;
         this.failCount = failCount;
@@ -192,6 +216,38 @@ public class SmsMessage extends TenantScopedEntity {
 
     public boolean isPending() {
         return this.status == SmsStatus.PENDING;
+    }
+
+    public void recordDispatchAttempt(String provider) {
+        this.provider = provider;
+        this.dispatchAttemptCount++;
+        this.lastProviderError = null;
+    }
+
+    public void markAsDispatched(String provider, String providerGroupId, List<Recipient> recipients,
+                                 String providerStatus) {
+        this.status = SmsStatus.DISPATCHED;
+        this.provider = provider;
+        this.providerGroupId = providerGroupId;
+        this.dispatchedAt = Instant.now();
+        this.recipients = recipients;
+        this.lastProviderStatus = providerStatus;
+        this.lastProviderError = null;
+    }
+
+    public void recordRetryableDispatchFailure(String provider, String errorMessage) {
+        this.provider = provider;
+        this.lastProviderStatus = "FAILED_RETRYABLE";
+        this.lastProviderError = errorMessage;
+    }
+
+    public void recordTerminalDispatchFailure(String provider, String errorMessage) {
+        this.provider = provider;
+        this.lastProviderStatus = "FAILED";
+        this.lastProviderError = errorMessage;
+        markAsFailed(this.recipients.stream()
+                .map(recipient -> recipient.failed(errorMessage))
+                .toList());
     }
 
     @Converter

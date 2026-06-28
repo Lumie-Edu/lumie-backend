@@ -57,6 +57,7 @@ class SmsCommandServiceTest {
     @Mock private StaffService staffService;
     @Mock private ClassService classService;
     @Mock private SmsRecipientGroupPersistencePort recipientGroupPersistencePort;
+    @Mock private SmsDispatchService dispatchService;
     @InjectMocks private SmsCommandService commandService;
 
     @org.junit.jupiter.api.BeforeEach
@@ -95,9 +96,10 @@ class SmsCommandServiceTest {
 
             SmsMessageResponse response = commandService.sendSms(request);
 
-            assertThat(response.status()).isEqualTo(SmsStatus.SENT);
-            assertThat(response.successCount()).isEqualTo(1);
+            assertThat(response.status()).isEqualTo(SmsStatus.PENDING);
+            assertThat(response.successCount()).isZero();
             assertThat(response.recipientType()).isEqualTo(RecipientType.STUDENT);
+            verify(dispatchService).dispatchAfterCommit(1L);
         }
 
         @Test
@@ -124,6 +126,7 @@ class SmsCommandServiceTest {
 
             assertThat(response.recipientType()).isEqualTo(RecipientType.CUSTOM);
             assertThat(response.recipients()).hasSize(2);
+            verify(dispatchService).dispatchAfterCommit(1L);
         }
 
         @Test
@@ -191,6 +194,7 @@ class SmsCommandServiceTest {
                 assertThat(recipient.name()).isEqualTo("홍길동");
             });
             verify(recipientGroupPersistencePort).findByIdAndOwnerStaffId(55L, 10L);
+            verify(dispatchService).dispatchAfterCommit(1L);
         }
 
         @Test
@@ -274,6 +278,7 @@ class SmsCommandServiceTest {
             assertThat(response.recipientType()).isEqualTo(RecipientType.CUSTOM);
             assertThat(response.recipients()).hasSize(2);
             verify(recipientGroupPersistencePort).findByIdAndOwnerStaffId(55L, 10L);
+            verify(dispatchService).dispatchAfterCommit(1L);
         }
 
         @Test
@@ -300,6 +305,7 @@ class SmsCommandServiceTest {
             assertThat(response.scheduledAt()).isEqualTo(scheduledAt);
             assertThat(response.recipients()).singleElement()
                     .satisfies(recipient -> assertThat(recipient.name()).isEqualTo("홍길동"));
+            verify(dispatchService, never()).dispatchAfterCommit(any());
         }
 
         @Test
@@ -365,9 +371,10 @@ class SmsCommandServiceTest {
 
             SmsMessageResponse response = commandService.sendToClass(5L, request);
 
-            assertThat(response.status()).isEqualTo(SmsStatus.SENT);
-            assertThat(response.successCount()).isEqualTo(2);
+            assertThat(response.status()).isEqualTo(SmsStatus.PENDING);
+            assertThat(response.successCount()).isZero();
             assertThat(response.recipientType()).isEqualTo(RecipientType.GUARDIAN);
+            verify(dispatchService).dispatchAfterCommit(1L);
         }
 
         @Test
@@ -402,6 +409,7 @@ class SmsCommandServiceTest {
                 assertThat(recipient.recipientRole()).isEqualTo(RecipientRole.STUDENT);
                 assertThat(recipient.phone()).isEqualTo("010-****-1111");
             });
+            verify(dispatchService).dispatchAfterCommit(1L);
         }
 
         @Test

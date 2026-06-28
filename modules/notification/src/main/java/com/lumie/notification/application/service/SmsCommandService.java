@@ -48,6 +48,7 @@ public class SmsCommandService {
     private final StaffService staffService;
     private final ClassService classService;
     private final SmsRecipientGroupPersistencePort recipientGroupPersistencePort;
+    private final SmsDispatchService dispatchService;
     private final Clock clock = Clock.systemUTC();
 
     public SmsMessageResponse sendSms(SendSmsRequest request) {
@@ -78,11 +79,10 @@ public class SmsCommandService {
             estimate.totalPrice()
         );
 
-        if (!scheduled) {
-            applyMockDispatch(message, recipients);
-        }
-
         SmsMessage saved = messageRepository.save(message);
+        if (!scheduled) {
+            dispatchService.dispatchAfterCommit(saved.getId());
+        }
         log.info("SMS message queued: {} to {} recipients status={}",
             saved.getId(), saved.getRecipients().size(), saved.getStatus());
         return SmsMessageResponse.from(saved);
@@ -133,11 +133,10 @@ public class SmsCommandService {
             estimate.totalPrice()
         );
 
-        if (!scheduled) {
-            applyMockDispatch(message, recipients);
-        }
-
         SmsMessage saved = messageRepository.save(message);
+        if (!scheduled) {
+            dispatchService.dispatchAfterCommit(saved.getId());
+        }
         log.info("SMS message queued to class {}: {} to {} recipients status={}",
             classId, saved.getId(), saved.getRecipients().size(), saved.getStatus());
         return SmsMessageResponse.from(saved);
@@ -286,25 +285,6 @@ public class SmsCommandService {
             return safeName.isBlank() ? "학생" : safeName + " 학생";
         }
         return safeName.isBlank() ? "학부모님" : safeName + " 학부모님";
-    }
-
-    private void applyMockDispatch(SmsMessage message, List<Recipient> recipients) {
-        List<Recipient> dispatched = recipients.stream()
-                .map(recipient -> PhoneNumberUtils.isValid(recipient.phone())
-                        ? recipient.sent()
-                        : recipient.failed("INVALID_PHONE"))
-                .toList();
-        int successCount = (int) dispatched.stream()
-                .filter(recipient -> recipient.deliveryStatus() == com.lumie.notification.domain.vo.SmsStatus.SENT)
-                .count();
-        int failCount = dispatched.size() - successCount;
-        if (failCount == 0) {
-            message.markAsSent(dispatched);
-        } else if (successCount == 0) {
-            message.markAsFailed(dispatched);
-        } else {
-            message.markAsPartial(dispatched, successCount, failCount);
-        }
     }
 
     private boolean validateScheduledAt(Instant scheduledAt) {

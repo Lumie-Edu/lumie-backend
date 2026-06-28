@@ -3794,7 +3794,7 @@
             "type" : "string"
           },
           "deliveryStatus" : {
-            "enum" : [ "PENDING", "SENT", "FAILED", "PARTIAL", "CANCELLED" ],
+            "enum" : [ "PENDING", "DISPATCHED", "SENT", "FAILED", "PARTIAL", "CANCELLED" ],
             "nullable" : true,
             "type" : "string"
           },
@@ -4502,7 +4502,7 @@
             "type" : "string"
           },
           "status" : {
-            "enum" : [ "PENDING", "SENT", "FAILED", "PARTIAL", "CANCELLED" ],
+            "enum" : [ "PENDING", "DISPATCHED", "SENT", "FAILED", "PARTIAL", "CANCELLED" ],
             "type" : "string"
           },
           "successCount" : {
@@ -12330,7 +12330,7 @@
           "name" : "status",
           "required" : false,
           "schema" : {
-            "enum" : [ "PENDING", "SENT", "FAILED", "PARTIAL", "CANCELLED" ],
+            "enum" : [ "PENDING", "DISPATCHED", "SENT", "FAILED", "PARTIAL", "CANCELLED" ],
             "type" : "string"
           }
         }, {

@@ -19,7 +19,11 @@ public enum SmsErrorCode implements ErrorCode {
     INVALID_SCHEDULED_AT("SMS_009", "Scheduled time must be in the future", 400),
     INVALID_RECIPIENTS("SMS_010", "Recipients contain invalid recipient data", 400),
     RECIPIENT_GROUP_NOT_FOUND("SMS_011", "SMS recipient group not found", 404),
-    INVALID_SEND_TARGET("SMS_012", "Provide either recipients or recipient group for SMS sending", 400);
+    INVALID_SEND_TARGET("SMS_012", "Provide either recipients or recipient group for SMS sending", 400),
+    PROVIDER_CONFIGURATION_INVALID("SMS_013", "SMS provider configuration is invalid", 500),
+    PROVIDER_SEND_FAILED("SMS_014", "SMS provider send failed", 502),
+    WEBHOOK_UNAUTHORIZED("SMS_015", "SMS webhook token is invalid", 401),
+    WEBHOOK_IGNORED("SMS_016", "SMS webhook payload cannot be mapped", 202);
 
     private final String code;
     private final String message;

@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/internal/**").hasRole("INTERNAL")
                         .requestMatchers("/v1/payments/paddle/webhook").permitAll()
+                        .requestMatchers("/v1/sms/solapi/webhook").permitAll()
                         .requestMatchers("/v1/tenants/public/**").permitAll()
                         .requestMatchers("/v1/homepage/public/**").permitAll()
                         .requestMatchers("/v1/files/public/**").permitAll()
