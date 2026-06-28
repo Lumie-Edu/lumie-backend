@@ -33,4 +33,8 @@ public class SmsProviderRegistry {
                         "Unsupported SMS provider: " + properties.provider()
                 ));
     }
+
+    public boolean isMockProvider() {
+        return "mock".equalsIgnoreCase(properties.provider());
+    }
 }

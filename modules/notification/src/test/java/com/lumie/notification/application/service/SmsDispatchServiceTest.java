@@ -1,9 +1,11 @@
 package com.lumie.notification.application.service;
 
+import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.notification.adapter.out.config.SmsProperties;
 import com.lumie.notification.application.port.out.SmsProviderPort;
 import com.lumie.notification.domain.entity.SmsMessage;
+import com.lumie.notification.domain.exception.SmsErrorCode;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.RecipientRole;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.support.SimpleTransactionStatus;
@@ -41,6 +44,7 @@ class SmsDispatchServiceTest {
     @Mock private SmsMessageRepository messageRepository;
     @Mock private SmsProviderRegistry providerRegistry;
     @Mock private SmsProviderPort providerPort;
+    @Mock private SmsSenderSettingService senderSettingService;
     @Mock private TransactionTemplate transactionTemplate;
 
     private SmsDispatchService service;
@@ -49,8 +53,8 @@ class SmsDispatchServiceTest {
     void setUp() {
         TenantContextHolder.setTenant("inst-test");
         TenantContextHolder.setTenantId(1L);
-        SmsProperties properties = new SmsProperties("mock", "0212345678", 50, 3, null);
-        service = new SmsDispatchService(messageRepository, providerRegistry, properties, transactionTemplate);
+        SmsProperties properties = new SmsProperties("mock", 50, 3, null);
+        service = new SmsDispatchService(messageRepository, providerRegistry, properties, senderSettingService, transactionTemplate);
         given(transactionTemplate.execute(any())).willAnswer(inv -> {
             org.springframework.transaction.support.TransactionCallback<?> callback = inv.getArgument(0);
             return callback.doInTransaction(new SimpleTransactionStatus());
@@ -63,6 +67,7 @@ class SmsDispatchServiceTest {
         lenient().when(messageRepository.claimDispatchAttempt(
                 anyLong(), any(), any(), anyInt(), any(), any()
         )).thenReturn(1);
+        lenient().when(senderSettingService.resolveSenderNumberForDispatch(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @AfterEach
@@ -72,7 +77,7 @@ class SmsDispatchServiceTest {
 
     @Test
     void dispatchMessage_marksAcceptedProviderResultAsDispatched() throws Exception {
-        SmsMessage message = message();
+        SmsMessage message = message("0212345678");
         given(providerRegistry.provider()).willReturn(providerPort);
         given(providerPort.providerName()).willReturn("solapi");
         given(providerPort.send(any())).willReturn(new SmsProviderPort.SendResult(
@@ -94,12 +99,14 @@ class SmsDispatchServiceTest {
             assertThat(recipient.providerMessageId()).isEqualTo("M_TEST_1");
         });
         verify(messageRepository).claimDispatchAttempt(eq(7L), eq(SmsStatus.PENDING), eq("solapi"), eq(3), any(), any());
-        verify(providerPort).send(any());
+        ArgumentCaptor<SmsProviderPort.SendCommand> commandCaptor = ArgumentCaptor.forClass(SmsProviderPort.SendCommand.class);
+        verify(providerPort).send(commandCaptor.capture());
+        assertThat(commandCaptor.getValue().from()).isEqualTo("0212345678");
     }
 
     @Test
     void dispatchMessage_marksDeliveredProviderResultAsSent() throws Exception {
-        SmsMessage message = message();
+        SmsMessage message = message("0212345678");
         given(providerRegistry.provider()).willReturn(providerPort);
         given(providerPort.providerName()).willReturn("mock");
         given(providerPort.send(any())).willReturn(new SmsProviderPort.SendResult(
@@ -155,7 +162,7 @@ class SmsDispatchServiceTest {
 
     @Test
     void dispatchMessage_mapsSolapiFailureCodeAsFailed() throws Exception {
-        SmsMessage message = message();
+        SmsMessage message = message("0212345678");
         given(providerRegistry.provider()).willReturn(providerPort);
         given(providerPort.providerName()).willReturn("solapi");
         given(providerPort.send(any())).willReturn(new SmsProviderPort.SendResult(
@@ -179,7 +186,7 @@ class SmsDispatchServiceTest {
 
     @Test
     void applyWebhookReport_verifiesStoredProviderIdentifiersBeforeUpdating() throws Exception {
-        SmsMessage message = dispatchedMessage();
+        SmsMessage message = dispatchedMessage("0212345678");
         given(messageRepository.findByProviderGroupId("G4V_TEST")).willReturn(Optional.of(message));
 
         assertThatThrownBy(() -> service.applyWebhookReport(new SmsDispatchService.SolapiWebhookReport(
@@ -199,7 +206,7 @@ class SmsDispatchServiceTest {
 
     @Test
     void applyWebhookReport_ignoresStaleCallbackAfterTerminalState() throws Exception {
-        SmsMessage message = dispatchedMessage();
+        SmsMessage message = dispatchedMessage("0212345678");
         given(messageRepository.findByProviderGroupId("G4V_TEST")).willReturn(Optional.of(message));
         given(messageRepository.save(any(SmsMessage.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -226,9 +233,73 @@ class SmsDispatchServiceTest {
                 .isEqualTo(SmsStatus.SENT);
     }
 
-    private SmsMessage message() throws Exception {
+    @Test
+    void dispatchMessage_usesApprovedSenderNumberFallbackForLegacyRows() throws Exception {
+        SmsMessage message = message(null);
+        given(providerRegistry.provider()).willReturn(providerPort);
+        given(providerPort.providerName()).willReturn("solapi");
+        given(senderSettingService.resolveSenderNumberForDispatch(null)).willReturn("029998888");
+        given(providerPort.send(any())).willReturn(new SmsProviderPort.SendResult(
+                "solapi",
+                "G4V_TEST",
+                List.of(new SmsProviderPort.RecipientResult(0, "M_TEST_1", "2000", "정상 접수"))
+        ));
+        given(messageRepository.findById(7L)).willReturn(Optional.of(message));
+        given(messageRepository.save(any(SmsMessage.class))).willAnswer(inv -> inv.getArgument(0));
+
+        service.dispatchMessage(7L);
+
+        ArgumentCaptor<SmsProviderPort.SendCommand> commandCaptor = ArgumentCaptor.forClass(SmsProviderPort.SendCommand.class);
+        verify(providerPort).send(commandCaptor.capture());
+        assertThat(commandCaptor.getValue().from()).isEqualTo("029998888");
+    }
+
+    @Test
+    void dispatchMessage_recordsFailureWhenLegacyFallbackHasNoApprovedSender() throws Exception {
+        SmsMessage message = message(null);
+        given(providerRegistry.provider()).willReturn(providerPort);
+        given(providerPort.providerName()).willReturn("solapi");
+        given(senderSettingService.resolveSenderNumberForDispatch(null)).willThrow(new BusinessException(
+                SmsErrorCode.SENDER_SETTING_NOT_APPROVED,
+                "Approved SMS sender number is required before sending"
+        ));
+        given(messageRepository.findById(7L)).willReturn(Optional.of(message));
+        given(messageRepository.save(any(SmsMessage.class))).willAnswer(inv -> inv.getArgument(0));
+
+        service.dispatchMessage(7L);
+
+        verify(providerPort, never()).send(any());
+        assertThat(message.getStatus()).isEqualTo(SmsStatus.PENDING);
+        assertThat(message.getProvider()).isEqualTo("solapi");
+        assertThat(message.getLastProviderStatus()).isEqualTo("FAILED_RETRYABLE");
+        assertThat(message.getLastProviderError()).contains("Approved SMS sender number");
+    }
+
+    @Test
+    void dispatchMessage_mockProviderAllowsNullSenderNumber() throws Exception {
+        SmsMessage message = message(null);
+        given(providerRegistry.provider()).willReturn(providerPort);
+        given(providerPort.providerName()).willReturn("mock");
+        given(providerPort.send(any())).willReturn(new SmsProviderPort.SendResult(
+                "mock",
+                "mock-7",
+                List.of(new SmsProviderPort.RecipientResult(0, "mock-7-0", "4000", "MOCK_DELIVERED"))
+        ));
+        given(messageRepository.findById(7L)).willReturn(Optional.of(message));
+        given(messageRepository.save(any(SmsMessage.class))).willAnswer(inv -> inv.getArgument(0));
+
+        service.dispatchMessage(7L);
+
+        ArgumentCaptor<SmsProviderPort.SendCommand> commandCaptor = ArgumentCaptor.forClass(SmsProviderPort.SendCommand.class);
+        verify(providerPort).send(commandCaptor.capture());
+        assertThat(commandCaptor.getValue().from()).isNull();
+        verify(senderSettingService, never()).resolveSenderNumberForDispatch(any());
+    }
+
+    private SmsMessage message(String senderNumber) throws Exception {
         SmsMessage message = SmsMessage.create(
                 10L,
+                senderNumber,
                 RecipientType.GUARDIAN,
                 List.of(Recipient.pending("01012345678", "홍길동", 100L, null, RecipientRole.GUARDIAN, "안내")),
                 "제목",
@@ -246,8 +317,8 @@ class SmsDispatchServiceTest {
         return message;
     }
 
-    private SmsMessage dispatchedMessage() throws Exception {
-        SmsMessage message = message();
+    private SmsMessage dispatchedMessage(String senderNumber) throws Exception {
+        SmsMessage message = message(senderNumber);
         message.markAsDispatched(
                 "solapi",
                 "G4V_TEST",

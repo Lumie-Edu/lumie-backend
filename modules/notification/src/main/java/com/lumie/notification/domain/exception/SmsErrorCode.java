@@ -23,7 +23,11 @@ public enum SmsErrorCode implements ErrorCode {
     PROVIDER_CONFIGURATION_INVALID("SMS_013", "SMS provider configuration is invalid", 500),
     PROVIDER_SEND_FAILED("SMS_014", "SMS provider send failed", 502),
     WEBHOOK_UNAUTHORIZED("SMS_015", "SMS webhook token is invalid", 401),
-    WEBHOOK_IGNORED("SMS_016", "SMS webhook payload cannot be mapped", 202);
+    WEBHOOK_IGNORED("SMS_016", "SMS webhook payload cannot be mapped", 202),
+    SENDER_SETTING_NOT_FOUND("SMS_017", "SMS sender setting not found", 404),
+    SENDER_SETTING_NOT_APPROVED("SMS_018", "SMS sender setting is not approved", 400),
+    INVALID_SENDER_NUMBER("SMS_019", "SMS sender number is invalid", 400),
+    INVALID_SENDER_SETTING_STATUS("SMS_020", "SMS sender setting status is invalid", 400);
 
     private final String code;
     private final String message;

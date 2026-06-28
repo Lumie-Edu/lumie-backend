@@ -11,9 +11,9 @@ import com.lumie.notification.application.dto.request.SendSmsRequest;
 import com.lumie.notification.application.dto.request.SendToClassRequest;
 import com.lumie.notification.application.dto.request.CreateTemplateRequest;
 import com.lumie.notification.application.dto.request.UpdateTemplateRequest;
-import com.lumie.notification.application.port.out.SmsRecipientGroupPersistencePort;
 import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.dto.response.SmsTemplateResponse;
+import com.lumie.notification.application.port.out.SmsRecipientGroupPersistencePort;
 import com.lumie.notification.domain.entity.SmsMessage;
 import com.lumie.notification.domain.entity.SmsTemplate;
 import com.lumie.notification.domain.exception.SmsErrorCode;
@@ -48,12 +48,15 @@ public class SmsCommandService {
     private final StaffService staffService;
     private final ClassService classService;
     private final SmsRecipientGroupPersistencePort recipientGroupPersistencePort;
+    private final SmsSenderSettingService senderSettingService;
+    private final SmsProviderRegistry providerRegistry;
     private final SmsDispatchService dispatchService;
     private final Clock clock = Clock.systemUTC();
 
     public SmsMessageResponse sendSms(SendSmsRequest request) {
         String slug = TenantContextHolder.getRequiredTenant();
         Long senderId = resolveSenderId(slug);
+        String senderNumber = resolveSenderNumberForCreate();
         boolean scheduled = validateScheduledAt(request.scheduledAt());
         SendTarget sendTarget = resolveSendTarget(request);
 
@@ -66,6 +69,7 @@ public class SmsCommandService {
 
         SmsMessage message = SmsMessage.create(
             senderId,
+            senderNumber,
             messageRecipientType,
             recipients,
             request.title(),
@@ -91,6 +95,7 @@ public class SmsCommandService {
     public SmsMessageResponse sendToClass(Long classId, SendToClassRequest request) {
         String slug = TenantContextHolder.getRequiredTenant();
         Long senderId = resolveSenderId(slug);
+        String senderNumber = resolveSenderNumberForCreate();
         boolean scheduled = validateScheduledAt(request.scheduledAt());
 
         ClassService.ClassData classData = classService.getClass(slug, classId)
@@ -121,6 +126,7 @@ public class SmsCommandService {
 
         SmsMessage message = SmsMessage.create(
             senderId,
+            senderNumber,
             request.recipientRole().toRecipientType(),
             recipients,
             request.title(),
@@ -224,6 +230,13 @@ public class SmsCommandService {
         return request.recipients().stream()
                 .map(RecipientRequest::toVo)
                 .toList();
+    }
+
+    private String resolveSenderNumberForCreate() {
+        if (providerRegistry.isMockProvider()) {
+            return null;
+        }
+        return senderSettingService.requireApprovedSenderNumber();
     }
 
     private SendTarget resolveSendTarget(SendSmsRequest request) {

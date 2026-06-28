@@ -5,7 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "lumie.sms")
 public record SmsProperties(
         String provider,
-        String fromNumber,
         int dispatchBatchSize,
         int maxDispatchAttempts,
         Solapi solapi

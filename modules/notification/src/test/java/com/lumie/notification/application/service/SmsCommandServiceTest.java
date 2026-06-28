@@ -32,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Field;
 import java.time.Instant;
@@ -44,6 +45,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -57,6 +59,8 @@ class SmsCommandServiceTest {
     @Mock private StaffService staffService;
     @Mock private ClassService classService;
     @Mock private SmsRecipientGroupPersistencePort recipientGroupPersistencePort;
+    @Mock private SmsSenderSettingService senderSettingService;
+    @Mock private SmsProviderRegistry providerRegistry;
     @Mock private SmsDispatchService dispatchService;
     @InjectMocks private SmsCommandService commandService;
 
@@ -65,6 +69,8 @@ class SmsCommandServiceTest {
         TenantContextHolder.setTenant("test-tenant");
         UserContextHolder.setUserId(100L);
         UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        lenient().when(providerRegistry.isMockProvider()).thenReturn(true);
+        lenient().when(senderSettingService.requireApprovedSenderNumber()).thenReturn("0212345678");
     }
 
     @org.junit.jupiter.api.AfterEach
@@ -99,7 +105,35 @@ class SmsCommandServiceTest {
             assertThat(response.status()).isEqualTo(SmsStatus.PENDING);
             assertThat(response.successCount()).isZero();
             assertThat(response.recipientType()).isEqualTo(RecipientType.STUDENT);
+            ArgumentCaptor<SmsMessage> captor = ArgumentCaptor.forClass(SmsMessage.class);
+            verify(messageRepository).save(captor.capture());
+            assertThat(captor.getValue().getSenderNumber()).isNull();
             verify(dispatchService).dispatchAfterCommit(1L);
+        }
+
+        @Test
+        @DisplayName("SOLAPI provider는 승인된 발신 번호를 저장한다")
+        void sendSms_solapiProvider_storesApprovedSenderNumber() {
+            given(providerRegistry.isMockProvider()).willReturn(false);
+            SendSmsRequest request = new SendSmsRequest(
+                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.STUDENT)),
+                    "제목", "내용", null);
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(messageRepository.save(any(SmsMessage.class)))
+                    .willAnswer(inv -> {
+                        SmsMessage msg = inv.getArgument(0);
+                        setField(msg, "id", 1L);
+                        return msg;
+                    });
+
+            commandService.sendSms(request);
+
+            ArgumentCaptor<SmsMessage> captor = ArgumentCaptor.forClass(SmsMessage.class);
+            verify(messageRepository).save(captor.capture());
+            assertThat(captor.getValue().getSenderNumber()).isEqualTo("0212345678");
         }
 
         @Test
@@ -336,6 +370,25 @@ class SmsCommandServiceTest {
 
             assertThatThrownBy(() -> commandService.sendSms(request))
                     .isInstanceOf(BusinessException.class);
+        }
+
+        @Test
+        @DisplayName("SOLAPI provider에서 승인된 발신 번호가 없으면 발송하지 않는다")
+        void sendSms_solapiProviderWithoutApprovedSenderNumber_throwsException() {
+            given(providerRegistry.isMockProvider()).willReturn(false);
+            SendSmsRequest request = new SendSmsRequest(
+                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
+                    "제목", "내용", null);
+
+            given(staffService.getStaffByUserId(anyString(), eq(100L)))
+                    .willReturn(Optional.of(new StaffService.StaffData(
+                            10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
+            given(senderSettingService.requireApprovedSenderNumber())
+                    .willThrow(new BusinessException(com.lumie.notification.domain.exception.SmsErrorCode.SENDER_SETTING_NOT_APPROVED));
+
+            assertThatThrownBy(() -> commandService.sendSms(request))
+                    .isInstanceOf(BusinessException.class);
+            verify(messageRepository, never()).save(any(SmsMessage.class));
         }
     }
 

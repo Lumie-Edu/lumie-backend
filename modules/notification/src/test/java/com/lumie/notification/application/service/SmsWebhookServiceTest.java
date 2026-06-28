@@ -93,7 +93,6 @@ class SmsWebhookServiceTest {
     private SmsWebhookService service(TenantService tenantService, SmsDispatchService dispatchService) {
         SmsProperties properties = new SmsProperties(
                 "mock",
-                "0212345678",
                 50,
                 3,
                 new SmsProperties.Solapi("key", "secret", "https://api.solapi.com", "token")
@@ -106,6 +105,7 @@ class SmsWebhookServiceTest {
         return new SmsMessageResponse(
                 7L,
                 10L,
+                "02-1234-5678",
                 RecipientType.GUARDIAN,
                 List.of(),
                 1,

@@ -38,6 +38,9 @@ public class SmsMessage extends TenantScopedEntity {
     @Column(name = "sender_id")
     private Long senderId;
 
+    @Column(name = "sender_number", length = 20)
+    private String senderNumber;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "recipient_type", nullable = false, length = 20)
     private RecipientType recipientType;
@@ -113,11 +116,12 @@ public class SmsMessage extends TenantScopedEntity {
     private int failCount;
 
     @Builder
-    private SmsMessage(Long senderId, RecipientType recipientType,
+    private SmsMessage(Long senderId, String senderNumber, RecipientType recipientType,
                        List<Recipient> recipients, String title, Long recipientGroupId, String content,
                        Long templateId, Instant scheduledAt, SmsMessageType messageType,
                        int estimatedSegments, int unitPrice, int totalPrice, SmsStatus status) {
         this.senderId = senderId;
+        this.senderNumber = senderNumber;
         this.recipientType = recipientType;
         this.recipients = recipients;
         this.title = title;
@@ -138,7 +142,15 @@ public class SmsMessage extends TenantScopedEntity {
                                     List<Recipient> recipients, String title, String content,
                                     Long templateId, Instant scheduledAt, SmsMessageType messageType,
                                     int estimatedSegments, int unitPrice, int totalPrice) {
-        return create(senderId, recipientType, recipients, title, null, content, templateId,
+        return create(senderId, null, recipientType, recipients, title, null, content, templateId,
+                scheduledAt, messageType, estimatedSegments, unitPrice, totalPrice);
+    }
+
+    public static SmsMessage create(Long senderId, String senderNumber, RecipientType recipientType,
+                                    List<Recipient> recipients, String title, String content,
+                                    Long templateId, Instant scheduledAt, SmsMessageType messageType,
+                                    int estimatedSegments, int unitPrice, int totalPrice) {
+        return create(senderId, senderNumber, recipientType, recipients, title, null, content, templateId,
                 scheduledAt, messageType, estimatedSegments, unitPrice, totalPrice);
     }
 
@@ -146,8 +158,17 @@ public class SmsMessage extends TenantScopedEntity {
                                     List<Recipient> recipients, String title, Long recipientGroupId, String content,
                                     Long templateId, Instant scheduledAt, SmsMessageType messageType,
                                     int estimatedSegments, int unitPrice, int totalPrice) {
+        return create(senderId, null, recipientType, recipients, title, recipientGroupId, content,
+                templateId, scheduledAt, messageType, estimatedSegments, unitPrice, totalPrice);
+    }
+
+    public static SmsMessage create(Long senderId, String senderNumber, RecipientType recipientType,
+                                    List<Recipient> recipients, String title, Long recipientGroupId, String content,
+                                    Long templateId, Instant scheduledAt, SmsMessageType messageType,
+                                    int estimatedSegments, int unitPrice, int totalPrice) {
         return SmsMessage.builder()
                 .senderId(senderId)
+                .senderNumber(senderNumber)
                 .recipientType(recipientType)
                 .recipients(recipients)
                 .title(title)
@@ -166,7 +187,7 @@ public class SmsMessage extends TenantScopedEntity {
     public static SmsMessage create(Long senderId, RecipientType recipientType,
                                     List<Recipient> recipients, String title, String content,
                                     Long templateId) {
-        return create(senderId, recipientType, recipients, title, content, templateId,
+        return create(senderId, null, recipientType, recipients, title, content, templateId,
                 null, SmsMessageType.SMS, 1, 0, 0);
     }
 

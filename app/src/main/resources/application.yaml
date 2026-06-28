@@ -198,7 +198,6 @@ lumie:
     hmac-secret: ${LUMIE_INTERNAL_HMAC_SECRET:?LUMIE_INTERNAL_HMAC_SECRET env var required (Vault → VSO → K8s Secret)}
   sms:
     provider: ${LUMIE_SMS_PROVIDER:mock}
-    from-number: ${SOLAPI_FROM_NUMBER:}
     dispatch-batch-size: ${LUMIE_SMS_DISPATCH_BATCH_SIZE:50}
     max-dispatch-attempts: ${LUMIE_SMS_MAX_DISPATCH_ATTEMPTS:3}
     dispatch-fixed-delay-ms: ${LUMIE_SMS_DISPATCH_FIXED_DELAY_MS:60000}

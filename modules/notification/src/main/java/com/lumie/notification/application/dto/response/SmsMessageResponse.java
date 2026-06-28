@@ -13,6 +13,8 @@ public record SmsMessageResponse(
     Long id,
     @Schema(nullable = true)
     Long senderId,
+    @Schema(nullable = true)
+    String senderNumber,
     RecipientType recipientType,
     List<RecipientResponse> recipients,
     int recipientCount,
@@ -37,7 +39,7 @@ public record SmsMessageResponse(
                               List<RecipientResponse> recipients, String title, String content,
                               Long templateId, Instant sentAt, SmsStatus status, int successCount,
                               int failCount, Instant createdAt, Instant updatedAt) {
-        this(id, senderId, recipientType, recipients, recipients.size(), title, null, content, templateId, null, null, sentAt,
+        this(id, senderId, null, recipientType, recipients, recipients.size(), title, null, content, templateId, null, null, sentAt,
                 SmsMessageType.SMS, 1, 0, 0, status, successCount, failCount, createdAt, updatedAt);
     }
 
@@ -45,6 +47,7 @@ public record SmsMessageResponse(
         return new SmsMessageResponse(
             entity.getId(),
             entity.getSenderId(),
+            entity.getSenderNumber(),
             entity.getRecipientType(),
             entity.getRecipients().stream().map(RecipientResponse::from).toList(),
             entity.getRecipients().size(),
@@ -71,6 +74,7 @@ public record SmsMessageResponse(
         return new SmsMessageResponse(
             entity.getId(),
             entity.getSenderId(),
+            entity.getSenderNumber(),
             entity.getRecipientType(),
             List.of(),
             entity.getRecipients().size(),

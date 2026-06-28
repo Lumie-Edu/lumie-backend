@@ -32,6 +32,7 @@ public class SmsDispatchService {
     private final SmsMessageRepository messageRepository;
     private final SmsProviderRegistry providerRegistry;
     private final SmsProperties properties;
+    private final SmsSenderSettingService senderSettingService;
     private final TransactionTemplate transactionTemplate;
     private static final Duration DISPATCH_CLAIM_TIMEOUT = Duration.ofMinutes(5);
 
@@ -57,7 +58,14 @@ public class SmsDispatchService {
 
     public void dispatchMessage(Long messageId) {
         SmsProviderPort provider = providerRegistry.provider();
-        DispatchSnapshot snapshot = prepareDispatch(messageId, provider.providerName());
+        String providerName = provider.providerName();
+        DispatchSnapshot snapshot;
+        try {
+            snapshot = prepareDispatch(messageId, providerName);
+        } catch (BusinessException e) {
+            recordProviderFailure(messageId, providerName, e.getMessage());
+            return;
+        }
         if (snapshot == null) {
             return;
         }
@@ -66,7 +74,7 @@ public class SmsDispatchService {
             SmsProviderPort.SendResult result = provider.send(snapshot.toCommand());
             applyProviderResult(snapshot.messageId(), result);
         } catch (BusinessException e) {
-            recordProviderFailure(snapshot.messageId(), provider.providerName(), e.getMessage());
+            recordProviderFailure(snapshot.messageId(), providerName, e.getMessage());
         }
     }
 
@@ -104,8 +112,19 @@ public class SmsDispatchService {
                             SmsErrorCode.MESSAGE_NOT_FOUND,
                             "SMS message not found with id: " + messageId
                     ));
-            return DispatchSnapshot.from(TenantContextHolder.getRequiredTenant(), message);
+            return DispatchSnapshot.from(
+                    TenantContextHolder.getRequiredTenant(),
+                    message,
+                    resolveSenderNumberForDispatch(message, providerName)
+            );
         });
+    }
+
+    private String resolveSenderNumberForDispatch(SmsMessage message, String providerName) {
+        if ("mock".equalsIgnoreCase(providerName)) {
+            return message.getSenderNumber();
+        }
+        return senderSettingService.resolveSenderNumberForDispatch(message.getSenderNumber());
     }
 
     private void applyProviderResult(Long messageId, SmsProviderPort.SendResult result) {
@@ -258,7 +277,7 @@ public class SmsDispatchService {
             com.lumie.notification.domain.vo.SmsMessageType messageType,
             List<SmsProviderPort.RecipientCommand> recipients
     ) {
-        static DispatchSnapshot from(String tenantSlug, SmsMessage message) {
+        static DispatchSnapshot from(String tenantSlug, SmsMessage message, String from) {
             List<SmsProviderPort.RecipientCommand> recipients = new java.util.ArrayList<>();
             for (int i = 0; i < message.getRecipients().size(); i++) {
                 Recipient recipient = message.getRecipients().get(i);
@@ -271,7 +290,7 @@ public class SmsDispatchService {
             return new DispatchSnapshot(
                     message.getId(),
                     tenantSlug,
-                    null,
+                    from,
                     message.getMessageType(),
                     List.copyOf(recipients)
             );

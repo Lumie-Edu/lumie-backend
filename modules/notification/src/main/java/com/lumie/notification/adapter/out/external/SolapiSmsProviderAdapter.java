@@ -55,11 +55,10 @@ public class SolapiSmsProviderAdapter implements SmsProviderPort {
     public void validateConfiguration() {
         if (isBlank(properties.solapi().apiKey())
                 || isBlank(properties.solapi().apiSecret())
-                || isBlank(properties.fromNumber())
                 || isBlank(properties.solapi().webhookToken())) {
             throw new BusinessException(
                     SmsErrorCode.PROVIDER_CONFIGURATION_INVALID,
-                    "SOLAPI requires SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_FROM_NUMBER, and SOLAPI_WEBHOOK_TOKEN"
+                    "SOLAPI requires SOLAPI_API_KEY, SOLAPI_API_SECRET, and SOLAPI_WEBHOOK_TOKEN"
             );
         }
     }
@@ -67,11 +66,14 @@ public class SolapiSmsProviderAdapter implements SmsProviderPort {
     @Override
     public SendResult send(SendCommand command) {
         validateConfiguration();
+        if (isBlank(command.from())) {
+            throw new BusinessException(SmsErrorCode.PROVIDER_SEND_FAILED, "SOLAPI sender number is required");
+        }
         SolapiSendRequest body = new SolapiSendRequest(
                 command.recipients().stream()
                         .map(recipient -> new SolapiMessage(
                                 recipient.to(),
-                                properties.fromNumber(),
+                                command.from(),
                                 recipient.text(),
                                 command.messageType().name(),
                                 command.messageType().name().equals("LMS") ? "Lumie" : null,

@@ -26,7 +26,7 @@ class SolapiSmsProviderAdapterTest {
                 .withHeader("Authorization", matching("HMAC-SHA256 apiKey=test-key, date=.+, salt=.+, signature=[0-9a-f]+"))
                 .withRequestBody(matchingJsonPath("$.showMessageList", equalTo("true")))
                 .withRequestBody(matchingJsonPath("$.messages[0].to", equalTo("01012345678")))
-                .withRequestBody(matchingJsonPath("$.messages[0].from", equalTo("0212345678")))
+                .withRequestBody(matchingJsonPath("$.messages[0].from", equalTo("0299988888")))
                 .withRequestBody(matchingJsonPath("$.messages[0].customFields.lumieTenant", equalTo("inst-test")))
                 .withRequestBody(matchingJsonPath("$.messages[0].customFields.lumieSmsId", equalTo("7")))
                 .withRequestBody(matchingJsonPath("$.messages[0].customFields.lumieRecipient", equalTo("0")))
@@ -48,7 +48,6 @@ class SolapiSmsProviderAdapterTest {
 
         SolapiSmsProviderAdapter adapter = new SolapiSmsProviderAdapter(new SmsProperties(
                 "solapi",
-                "0212345678",
                 50,
                 3,
                 new SmsProperties.Solapi("test-key", "test-secret", wm.baseUrl(), "webhook-token")
@@ -57,7 +56,7 @@ class SolapiSmsProviderAdapterTest {
         SmsProviderPort.SendResult result = adapter.send(new SmsProviderPort.SendCommand(
                 7L,
                 "inst-test",
-                null,
+                "0299988888",
                 SmsMessageType.SMS,
                 List.of(new SmsProviderPort.RecipientCommand(0, "01012345678", "안내 문자"))
         ));

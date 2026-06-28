@@ -4496,6 +4496,10 @@
             "nullable" : true,
             "type" : "integer"
           },
+          "senderNumber" : {
+            "nullable" : true,
+            "type" : "string"
+          },
           "sentAt" : {
             "format" : "date-time",
             "nullable" : true,
@@ -4531,7 +4535,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "cancelledAt", "content", "createdAt", "estimatedSegments", "failCount", "id", "messageType", "recipientCount", "recipientGroupId", "recipientType", "recipients", "scheduledAt", "senderId", "sentAt", "status", "successCount", "templateId", "title", "totalPrice", "unitPrice", "updatedAt" ],
+        "required" : [ "cancelledAt", "content", "createdAt", "estimatedSegments", "failCount", "id", "messageType", "recipientCount", "recipientGroupId", "recipientType", "recipients", "scheduledAt", "senderId", "senderNumber", "sentAt", "status", "successCount", "templateId", "title", "totalPrice", "unitPrice", "updatedAt" ],
         "type" : "object"
       },
       "SmsRecipientGroupResponse" : {
@@ -4598,6 +4602,65 @@
           }
         },
         "required" : [ "createdAt", "guardianRecipientCount", "icon", "id", "name", "recipientCount", "studentRecipientCount", "updatedAt" ],
+        "type" : "object"
+      },
+      "SmsSenderSettingResponse" : {
+        "properties" : {
+          "approvedAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "provider" : {
+            "type" : "string"
+          },
+          "registrationStatus" : {
+            "enum" : [ "NOT_CONFIGURED", "PENDING", "APPROVED", "REJECTED" ],
+            "type" : "string"
+          },
+          "rejectedAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "rejectionReason" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "senderNumber" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          }
+        },
+        "required" : [ "approvedAt", "createdAt", "id", "provider", "registrationStatus", "rejectedAt", "rejectionReason", "senderNumber", "updatedAt" ],
+        "type" : "object"
+      },
+      "SmsSenderSettingStatusResponse" : {
+        "properties" : {
+          "provider" : {
+            "type" : "string"
+          },
+          "registrationStatus" : {
+            "enum" : [ "NOT_CONFIGURED", "PENDING", "APPROVED", "REJECTED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "provider", "registrationStatus" ],
         "type" : "object"
       },
       "SmsTemplateResponse" : {
@@ -6118,6 +6181,18 @@
             "type" : "string"
           }
         },
+        "type" : "object"
+      },
+      "UpsertSmsSenderSettingRequest" : {
+        "properties" : {
+          "senderNumber" : {
+            "maxLength" : 20,
+            "minLength" : 0,
+            "pattern" : "^(?:\\d{10,11}|\\d{2,3}-\\d{3,4}-\\d{4})$",
+            "type" : "string"
+          }
+        },
+        "required" : [ "senderNumber" ],
         "type" : "object"
       },
       "UserResponse" : {
@@ -12617,6 +12692,68 @@
           }
         },
         "tags" : [ "sms-controller" ]
+      }
+    },
+    "/v1/sms/sender-setting" : {
+      "get" : {
+        "operationId" : "getSenderSetting",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SmsSenderSettingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sms-sender-setting-controller" ]
+      },
+      "put" : {
+        "operationId" : "upsertSenderSetting",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpsertSmsSenderSettingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SmsSenderSettingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sms-sender-setting-controller" ]
+      }
+    },
+    "/v1/sms/sender-setting/status" : {
+      "get" : {
+        "operationId" : "getSenderSettingStatus",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SmsSenderSettingStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sms-sender-setting-controller" ]
       }
     },
     "/v1/staff" : {
