@@ -1,19 +1,12 @@
 package com.lumie.common.tenant;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Component;
-
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 /**
  * Issues {@code SELECT set_config('app.tenant_id', ?, true)} at every
@@ -43,31 +36,19 @@ import java.sql.SQLException;
  * per their {@code USING} clause — typically empty result), or (b) set a
  * specific tenantId for each iteration.
  */
-@Slf4j
 @Aspect
 @Component
 @RequiredArgsConstructor
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class RlsTenantContextAspect {
 
-    private static final String SET_TENANT_SQL = "SELECT set_config('app.tenant_id', ?, true)";
-
-    private final DataSource dataSource;
+    private final RlsTenantTransactionBinder transactionBinder;
 
     @Around("@annotation(org.springframework.transaction.annotation.Transactional) "
             + "|| @within(org.springframework.transaction.annotation.Transactional)")
     public Object bindTenantToTransaction(ProceedingJoinPoint pjp) throws Throwable {
         Long tenantId = TenantContextHolder.getTenantId();
-        if (tenantId != null) {
-            Connection con = DataSourceUtils.getConnection(dataSource);
-            try (PreparedStatement ps = con.prepareStatement(SET_TENANT_SQL)) {
-                ps.setString(1, String.valueOf(tenantId));
-                ps.execute();
-            } catch (SQLException e) {
-                log.error("Failed to bind RLS tenant_id={} to current transaction", tenantId, e);
-                throw e;
-            }
-        }
+        transactionBinder.bindTenantToCurrentTransaction(tenantId);
         return pjp.proceed();
     }
 }

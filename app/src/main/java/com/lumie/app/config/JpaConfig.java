@@ -1,5 +1,6 @@
 package com.lumie.app.config;
 
+import com.lumie.common.tx.RequiresNewTransaction;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -8,6 +9,7 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -41,8 +43,17 @@ public class JpaConfig {
      * auto-configure this bean.
      */
     @Bean
+    @Primary
     public TransactionTemplate transactionTemplate(PlatformTransactionManager txManager) {
         return new TransactionTemplate(txManager);
+    }
+
+    @Bean
+    @RequiresNewTransaction
+    public TransactionTemplate requiresNewTransactionTemplate(PlatformTransactionManager txManager) {
+        TransactionTemplate template = new TransactionTemplate(txManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return template;
     }
 
     /**

@@ -198,7 +198,7 @@ class SmsControllerTest {
     @Test
     @DisplayName("GET /v1/sms/history - 발송 이력 조회 시 200을 반환한다")
     void listMessages_returns200() throws Exception {
-        SmsMessageResponse response = buildSmsResponse(1L);
+        SmsMessageResponse response = buildSmsResponse(1L, "[redacted]");
         Page<SmsMessageResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1);
 
         given(queryService.listMessages(any(), any(), any(), any(), any())).willReturn(page);
@@ -206,6 +206,7 @@ class SmsControllerTest {
         mockMvc.perform(get("/v1/sms/history"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(1))
+                .andExpect(jsonPath("$.items[0].content").value("[redacted]"))
                 .andExpect(jsonPath("$.items[0].status").value("SENT"));
     }
 
@@ -263,10 +264,14 @@ class SmsControllerTest {
     }
 
     private SmsMessageResponse buildSmsResponse(Long id) {
+        return buildSmsResponse(id, "테스트 내용");
+    }
+
+    private SmsMessageResponse buildSmsResponse(Long id, String content) {
         return new SmsMessageResponse(
                 id, 10L, RecipientType.GUARDIAN,
                 List.of(new RecipientResponse("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null)),
-                "테스트 제목", "테스트 내용", null,
+                "테스트 제목", content, null,
                 Instant.now(), SmsStatus.SENT, 1, 0,
                 Instant.now(), Instant.now());
     }

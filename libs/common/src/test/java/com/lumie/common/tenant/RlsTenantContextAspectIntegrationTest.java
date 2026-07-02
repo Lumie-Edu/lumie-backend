@@ -126,8 +126,13 @@ class RlsTenantContextAspectIntegrationTest {
         }
 
         @Bean
-        RlsTenantContextAspect rlsTenantContextAspect(DataSource dataSource) {
-            return new RlsTenantContextAspect(dataSource);
+        RlsTenantTransactionBinder rlsTenantTransactionBinder(DataSource dataSource) {
+            return new RlsTenantTransactionBinder(dataSource);
+        }
+
+        @Bean
+        RlsTenantContextAspect rlsTenantContextAspect(RlsTenantTransactionBinder transactionBinder) {
+            return new RlsTenantContextAspect(transactionBinder);
         }
 
         @Bean

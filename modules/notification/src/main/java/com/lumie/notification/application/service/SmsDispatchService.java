@@ -1,7 +1,9 @@
 package com.lumie.notification.application.service;
 
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.tenant.RlsTenantTransactionBinder;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tx.RequiresNewTransaction;
 import com.lumie.notification.adapter.out.config.SmsProperties;
 import com.lumie.notification.application.dto.response.SmsMessageResponse;
 import com.lumie.notification.application.port.out.SmsProviderPort;
@@ -10,10 +12,10 @@ import com.lumie.notification.domain.exception.SmsErrorCode;
 import com.lumie.notification.domain.repository.SmsMessageRepository;
 import com.lumie.notification.domain.vo.Recipient;
 import com.lumie.notification.domain.vo.SmsStatus;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -26,15 +28,32 @@ import java.util.Objects;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SmsDispatchService {
+
+    private static final Duration DISPATCH_CLAIM_TIMEOUT = Duration.ofMinutes(5);
 
     private final SmsMessageRepository messageRepository;
     private final SmsProviderRegistry providerRegistry;
     private final SmsProperties properties;
     private final SmsSenderSettingService senderSettingService;
-    private final TransactionTemplate transactionTemplate;
-    private static final Duration DISPATCH_CLAIM_TIMEOUT = Duration.ofMinutes(5);
+    private final TransactionTemplate dispatchTransactionTemplate;
+    private final RlsTenantTransactionBinder rlsTenantTransactionBinder;
+
+    public SmsDispatchService(
+            SmsMessageRepository messageRepository,
+            SmsProviderRegistry providerRegistry,
+            SmsProperties properties,
+            SmsSenderSettingService senderSettingService,
+            @RequiresNewTransaction TransactionTemplate dispatchTransactionTemplate,
+            RlsTenantTransactionBinder rlsTenantTransactionBinder
+    ) {
+        this.messageRepository = messageRepository;
+        this.providerRegistry = providerRegistry;
+        this.properties = properties;
+        this.senderSettingService = senderSettingService;
+        this.dispatchTransactionTemplate = dispatchTransactionTemplate;
+        this.rlsTenantTransactionBinder = rlsTenantTransactionBinder;
+    }
 
     public void dispatchAfterCommit(Long messageId) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
@@ -79,7 +98,7 @@ public class SmsDispatchService {
     }
 
     public int dispatchDueMessages(Instant now) {
-        List<Long> ids = transactionTemplate.execute(status -> messageRepository.findDueDispatchIds(
+        List<Long> ids = executeDispatchTransaction(status -> messageRepository.findDueDispatchIds(
                 SmsStatus.PENDING,
                 now,
                 properties.maxDispatchAttempts(),
@@ -94,7 +113,7 @@ public class SmsDispatchService {
     }
 
     private DispatchSnapshot prepareDispatch(Long messageId, String providerName) {
-        return transactionTemplate.execute(status -> {
+        return executeDispatchTransaction(status -> {
             Instant now = Instant.now();
             int claimed = messageRepository.claimDispatchAttempt(
                     messageId,
@@ -128,17 +147,18 @@ public class SmsDispatchService {
     }
 
     private void applyProviderResult(Long messageId, SmsProviderPort.SendResult result) {
-        transactionTemplate.executeWithoutResult(status -> {
+        executeDispatchTransaction(status -> {
             SmsMessage message = messageRepository.findById(messageId)
                     .orElseThrow(() -> new BusinessException(SmsErrorCode.MESSAGE_NOT_FOUND));
             List<Recipient> updatedRecipients = mergeProviderResults(message.getRecipients(), result.recipients());
             applyAggregateState(message, result.provider(), result.providerGroupId(), updatedRecipients);
             messageRepository.save(message);
+            return null;
         });
     }
 
     private void recordProviderFailure(Long messageId, String providerName, String errorMessage) {
-        transactionTemplate.executeWithoutResult(status -> {
+        executeDispatchTransaction(status -> {
             SmsMessage message = messageRepository.findById(messageId)
                     .orElseThrow(() -> new BusinessException(SmsErrorCode.MESSAGE_NOT_FOUND));
             if (message.getDispatchAttemptCount() >= properties.maxDispatchAttempts()) {
@@ -147,11 +167,12 @@ public class SmsDispatchService {
                 message.recordRetryableDispatchFailure(providerName, errorMessage);
             }
             messageRepository.save(message);
+            return null;
         });
     }
 
     SmsMessageResponse applyWebhookReport(SolapiWebhookReport report) {
-        return transactionTemplate.execute(status -> {
+        return executeDispatchTransaction(status -> {
             SmsMessage message = messageRepository.findByProviderGroupId(report.providerGroupId())
                     .orElseThrow(() -> new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Webhook provider group not found"));
             validateWebhookBinding(message, report);
@@ -168,6 +189,13 @@ public class SmsDispatchService {
             updated.set(report.recipientIndex(), withProviderStatus(current, report));
             applyAggregateState(message, "solapi", report.providerGroupId(), updated);
             return SmsMessageResponse.from(messageRepository.save(message));
+        });
+    }
+
+    private <T> T executeDispatchTransaction(TransactionCallback<T> callback) {
+        return dispatchTransactionTemplate.execute(status -> {
+            rlsTenantTransactionBinder.bindRequiredTenantToCurrentTransaction();
+            return callback.doInTransaction(status);
         });
     }
 

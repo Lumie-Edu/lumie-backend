@@ -92,7 +92,36 @@ class SmsQueryServiceTest {
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).id()).isEqualTo(1L);
-        assertThat(response.getContent().get(0).content()).isNull();
+        assertThat(response.getContent().get(0).content()).isEqualTo("[redacted]");
+    }
+
+    @Test
+    @DisplayName("listMessages는 긴 본문도 redaction한다")
+    void listMessages_redactsLongContentPreview() throws Exception {
+        String longContent = "가".repeat(130);
+        SmsMessage message = buildSmsMessage(1L, longContent);
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<SmsMessage> page = new PageImpl<>(List.of(message), pageable, 1);
+
+        given(messageRepository.findAll(any(SmsSearchCriteria.class), eq(pageable))).willReturn(page);
+
+        Page<SmsMessageResponse> response = queryService.listMessages(null, null, null, null, pageable);
+
+        assertThat(response.getContent().get(0).content()).isEqualTo("[redacted]");
+    }
+
+    @Test
+    @DisplayName("listMessages는 매우 짧은 본문을 완전히 redaction한다")
+    void listMessages_redactsVeryShortContentPreview() throws Exception {
+        SmsMessage message = buildSmsMessage(1L, "네");
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<SmsMessage> page = new PageImpl<>(List.of(message), pageable, 1);
+
+        given(messageRepository.findAll(any(SmsSearchCriteria.class), eq(pageable))).willReturn(page);
+
+        Page<SmsMessageResponse> response = queryService.listMessages(null, null, null, null, pageable);
+
+        assertThat(response.getContent().get(0).content()).isEqualTo("[redacted]");
     }
 
     @Test
@@ -158,10 +187,14 @@ class SmsQueryServiceTest {
     // -- helpers --
 
     private SmsMessage buildSmsMessage(Long id) throws Exception {
+        return buildSmsMessage(id, "테스트 내용");
+    }
+
+    private SmsMessage buildSmsMessage(Long id, String content) throws Exception {
         SmsMessage message = SmsMessage.create(
                 10L, RecipientType.GUARDIAN,
                 List.of(Recipient.pending("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null)),
-                "테스트 제목", "테스트 내용", null);
+                "테스트 제목", content, null);
         setField(message, "id", id);
         return message;
     }

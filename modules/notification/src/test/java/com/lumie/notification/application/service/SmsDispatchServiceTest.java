@@ -1,6 +1,7 @@
 package com.lumie.notification.application.service;
 
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.tenant.RlsTenantTransactionBinder;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.notification.adapter.out.config.SmsProperties;
 import com.lumie.notification.application.port.out.SmsProviderPort;
@@ -34,6 +35,8 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -46,6 +49,7 @@ class SmsDispatchServiceTest {
     @Mock private SmsProviderPort providerPort;
     @Mock private SmsSenderSettingService senderSettingService;
     @Mock private TransactionTemplate transactionTemplate;
+    @Mock private RlsTenantTransactionBinder rlsTenantTransactionBinder;
 
     private SmsDispatchService service;
 
@@ -54,7 +58,14 @@ class SmsDispatchServiceTest {
         TenantContextHolder.setTenant("inst-test");
         TenantContextHolder.setTenantId(1L);
         SmsProperties properties = new SmsProperties("mock", 50, 3, null);
-        service = new SmsDispatchService(messageRepository, providerRegistry, properties, senderSettingService, transactionTemplate);
+        service = new SmsDispatchService(
+                messageRepository,
+                providerRegistry,
+                properties,
+                senderSettingService,
+                transactionTemplate,
+                rlsTenantTransactionBinder
+        );
         given(transactionTemplate.execute(any())).willAnswer(inv -> {
             org.springframework.transaction.support.TransactionCallback<?> callback = inv.getArgument(0);
             return callback.doInTransaction(new SimpleTransactionStatus());
@@ -99,9 +110,26 @@ class SmsDispatchServiceTest {
             assertThat(recipient.providerMessageId()).isEqualTo("M_TEST_1");
         });
         verify(messageRepository).claimDispatchAttempt(eq(7L), eq(SmsStatus.PENDING), eq("solapi"), eq(3), any(), any());
+        verify(rlsTenantTransactionBinder, atLeast(2)).bindRequiredTenantToCurrentTransaction();
         ArgumentCaptor<SmsProviderPort.SendCommand> commandCaptor = ArgumentCaptor.forClass(SmsProviderPort.SendCommand.class);
         verify(providerPort).send(commandCaptor.capture());
         assertThat(commandCaptor.getValue().from()).isEqualTo("0212345678");
+    }
+
+    @Test
+    void dispatchMessage_failsFastWhenTenantIdIsMissing() {
+        TenantContextHolder.clear();
+        given(providerRegistry.provider()).willReturn(providerPort);
+        given(providerPort.providerName()).willReturn("solapi");
+        doThrow(new IllegalStateException("Tenant ID is not set in context"))
+                .when(rlsTenantTransactionBinder)
+                .bindRequiredTenantToCurrentTransaction();
+
+        assertThatThrownBy(() -> service.dispatchMessage(7L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Tenant ID is not set");
+        verify(messageRepository, never()).claimDispatchAttempt(anyLong(), any(), any(), anyInt(), any(), any());
+        verify(providerPort, never()).send(any());
     }
 
     @Test
