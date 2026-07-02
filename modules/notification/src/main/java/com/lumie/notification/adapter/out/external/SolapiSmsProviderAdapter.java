@@ -76,7 +76,6 @@ public class SolapiSmsProviderAdapter implements SmsProviderPort {
                                 command.from(),
                                 recipient.text(),
                                 command.messageType().name(),
-                                command.messageType().name().equals("LMS") ? "Lumie" : null,
                                 Map.of(
                                         "lumieTenant", command.tenantSlug(),
                                         "lumieSmsId", String.valueOf(command.messageId()),
@@ -180,7 +179,6 @@ public class SolapiSmsProviderAdapter implements SmsProviderPort {
             String from,
             String text,
             String type,
-            String subject,
             Map<String, String> customFields
     ) {
     }
