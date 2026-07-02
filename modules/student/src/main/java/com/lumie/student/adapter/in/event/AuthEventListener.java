@@ -31,7 +31,7 @@ public class AuthEventListener {
                 return null;
             }
 
-            validatePhoneUniqueness(event.phone(), event.parentPhone());
+            validatePhoneUniqueness(event.phone());
 
             Student student = Student.create(
                     event.userId(),
@@ -49,17 +49,10 @@ public class AuthEventListener {
         });
     }
 
-    private void validatePhoneUniqueness(String phone, String parentPhone) {
+    private void validatePhoneUniqueness(String phone) {
         String normalizedPhone = PhoneNumberUtils.toDigits(phone);
-        String normalizedParentPhone = PhoneNumberUtils.toDigits(parentPhone);
 
-        if (normalizedPhone != null && normalizedPhone.equals(normalizedParentPhone)) {
-            throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE);
-        }
-        if (normalizedPhone != null && studentRepository.existsByPhoneInAnyField(normalizedPhone)) {
-            throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE);
-        }
-        if (normalizedParentPhone != null && studentRepository.existsByPhoneInAnyField(normalizedParentPhone)) {
+        if (normalizedPhone != null && studentRepository.existsByPhone(normalizedPhone)) {
             throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE);
         }
     }

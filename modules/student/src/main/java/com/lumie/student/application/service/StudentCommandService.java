@@ -52,7 +52,7 @@ public class StudentCommandService {
 
         checkStudentQuota(tenantSlug);
 
-        validatePhoneUniqueness(request.phone(), request.parentPhone(), null);
+        validatePhoneUniqueness(request.phone(), null);
 
         AuthService.CreateUserResult userResult = authService.createUser(
                 request.name(),
@@ -93,7 +93,7 @@ public class StudentCommandService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with id: %d".formatted(id)));
 
-        validatePhoneUniqueness(request.phone(), request.parentPhone(), id);
+        validatePhoneUniqueness(request.phone(), id);
 
         student.updateInfo(
             request.name(),
@@ -397,7 +397,7 @@ public class StudentCommandService {
             } else if (!PhoneNumberUtils.isValid(row.phone())) {
                 errors.add(rowError(row.rowNumber(), "phone", row.phone(),
                         StudentErrorCode.BULK_IMPORT_INVALID_PHONE));
-            } else if (studentRepository.existsByPhoneInAnyField(PhoneNumberUtils.toDigits(row.phone()))) {
+            } else if (studentRepository.existsByPhone(PhoneNumberUtils.toDigits(row.phone()))) {
                 errors.add(rowError(row.rowNumber(), "phone", row.phone(),
                         StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE));
             }
@@ -431,26 +431,16 @@ public class StudentCommandService {
         return new BulkImportResult.RowError(rowNumber, column, value, code.getCode(), overrideMessage);
     }
 
-    private void validatePhoneUniqueness(String phone, String parentPhone, Long excludeId) {
+    private void validatePhoneUniqueness(String phone, Long excludeId) {
         String p = PhoneNumberUtils.toDigits(phone);
-        String pp = PhoneNumberUtils.toDigits(parentPhone);
 
-        if (p != null && p.equals(pp)) {
-            throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
-        }
         if (excludeId == null) {
-            if (p != null && studentRepository.existsByPhoneInAnyField(p)) {
+            if (p != null && studentRepository.existsByPhone(p)) {
                 throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
-            }
-            if (pp != null && studentRepository.existsByPhoneInAnyField(pp)) {
-                throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(parentPhone));
             }
         } else {
-            if (p != null && studentRepository.existsByPhoneInAnyFieldExcluding(p, excludeId)) {
+            if (p != null && studentRepository.existsByPhoneExcluding(p, excludeId)) {
                 throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
-            }
-            if (pp != null && studentRepository.existsByPhoneInAnyFieldExcluding(pp, excludeId)) {
-                throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(parentPhone));
             }
         }
     }

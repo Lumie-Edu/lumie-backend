@@ -77,11 +77,10 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
 
     boolean existsByUserLoginId(String userLoginId);
 
-    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE s.phone = :phone OR s.parentPhone = :phone")
-    boolean existsByPhoneInAnyField(@Param("phone") String phone);
+    boolean existsByPhone(String phone);
 
-    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE (s.phone = :phone OR s.parentPhone = :phone) AND s.id != :excludeId")
-    boolean existsByPhoneInAnyFieldExcluding(@Param("phone") String phone, @Param("excludeId") Long excludeId);
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE s.phone = :phone AND s.id != :excludeId")
+    boolean existsByPhoneExcluding(@Param("phone") String phone, @Param("excludeId") Long excludeId);
 
     /**
      * Searches active/inactive students by free-text keyword across name, school,

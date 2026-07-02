@@ -4,8 +4,11 @@ import com.lumie.auth.api.AuthService;
 import com.lumie.billing.api.BillingService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.auth.Role;
+import com.lumie.common.quota.MetricType;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.api.ContentService;
+import com.lumie.student.application.dto.request.StudentRequest;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.StudentErrorCode;
 import com.lumie.student.domain.repository.StudentRepository;
@@ -25,7 +28,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -63,6 +68,7 @@ class StudentCommandServiceTest {
     @BeforeEach
     void setUp() {
         TenantContextHolder.setTenant(TENANT);
+        TenantContextHolder.setTenantId(1L);
     }
 
     @AfterEach
@@ -97,6 +103,52 @@ class StudentCommandServiceTest {
 
         verify(authService, never()).deleteUser(anyLong());
         verify(classService, never()).dropActiveEnrollmentsForStudent(TENANT, 42L);
+    }
+
+    @Test
+    @DisplayName("registerStudent는 학부모 연락처 중복을 허용한다")
+    void registerStudent_duplicateParentPhone_allowsRegistration() {
+        StudentRequest request = new StudentRequest(
+                "김민조",
+                "01099999999",
+                "양천고",
+                2000,
+                "01012345678",
+                null
+        );
+        given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
+        given(studentRepository.existsByPhone("01099999999")).willReturn(false);
+        given(authService.createUser("김민조", "01099999999", Role.STUDENT.name(), 1L))
+                .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "01099999999"));
+        given(studentRepository.save(any(Student.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        service.registerStudent(request);
+
+        verify(studentRepository).existsByPhone("01099999999");
+        verify(authService).createUser("김민조", "01099999999", Role.STUDENT.name(), 1L);
+    }
+
+    @Test
+    @DisplayName("registerStudent는 학생 연락처 중복을 막는다")
+    void registerStudent_duplicateStudentPhone_blocksRegistration() {
+        StudentRequest request = new StudentRequest(
+                "김민조",
+                "01012345678",
+                "양천고",
+                2000,
+                "01088888888",
+                null
+        );
+        given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
+        given(studentRepository.existsByPhone("01012345678")).willReturn(true);
+
+        assertThatThrownBy(() -> service.registerStudent(request))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.DUPLICATE_PHONE));
+
+        verify(authService, never()).createUser(any(), any(), eq(Role.STUDENT.name()), anyLong());
     }
 
     private static Student inactiveStudent(Long id, Long userId) {
