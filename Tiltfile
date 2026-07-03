@@ -152,16 +152,11 @@ spec:
             secretKeyRef:
               name: lumie-dev-minio-secrets
               key: endpoint
-        - name: DEEPSEEK_API_KEY
+        - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
               name: lumie-dev-ai-token-secrets
-              key: DEEPSEEK_API_KEY
-        - name: GEMINI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: lumie-dev-ai-token-secrets
-              key: GOOGLE_API_KEY
+              key: OPENAI_API_KEY
         # Phase 4 cutover (dev only): route chat to the LangGraph chatbot-svc.
         - name: LUMIE_AI_LANGGRAPH_ENABLED
           value: "true"
