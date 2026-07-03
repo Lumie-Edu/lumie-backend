@@ -35,8 +35,6 @@ public record SmsMessageResponse(
     Instant createdAt,
     Instant updatedAt
 ) {
-    private static final String REDACTED_CONTENT_PREVIEW = "[redacted]";
-
     public SmsMessageResponse(Long id, Long senderId, RecipientType recipientType,
                               List<RecipientResponse> recipients, String title, String content,
                               Long templateId, Instant sentAt, SmsStatus status, int successCount,
@@ -82,7 +80,7 @@ public record SmsMessageResponse(
             entity.getRecipients().size(),
             entity.getTitle(),
             entity.getRecipientGroupId(),
-            previewContent(entity.getContent()),
+            entity.getContent(),
             entity.getTemplateId(),
             entity.getScheduledAt(),
             entity.getCancelledAt(),
@@ -97,12 +95,5 @@ public record SmsMessageResponse(
             entity.getCreatedAt(),
             entity.getUpdatedAt()
         );
-    }
-
-    private static String previewContent(String content) {
-        if (content == null || content.isEmpty()) {
-            return content;
-        }
-        return REDACTED_CONTENT_PREVIEW;
     }
 }

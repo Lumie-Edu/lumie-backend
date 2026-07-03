@@ -92,12 +92,12 @@ class SmsQueryServiceTest {
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).id()).isEqualTo(1L);
-        assertThat(response.getContent().get(0).content()).isEqualTo("[redacted]");
+        assertThat(response.getContent().get(0).content()).isEqualTo("테스트 내용");
     }
 
     @Test
-    @DisplayName("listMessages는 긴 본문도 redaction한다")
-    void listMessages_redactsLongContentPreview() throws Exception {
+    @DisplayName("listMessages는 긴 본문도 반환한다")
+    void listMessages_returnsLongContentPreview() throws Exception {
         String longContent = "가".repeat(130);
         SmsMessage message = buildSmsMessage(1L, longContent);
         Pageable pageable = PageRequest.of(0, 20);
@@ -107,12 +107,12 @@ class SmsQueryServiceTest {
 
         Page<SmsMessageResponse> response = queryService.listMessages(null, null, null, null, pageable);
 
-        assertThat(response.getContent().get(0).content()).isEqualTo("[redacted]");
+        assertThat(response.getContent().get(0).content()).isEqualTo(longContent);
     }
 
     @Test
-    @DisplayName("listMessages는 매우 짧은 본문을 완전히 redaction한다")
-    void listMessages_redactsVeryShortContentPreview() throws Exception {
+    @DisplayName("listMessages는 매우 짧은 본문도 반환한다")
+    void listMessages_returnsVeryShortContentPreview() throws Exception {
         SmsMessage message = buildSmsMessage(1L, "네");
         Pageable pageable = PageRequest.of(0, 20);
         Page<SmsMessage> page = new PageImpl<>(List.of(message), pageable, 1);
@@ -121,7 +121,7 @@ class SmsQueryServiceTest {
 
         Page<SmsMessageResponse> response = queryService.listMessages(null, null, null, null, pageable);
 
-        assertThat(response.getContent().get(0).content()).isEqualTo("[redacted]");
+        assertThat(response.getContent().get(0).content()).isEqualTo("네");
     }
 
     @Test
