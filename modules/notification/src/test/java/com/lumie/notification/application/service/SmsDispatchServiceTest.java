@@ -233,6 +233,50 @@ class SmsDispatchServiceTest {
     }
 
     @Test
+    void applyWebhookReport_fallsBackToMessageIdWhenProviderGroupWasNotStored() throws Exception {
+        SmsMessage message = dispatchedMessageWithoutProviderGroup("0212345678");
+        given(messageRepository.findByProviderGroupId("G4V_LIVE")).willReturn(Optional.empty());
+        given(messageRepository.findById(7L)).willReturn(Optional.of(message));
+        given(messageRepository.save(any(SmsMessage.class))).willAnswer(inv -> inv.getArgument(0));
+
+        service.applyWebhookReport(new SmsDispatchService.SolapiWebhookReport(
+                7L,
+                0,
+                "M_TEST_1",
+                "G4V_LIVE",
+                "4000",
+                "수신 완료"
+        ));
+
+        assertThat(message.getStatus()).isEqualTo(SmsStatus.SENT);
+        assertThat(message.getProviderGroupId()).isEqualTo("G4V_LIVE");
+        assertThat(message.getSuccessCount()).isEqualTo(1);
+        assertThat(message.getRecipients()).singleElement().satisfies(recipient -> {
+            assertThat(recipient.deliveryStatus()).isEqualTo(SmsStatus.SENT);
+            assertThat(recipient.providerStatusCode()).isEqualTo("4000");
+        });
+    }
+
+    @Test
+    void applyWebhookReport_preservesStoredProviderGroupWhenCallbackOmitsGroup() throws Exception {
+        SmsMessage message = dispatchedMessage("0212345678");
+        given(messageRepository.findById(7L)).willReturn(Optional.of(message));
+        given(messageRepository.save(any(SmsMessage.class))).willAnswer(inv -> inv.getArgument(0));
+
+        service.applyWebhookReport(new SmsDispatchService.SolapiWebhookReport(
+                7L,
+                0,
+                "M_TEST_1",
+                null,
+                "4000",
+                "수신 완료"
+        ));
+
+        assertThat(message.getStatus()).isEqualTo(SmsStatus.SENT);
+        assertThat(message.getProviderGroupId()).isEqualTo("G4V_TEST");
+    }
+
+    @Test
     void applyWebhookReport_ignoresStaleCallbackAfterTerminalState() throws Exception {
         SmsMessage message = dispatchedMessage("0212345678");
         given(messageRepository.findByProviderGroupId("G4V_TEST")).willReturn(Optional.of(message));
@@ -350,6 +394,17 @@ class SmsDispatchServiceTest {
         message.markAsDispatched(
                 "solapi",
                 "G4V_TEST",
+                List.of(message.getRecipients().get(0).dispatched("M_TEST_1", "2000", "정상 접수")),
+                "DISPATCHED"
+        );
+        return message;
+    }
+
+    private SmsMessage dispatchedMessageWithoutProviderGroup(String senderNumber) throws Exception {
+        SmsMessage message = message(senderNumber);
+        message.markAsDispatched(
+                "solapi",
+                null,
                 List.of(message.getRecipients().get(0).dispatched("M_TEST_1", "2000", "정상 접수")),
                 "DISPATCHED"
         );

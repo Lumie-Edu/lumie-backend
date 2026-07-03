@@ -173,8 +173,7 @@ public class SmsDispatchService {
 
     SmsMessageResponse applyWebhookReport(SolapiWebhookReport report) {
         return executeDispatchTransaction(status -> {
-            SmsMessage message = messageRepository.findByProviderGroupId(report.providerGroupId())
-                    .orElseThrow(() -> new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Webhook provider group not found"));
+            SmsMessage message = findWebhookMessage(report);
             validateWebhookBinding(message, report);
             List<Recipient> recipients = message.getRecipients();
             if (report.recipientIndex() < 0 || report.recipientIndex() >= recipients.size()) {
@@ -183,13 +182,27 @@ public class SmsDispatchService {
             List<Recipient> updated = new java.util.ArrayList<>(recipients);
             Recipient current = updated.get(report.recipientIndex());
             validateRecipientBinding(current, report.providerMessageId());
+            String providerGroupId = hasText(report.providerGroupId())
+                    ? report.providerGroupId()
+                    : message.getProviderGroupId();
             if (isTerminal(current.deliveryStatus())) {
                 return SmsMessageResponse.from(message);
             }
             updated.set(report.recipientIndex(), withProviderStatus(current, report));
-            applyAggregateState(message, "solapi", report.providerGroupId(), updated);
+            applyAggregateState(message, "solapi", providerGroupId, updated);
             return SmsMessageResponse.from(messageRepository.save(message));
         });
+    }
+
+    private SmsMessage findWebhookMessage(SolapiWebhookReport report) {
+        if (hasText(report.providerGroupId())) {
+            java.util.Optional<SmsMessage> byProviderGroup = messageRepository.findByProviderGroupId(report.providerGroupId());
+            if (byProviderGroup.isPresent()) {
+                return byProviderGroup.get();
+            }
+        }
+        return messageRepository.findById(report.messageId())
+                .orElseThrow(() -> new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Webhook message not found"));
     }
 
     private <T> T executeDispatchTransaction(TransactionCallback<T> callback) {
@@ -206,9 +219,15 @@ public class SmsDispatchService {
         if (!Objects.equals(message.getId(), report.messageId())) {
             throw new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Webhook message id does not match provider group");
         }
-        if (!Objects.equals(message.getProviderGroupId(), report.providerGroupId())) {
+        if (hasText(message.getProviderGroupId())
+                && hasText(report.providerGroupId())
+                && !Objects.equals(message.getProviderGroupId(), report.providerGroupId())) {
             throw new BusinessException(SmsErrorCode.WEBHOOK_IGNORED, "Webhook provider group does not match message");
         }
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private void validateRecipientBinding(Recipient recipient, String providerMessageId) {

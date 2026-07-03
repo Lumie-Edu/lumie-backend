@@ -90,6 +90,39 @@ class SmsWebhookServiceTest {
         assertThat(result).isEmpty();
     }
 
+    @Test
+    void applySolapiReport_acceptsMissingProviderGroupIdWhenLumieMappingExists() {
+        TenantService tenantService = mock(TenantService.class);
+        SmsDispatchService dispatchService = mock(SmsDispatchService.class);
+        SmsWebhookService service = service(tenantService, dispatchService);
+        given(tenantService.getTenantBySlug("inst-test"))
+                .willReturn(Optional.of(new TenantService.TenantData(
+                        1L,
+                        "inst-test",
+                        "Test",
+                        TenantStatus.ACTIVE,
+                        "test",
+                        null,
+                        null,
+                        null
+                )));
+        given(dispatchService.applyWebhookReport(any()))
+                .willReturn(response());
+
+        Optional<SmsMessageResponse> result = service.applySolapiReport(
+                "inst-test",
+                7L,
+                0,
+                "M_TEST_1",
+                null,
+                "4000",
+                "수신 완료"
+        );
+
+        assertThat(result).isPresent();
+        verify(dispatchService).applyWebhookReport(any());
+    }
+
     private SmsWebhookService service(TenantService tenantService, SmsDispatchService dispatchService) {
         SmsProperties properties = new SmsProperties(
                 "mock",

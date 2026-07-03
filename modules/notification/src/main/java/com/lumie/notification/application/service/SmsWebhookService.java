@@ -41,7 +41,6 @@ public class SmsWebhookService {
                                                           String statusCode, String statusMessage) {
         if (tenantSlug == null || tenantSlug.isBlank()
                 || providerMessageId == null || providerMessageId.isBlank()
-                || providerGroupId == null || providerGroupId.isBlank()
                 || messageId == null || recipientIndex < 0) {
             return Optional.empty();
         }
