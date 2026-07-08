@@ -47,18 +47,12 @@ public class Tenant extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     private TenantStatus status;
 
-    @Column(name = "owner_email", length = 255)
-    private String ownerEmail;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "plan_id", nullable = false, length = 20)
     private TenantPlan plan;
 
     @Column(name = "institute_name", length = 200)
     private String instituteName;
-
-    @Column(name = "business_registration_number", length = 12)
-    private String businessRegistrationNumber;
 
     @Column(name = "phone", length = 30)
     private String phone;
@@ -113,30 +107,27 @@ public class Tenant extends BaseEntity {
     );
 
     @Builder
-    private Tenant(TenantSlug slug, String name, String displayName, String ownerEmail, TenantPlan plan,
-                   String instituteName, String businessRegistrationNumber, String customId) {
+    private Tenant(TenantSlug slug, String name, String displayName, TenantPlan plan,
+                   String instituteName, String customId) {
         this.slug = slug;
         this.name = name;
         this.displayName = displayName;
-        this.ownerEmail = ownerEmail;
         this.status = TenantStatus.PENDING;
         this.plan = plan != null ? plan : TenantPlan.FREE;
         this.instituteName = instituteName;
-        this.businessRegistrationNumber = businessRegistrationNumber;
         this.customId = customId;
     }
 
-    public static Tenant create(String slug, String name, String displayName, String ownerEmail) {
-        return create(slug, name, displayName, ownerEmail, TenantPlan.FREE);
+    public static Tenant create(String slug, String name, String displayName) {
+        return create(slug, name, displayName, TenantPlan.FREE);
     }
 
-    public static Tenant create(String slug, String name, String displayName, String ownerEmail, TenantPlan plan) {
+    public static Tenant create(String slug, String name, String displayName, TenantPlan plan) {
         return Tenant.builder()
                 .slug(TenantSlug.of(slug))
                 .customId(slug.replaceFirst("^inst-", ""))
                 .name(name)
                 .displayName(displayName)
-                .ownerEmail(ownerEmail)
                 .plan(plan)
                 .build();
     }
@@ -145,16 +136,14 @@ public class Tenant extends BaseEntity {
      * Creates a tenant with auto-generated slug for owner registration.
      * Slug format: inst-{uuid8}
      */
-    public static Tenant createWithAutoSlug(String instituteName, String businessRegistrationNumber, String ownerEmail) {
+    public static Tenant createWithAutoSlug(String instituteName) {
         String autoSlug = "inst-" + java.util.UUID.randomUUID().toString().substring(0, 8);
         return Tenant.builder()
                 .slug(TenantSlug.of(autoSlug))
                 .customId(autoSlug.replaceFirst("^inst-", ""))
                 .name(instituteName)
                 .displayName(instituteName)
-                .ownerEmail(ownerEmail)
                 .instituteName(instituteName)
-                .businessRegistrationNumber(businessRegistrationNumber)
                 .plan(TenantPlan.FREE)
                 .build();
     }

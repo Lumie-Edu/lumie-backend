@@ -29,13 +29,6 @@ public record OwnerRegisterRequest(
 
         @NotBlank(message = "Institute name is required")
         @Size(min = 2, max = 200, message = "Institute name must be between 2 and 200 characters")
-        String instituteName,
-
-        @NotBlank(message = "Business registration number is required")
-        @Pattern(
-                regexp = "^\\d{3}-\\d{2}-\\d{5}$",
-                message = "Business registration number must be in format XXX-XX-XXXXX"
-        )
-        String businessRegistrationNumber
+        String instituteName
 ) {
 }

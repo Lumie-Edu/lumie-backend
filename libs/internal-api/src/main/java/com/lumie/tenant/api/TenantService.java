@@ -39,8 +39,7 @@ public interface TenantService {
 
     ValidateTenantResult validateTenant(String slug);
 
-    CreateTenantResult createTenant(String instituteName, String businessRegistrationNumber,
-                                    String ownerEmail, String ownerName);
+    CreateTenantResult createTenant(String instituteName);
 
     void updatePlan(String tenantSlug, String planId);
 

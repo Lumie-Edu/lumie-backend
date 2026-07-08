@@ -26,10 +26,10 @@ public class TenantRegistrationService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public TenantRegistrationResult registerTenant(String instituteName, String businessRegistrationNumber, String ownerEmail) {
+    public TenantRegistrationResult registerTenant(String instituteName) {
         log.info("Starting tenant registration for institute: {}", instituteName);
 
-        Tenant tenant = Tenant.createWithAutoSlug(instituteName, businessRegistrationNumber, ownerEmail);
+        Tenant tenant = Tenant.createWithAutoSlug(instituteName);
         Tenant savedTenant = tenantPersistencePort.save(tenant);
         log.info("Tenant created with slug: {}", savedTenant.getSlugValue());
 

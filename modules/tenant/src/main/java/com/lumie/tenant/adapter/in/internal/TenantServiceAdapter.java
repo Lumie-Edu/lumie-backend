@@ -100,11 +100,9 @@ public class TenantServiceAdapter implements TenantService {
     }
 
     @Override
-    public CreateTenantResult createTenant(String instituteName, String businessRegistrationNumber,
-                                           String ownerEmail, String ownerName) {
+    public CreateTenantResult createTenant(String instituteName) {
         try {
-            TenantRegistrationResult result = tenantRegistrationService.registerTenant(
-                    instituteName, businessRegistrationNumber, ownerEmail);
+            TenantRegistrationResult result = tenantRegistrationService.registerTenant(instituteName);
             return new CreateTenantResult(
                     result.success(), result.message(),
                     result.tenantId(), result.tenantSlug()

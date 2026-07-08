@@ -84,9 +84,7 @@ public class AuthRegistrationService {
             throw new UserLoginIdAlreadyExistsException("User login ID already registered: " + request.userLoginId());
         }
 
-        CreateTenantResult tenantResult = tenantService.createTenant(
-                request.instituteName(), request.businessRegistrationNumber(),
-                request.userLoginId(), request.name());
+        CreateTenantResult tenantResult = tenantService.createTenant(request.instituteName());
         if (!tenantResult.success()) {
             throw new TenantCreationFailedException("Failed to create tenant: " + tenantResult.message());
         }

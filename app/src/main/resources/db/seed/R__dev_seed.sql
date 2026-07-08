@@ -8,8 +8,8 @@
 
 -- Demo tenant. plan_id must be a valid TenantPlan enum constant
 -- (FREE | BASIC | PRO | MAX) — it is read back as the entity enum.
-INSERT INTO tenants (slug, custom_id, name, display_name, status, owner_email, plan_id, institute_name)
-VALUES ('demo', 'demo', 'Demo Academy', '데모 학원', 'ACTIVE', 'demo@lumie-edu.com', 'FREE', '데모학원')
+INSERT INTO tenants (slug, custom_id, name, display_name, status, plan_id, institute_name)
+VALUES ('demo', 'demo', 'Demo Academy', '데모 학원', 'ACTIVE', 'FREE', '데모학원')
 ON CONFLICT (slug) DO UPDATE SET
   custom_id = EXCLUDED.custom_id,
   display_name = EXCLUDED.display_name,

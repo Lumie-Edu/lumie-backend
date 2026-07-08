@@ -52,7 +52,6 @@ class TenantCommandServiceTest {
                 .slug("test-academy")
                 .name("Test Academy")
                 .displayName("테스트 학원")
-                .ownerEmail("owner@test.com")
                 .build();
     }
 
@@ -92,7 +91,7 @@ class TenantCommandServiceTest {
     @Test
     @DisplayName("테넌트 정보 업데이트")
     void updateTenant() {
-        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null, null);
+        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null);
         when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(existingTenant));
         when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -127,7 +126,7 @@ class TenantCommandServiceTest {
     void completeOnboarding() {
         TenantContextHolder.setTenant("test-academy");
         UserContextHolder.setUserRole(Role.OWNER);
-        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null, null);
+        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null);
         when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(existingTenant));
         when(tenantPersistencePort.existsByCustomId("academy")).thenReturn(false);
         when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -153,7 +152,7 @@ class TenantCommandServiceTest {
     void completeOnboardingAlreadyCompleted() {
         TenantContextHolder.setTenant("test-academy");
         UserContextHolder.setUserRole(Role.OWNER);
-        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null, null);
+        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null);
         existingTenant.completeOnboarding(java.time.Instant.now());
         when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(existingTenant));
 
@@ -187,7 +186,7 @@ class TenantCommandServiceTest {
     @Test
     @DisplayName("테넌트 삭제 (소프트 삭제)")
     void deleteTenant() {
-        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null, null);
+        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null);
         when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(existingTenant));
         when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

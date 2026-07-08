@@ -1408,11 +1408,6 @@
             "minLength" : 0,
             "type" : "string"
           },
-          "ownerEmail" : {
-            "maxLength" : 255,
-            "minLength" : 0,
-            "type" : "string"
-          },
           "slug" : {
             "pattern" : "^[a-z][a-z0-9-]{2,29}$",
             "type" : "string"
@@ -2585,10 +2580,6 @@
       },
       "OwnerRegisterRequest" : {
         "properties" : {
-          "businessRegistrationNumber" : {
-            "pattern" : "^\\d{3}-\\d{2}-\\d{5}$",
-            "type" : "string"
-          },
           "instituteName" : {
             "maxLength" : 200,
             "minLength" : 2,
@@ -2617,7 +2608,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "businessRegistrationNumber", "instituteName", "name", "password", "userLoginId" ],
+        "required" : [ "instituteName", "name", "password", "userLoginId" ],
         "type" : "object"
       },
       "PageResponseAnnouncementResponse" : {
@@ -3474,6 +3465,10 @@
       },
       "PublicTenantResponse" : {
         "properties" : {
+          "address" : {
+            "nullable" : true,
+            "type" : "string"
+          },
           "customId" : {
             "nullable" : true,
             "type" : "string"
@@ -3485,11 +3480,15 @@
           "name" : {
             "type" : "string"
           },
+          "phone" : {
+            "nullable" : true,
+            "type" : "string"
+          },
           "slug" : {
             "type" : "string"
           }
         },
-        "required" : [ "customId", "logoUrl", "name", "slug" ],
+        "required" : [ "address", "customId", "logoUrl", "name", "phone", "slug" ],
         "type" : "object"
       },
       "PublishHomepageRequest" : {
@@ -5407,10 +5406,6 @@
             "nullable" : true,
             "type" : "string"
           },
-          "businessRegistrationNumber" : {
-            "nullable" : true,
-            "type" : "string"
-          },
           "createdAt" : {
             "format" : "date-time",
             "type" : "string"
@@ -5454,10 +5449,6 @@
             "nullable" : true,
             "type" : "string"
           },
-          "ownerEmail" : {
-            "nullable" : true,
-            "type" : "string"
-          },
           "phone" : {
             "nullable" : true,
             "type" : "string"
@@ -5478,7 +5469,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "address", "businessRegistrationNumber", "createdAt", "customDomain", "customId", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "ownerEmail", "phone", "plan", "slug", "status", "updatedAt" ],
+        "required" : [ "address", "createdAt", "customDomain", "customId", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "slug", "status", "updatedAt" ],
         "type" : "object"
       },
       "TextbookFolderPathResponse" : {

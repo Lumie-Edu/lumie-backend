@@ -86,7 +86,6 @@ class TenantControllerTest {
                 .slug("test-academy")
                 .name("Test Academy")
                 .displayName("테스트 학원")
-                .ownerEmail("owner@test.com")
                 .build();
 
         TenantResponse response = TenantResponse.builder()
@@ -95,7 +94,6 @@ class TenantControllerTest {
                 .name("Test Academy")
                 .displayName("테스트 학원")
                 .status(TenantStatus.PENDING)
-                .ownerEmail("owner@test.com")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -312,6 +310,8 @@ class TenantControllerTest {
         PublicTenantResponse response = PublicTenantResponse.builder()
                 .slug("test-academy")
                 .name("Test Academy")
+                .phone("02-1234-5678")
+                .address("서울시 강남구")
                 .customId("test-academy")
                 .logoUrl(null)
                 .build();
@@ -323,7 +323,9 @@ class TenantControllerTest {
                         .param("host", "academy.example.com"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.slug").value("test-academy"))
-                .andExpect(jsonPath("$.name").value("Test Academy"));
+                .andExpect(jsonPath("$.name").value("Test Academy"))
+                .andExpect(jsonPath("$.phone").value("02-1234-5678"))
+                .andExpect(jsonPath("$.address").value("서울시 강남구"));
     }
 
     @Test
@@ -350,6 +352,8 @@ class TenantControllerTest {
         PublicTenantResponse response = PublicTenantResponse.builder()
                 .slug("test-academy")
                 .name("Test Academy")
+                .phone("02-1234-5678")
+                .address("서울시 강남구")
                 .customId("test-academy")
                 .logoUrl(null)
                 .build();

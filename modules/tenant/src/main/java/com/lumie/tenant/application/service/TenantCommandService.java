@@ -49,8 +49,7 @@ public class TenantCommandService {
         Tenant tenant = Tenant.create(
                 request.slug(),
                 request.name(),
-                request.displayName(),
-                request.ownerEmail()
+                request.displayName()
         );
 
         Tenant savedTenant = tenantPersistencePort.save(tenant);

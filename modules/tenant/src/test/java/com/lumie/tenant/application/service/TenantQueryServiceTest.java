@@ -32,7 +32,7 @@ class TenantQueryServiceTest {
     @Test
     @DisplayName("slug로 테넌트 조회 성공")
     void getTenantBySlug() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", "테스트 학원", "owner@test.com");
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", "테스트 학원");
         when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(tenant));
 
         TenantResponse response = tenantQueryService.getTenantBySlug("test-academy");
@@ -53,8 +53,8 @@ class TenantQueryServiceTest {
     @Test
     @DisplayName("모든 테넌트 조회")
     void getAllTenants() {
-        Tenant tenant1 = Tenant.create("academy-1", "Academy 1", null, null);
-        Tenant tenant2 = Tenant.create("academy-2", "Academy 2", null, null);
+        Tenant tenant1 = Tenant.create("academy-1", "Academy 1", null);
+        Tenant tenant2 = Tenant.create("academy-2", "Academy 2", null);
         when(tenantPersistencePort.findAll()).thenReturn(List.of(tenant1, tenant2));
 
         List<TenantResponse> responses = tenantQueryService.getAllTenants();
@@ -67,7 +67,7 @@ class TenantQueryServiceTest {
     @Test
     @DisplayName("테넌트 유효성 검증 - 활성 상태")
     void validateActiveTenant() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
         tenant.startProvisioning();
         tenant.activate();
         when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(tenant));
@@ -80,7 +80,7 @@ class TenantQueryServiceTest {
     @Test
     @DisplayName("테넌트 유효성 검증 - 비활성 상태")
     void validateInactiveTenant() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
         when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(tenant));
 
         boolean isValid = tenantQueryService.isValidAndActive("test-academy");
@@ -91,7 +91,7 @@ class TenantQueryServiceTest {
     @Test
     @DisplayName("테넌트 ID 조회 - 존재하는 경우")
     void getTenantIdBySlugExists() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null, null);
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
         ReflectionTestUtils.setField(tenant, "id", 1L);
         when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(tenant));
 
@@ -114,9 +114,10 @@ class TenantQueryServiceTest {
     @Test
     @DisplayName("커스텀 도메인으로 공개 테넌트 조회 성공 - 활성 테넌트")
     void getPublicTenantByCustomDomainSuccess() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", "테스트 학원", "owner@test.com");
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", "테스트 학원");
         tenant.startProvisioning();
         tenant.activate();
+        tenant.updateContact("02-1234-5678", "서울시 강남구");
         tenant.setCustomDomain("academy.example.com");
         when(tenantPersistencePort.findByCustomDomain("academy.example.com"))
                 .thenReturn(Optional.of(tenant));
@@ -125,6 +126,8 @@ class TenantQueryServiceTest {
 
         assertThat(response.slug()).isEqualTo("test-academy");
         assertThat(response.name()).isEqualTo("Test Academy");
+        assertThat(response.phone()).isEqualTo("02-1234-5678");
+        assertThat(response.address()).isEqualTo("서울시 강남구");
     }
 
     @Test
@@ -140,7 +143,7 @@ class TenantQueryServiceTest {
     @Test
     @DisplayName("커스텀 도메인 조회 - 비활성 테넌트는 404")
     void getPublicTenantByCustomDomainInactiveTenant() {
-        Tenant tenant = Tenant.create("suspended-academy", "Suspended Academy", null, null);
+        Tenant tenant = Tenant.create("suspended-academy", "Suspended Academy", null);
         // status remains PENDING (not active)
         tenant.setCustomDomain("suspended.example.com");
         when(tenantPersistencePort.findByCustomDomain("suspended.example.com"))

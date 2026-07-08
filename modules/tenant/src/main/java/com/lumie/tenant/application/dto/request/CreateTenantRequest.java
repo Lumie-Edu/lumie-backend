@@ -1,6 +1,5 @@
 package com.lumie.tenant.application.dto.request;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -17,10 +16,6 @@ public record CreateTenantRequest(
         String name,
 
         @Size(max = 200, message = "Display name must be at most 200 characters")
-        String displayName,
-
-        @Email(message = "Invalid email format")
-        @Size(max = 255, message = "Email must be at most 255 characters")
-        String ownerEmail
+        String displayName
 ) {
 }
