@@ -853,11 +853,6 @@
       },
       "CompleteTenantOnboardingRequest" : {
         "properties" : {
-          "address" : {
-            "maxLength" : 255,
-            "minLength" : 0,
-            "type" : "string"
-          },
           "customId" : {
             "pattern" : "^$|^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$",
             "type" : "string"
@@ -3465,10 +3460,6 @@
       },
       "PublicTenantResponse" : {
         "properties" : {
-          "address" : {
-            "nullable" : true,
-            "type" : "string"
-          },
           "customId" : {
             "nullable" : true,
             "type" : "string"
@@ -3488,7 +3479,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "address", "customId", "logoUrl", "name", "phone", "slug" ],
+        "required" : [ "customId", "logoUrl", "name", "phone", "slug" ],
         "type" : "object"
       },
       "PublishHomepageRequest" : {
@@ -5402,10 +5393,6 @@
       },
       "TenantResponse" : {
         "properties" : {
-          "address" : {
-            "nullable" : true,
-            "type" : "string"
-          },
           "createdAt" : {
             "format" : "date-time",
             "type" : "string"
@@ -5469,7 +5456,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "address", "createdAt", "customDomain", "customId", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "slug", "status", "updatedAt" ],
+        "required" : [ "createdAt", "customDomain", "customId", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "slug", "status", "updatedAt" ],
         "type" : "object"
       },
       "TextbookFolderPathResponse" : {
@@ -6135,11 +6122,6 @@
       },
       "UpdateTenantRequest" : {
         "properties" : {
-          "address" : {
-            "maxLength" : 255,
-            "minLength" : 0,
-            "type" : "string"
-          },
           "customId" : {
             "pattern" : "^$|^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$",
             "type" : "string"

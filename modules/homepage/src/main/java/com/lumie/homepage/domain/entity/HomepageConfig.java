@@ -24,7 +24,7 @@ public class HomepageConfig extends TenantScopedEntity {
 
     /** Canonical empty homepage returned when a tenant has not saved one yet. */
     private static final String DEFAULT_SECTIONS =
-            "{\"hero\":{\"enabled\":true,\"welcomeMessage\":\"\",\"kakaoChannelUrl\":\"\","
+            "{\"hero\":{\"enabled\":true,\"welcomeMessage\":\"\","
                     + "\"backgroundImageId\":null,\"backgroundImageUrl\":null}}";
 
     @Id

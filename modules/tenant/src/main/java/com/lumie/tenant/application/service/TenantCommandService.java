@@ -73,7 +73,7 @@ public class TenantCommandService {
 
         Tenant tenant = findTenantOrThrow(slug);
         tenant.updateInfo(request.name(), request.displayName());
-        tenant.updateContact(request.phone(), request.address());
+        tenant.updateContact(request.phone());
         applyCustomIdUpdate(tenant, request.customId());
         tenant.updateHiddenSidebarItemIds(request.hiddenSidebarItemIds());
         Tenant updatedTenant = tenantPersistencePort.save(tenant);
@@ -98,7 +98,7 @@ public class TenantCommandService {
             throw new BusinessException(TenantErrorCode.ONBOARDING_ALREADY_COMPLETED,
                     "이미 완료된 온보딩입니다.");
         }
-        tenant.updateContact(request.phone(), request.address());
+        tenant.updateContact(request.phone());
         applyCustomIdUpdate(tenant, request.customId());
         tenant.updateHiddenSidebarItemIds(request.hiddenSidebarItemIds());
         tenant.completeOnboarding(Instant.now());

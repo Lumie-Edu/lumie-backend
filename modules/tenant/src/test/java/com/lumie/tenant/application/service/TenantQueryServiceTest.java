@@ -117,7 +117,7 @@ class TenantQueryServiceTest {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", "테스트 학원");
         tenant.startProvisioning();
         tenant.activate();
-        tenant.updateContact("02-1234-5678", "서울시 강남구");
+        tenant.updateContact("02-1234-5678");
         tenant.setCustomDomain("academy.example.com");
         when(tenantPersistencePort.findByCustomDomain("academy.example.com"))
                 .thenReturn(Optional.of(tenant));
@@ -127,7 +127,6 @@ class TenantQueryServiceTest {
         assertThat(response.slug()).isEqualTo("test-academy");
         assertThat(response.name()).isEqualTo("Test Academy");
         assertThat(response.phone()).isEqualTo("02-1234-5678");
-        assertThat(response.address()).isEqualTo("서울시 강남구");
     }
 
     @Test

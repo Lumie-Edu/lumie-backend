@@ -214,7 +214,6 @@ class TenantControllerTest {
         CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
                 .customId("academy")
                 .phone("02-1234-5678")
-                .address("서울시 강남구")
                 .hiddenSidebarItemIds(List.of("attendance", "reviews"))
                 .build();
         Instant completedAt = Instant.now();
@@ -225,7 +224,6 @@ class TenantControllerTest {
                 .status(TenantStatus.ACTIVE)
                 .customId("academy")
                 .phone("02-1234-5678")
-                .address("서울시 강남구")
                 .hiddenSidebarItemIds(List.of("attendance", "reviews"))
                 .onboardingCompletedAt(completedAt)
                 .createdAt(Instant.now())
@@ -311,7 +309,6 @@ class TenantControllerTest {
                 .slug("test-academy")
                 .name("Test Academy")
                 .phone("02-1234-5678")
-                .address("서울시 강남구")
                 .customId("test-academy")
                 .logoUrl(null)
                 .build();
@@ -324,8 +321,7 @@ class TenantControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.slug").value("test-academy"))
                 .andExpect(jsonPath("$.name").value("Test Academy"))
-                .andExpect(jsonPath("$.phone").value("02-1234-5678"))
-                .andExpect(jsonPath("$.address").value("서울시 강남구"));
+                .andExpect(jsonPath("$.phone").value("02-1234-5678"));
     }
 
     @Test
@@ -353,7 +349,6 @@ class TenantControllerTest {
                 .slug("test-academy")
                 .name("Test Academy")
                 .phone("02-1234-5678")
-                .address("서울시 강남구")
                 .customId("test-academy")
                 .logoUrl(null)
                 .build();

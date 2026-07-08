@@ -19,9 +19,6 @@ public record UpdateTenantRequest(
         @Size(max = 30, message = "Phone must be at most 30 characters")
         String phone,
 
-        @Size(max = 255, message = "Address must be at most 255 characters")
-        String address,
-
         @Pattern(
                 regexp = "^$|^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$",
                 message = "학원 ID는 3-30자의 소문자 영숫자와 하이픈만 사용할 수 있습니다."

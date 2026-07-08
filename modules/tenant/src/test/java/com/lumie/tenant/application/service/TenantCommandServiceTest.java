@@ -134,7 +134,6 @@ class TenantCommandServiceTest {
         CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
                 .customId("academy")
                 .phone("02-1234-5678")
-                .address("서울시 강남구")
                 .hiddenSidebarItemIds(List.of("attendance", "reviews"))
                 .build();
 
@@ -142,7 +141,6 @@ class TenantCommandServiceTest {
 
         assertThat(response.customId()).isEqualTo("academy");
         assertThat(response.phone()).isEqualTo("02-1234-5678");
-        assertThat(response.address()).isEqualTo("서울시 강남구");
         assertThat(response.hiddenSidebarItemIds()).containsExactly("attendance", "reviews");
         assertThat(response.onboardingCompletedAt()).isNotNull();
     }

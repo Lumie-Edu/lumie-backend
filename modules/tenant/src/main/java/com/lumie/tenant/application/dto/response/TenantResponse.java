@@ -19,7 +19,6 @@ public record TenantResponse(
         TenantStatus status,
         TenantPlan plan,
         @Schema(nullable = true) String phone,
-        @Schema(nullable = true) String address,
         @Schema(nullable = true) String instituteName,
         @Schema(nullable = true) String logoUrl,
         @Schema(nullable = true) String customId,
@@ -48,7 +47,6 @@ public record TenantResponse(
                 .status(tenant.getStatus())
                 .plan(tenant.getPlan())
                 .phone(tenant.getPhone())
-                .address(tenant.getAddress())
                 .instituteName(tenant.getInstituteName())
                 .logoUrl(hasLogo ? "/api/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
                 .customId(tenant.getCustomId())

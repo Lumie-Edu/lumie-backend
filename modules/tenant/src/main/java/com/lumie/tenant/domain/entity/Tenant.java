@@ -57,9 +57,6 @@ public class Tenant extends BaseEntity {
     @Column(name = "phone", length = 30)
     private String phone;
 
-    @Column(name = "address", length = 255)
-    private String address;
-
     @Column(name = "logo_object_key", length = 255)
     private String logoObjectKey;
 
@@ -230,12 +227,9 @@ public class Tenant extends BaseEntity {
         }
     }
 
-    public void updateContact(String phone, String address) {
+    public void updateContact(String phone) {
         if (phone != null) {
             this.phone = phone.isBlank() ? null : phone;
-        }
-        if (address != null) {
-            this.address = address.isBlank() ? null : address;
         }
     }
 
