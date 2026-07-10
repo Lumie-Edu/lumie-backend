@@ -2,7 +2,6 @@ package com.lumie.exam.adapter.in.internal;
 
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
-import com.lumie.exam.application.dto.response.ExamResponse;
 import com.lumie.exam.application.service.ExamCommandService;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.domain.repository.ExamRepository;
@@ -21,8 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.time.Instant;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -48,20 +45,9 @@ class ExamServiceAdapterTest {
     private ExamServiceAdapter examServiceAdapter;
 
     @Test
-    @DisplayName("과제용 시험 생성은 exam command service로 매핑 위임한다")
+    @DisplayName("과제용 시험 생성은 시험 관리에 노출되지 않는 private 생성으로 위임한다")
     void createExamForAssignment_delegatesToCommandService() {
-        given(examCommandService.createExam(any(CreateExamRequest.class))).willReturn(new ExamResponse(
-                99L,
-                "전용 시험",
-                ExamCategory.GRADED,
-                GradingType.ABSOLUTE,
-                GradeScale.NINE_GRADE,
-                2,
-                100,
-                60,
-                Instant.parse("2026-01-01T00:00:00Z"),
-                Instant.parse("2026-01-01T00:00:00Z")
-        ));
+        given(examCommandService.createAssignmentExam(any(CreateExamRequest.class))).willReturn(99L);
 
         Long examId = examServiceAdapter.createExamForAssignment("tenant-a", new ExamService.CreateExamData(
                 "전용 시험",
@@ -76,7 +62,7 @@ class ExamServiceAdapterTest {
         ));
 
         assertThat(examId).isEqualTo(99L);
-        verify(examCommandService).createExam(new CreateExamRequest(
+        verify(examCommandService).createAssignmentExam(new CreateExamRequest(
                 "전용 시험",
                 ExamCategory.GRADED,
                 GradingType.ABSOLUTE,

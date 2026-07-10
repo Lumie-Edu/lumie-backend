@@ -97,6 +97,7 @@ public class AssignmentCommandService {
 
         String slug = TenantContextHolder.getRequiredTenant();
         List<AssignmentTarget> existingTargets = targetRepository.findByAssignmentId(id);
+        boolean targetUpdateRequested = request.targetClassIds() != null || request.targetStudentIds() != null;
 
         List<Long> targetClassIds = request.targetClassIds() != null
                 ? normalizeIds(request.targetClassIds())
@@ -138,7 +139,9 @@ public class AssignmentCommandService {
         );
 
         Assignment saved = assignmentRepository.save(entity);
-        List<AssignmentTarget> targets = replaceTargets(saved.getId(), targetClassIds, targetStudentIds);
+        List<AssignmentTarget> targets = targetUpdateRequested
+                ? replaceTargets(saved.getId(), targetClassIds, targetStudentIds)
+                : existingTargets;
 
         log.info("Assignment updated: {}", saved.getId());
         return AssignmentResponse.from(saved, targets, examName(slug, saved.getLinkedExamId()));
@@ -149,10 +152,9 @@ public class AssignmentCommandService {
             .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
                 "Assignment not found with id: %d".formatted(id)));
 
-        entity.close();
-        assignmentRepository.save(entity);
+        assignmentRepository.delete(entity);
 
-        log.info("Assignment closed (soft-deleted): {}", id);
+        log.info("Assignment deleted: {}", id);
     }
 
     public SubmissionResponse createSubmission(Long assignmentId, CreateSubmissionRequest request) {

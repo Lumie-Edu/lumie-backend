@@ -1,20 +1,25 @@
 package com.lumie.assignment.application.service;
 
 import com.lumie.assignment.application.dto.response.AssignmentResponse;
+import com.lumie.assignment.application.dto.response.AssignmentSubmissionStatusResponse;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
+import com.lumie.assignment.domain.entity.AssignmentTarget;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
 import com.lumie.assignment.domain.repository.AssignmentTargetRepository;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
+import com.lumie.assignment.domain.vo.AssignmentTargetType;
 import com.lumie.assignment.domain.vo.EvaluationMode;
 import com.lumie.assignment.domain.vo.SubmissionMode;
+import com.lumie.assignment.domain.vo.SubmissionStatus;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.exam.api.ExamService;
 import com.lumie.student.api.StudentService;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.common.test.TenantContextExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -133,6 +138,34 @@ class AssignmentQueryServiceTest {
     }
 
     @Test
+    @DisplayName("getSubmissionStatuses는 대상 학생 이름을 함께 반환한다")
+    void getSubmissionStatuses_includesStudentName() throws Exception {
+        Assignment entity = buildAssignment(1L);
+        AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
+        submission.submit("답안", null);
+        setField(submission, "id", 10L);
+
+        given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
+        given(targetRepository.findByAssignmentId(1L))
+                .willReturn(List.of(AssignmentTarget.create(1L, AssignmentTargetType.STUDENT, 42L)));
+        given(submissionRepository.findAllByAssignmentId(1L)).willReturn(List.of(submission));
+        given(studentService.getStudentsByIds("test-tenant", List.of(42L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(
+                                42L, 7L, "김루미", "010-0000-0000", true, null, null)),
+                        1,
+                        0,
+                        1));
+
+        List<AssignmentSubmissionStatusResponse> response = queryService.getSubmissionStatuses(1L);
+
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).studentId()).isEqualTo(42L);
+        assertThat(response.get(0).studentName()).isEqualTo("김루미");
+        assertThat(response.get(0).status()).isEqualTo(SubmissionStatus.SUBMITTED);
+    }
+
+    @Test
     @DisplayName("getStudentSubmissions 성공 시 해당 학생의 제출 목록을 반환한다")
     void getStudentSubmissions_success() throws Exception {
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
@@ -149,15 +182,49 @@ class AssignmentQueryServiceTest {
         assertThat(response.getContent()).hasSize(1);
     }
 
+    @Test
+    @DisplayName("getCurrentStudentAssignments는 종료된 과제도 학생 목록에 포함한다")
+    void getCurrentStudentAssignments_includesClosedAssignments() throws Exception {
+        UserContextHolder.setUserId(7L);
+        Assignment activeAssignment = buildAssignment(1L, AssignmentStatus.ACTIVE);
+        Assignment closedAssignment = buildAssignment(2L, AssignmentStatus.CLOSED);
+
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(7L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(
+                                42L, 7L, "김루미", "010-0000-0000", true, null, null)),
+                        1,
+                        0,
+                        1));
+        given(classService.getEnrolledClassesForStudents("test-tenant", List.of(42L)))
+                .willReturn(List.of(new ClassService.EnrolledClassData(1L, "수학반", 42L)));
+        given(targetRepository.findVisibleAssignmentIds(42L, List.of(1L))).willReturn(List.of(1L, 2L));
+        given(assignmentRepository.findByIdIn(List.of(1L, 2L))).willReturn(List.of(activeAssignment, closedAssignment));
+        given(examService.getExamForAssignment(any(), eq(10L))).willReturn(Optional.of(examData()));
+
+        try {
+            List<AssignmentResponse> response = queryService.getCurrentStudentAssignments();
+
+            assertThat(response).extracting(AssignmentResponse::status)
+                    .containsExactly(AssignmentStatus.ACTIVE, AssignmentStatus.CLOSED);
+        } finally {
+            UserContextHolder.clear();
+        }
+    }
+
     // -- helpers --
 
     private Assignment buildAssignment(Long id) throws Exception {
+        return buildAssignment(id, AssignmentStatus.ACTIVE);
+    }
+
+    private Assignment buildAssignment(Long id, AssignmentStatus status) throws Exception {
         Assignment entity = Assignment.create(
                 1L,
                 LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(java.time.ZoneOffset.UTC),
                 100,
                 null,
-                AssignmentStatus.ACTIVE,
+                status,
                 SubmissionMode.EXAM_MANUAL,
                 EvaluationMode.EXAM_AUTO,
                 10L,
@@ -182,5 +249,18 @@ class AssignmentQueryServiceTest {
                 clazz = clazz.getSuperclass();
             }
         }
+    }
+
+    private ExamService.ExamAssignmentData examData() {
+        return new ExamService.ExamAssignmentData(
+                10L,
+                "전용 시험",
+                "GRADED",
+                "ABSOLUTE",
+                "NINE_GRADE",
+                2,
+                100,
+                null,
+                List.of());
     }
 }

@@ -40,7 +40,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>,
             """)
     Page<Assignment> findByTargetClassId(@Param("classId") Long classId, Pageable pageable);
 
-    List<Assignment> findByIdInAndStatus(Collection<Long> ids, com.lumie.assignment.domain.vo.AssignmentStatus status);
+    List<Assignment> findByIdIn(Collection<Long> ids);
 
     default Page<Assignment> findAll(AssignmentSearchCriteria criteria, Pageable pageable) {
         Specification<Assignment> spec = (root, query, cb) -> {

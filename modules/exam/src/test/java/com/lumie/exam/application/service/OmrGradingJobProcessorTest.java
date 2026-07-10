@@ -1,28 +1,32 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.common.exception.BusinessException;
 import com.lumie.common.test.TenantContextExtension;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
-import com.lumie.student.api.StudentService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
+import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.exam.test.ExamFixtures;
+import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -98,6 +102,64 @@ class OmrGradingJobProcessorTest {
         verify(resultRepository).save(any(ExamResult.class));
         // 가입 학생도 채점 결과에 전화번호가 저장되어야 한다 (010 + 콜백 phoneNumber).
         assertThat(resolvedResult.getPhoneNumber()).isEqualTo("01012345678");
+    }
+
+    @Test
+    @DisplayName("optimistic lock 실패는 dedup을 해제한 뒤 재시도한다")
+    void processGradingCallback_optimisticLockFailure_releasesDedupAndRetries() {
+        OmrGradingCallbackRequest request = buildSuccessCallback();
+        Exam exam = ExamFixtures.aGradedExam(3);
+        StudentService.StudentData student = new StudentService.StudentData(
+                200L, 1000L, "홍길동", "01012345678", true, null, null);
+        ExamResult resolvedResult = ExamResult.create(exam, student.id(), 100);
+        OmrGradingJobProcessor.Tx retryTx = mock(OmrGradingJobProcessor.Tx.class);
+        OmrGradingJobProcessor retryingProcessor =
+                new OmrGradingJobProcessor(storagePort, callbackDeduplication, jobRepository, retryTx);
+        OmrGradingJobProcessor.Tx.SuccessPrep prep =
+                new OmrGradingJobProcessor.Tx.SuccessPrep(
+                        exam,
+                        Optional.of(student),
+                        resolvedResult,
+                        "inst-abc123/omr/10/200"
+                );
+
+        given(callbackDeduplication.markIfAbsent("omr:cb:1:0")).willReturn(true, true);
+        given(retryTx.isOpenJob(1L)).willReturn(true);
+        given(retryTx.prepareSuccess(request)).willReturn(prep);
+        given(storagePort.getObject(any())).willReturn(new byte[]{1, 2, 3});
+        given(storagePort.putObject(any(), any(), any())).willReturn("inst-abc123/omr/10/200");
+        doThrow(new OptimisticLockingFailureException("stale result"))
+                .doNothing()
+                .when(retryTx)
+                .saveSuccess(eq(request), any(OmrGradingJobProcessor.Tx.SuccessPrep.class));
+        given(retryTx.finalizeIfDone(1L, 1)).willReturn(true);
+
+        retryingProcessor.processGradingCallback(request);
+
+        verify(callbackDeduplication).forget("omr:cb:1:0");
+        verify(retryTx, times(2)).saveSuccess(eq(request), any(OmrGradingJobProcessor.Tx.SuccessPrep.class));
+        verify(retryTx).finalizeIfDone(1L, 1);
+    }
+
+    @Test
+    @DisplayName("카운터 반영 전 실패는 replay 가능하도록 dedup을 해제한다")
+    void processGradingCallback_uncountedFailure_releasesDedupForReplay() {
+        OmrGradingCallbackRequest request = buildSuccessCallback();
+        OmrGradingJobProcessor.Tx failingTx = mock(OmrGradingJobProcessor.Tx.class);
+        OmrGradingJobProcessor failingProcessor =
+                new OmrGradingJobProcessor(storagePort, callbackDeduplication, jobRepository, failingTx);
+
+        given(callbackDeduplication.markIfAbsent("omr:cb:1:0")).willReturn(true);
+        given(failingTx.isOpenJob(1L)).willReturn(true);
+        doThrow(new BusinessException(ExamErrorCode.EXAM_NOT_FOUND))
+                .when(failingTx)
+                .markProcessing(1L);
+
+        assertThatThrownBy(() -> failingProcessor.processGradingCallback(request))
+                .isInstanceOf(BusinessException.class);
+
+        verify(callbackDeduplication).forget("omr:cb:1:0");
+        verify(failingTx, never()).finalizeIfDone(any(), anyInt());
     }
 
     @Test

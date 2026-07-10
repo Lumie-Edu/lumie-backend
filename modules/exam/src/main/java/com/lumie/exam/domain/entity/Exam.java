@@ -2,6 +2,7 @@ package com.lumie.exam.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import jakarta.persistence.*;
@@ -63,13 +64,17 @@ public class Exam extends TenantScopedEntity {
     @Column(name = "pass_score")
     private Integer passScore;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", nullable = false, length = 30)
+    private ExamSource source;
+
     @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ExamResult> results = new ArrayList<>();
 
     @Builder
     private Exam(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
                  Integer totalQuestions, Map<String, String> correctAnswers, Map<String, Integer> questionScores,
-                 Map<String, String> questionTypes, Integer passScore) {
+                 Map<String, String> questionTypes, Integer passScore, ExamSource source) {
         this.name = name;
         this.category = category;
         this.gradingType = gradingType;
@@ -79,11 +84,28 @@ public class Exam extends TenantScopedEntity {
         this.questionScores = questionScores;
         this.questionTypes = questionTypes;
         this.passScore = passScore;
+        this.source = source != null ? source : ExamSource.EXAM_MANAGEMENT;
     }
 
     public static Exam create(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
                               Integer totalQuestions, Map<String, String> correctAnswers, Map<String, Integer> questionScores,
                               Map<String, String> questionTypes, Integer passScore) {
+        return create(name, category, gradingType, gradeScale, totalQuestions, correctAnswers, questionScores,
+                questionTypes, passScore, ExamSource.EXAM_MANAGEMENT);
+    }
+
+    public static Exam createForAssignment(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
+                                           Integer totalQuestions, Map<String, String> correctAnswers,
+                                           Map<String, Integer> questionScores, Map<String, String> questionTypes,
+                                           Integer passScore) {
+        return create(name, category, gradingType, gradeScale, totalQuestions, correctAnswers, questionScores,
+                questionTypes, passScore, ExamSource.ASSIGNMENT);
+    }
+
+    private static Exam create(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
+                               Integer totalQuestions, Map<String, String> correctAnswers,
+                               Map<String, Integer> questionScores, Map<String, String> questionTypes,
+                               Integer passScore, ExamSource source) {
         return Exam.builder()
                 .name(name)
                 .category(category != null ? category : ExamCategory.GRADED)
@@ -94,6 +116,7 @@ public class Exam extends TenantScopedEntity {
                 .questionScores(questionScores)
                 .questionTypes(questionTypes)
                 .passScore(passScore)
+                .source(source)
                 .build();
     }
 

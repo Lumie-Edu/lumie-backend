@@ -20,4 +20,9 @@ public class RedisCallbackDeduplicationAdapter implements CallbackDeduplicationP
         Boolean absent = redis.opsForValue().setIfAbsent(key, "1", TTL);
         return Boolean.TRUE.equals(absent);
     }
+
+    @Override
+    public void forget(String key) {
+        redis.delete(key);
+    }
 }

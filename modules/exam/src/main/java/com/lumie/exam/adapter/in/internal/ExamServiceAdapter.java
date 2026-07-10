@@ -52,7 +52,7 @@ public class ExamServiceAdapter implements ExamService {
     @Override
     @Transactional
     public Long createExamForAssignment(String tenantSlug, CreateExamData request) {
-        return withinTenant(tenantSlug, () -> examCommandService.createExam(toCreateExamRequest(request)).id());
+        return withinTenant(tenantSlug, () -> examCommandService.createAssignmentExam(toCreateExamRequest(request)));
     }
 
     @Override

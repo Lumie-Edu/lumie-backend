@@ -107,12 +107,22 @@ public class AssignmentQueryService {
                         AssignmentSubmission::getStudentId,
                         submission -> submission,
                         (left, right) -> right));
+        Map<Long, String> studentNamesById = studentIds.isEmpty()
+                ? Map.of()
+                : studentService.getStudentsByIds(slug, List.copyOf(studentIds)).students().stream()
+                        .filter(student -> student.id() != null)
+                        .filter(student -> student.studentName() != null && !student.studentName().isBlank())
+                        .collect(Collectors.toMap(
+                                StudentService.StudentData::id,
+                                StudentService.StudentData::studentName,
+                                (left, right) -> left));
 
         return studentIds.stream()
                 .map(studentId -> {
                     AssignmentSubmission submission = submissionsByStudent.get(studentId);
                     return new AssignmentSubmissionStatusResponse(
                             studentId,
+                            studentNamesById.get(studentId),
                             submission != null ? submission.getStatus() : SubmissionStatus.PENDING,
                             submission != null ? SubmissionResponse.from(submission) : null);
                 })
@@ -135,7 +145,7 @@ public class AssignmentQueryService {
         }
 
         List<Assignment> assignments = assignmentRepository
-                .findByIdInAndStatus(visibleAssignmentIds, AssignmentStatus.ACTIVE)
+                .findByIdIn(visibleAssignmentIds)
                 .stream()
                 .filter(assignment -> assignment.getSubmissionMode() == SubmissionMode.EXAM_MANUAL)
                 .sorted(Comparator

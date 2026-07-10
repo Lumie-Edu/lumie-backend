@@ -6,6 +6,7 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
+import com.lumie.exam.domain.vo.ExamSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -42,7 +43,7 @@ public class ExamQueryService {
     public Page<ExamResponse> listExams(Pageable pageable) {
         log.debug("Listing all exams with pagination");
 
-        return examRepository.findAll(pageable)
+        return examRepository.findBySource(ExamSource.EXAM_MANAGEMENT, pageable)
                 .map(ExamResponse::from);
     }
 }

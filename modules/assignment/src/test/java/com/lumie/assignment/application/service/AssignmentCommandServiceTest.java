@@ -190,11 +190,33 @@ class AssignmentCommandServiceTest {
                     .willReturn(Optional.of(new ClassService.ClassData(
                             1L, "수학반", null, null, null, null, null, null, null)));
             given(examService.getExamForAssignment(any(), eq(10L))).willReturn(Optional.of(examData()));
-            given(targetRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
 
             AssignmentResponse response = commandService.updateAssignment(1L, request);
 
             assertThat(response.status()).isEqualTo(AssignmentStatus.ACTIVE);
+        }
+
+        @Test
+        @DisplayName("대상 변경 없는 업데이트는 기존 대상을 삭제 후 재저장하지 않는다")
+        void updateAssignment_withoutTargetChange_keepsExistingTargets() throws Exception {
+            Assignment entity = buildAssignment(1L);
+            UpdateAssignmentRequest request = new UpdateAssignmentRequest(
+                    null, null, null, "CLOSED");
+
+            given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
+            given(assignmentRepository.save(any(Assignment.class))).willAnswer(inv -> inv.getArgument(0));
+            given(targetRepository.findByAssignmentId(1L)).willReturn(List.of(classTarget(1L)));
+            given(classService.getClass(any(), eq(1L)))
+                    .willReturn(Optional.of(new ClassService.ClassData(
+                            1L, "수학반", null, null, null, null, null, null, null)));
+            given(examService.getExamForAssignment(any(), eq(10L))).willReturn(Optional.of(examData()));
+
+            AssignmentResponse response = commandService.updateAssignment(1L, request);
+
+            assertThat(response.status()).isEqualTo(AssignmentStatus.CLOSED);
+            assertThat(response.targetClassIds()).containsExactly(1L);
+            verify(targetRepository, never()).deleteByAssignmentId(1L);
+            verify(targetRepository, never()).saveAll(any());
         }
 
         @Test
@@ -230,16 +252,14 @@ class AssignmentCommandServiceTest {
     class DeleteAssignment {
 
         @Test
-        @DisplayName("삭제 시 상태가 CLOSED로 변경된다 (소프트 삭제)")
-        void deleteAssignment_softDeletes() throws Exception {
+        @DisplayName("삭제 시 과제를 실제 삭제한다")
+        void deleteAssignment_deletes() throws Exception {
             Assignment entity = buildAssignment(1L);
             given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
-            given(assignmentRepository.save(any(Assignment.class))).willAnswer(inv -> inv.getArgument(0));
 
             commandService.deleteAssignment(1L);
 
-            assertThat(entity.getStatus()).isEqualTo(AssignmentStatus.CLOSED);
-            verify(assignmentRepository).save(entity);
+            verify(assignmentRepository).delete(entity);
         }
     }
 

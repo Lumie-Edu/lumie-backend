@@ -9,4 +9,10 @@ public interface CallbackDeduplicationPort {
      *         was already present (duplicate).
      */
     boolean markIfAbsent(String key);
+
+    /**
+     * Removes a previously reserved callback key so a failed, uncommitted callback
+     * can be replayed.
+     */
+    void forget(String key);
 }

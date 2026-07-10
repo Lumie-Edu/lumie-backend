@@ -8,6 +8,7 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,7 @@ public class ExamExportService {
         try (CsvWriter csv = new CsvWriter(out)) {
             csv.writeHeader(HEADERS);
 
-            List<Exam> exams = examRepository.findAll();
+            List<Exam> exams = examRepository.findBySource(ExamSource.EXAM_MANAGEMENT);
             for (Exam exam : exams) {
                 writeExamResults(csv, exam);
                 csv.flush();

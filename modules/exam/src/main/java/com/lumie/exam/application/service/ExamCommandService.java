@@ -23,7 +23,24 @@ public class ExamCommandService {
     public ExamResponse createExam(CreateExamRequest request) {
         log.info("Creating exam: {}", request.name());
 
-        Exam exam = Exam.create(
+        Exam savedExam = examRepository.save(createExamEntity(request));
+
+        log.info("Exam created with id: {}", savedExam.getId());
+        return ExamResponse.from(savedExam);
+    }
+
+    @Transactional
+    public Long createAssignmentExam(CreateExamRequest request) {
+        log.info("Creating assignment-private exam: {}", request.name());
+
+        Exam savedExam = examRepository.save(createAssignmentExamEntity(request));
+
+        log.info("Assignment-private exam created with id: {}", savedExam.getId());
+        return savedExam.getId();
+    }
+
+    private Exam createExamEntity(CreateExamRequest request) {
+        return Exam.create(
                 request.name(),
                 request.category(),
                 request.gradingType(),
@@ -34,11 +51,20 @@ public class ExamCommandService {
                 request.questionTypes(),
                 request.passScore()
         );
+    }
 
-        Exam savedExam = examRepository.save(exam);
-
-        log.info("Exam created with id: {}", savedExam.getId());
-        return ExamResponse.from(savedExam);
+    private Exam createAssignmentExamEntity(CreateExamRequest request) {
+        return Exam.createForAssignment(
+                request.name(),
+                request.category(),
+                request.gradingType(),
+                request.gradeScale(),
+                request.totalQuestions(),
+                request.correctAnswers(),
+                request.questionScores(),
+                request.questionTypes(),
+                request.passScore()
+        );
     }
 
     @Transactional

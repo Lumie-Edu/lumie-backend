@@ -79,7 +79,9 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
                AVG(r.total_score) AS avgScore,
                COUNT(*) AS attemptCount
           FROM exam_results r
+          JOIN exams e ON e.id = r.exam_id
          WHERE r.student_id IS NOT NULL
+           AND e.source = 'EXAM_MANAGEMENT'
            AND r.updated_at >= date_trunc('month', now() AT TIME ZONE 'Asia/Seoul') AT TIME ZONE 'Asia/Seoul'
          GROUP BY r.student_id
          ORDER BY AVG(r.total_score) DESC, COUNT(*) DESC
@@ -107,6 +109,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
         SELECT COUNT(*)                       AS "resultCount",
                COALESCE(SUM(r.total_score), 0) AS "scoreSum"
           FROM exam_results r
+          JOIN exams e ON e.id = r.exam_id
+         WHERE e.source = 'EXAM_MANAGEMENT'
         """, nativeQuery = true)
     ResultAggregateRow aggregateResults();
 
@@ -119,6 +123,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
           JOIN exams e ON e.id = r.exam_id
          WHERE r.grade IS NOT NULL
            AND r.grade > 0
+           AND e.source = 'EXAM_MANAGEMENT'
          GROUP BY e.grade_scale, r.grade
         """, nativeQuery = true)
     List<GradeBucketRow> aggregateGradeBuckets();
@@ -136,6 +141,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
                COUNT(*)           AS cnt
           FROM question_results qr
           JOIN exam_results r ON r.id = qr.exam_result_id
+          JOIN exams e ON e.id = r.exam_id
+         WHERE e.source = 'EXAM_MANAGEMENT'
          GROUP BY r.exam_id, qr.question_number, qr.selected_choice, qr.is_correct
         """, nativeQuery = true)
     List<QuestionChoiceCountRow> aggregateQuestionChoices();

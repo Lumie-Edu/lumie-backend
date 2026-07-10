@@ -14,6 +14,7 @@ import com.lumie.exam.domain.repository.ExamResultRepository.GradeBucketRow;
 import com.lumie.exam.domain.repository.ExamResultRepository.QuestionChoiceCountRow;
 import com.lumie.exam.domain.repository.ExamResultRepository.ResultAggregateRow;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import lombok.RequiredArgsConstructor;
@@ -128,7 +129,7 @@ public class ExamSummaryStatisticsService {
     public DashboardStatisticsResponse getDashboardStatistics() {
         log.debug("Computing dashboard statistics from SQL aggregates");
 
-        List<Exam> exams = examRepository.findAll();
+        List<Exam> exams = examRepository.findBySource(ExamSource.EXAM_MANAGEMENT);
         int totalExams = exams.size();
 
         ResultAggregateRow agg = resultRepository.aggregateResults();

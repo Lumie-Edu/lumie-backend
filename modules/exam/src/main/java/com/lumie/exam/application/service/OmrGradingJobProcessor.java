@@ -17,12 +17,15 @@ import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 @Slf4j
 @Service
@@ -30,6 +33,8 @@ import java.util.Optional;
 public class OmrGradingJobProcessor {
 
     private static final String DEDUP_KEY_PREFIX = "omr:cb:";
+    private static final int MAX_OPTIMISTIC_LOCK_ATTEMPTS = 3;
+    private static final long OPTIMISTIC_LOCK_BACKOFF_MILLIS = 50;
 
     private final OmrStoragePort storagePort;
     private final CallbackDeduplicationPort callbackDeduplication;
@@ -41,16 +46,43 @@ public class OmrGradingJobProcessor {
                 request.jobId(), request.imageIndex() + 1, request.totalImages(), request.success());
 
         String dedupKey = DEDUP_KEY_PREFIX + request.jobId() + ":" + request.imageIndex();
-        if (!callbackDeduplication.markIfAbsent(dedupKey)) {
-            log.warn("Duplicate OMR callback skipped: jobId={}, imageIndex={}",
-                    request.jobId(), request.imageIndex());
+        for (int attempt = 1; attempt <= MAX_OPTIMISTIC_LOCK_ATTEMPTS; attempt++) {
+            if (!callbackDeduplication.markIfAbsent(dedupKey)) {
+                log.warn("Duplicate OMR callback skipped: jobId={}, imageIndex={}",
+                        request.jobId(), request.imageIndex());
+                return;
+            }
+
+            boolean counted;
+            try {
+                counted = recordCallbackBeforeFinalize(request);
+            } catch (OptimisticLockingFailureException e) {
+                forgetDedupAfterUncommittedFailure(dedupKey, request);
+                if (attempt == MAX_OPTIMISTIC_LOCK_ATTEMPTS) {
+                    throw e;
+                }
+                log.warn("Retrying OMR callback after optimistic lock failure: jobId={}, imageIndex={}, attempt={}/{}",
+                        request.jobId(), request.imageIndex(), attempt + 1, MAX_OPTIMISTIC_LOCK_ATTEMPTS);
+                backoff(attempt);
+                continue;
+            } catch (RuntimeException e) {
+                forgetDedupAfterUncommittedFailure(dedupKey, request);
+                throw e;
+            }
+
+            if (counted && tx.finalizeIfDone(request.jobId(), request.totalImages())) {
+                log.info("OMR grading job reached terminal state: jobId={}", request.jobId());
+                cleanupImages(request.jobId());
+            }
             return;
         }
+    }
 
+    private boolean recordCallbackBeforeFinalize(OmrGradingCallbackRequest request) {
         if (!tx.isOpenJob(request.jobId())) {
             log.warn("Late OMR callback skipped for terminal or missing job: jobId={}, imageIndex={}",
                     request.jobId(), request.imageIndex());
-            return;
+            return false;
         }
 
         tx.markProcessing(request.jobId());
@@ -81,14 +113,25 @@ public class OmrGradingJobProcessor {
             tx.recordFail(request.jobId());
         }
 
-        if (tx.finalizeIfDone(request.jobId(), request.totalImages())) {
-            log.info("OMR grading job reached terminal state: jobId={}", request.jobId());
-            cleanupImages(request.jobId());
-        }
+        return true;
     }
 
     private static boolean hasPhoneNumber(OmrGradingCallbackRequest request) {
         return request.phoneNumber() != null && !request.phoneNumber().isBlank();
+    }
+
+    private void forgetDedupAfterUncommittedFailure(String dedupKey, OmrGradingCallbackRequest request) {
+        try {
+            callbackDeduplication.forget(dedupKey);
+        } catch (RuntimeException e) {
+            log.warn("Failed to release OMR callback dedup key after uncommitted failure: jobId={}, imageIndex={}",
+                    request.jobId(), request.imageIndex(), e);
+        }
+    }
+
+    private static void backoff(int previousAttempt) {
+        long millis = OPTIMISTIC_LOCK_BACKOFF_MILLIS * previousAttempt;
+        LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(millis));
     }
 
     /** OMR sheets carry the phone without the leading "010"; restore it for matching/storage. */
