@@ -6535,6 +6535,14 @@
             "enum" : [ "OWNER", "MANAGER", "INSTRUCTOR", "STUDENT" ],
             "type" : "string"
           },
+          "tenantCustomDomain" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "tenantCustomId" : {
+            "nullable" : true,
+            "type" : "string"
+          },
           "tenantId" : {
             "format" : "int64",
             "type" : "integer"
@@ -6551,7 +6559,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "avatarSeed", "email", "id", "name", "phone", "role", "tenantId", "tenantOnboardingCompletedAt", "tenantSlug", "userLoginId" ],
+        "required" : [ "avatarSeed", "email", "id", "name", "phone", "role", "tenantCustomDomain", "tenantCustomId", "tenantId", "tenantOnboardingCompletedAt", "tenantSlug", "userLoginId" ],
         "type" : "object"
       },
       "WatchResponse" : {
@@ -11892,6 +11900,16 @@
               }
             },
             "description" : "OK"
+          },
+          "401" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Unauthorized, including AUTH_017 when the session was replaced by another login"
           }
         },
         "tags" : [ "auth-controller" ]

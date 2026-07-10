@@ -20,11 +20,14 @@ import com.lumie.auth.application.service.UserProfileService;
 import com.lumie.auth.adapter.out.config.CookieConfig;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -149,6 +152,16 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
+    @ApiResponse(
+            responseCode = "200",
+            description = "OK",
+            content = @Content(schema = @Schema(implementation = AuthResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized, including AUTH_017 when the session was replaced by another login",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+    )
     public ResponseEntity<AuthResponse> refresh(
             @CookieValue(name = "lumie_refresh_token", required = false) String refreshTokenFromCookie
     ) {
