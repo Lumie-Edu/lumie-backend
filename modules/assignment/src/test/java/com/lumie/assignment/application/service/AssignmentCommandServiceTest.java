@@ -10,6 +10,7 @@ import com.lumie.assignment.application.dto.response.AssignmentSubmissionResultR
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentTarget;
+import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.common.test.ReflectionTestUtils;
 import com.lumie.common.test.TenantContextExtension;
 import com.lumie.classroom.api.ClassService;
@@ -33,8 +34,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,6 +56,7 @@ class AssignmentCommandServiceTest {
     @Mock private ClassService classService;
     @Mock private StudentService studentService;
     @Mock private ExamService examService;
+    @Mock private AssignmentLifecycleService lifecycleService;
     @InjectMocks private AssignmentCommandService commandService;
 
     @Nested
@@ -68,7 +68,7 @@ class AssignmentCommandServiceTest {
         void createAssignment_success() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
                     1L,
-                    LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
+                    futureDueDate(),
                     100,
                     null,
                     null,
@@ -107,7 +107,7 @@ class AssignmentCommandServiceTest {
         void createAssignment_examManualCreatesDedicatedExam() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
                     1L,
-                    Instant.parse("2026-04-15T23:59:00Z"),
+                    futureDueDate(),
                     100,
                     null,
                     null,
@@ -159,15 +159,65 @@ class AssignmentCommandServiceTest {
         }
 
         @Test
+        @DisplayName("마감일이 이미 지난 ACTIVE 과제는 생성 직후 CLOSED가 된다")
+        void createAssignment_overdueActive_closesImmediately() {
+            CreateAssignmentRequest request = new CreateAssignmentRequest(
+                    1L,
+                    Instant.parse("2000-01-01T00:00:00Z"),
+                    100,
+                    null,
+                    null,
+                    "EXAM_MANUAL",
+                    "EXAM_AUTO",
+                    examRequest(),
+                    null,
+                    List.of(1L),
+                    List.of(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
+
+            given(classService.getClass(any(), eq(1L)))
+                    .willReturn(Optional.of(new ClassService.ClassData(
+                            1L, "수학반", null, null, null, null, null, null, null)));
+            given(examService.createExamForAssignment(any(), any())).willReturn(77L);
+            given(assignmentRepository.save(any(Assignment.class)))
+                    .willAnswer(inv -> {
+                        Assignment entity = inv.getArgument(0);
+                        ReflectionTestUtils.setField(entity, "id", 1L);
+                        return entity;
+                    });
+            given(targetRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
+
+            AssignmentResponse response = commandService.createAssignment(request);
+
+            assertThat(response.status()).isEqualTo(AssignmentStatus.CLOSED);
+        }
+
+        @Test
         @DisplayName("존재하지 않는 수업으로 생성 시 BusinessException이 발생한다")
         void createAssignment_classNotFound_throwsException() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    999L, null, null, null);
+                    999L, futureDueDate(), null, null);
 
             given(classService.getClass(any(), eq(999L))).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> commandService.createAssignment(request))
                     .isInstanceOf(BusinessException.class);
+        }
+
+        @Test
+        @DisplayName("마감일 없이 생성 시 BusinessException이 발생한다")
+        void createAssignment_missingDueDate_throwsException() {
+            CreateAssignmentRequest request = new CreateAssignmentRequest(
+                    1L, null, null, null);
+
+            assertThatThrownBy(() -> commandService.createAssignment(request))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(AssignmentErrorCode.DUE_DATE_REQUIRED));
         }
 
     }
@@ -421,7 +471,7 @@ class AssignmentCommandServiceTest {
     private Assignment buildAssignment(Long id) throws Exception {
         Assignment entity = Assignment.create(
                 1L,
-                LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(java.time.ZoneOffset.UTC),
+                futureDueDate(),
                 100,
                 null,
                 AssignmentStatus.ACTIVE,
@@ -435,6 +485,10 @@ class AssignmentCommandServiceTest {
                 false);
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;
+    }
+
+    private Instant futureDueDate() {
+        return Instant.parse("2099-04-15T23:59:00Z");
     }
 
     private AssignmentTarget classTarget(Long classId) {

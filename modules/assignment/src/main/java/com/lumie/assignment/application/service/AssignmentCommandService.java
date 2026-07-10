@@ -32,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -51,9 +52,13 @@ public class AssignmentCommandService {
     private final ClassService classService;
     private final StudentService studentService;
     private final ExamService examService;
+    private final AssignmentLifecycleService lifecycleService;
 
     public AssignmentResponse createAssignment(CreateAssignmentRequest request) {
         String slug = TenantContextHolder.getRequiredTenant();
+        if (request.dueDate() == null) {
+            throw new BusinessException(AssignmentErrorCode.DUE_DATE_REQUIRED);
+        }
         SubmissionMode submissionMode = parseSubmissionMode(request.submissionMode());
         EvaluationMode evaluationMode = normalizeEvaluationMode(submissionMode, request.evaluationMode());
         AssignmentStatus status = request.status() != null
@@ -81,6 +86,7 @@ public class AssignmentCommandService {
             true,
             defaultBoolean(request.showCorrectAnswers(), false)
         );
+        entity.closeIfOverdue(Instant.now());
 
         Assignment saved = assignmentRepository.save(entity);
         List<AssignmentTarget> targets = replaceTargets(saved.getId(), targetClassIds, targetStudentIds);
@@ -137,6 +143,7 @@ public class AssignmentCommandService {
                 request.showCorrectAnswers() != null ? request.showCorrectAnswers() : entity.isShowCorrectAnswers(),
                 status
         );
+        entity.closeIfOverdue(Instant.now());
 
         Assignment saved = assignmentRepository.save(entity);
         List<AssignmentTarget> targets = targetUpdateRequested
@@ -158,9 +165,13 @@ public class AssignmentCommandService {
     }
 
     public SubmissionResponse createSubmission(Long assignmentId, CreateSubmissionRequest request) {
+        lifecycleService.closeOverdueAssignment(assignmentId);
         Assignment assignment = assignmentRepository.findById(assignmentId)
             .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
                 "Assignment not found with id: %d".formatted(assignmentId)));
+        if (assignment.getStatus() != AssignmentStatus.ACTIVE) {
+            throw new BusinessException(AssignmentErrorCode.ASSIGNMENT_CLOSED);
+        }
 
         if (submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, request.studentId())) {
             throw new BusinessException(AssignmentErrorCode.DUPLICATE_SUBMISSION,
@@ -183,6 +194,7 @@ public class AssignmentCommandService {
     }
 
     public AssignmentSubmissionResultResponse submitCurrentStudent(Long assignmentId, SubmitAssignmentRequest request) {
+        lifecycleService.closeOverdueAssignment(assignmentId);
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
                         "Assignment not found with id: %d".formatted(assignmentId)));

@@ -31,6 +31,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -50,8 +51,10 @@ public class AssignmentQueryService {
     private final ClassService classService;
     private final StudentService studentService;
     private final ExamService examService;
+    private final AssignmentLifecycleService lifecycleService;
 
     public AssignmentResponse getAssignment(Long id) {
+        lifecycleService.closeOverdueAssignment(id);
         Assignment assignment = assignmentRepository.findById(id)
             .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
                 "Assignment not found with id: %d".formatted(id)));
@@ -60,30 +63,36 @@ public class AssignmentQueryService {
 
     public Page<AssignmentResponse> listAssignments(Long classId, AssignmentStatus status,
                                                      Pageable pageable) {
-        AssignmentSearchCriteria criteria = new AssignmentSearchCriteria(classId, status);
+        Instant now = Instant.now();
+        AssignmentSearchCriteria criteria = new AssignmentSearchCriteria(classId, status, now);
         Page<Assignment> page = assignmentRepository.findAll(criteria, pageable);
         Map<Long, List<AssignmentTarget>> targetsByAssignment = targetsByAssignment(page.getContent());
-        return page.map(assignment -> AssignmentResponse.from(
+        return page.map(assignment -> assignmentResponse(
                 assignment,
                 targetsByAssignment.getOrDefault(assignment.getId(), List.of()),
-                examName(assignment)));
+                examName(assignment),
+                now));
     }
 
     public Page<AssignmentResponse> getAssignmentsByClass(Long classId, Pageable pageable) {
         Page<Assignment> page = assignmentRepository.findByTargetClassId(classId, pageable);
         Map<Long, List<AssignmentTarget>> targetsByAssignment = targetsByAssignment(page.getContent());
-        return page.map(assignment -> AssignmentResponse.from(
+        Instant now = Instant.now();
+        return page.map(assignment -> assignmentResponse(
                 assignment,
                 targetsByAssignment.getOrDefault(assignment.getId(), List.of()),
-                examName(assignment)));
+                examName(assignment),
+                now));
     }
 
     public Page<SubmissionResponse> getSubmissions(Long assignmentId, Pageable pageable) {
+        lifecycleService.closeOverdueAssignment(assignmentId);
         return submissionRepository.findByAssignmentId(assignmentId, pageable)
             .map(SubmissionResponse::from);
     }
 
     public List<AssignmentSubmissionStatusResponse> getSubmissionStatuses(Long assignmentId) {
+        lifecycleService.closeOverdueAssignment(assignmentId);
         var ignored = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
                         "Assignment not found with id: %d".formatted(assignmentId)));
@@ -130,6 +139,7 @@ public class AssignmentQueryService {
     }
 
     public Page<SubmissionResponse> getStudentSubmissions(Long assignmentId, Long studentId, Pageable pageable) {
+        lifecycleService.closeOverdueAssignment(assignmentId);
         return submissionRepository.findByAssignmentIdAndStudentId(assignmentId, studentId, pageable)
             .map(SubmissionResponse::from);
     }
@@ -153,12 +163,14 @@ public class AssignmentQueryService {
                         .thenComparing(Assignment::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
         Map<Long, List<AssignmentTarget>> targetsByAssignment = targetsByAssignment(assignments);
+        Instant now = Instant.now();
         return assignments.stream()
-                .map(assignment -> studentAssignmentResponse(assignment, examName(assignment)))
+                .map(assignment -> studentAssignmentResponse(assignment, examName(assignment), now))
                 .toList();
     }
 
     public StudentAssignmentDetailResponse getCurrentStudentAssignment(Long assignmentId) {
+        lifecycleService.closeOverdueAssignment(assignmentId);
         Long studentId = currentStudentId();
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
@@ -197,17 +209,52 @@ public class AssignmentQueryService {
     }
 
     private AssignmentResponse toAssignmentResponse(Assignment assignment, List<AssignmentTarget> targets) {
-        return AssignmentResponse.from(assignment, targets, examName(assignment));
+        return assignmentResponse(assignment, targets, examName(assignment), Instant.now());
+    }
+
+    private AssignmentResponse assignmentResponse(
+            Assignment assignment, List<AssignmentTarget> targets, String examName, Instant now) {
+        return new AssignmentResponse(
+                assignment.getId(),
+                assignment.getClassId(),
+                assignment.getDueDate(),
+                assignment.getMaxScore(),
+                assignment.getAttachments(),
+                effectiveStatus(assignment, now),
+                assignment.getSubmissionMode(),
+                assignment.getEvaluationMode(),
+                assignment.getLinkedExamId(),
+                examName,
+                targets.stream()
+                        .filter(target -> target.getTargetType() == AssignmentTargetType.CLASS)
+                        .map(AssignmentTarget::getTargetId)
+                        .toList(),
+                targets.stream()
+                        .filter(target -> target.getTargetType() == AssignmentTargetType.STUDENT)
+                        .map(AssignmentTarget::getTargetId)
+                        .toList(),
+                assignment.isShowScore(),
+                assignment.isShowPassFail(),
+                assignment.isShowGrade(),
+                assignment.isShowQuestionResults(),
+                assignment.isShowCorrectAnswers(),
+                assignment.getCreatedAt(),
+                assignment.getUpdatedAt()
+        );
     }
 
     private AssignmentResponse studentAssignmentResponse(Assignment assignment, String examName) {
+        return studentAssignmentResponse(assignment, examName, Instant.now());
+    }
+
+    private AssignmentResponse studentAssignmentResponse(Assignment assignment, String examName, Instant now) {
         return new AssignmentResponse(
                 assignment.getId(),
                 null,
                 assignment.getDueDate(),
                 assignment.getMaxScore(),
                 assignment.getAttachments(),
-                assignment.getStatus(),
+                effectiveStatus(assignment, now),
                 assignment.getSubmissionMode(),
                 assignment.getEvaluationMode(),
                 assignment.getLinkedExamId(),
@@ -222,6 +269,13 @@ public class AssignmentQueryService {
                 assignment.getCreatedAt(),
                 assignment.getUpdatedAt()
         );
+    }
+
+    private AssignmentStatus effectiveStatus(Assignment assignment, Instant now) {
+        if (assignment.getStatus() == AssignmentStatus.ACTIVE && !assignment.getDueDate().isAfter(now)) {
+            return AssignmentStatus.CLOSED;
+        }
+        return assignment.getStatus();
     }
 
     private String examName(Assignment assignment) {

@@ -37,7 +37,7 @@ public class Assignment extends TenantScopedEntity {
     @Column(name = "class_id")
     private Long classId;
 
-    @Column(name = "due_date")
+    @Column(name = "due_date", nullable = false)
     private Instant dueDate;
 
     @Column(name = "max_score")
@@ -84,6 +84,9 @@ public class Assignment extends TenantScopedEntity {
                        SubmissionMode submissionMode, EvaluationMode evaluationMode,
                        Long linkedExamId, Boolean showScore, Boolean showPassFail,
                        Boolean showGrade, Boolean showQuestionResults, Boolean showCorrectAnswers) {
+        if (dueDate == null) {
+            throw new BusinessException(AssignmentErrorCode.DUE_DATE_REQUIRED);
+        }
         this.classId = classId;
         this.dueDate = dueDate;
         this.maxScore = maxScore;
@@ -128,6 +131,9 @@ public class Assignment extends TenantScopedEntity {
     }
 
     public void updateInfo(Instant dueDate, Integer maxScore, List<Long> attachments) {
+        if (dueDate == null) {
+            throw new BusinessException(AssignmentErrorCode.DUE_DATE_REQUIRED);
+        }
         this.dueDate = dueDate;
         this.maxScore = maxScore;
         this.attachments = attachments;
@@ -151,6 +157,14 @@ public class Assignment extends TenantScopedEntity {
 
     public void close() {
         this.status = AssignmentStatus.CLOSED;
+    }
+
+    public boolean closeIfOverdue(Instant now) {
+        if (this.status == AssignmentStatus.ACTIVE && !this.dueDate.isAfter(now)) {
+            close();
+            return true;
+        }
+        return false;
     }
 
     public void activate() {

@@ -86,6 +86,19 @@ class AssignmentControllerTest {
     }
 
     @Test
+    @DisplayName("POST /v1/assignments - 마감일이 없으면 400을 반환한다")
+    void createAssignment_missingDueDate_returns400() throws Exception {
+        CreateAssignmentRequest request = new CreateAssignmentRequest(
+                1L, null, 100, null);
+
+        mockMvc.perform(post("/v1/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Validation error"));
+    }
+
+    @Test
     @DisplayName("GET /v1/assignments - 과제 목록 조회 시 200을 반환한다")
     void listAssignments_returns200() throws Exception {
         AssignmentResponse response = buildAssignmentResponse(1L);

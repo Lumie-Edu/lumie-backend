@@ -15,7 +15,7 @@ public record AssignmentResponse(
     Long id,
     @Schema(nullable = true)
     Long classId,
-    @Schema(nullable = true) Instant dueDate,
+    Instant dueDate,
     @Schema(nullable = true) Integer maxScore,
     @Schema(nullable = true) List<Long> attachments,
     AssignmentStatus status,

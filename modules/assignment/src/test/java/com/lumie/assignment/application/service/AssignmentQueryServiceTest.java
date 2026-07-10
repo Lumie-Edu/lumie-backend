@@ -33,7 +33,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.lang.reflect.Field;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith({MockitoExtension.class, TenantContextExtension.class})
 @DisplayName("AssignmentQueryService 테스트")
@@ -53,6 +54,7 @@ class AssignmentQueryServiceTest {
     @Mock private ClassService classService;
     @Mock private StudentService studentService;
     @Mock private ExamService examService;
+    @Mock private AssignmentLifecycleService lifecycleService;
     @InjectMocks private AssignmentQueryService queryService;
 
     @Test
@@ -65,6 +67,7 @@ class AssignmentQueryServiceTest {
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.status()).isEqualTo(AssignmentStatus.ACTIVE);
+        verify(lifecycleService).closeOverdueAssignment(1L);
     }
 
     @Test
@@ -103,6 +106,24 @@ class AssignmentQueryServiceTest {
                 1L, AssignmentStatus.ACTIVE, pageable);
 
         assertThat(response.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("listAssignments는 마감이 지난 ACTIVE 과제를 응답에서 CLOSED로 표시한다")
+    void listAssignments_overdueActive_returnsClosedStatus() throws Exception {
+        Assignment entity = buildAssignment(
+                1L,
+                AssignmentStatus.ACTIVE,
+                Instant.parse("2000-01-01T00:00:00Z"));
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Assignment> page = new PageImpl<>(List.of(entity), pageable, 1);
+
+        given(assignmentRepository.findAll(any(AssignmentSearchCriteria.class), eq(pageable))).willReturn(page);
+
+        Page<AssignmentResponse> response = queryService.listAssignments(1L, null, pageable);
+
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).status()).isEqualTo(AssignmentStatus.CLOSED);
     }
 
     @Test
@@ -219,9 +240,13 @@ class AssignmentQueryServiceTest {
     }
 
     private Assignment buildAssignment(Long id, AssignmentStatus status) throws Exception {
+        return buildAssignment(id, status, futureDueDate());
+    }
+
+    private Assignment buildAssignment(Long id, AssignmentStatus status, Instant dueDate) throws Exception {
         Assignment entity = Assignment.create(
                 1L,
-                LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(java.time.ZoneOffset.UTC),
+                dueDate,
                 100,
                 null,
                 status,
@@ -235,6 +260,10 @@ class AssignmentQueryServiceTest {
                 false);
         setField(entity, "id", id);
         return entity;
+    }
+
+    private Instant futureDueDate() {
+        return Instant.parse("2099-04-15T23:59:00Z");
     }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {

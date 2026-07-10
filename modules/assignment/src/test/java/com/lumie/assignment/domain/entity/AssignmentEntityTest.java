@@ -1,14 +1,18 @@
 package com.lumie.assignment.domain.entity;
 
 import com.lumie.assignment.domain.vo.AssignmentStatus;
+import com.lumie.assignment.domain.exception.AssignmentErrorCode;
+import com.lumie.common.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("Assignment 도메인 엔티티 테스트")
 class AssignmentEntityTest {
@@ -44,6 +48,17 @@ class AssignmentEntityTest {
     }
 
     @Test
+    @DisplayName("updateInfo()는 null 마감일을 허용하지 않는다")
+    void updateInfo_nullDueDate_throwsException() {
+        Assignment entity = buildEntity();
+
+        assertThatThrownBy(() -> entity.updateInfo(null, 50, List.of(3L)))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(AssignmentErrorCode.DUE_DATE_REQUIRED));
+    }
+
+    @Test
     @DisplayName("close() 호출 시 상태가 CLOSED로 변경된다")
     void close_statusChangesToClosed() {
         Assignment entity = buildEntity();
@@ -75,6 +90,32 @@ class AssignmentEntityTest {
 
         entity.activate();
         assertThat(entity.isActive()).isTrue();
+    }
+
+    @Test
+    @DisplayName("closeIfOverdue()는 마감 시간이 지난 ACTIVE 과제를 CLOSED로 변경한다")
+    void closeIfOverdue_overdueActive_closes() {
+        Assignment entity = Assignment.create(
+                1L, Instant.parse("2026-04-15T23:59:00Z"),
+                100, null);
+
+        boolean changed = entity.closeIfOverdue(Instant.parse("2026-04-16T00:00:00Z"));
+
+        assertThat(changed).isTrue();
+        assertThat(entity.getStatus()).isEqualTo(AssignmentStatus.CLOSED);
+    }
+
+    @Test
+    @DisplayName("closeIfOverdue()는 마감 전 ACTIVE 과제를 변경하지 않는다")
+    void closeIfOverdue_futureActive_keepsActive() {
+        Assignment entity = Assignment.create(
+                1L, Instant.parse("2026-04-15T23:59:00Z"),
+                100, null);
+
+        boolean changed = entity.closeIfOverdue(Instant.parse("2026-04-15T23:58:59Z"));
+
+        assertThat(changed).isFalse();
+        assertThat(entity.getStatus()).isEqualTo(AssignmentStatus.ACTIVE);
     }
 
     private Assignment buildEntity() {

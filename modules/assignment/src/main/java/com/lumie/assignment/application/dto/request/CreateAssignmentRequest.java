@@ -1,6 +1,7 @@
 package com.lumie.assignment.application.dto.request;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.List;
 public record CreateAssignmentRequest(
     Long classId,
 
+    @NotNull(message = "Assignment due date is required")
     Instant dueDate,
     Integer maxScore,
     List<Long> attachments,
