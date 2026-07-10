@@ -61,6 +61,7 @@ public class TenantServiceAdapter implements TenantService {
                         t.getId(), t.getSlugValue(), t.getName(),
                         t.getStatus(),
                         t.getCustomId(),
+                        t.getCustomDomain(),
                         t.getOnboardingCompletedAt(),
                         t.getCreatedAt() != null ? t.getCreatedAt().toString() : "",
                         t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : ""
@@ -81,7 +82,7 @@ public class TenantServiceAdapter implements TenantService {
         return tenantPersistencePort.findAllByStatus(TenantStatus.ACTIVE).stream()
                 .map(t -> new TenantData(
                         t.getId(), t.getSlugValue(), t.getName(),
-                        t.getStatus(), t.getCustomId(), t.getOnboardingCompletedAt(),
+                        t.getStatus(), t.getCustomId(), t.getCustomDomain(), t.getOnboardingCompletedAt(),
                         t.getCreatedAt() != null ? t.getCreatedAt().toString() : "",
                         t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : ""
                 ))
@@ -148,6 +149,7 @@ public class TenantServiceAdapter implements TenantService {
                 tenant.id(), tenant.slug(), tenant.name(),
                 tenant.status(),
                 tenant.customId(),
+                tenant.customDomain(),
                 tenant.onboardingCompletedAt(),
                 tenant.createdAt().toString(), tenant.updatedAt().toString()
         );

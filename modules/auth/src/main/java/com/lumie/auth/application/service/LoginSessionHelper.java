@@ -10,6 +10,7 @@ import com.lumie.auth.application.port.out.UserLookupPort.UserData;
 import com.lumie.auth.domain.entity.AuthToken;
 import com.lumie.auth.domain.vo.DeviceCategory;
 import com.lumie.auth.domain.vo.SessionMetadata;
+import com.lumie.auth.domain.vo.SessionRevocationReason;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.domain.vo.TokenPair;
 import com.lumie.common.auth.Role;
@@ -145,6 +146,12 @@ public class LoginSessionHelper {
                 if (refreshJti != null) {
                     tokenPersistencePort.deleteRefreshToken(userId, refreshJti);
                 }
+                tokenPersistencePort.saveSessionRevocationReason(
+                        tenantSlug,
+                        sid,
+                        SessionRevocationReason.SESSION_REPLACED_BY_LOGIN,
+                        tokenProvider.getRefreshTokenExpiration()
+                );
                 tokenPersistencePort.deleteSession(tenantSlug, sid);
                 tokenPersistencePort.removeSessionFromIndex(tenantSlug, userId, sid);
                 log.info("Revoked existing {} session for user {}: sid={}", category, userId, sid);

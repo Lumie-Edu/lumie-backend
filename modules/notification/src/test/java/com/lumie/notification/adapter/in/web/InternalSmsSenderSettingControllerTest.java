@@ -71,6 +71,7 @@ class InternalSmsSenderSettingControllerTest {
                 null,
                 null,
                 null,
+                null,
                 null
         )));
         given(senderSettingService.updateApproval(any(UpdateSmsSenderSettingApprovalRequest.class)))

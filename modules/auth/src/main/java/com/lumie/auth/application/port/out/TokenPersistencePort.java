@@ -1,6 +1,7 @@
 package com.lumie.auth.application.port.out;
 
 import com.lumie.auth.domain.entity.AuthToken;
+import com.lumie.auth.domain.vo.SessionRevocationReason;
 
 import java.util.Map;
 import java.util.Optional;
@@ -38,4 +39,8 @@ public interface TokenPersistencePort {
     void deleteAllSessionsForUser(String tenantSlug, Long userId);
 
     Map<String, String> findSessionsBulk(String tenantSlug, Set<String> jtis);
+
+    void saveSessionRevocationReason(String tenantSlug, String sid, SessionRevocationReason reason, long ttlSeconds);
+
+    Optional<SessionRevocationReason> findSessionRevocationReason(String tenantSlug, String sid);
 }

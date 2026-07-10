@@ -2,6 +2,7 @@ package com.lumie.auth.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.dto.response.UserResponse;
+import com.lumie.auth.application.exception.AuthErrors.SessionReplacedByLoginException;
 import com.lumie.auth.application.service.AuthQueryService;
 import com.lumie.auth.application.service.AuthRegistrationService;
 import com.lumie.auth.application.service.AuthSessionService;
@@ -12,6 +13,7 @@ import com.lumie.auth.adapter.out.config.CookieConfig;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,11 +29,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
@@ -80,6 +84,8 @@ class AuthControllerMeTest {
                 .role(Role.OWNER)
                 .tenantSlug("acme")
                 .tenantId(7L)
+                .tenantCustomId("academy")
+                .tenantCustomDomain("academy.example.com")
                 .avatarSeed("seed-1")
                 .build();
         given(authQueryService.getMe(eq(42L), eq("acme"))).willReturn(response);
@@ -95,6 +101,8 @@ class AuthControllerMeTest {
                 .andExpect(jsonPath("$.role").value("OWNER"))
                 .andExpect(jsonPath("$.tenantSlug").value("acme"))
                 .andExpect(jsonPath("$.tenantId").value(7))
+                .andExpect(jsonPath("$.tenantCustomId").value("academy"))
+                .andExpect(jsonPath("$.tenantCustomDomain").value("academy.example.com"))
                 .andExpect(jsonPath("$.avatarSeed").value("seed-1"));
     }
 
@@ -202,6 +210,20 @@ class AuthControllerMeTest {
                         .content(objectMapper.writeValueAsString(
                                 new ChangePasswordBody("Old@Pass1", "weak"))))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /v1/refresh - 다른 로그인으로 세션이 교체되면 AUTH_017 ProblemDetail을 반환한다")
+    void refresh_sessionReplaced_returnsAuth017ProblemDetail() throws Exception {
+        doThrow(new SessionReplacedByLoginException())
+                .when(authSessionService)
+                .refresh(org.mockito.ArgumentMatchers.any());
+
+        mockMvc.perform(post("/v1/refresh")
+                        .cookie(new Cookie("lumie_refresh_token", "refresh")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentType("application/problem+json"))
+                .andExpect(jsonPath("$.code").value("AUTH_017"));
     }
 
     @Test

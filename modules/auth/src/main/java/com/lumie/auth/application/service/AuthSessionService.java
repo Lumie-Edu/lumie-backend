@@ -8,6 +8,7 @@ import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.TokenResponse;
 import com.lumie.auth.application.exception.AuthErrors.InvalidCredentialsException;
 import com.lumie.auth.application.exception.AuthErrors.InvalidTokenException;
+import com.lumie.auth.application.exception.AuthErrors.SessionReplacedByLoginException;
 import com.lumie.auth.application.exception.AuthErrors.TenantInactiveException;
 import com.lumie.auth.application.exception.AuthErrors.TokenIssuanceFailedException;
 import com.lumie.auth.application.exception.AuthErrors.UserDisabledException;
@@ -20,6 +21,7 @@ import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
 import com.lumie.auth.application.service.LoginSessionHelper.IssuedTokens;
 import com.lumie.auth.domain.vo.SessionMetadata;
+import com.lumie.auth.domain.vo.SessionRevocationReason;
 import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.domain.vo.TokenPair;
 import com.lumie.common.exception.ResourceNotFoundException;
@@ -76,6 +78,8 @@ public class AuthSessionService {
             log.info("Login successful for user: {} on tenant: {}", user.id(), tenant.slug());
             return LoginResponse.of(issued.tokenPair(), user.toUserResponse(
                     tenant.slug(),
+                    tenant.customId(),
+                    tenant.customDomain(),
                     tenant.onboardingCompletedAt()
             ));
         });
@@ -146,8 +150,14 @@ public class AuthSessionService {
         if (tokenPersistencePort.isBlacklisted(claims.jti())) {
             throw new InvalidTokenException("Token has been revoked");
         }
-        tokenPersistencePort.findRefreshToken(claims.getUserId(), claims.jti())
-                .orElseThrow(() -> new InvalidTokenException("Refresh token not found"));
+        if (tokenPersistencePort.findRefreshToken(claims.getUserId(), claims.jti()).isEmpty()) {
+            Optional<SessionRevocationReason> revocationReason =
+                    tokenPersistencePort.findSessionRevocationReason(claims.tenantSlug(), claims.sid());
+            if (revocationReason.filter(SessionRevocationReason.SESSION_REPLACED_BY_LOGIN::equals).isPresent()) {
+                throw new SessionReplacedByLoginException();
+            }
+            throw new InvalidTokenException("Refresh token not found");
+        }
 
         TenantData tenant = tenantService.getTenantBySlug(claims.tenantSlug())
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", claims.tenantSlug()));

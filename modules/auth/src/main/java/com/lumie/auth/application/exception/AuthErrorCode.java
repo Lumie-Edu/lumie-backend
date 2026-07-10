@@ -20,7 +20,8 @@ public enum AuthErrorCode implements ErrorCode {
     TOKEN_ISSUANCE_FAILED("AUTH_013", "Failed to issue auth token", 500),
     SESSION_SERIALIZATION_FAILED("AUTH_014", "Failed to serialize session data", 500),
     CURRENT_PASSWORD_INCORRECT("AUTH_015", "Current password is incorrect", 422),
-    PASSWORD_UNCHANGED("AUTH_016", "New password must differ from the current password", 422);
+    PASSWORD_UNCHANGED("AUTH_016", "New password must differ from the current password", 422),
+    SESSION_REPLACED_BY_LOGIN("AUTH_017", "Session replaced by another login", 401);
 
     private final String code;
     private final String message;

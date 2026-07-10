@@ -49,6 +49,7 @@ public interface TenantService {
             String name,
             TenantStatus status,
             String customId,
+            String customDomain,
             Instant onboardingCompletedAt,
             String createdAt,
             String updatedAt

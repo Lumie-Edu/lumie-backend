@@ -42,7 +42,7 @@ public class UserProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
         TenantService.TenantData tenant = tenantService.getTenantBySlug(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
-        return user.toUserResponse(tenantSlug, tenant.onboardingCompletedAt());
+        return user.toUserResponse(tenantSlug, tenant.customId(), tenant.customDomain(), tenant.onboardingCompletedAt());
     }
 
     public void changePassword(Long userId, String tenantSlug, ChangePasswordRequest request) {

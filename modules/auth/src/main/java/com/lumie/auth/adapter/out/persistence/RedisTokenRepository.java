@@ -6,6 +6,7 @@ import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.domain.entity.AuthToken;
 import com.lumie.auth.domain.repository.TokenRepository;
 import com.lumie.auth.application.exception.AuthErrorCode;
+import com.lumie.auth.domain.vo.SessionRevocationReason;
 import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class RedisTokenRepository implements TokenRepository, TokenPersistencePo
 
     private static final String BLACKLIST_PREFIX = "auth:blacklist:";
     private static final String REFRESH_PREFIX = "auth:refresh:";
+    private static final String SESSION_REVOKED_PREFIX = "auth:session-revoked:";
     private static final String SESSION_SUFFIX = ":session:";
     private static final String SESSION_INDEX_SUFFIX = ":sessions:";
 
@@ -173,6 +175,31 @@ public class RedisTokenRepository implements TokenRepository, TokenPersistencePo
             }
         }
         return result;
+    }
+
+    @Override
+    public void saveSessionRevocationReason(String tenantSlug, String sid, SessionRevocationReason reason, long ttlSeconds) {
+        String key = revokedSessionKey(tenantSlug, sid);
+        redisTemplate.opsForValue().set(key, reason.name(), Duration.ofSeconds(ttlSeconds));
+        log.debug("Saved session revocation reason for tenant: {} sid: {}", tenantSlug, sid);
+    }
+
+    @Override
+    public Optional<SessionRevocationReason> findSessionRevocationReason(String tenantSlug, String sid) {
+        String value = redisTemplate.opsForValue().get(revokedSessionKey(tenantSlug, sid));
+        if (value == null) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(SessionRevocationReason.valueOf(value));
+        } catch (IllegalArgumentException e) {
+            log.warn("Unknown session revocation reason for tenant: {} sid: {}", tenantSlug, sid);
+            return Optional.empty();
+        }
+    }
+
+    private String revokedSessionKey(String tenantSlug, String sid) {
+        return SESSION_REVOKED_PREFIX + tenantSlug + ":" + sid;
     }
 
     private RedisToken toRedisToken(AuthToken token) {

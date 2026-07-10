@@ -67,7 +67,7 @@ public class AuthQueryService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
         TenantService.TenantData tenant = tenantService.getTenantBySlug(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
-        return user.toUserResponse(tenantSlug, tenant.onboardingCompletedAt());
+        return user.toUserResponse(tenantSlug, tenant.customId(), tenant.customDomain(), tenant.onboardingCompletedAt());
     }
 
     public List<SessionResponse> getSessions(Long userId, String tenantSlug, String currentSid) {

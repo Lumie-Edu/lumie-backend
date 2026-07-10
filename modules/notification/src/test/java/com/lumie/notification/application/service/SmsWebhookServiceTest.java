@@ -54,6 +54,7 @@ class SmsWebhookServiceTest {
                         "test",
                         null,
                         null,
+                        null,
                         null
                 )));
         given(dispatchService.applyWebhookReport(any()))
@@ -102,6 +103,7 @@ class SmsWebhookServiceTest {
                         "Test",
                         TenantStatus.ACTIVE,
                         "test",
+                        null,
                         null,
                         null,
                         null

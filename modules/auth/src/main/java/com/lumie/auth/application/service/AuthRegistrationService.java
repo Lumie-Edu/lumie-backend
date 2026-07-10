@@ -72,6 +72,8 @@ public class AuthRegistrationService {
             log.info("Registration successful for user: {} on tenant: {}", user.id(), request.tenantSlug());
             return LoginResponse.of(issued.tokenPair(), user.toUserResponse(
                     request.tenantSlug(),
+                    tenant.customId(),
+                    tenant.customDomain(),
                     tenant.onboardingCompletedAt()
             ));
         });
@@ -110,6 +112,6 @@ public class AuthRegistrationService {
 
         IssuedTokens issued = loginSessionHelper.issueTokensForLogin(user, tenantResult.tenantSlug(), tenantResult.tenantId(), metadata);
         log.info("Owner registration successful: userId={}, tenantSlug={}", user.id(), tenantResult.tenantSlug());
-        return LoginResponse.of(issued.tokenPair(), user.toUserResponse(tenantResult.tenantSlug(), null));
+        return LoginResponse.of(issued.tokenPair(), user.toUserResponse(tenantResult.tenantSlug(), null, null, null));
     }
 }

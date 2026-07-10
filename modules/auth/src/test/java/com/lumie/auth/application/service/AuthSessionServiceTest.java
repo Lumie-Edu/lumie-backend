@@ -2,13 +2,20 @@ package com.lumie.auth.application.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.dto.request.LoginRequest;
+import com.lumie.auth.application.dto.request.RefreshTokenRequest;
+import com.lumie.auth.application.exception.AuthErrorCode;
+import com.lumie.auth.application.exception.AuthErrors.InvalidTokenException;
+import com.lumie.auth.application.exception.AuthErrors.SessionReplacedByLoginException;
 import com.lumie.auth.application.port.out.TokenPersistencePort;
 import com.lumie.auth.application.port.out.TokenProviderPort;
 import com.lumie.auth.application.port.out.UserDirectoryPort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
 import com.lumie.auth.domain.vo.SessionMetadata;
+import com.lumie.auth.domain.vo.SessionRevocationReason;
+import com.lumie.auth.domain.vo.TokenClaims;
 import com.lumie.auth.domain.vo.TokenPair;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.auth.Role;
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.api.TenantService.TenantData;
@@ -24,6 +31,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -69,6 +77,7 @@ class AuthSessionServiceTest {
                 "Academy",
                 TenantStatus.ACTIVE,
                 "academy",
+                "academy.example.com",
                 null,
                 Instant.now().toString(),
                 Instant.now().toString());
@@ -95,5 +104,53 @@ class AuthSessionServiceTest {
 
         assertThat(response.user().tenantSlug()).isEqualTo("inst-academy");
         verify(userDirectoryPort, never()).findByUserLoginId("student1");
+    }
+
+    @Test
+    void refreshThrowsSessionReplacedCodeWhenMissingTokenHasReplacementReason() {
+        TokenClaims claims = refreshClaims();
+        when(tokenProvider.parseToken("refresh")).thenReturn(Optional.of(claims));
+        when(tokenPersistencePort.isBlacklisted("refresh-jti")).thenReturn(false);
+        when(tokenPersistencePort.findRefreshToken(20L, "refresh-jti")).thenReturn(Optional.empty());
+        when(tokenPersistencePort.findSessionRevocationReason("inst-academy", "sid-1"))
+                .thenReturn(Optional.of(SessionRevocationReason.SESSION_REPLACED_BY_LOGIN));
+
+        assertThatThrownBy(() -> authSessionService.refresh(new RefreshTokenRequest("refresh")))
+                .isInstanceOf(SessionReplacedByLoginException.class)
+                .extracting("errorCode")
+                .isEqualTo(AuthErrorCode.SESSION_REPLACED_BY_LOGIN);
+
+        verify(tenantService, never()).getTenantBySlug("inst-academy");
+    }
+
+    @Test
+    void refreshKeepsGenericUnauthorizedWhenMissingTokenHasNoReplacementReason() {
+        TokenClaims claims = refreshClaims();
+        when(tokenProvider.parseToken("refresh")).thenReturn(Optional.of(claims));
+        when(tokenPersistencePort.isBlacklisted("refresh-jti")).thenReturn(false);
+        when(tokenPersistencePort.findRefreshToken(20L, "refresh-jti")).thenReturn(Optional.empty());
+        when(tokenPersistencePort.findSessionRevocationReason("inst-academy", "sid-1"))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authSessionService.refresh(new RefreshTokenRequest("refresh")))
+                .isInstanceOf(InvalidTokenException.class)
+                .extracting("errorCode")
+                .isEqualTo(CommonErrorCode.UNAUTHORIZED);
+
+        verify(tenantService, never()).getTenantBySlug("inst-academy");
+    }
+
+    private TokenClaims refreshClaims() {
+        Instant now = Instant.now();
+        return TokenClaims.of(
+                "20",
+                "Student",
+                "inst-academy",
+                10L,
+                Role.STUDENT,
+                now,
+                now.plusSeconds(604800),
+                "refresh-jti",
+                "sid-1");
     }
 }

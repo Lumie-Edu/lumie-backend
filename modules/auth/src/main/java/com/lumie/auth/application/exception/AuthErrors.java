@@ -26,6 +26,13 @@ public final class AuthErrors {
         }
     }
 
+    /** Existing session was replaced by a new login in the same device category — maps to 401. */
+    public static class SessionReplacedByLoginException extends BusinessException {
+        public SessionReplacedByLoginException() {
+            super(AuthErrorCode.SESSION_REPLACED_BY_LOGIN, "Session replaced by another login");
+        }
+    }
+
     /** Login id already in use during registration — maps to 409. */
     public static class UserLoginIdAlreadyExistsException extends BusinessException {
         public UserLoginIdAlreadyExistsException(String message) {
