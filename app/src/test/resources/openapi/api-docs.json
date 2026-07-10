@@ -158,7 +158,6 @@
           },
           "dueDate" : {
             "format" : "date-time",
-            "nullable" : true,
             "type" : "string"
           },
           "evaluationMode" : {
@@ -1251,6 +1250,7 @@
             "type" : "array"
           }
         },
+        "required" : [ "dueDate" ],
         "type" : "object"
       },
       "CreateClassRequest" : {
