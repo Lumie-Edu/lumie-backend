@@ -185,10 +185,10 @@ spec:
               key: TOSS_WEBHOOK_SECRET
         resources:
           requests:
-            cpu: 100m
-            memory: 512Mi
+            cpu: 25m
+            memory: 256Mi
           limits:
-            memory: 1280Mi
+            memory: 768Mi
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
