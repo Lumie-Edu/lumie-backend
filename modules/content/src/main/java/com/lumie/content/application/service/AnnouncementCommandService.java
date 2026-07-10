@@ -103,6 +103,7 @@ public class AnnouncementCommandService {
         validateClassTargets(classIds);
 
         classTargetRepository.deleteByAnnouncementId(announcementId);
+        classTargetRepository.flush();
         if (!classIds.isEmpty()) {
             classTargetRepository.saveAll(classIds.stream()
                     .map(classId -> AnnouncementClassTarget.create(announcementId, classId))

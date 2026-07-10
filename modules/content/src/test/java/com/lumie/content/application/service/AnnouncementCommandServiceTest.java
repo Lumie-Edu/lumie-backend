@@ -3,6 +3,7 @@ package com.lumie.content.application.service;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.application.dto.request.CreateAnnouncementRequest;
+import com.lumie.content.application.dto.request.UpdateAnnouncementRequest;
 import com.lumie.content.domain.entity.Announcement;
 import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
 import com.lumie.content.domain.repository.AnnouncementRepository;
@@ -23,7 +24,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AnnouncementCommandService 테스트")
@@ -95,7 +98,47 @@ class AnnouncementCommandServiceTest {
         assertThat(response.authorName()).isEqualTo("삭제된 직원");
     }
 
+    @Test
+    @DisplayName("수정 시 클래스 대상은 기존 row 삭제를 flush한 뒤 다시 저장한다")
+    void updateAnnouncement_flushesDeletedClassTargetsBeforeReinsert() {
+        Announcement announcement = announcement(1L, 900L);
+        UpdateAnnouncementRequest request = new UpdateAnnouncementRequest(
+                "공지 수정",
+                "내용 수정",
+                false,
+                false,
+                null,
+                null,
+                List.of(10L, 20L)
+        );
+        given(announcementRepository.findById(1L)).willReturn(Optional.of(announcement));
+        given(announcementRepository.save(announcement)).willReturn(announcement);
+        given(classService.getClass("test-tenant", 10L)).willReturn(Optional.of(classData(10L)));
+        given(classService.getClass("test-tenant", 20L)).willReturn(Optional.of(classData(20L)));
+        given(classTargetRepository.saveAll(anyList())).willAnswer(invocation -> invocation.getArgument(0));
+        given(staffService.getStaffByUserId("test-tenant", 900L))
+                .willReturn(Optional.of(staff(900L, "원장")));
+
+        var response = commandService.updateAnnouncement(1L, request);
+
+        assertThat(response.classIds()).containsExactly(10L, 20L);
+        var inOrder = inOrder(classTargetRepository);
+        inOrder.verify(classTargetRepository).deleteByAnnouncementId(1L);
+        inOrder.verify(classTargetRepository).flush();
+        inOrder.verify(classTargetRepository).saveAll(anyList());
+    }
+
+    private static Announcement announcement(Long id, Long authorId) {
+        Announcement announcement = Announcement.create(authorId, "공지", "내용", false, false);
+        ReflectionTestUtils.setField(announcement, "id", id);
+        return announcement;
+    }
+
     private static StaffService.StaffData staff(Long userId, String name) {
         return new StaffService.StaffData(10L, userId, "owner", name, null, null, true, "ACTIVE", null, null);
+    }
+
+    private static ClassService.ClassData classData(Long id) {
+        return new ClassService.ClassData(id, "클래스 " + id, 1L, null, List.of(), null, null, null, null);
     }
 }

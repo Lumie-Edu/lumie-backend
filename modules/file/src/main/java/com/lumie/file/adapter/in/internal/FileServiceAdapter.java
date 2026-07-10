@@ -81,6 +81,7 @@ public class FileServiceAdapter implements FileService {
 
         EntityType type = parseEntityType(entityType);
         fileLinkRepository.deleteByEntityTypeAndEntityId(type, entityId);
+        fileLinkRepository.flush();
 
         if (fileIds.isEmpty()) {
             return;
