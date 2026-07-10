@@ -105,6 +105,37 @@
         "required" : [ "graded", "pending", "returned", "submitted" ],
         "type" : "object"
       },
+      "AssignmentQuestionResultResponse" : {
+        "properties" : {
+          "correct" : {
+            "nullable" : true,
+            "type" : "boolean"
+          },
+          "correctAnswer" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "questionNumber" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "questionType" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "score" : {
+            "format" : "int32",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "selectedChoice" : {
+            "nullable" : true,
+            "type" : "string"
+          }
+        },
+        "required" : [ "correct", "correctAnswer", "questionNumber", "questionType", "score", "selectedChoice" ],
+        "type" : "object"
+      },
       "AssignmentResponse" : {
         "properties" : {
           "attachments" : {
@@ -118,14 +149,11 @@
           },
           "classId" : {
             "format" : "int64",
+            "nullable" : true,
             "type" : "integer"
           },
           "createdAt" : {
             "format" : "date-time",
-            "type" : "string"
-          },
-          "description" : {
-            "nullable" : true,
             "type" : "string"
           },
           "dueDate" : {
@@ -133,8 +161,21 @@
             "nullable" : true,
             "type" : "string"
           },
+          "evaluationMode" : {
+            "enum" : [ "PASS_FAIL", "GRADE", "SCORE", "EXAM_AUTO" ],
+            "type" : "string"
+          },
+          "examName" : {
+            "nullable" : true,
+            "type" : "string"
+          },
           "id" : {
             "format" : "int64",
+            "type" : "integer"
+          },
+          "linkedExamId" : {
+            "format" : "int64",
+            "nullable" : true,
             "type" : "integer"
           },
           "maxScore" : {
@@ -142,23 +183,99 @@
             "nullable" : true,
             "type" : "integer"
           },
+          "showCorrectAnswers" : {
+            "type" : "boolean"
+          },
+          "showGrade" : {
+            "type" : "boolean"
+          },
+          "showPassFail" : {
+            "type" : "boolean"
+          },
+          "showQuestionResults" : {
+            "type" : "boolean"
+          },
+          "showScore" : {
+            "type" : "boolean"
+          },
           "status" : {
-            "enum" : [ "ACTIVE", "CLOSED", "DRAFT" ],
+            "enum" : [ "ACTIVE", "CLOSED" ],
             "type" : "string"
           },
-          "title" : {
+          "submissionMode" : {
+            "enum" : [ "TEXT", "EXAM_MANUAL" ],
             "type" : "string"
           },
-          "type" : {
-            "enum" : [ "HOMEWORK", "PROJECT", "ESSAY", "WORKSHEET" ],
-            "type" : "string"
+          "targetClassIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "targetStudentIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           },
           "updatedAt" : {
             "format" : "date-time",
             "type" : "string"
           }
         },
-        "required" : [ "attachments", "classId", "createdAt", "description", "dueDate", "id", "maxScore", "status", "title", "type", "updatedAt" ],
+        "required" : [ "attachments", "classId", "createdAt", "dueDate", "evaluationMode", "examName", "id", "linkedExamId", "maxScore", "showCorrectAnswers", "showGrade", "showPassFail", "showQuestionResults", "showScore", "status", "submissionMode", "targetClassIds", "targetStudentIds", "updatedAt" ],
+        "type" : "object"
+      },
+      "AssignmentSubmissionResultResponse" : {
+        "properties" : {
+          "questionResults" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AssignmentQuestionResultResponse"
+            },
+            "type" : "array"
+          },
+          "showCorrectAnswers" : {
+            "type" : "boolean"
+          },
+          "showGrade" : {
+            "type" : "boolean"
+          },
+          "showPassFail" : {
+            "type" : "boolean"
+          },
+          "showQuestionResults" : {
+            "type" : "boolean"
+          },
+          "showScore" : {
+            "type" : "boolean"
+          },
+          "submission" : {
+            "$ref" : "#/components/schemas/SubmissionResponse"
+          }
+        },
+        "required" : [ "questionResults", "showCorrectAnswers", "showGrade", "showPassFail", "showQuestionResults", "showScore", "submission" ],
+        "type" : "object"
+      },
+      "AssignmentSubmissionStatusResponse" : {
+        "properties" : {
+          "status" : {
+            "enum" : [ "PENDING", "SUBMITTED", "GRADED", "RETURNED" ],
+            "type" : "string"
+          },
+          "studentId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "submission" : {
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/SubmissionResponse"
+            } ],
+            "nullable" : true
+          }
+        },
+        "required" : [ "status", "studentId", "submission" ],
         "type" : "object"
       },
       "AttendanceDashboardResponse" : {
@@ -1018,6 +1135,51 @@
         "required" : [ "announcementContent", "announcementTitle", "authorId" ],
         "type" : "object"
       },
+      "CreateAssignmentExamRequest" : {
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          },
+          "correctAnswers" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "gradeScale" : {
+            "type" : "string"
+          },
+          "gradingType" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "passScore" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "questionScores" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "questionTypes" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "totalQuestions" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "correctAnswers", "name", "questionScores", "totalQuestions" ],
+        "type" : "object"
+      },
       "CreateAssignmentRequest" : {
         "properties" : {
           "attachments" : {
@@ -1031,25 +1193,60 @@
             "format" : "int64",
             "type" : "integer"
           },
-          "description" : {
-            "type" : "string"
-          },
           "dueDate" : {
             "format" : "date-time",
             "type" : "string"
+          },
+          "evaluationMode" : {
+            "type" : "string"
+          },
+          "exam" : {
+            "$ref" : "#/components/schemas/CreateAssignmentExamRequest"
+          },
+          "linkedExamId" : {
+            "format" : "int64",
+            "type" : "integer"
           },
           "maxScore" : {
             "format" : "int32",
             "type" : "integer"
           },
-          "title" : {
+          "showCorrectAnswers" : {
+            "type" : "boolean"
+          },
+          "showGrade" : {
+            "type" : "boolean"
+          },
+          "showPassFail" : {
+            "type" : "boolean"
+          },
+          "showQuestionResults" : {
+            "type" : "boolean"
+          },
+          "showScore" : {
+            "type" : "boolean"
+          },
+          "status" : {
             "type" : "string"
           },
-          "type" : {
+          "submissionMode" : {
             "type" : "string"
+          },
+          "targetClassIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "targetStudentIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           }
         },
-        "required" : [ "classId", "title" ],
         "type" : "object"
       },
       "CreateClassRequest" : {
@@ -1337,6 +1534,12 @@
       },
       "CreateSubmissionRequest" : {
         "properties" : {
+          "answers" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
           "attachments" : {
             "items" : {
               "format" : "int64",
@@ -1500,6 +1703,43 @@
           }
         },
         "required" : [ "months" ],
+        "type" : "object"
+      },
+      "ExamAssignmentResponse" : {
+        "nullable" : true,
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          },
+          "gradeScale" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "gradingType" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "passScore" : {
+            "format" : "int32",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "totalPossibleScore" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "totalQuestions" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "category", "gradeScale", "gradingType", "id", "name", "passScore", "totalPossibleScore", "totalQuestions" ],
         "type" : "object"
       },
       "ExamFullResponse" : {
@@ -4850,6 +5090,33 @@
       "StreamingResponseBody" : {
         "type" : "object"
       },
+      "StudentAssignmentDetailResponse" : {
+        "properties" : {
+          "assignment" : {
+            "$ref" : "#/components/schemas/AssignmentResponse"
+          },
+          "canSubmit" : {
+            "type" : "boolean"
+          },
+          "exam" : {
+            "$ref" : "#/components/schemas/ExamAssignmentResponse"
+          },
+          "questionResults" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AssignmentQuestionResultResponse"
+            },
+            "type" : "array"
+          },
+          "submission" : {
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/SubmissionResponse"
+            } ],
+            "nullable" : true
+          }
+        },
+        "required" : [ "assignment", "canSubmit", "exam", "questionResults", "submission" ],
+        "type" : "object"
+      },
       "StudentAttendanceRecordResponse" : {
         "properties" : {
           "checkedAt" : {
@@ -5221,6 +5488,14 @@
       },
       "SubmissionResponse" : {
         "properties" : {
+          "answers" : {
+            "additionalProperties" : {
+              "nullable" : true,
+              "type" : "string"
+            },
+            "nullable" : true,
+            "type" : "object"
+          },
           "assignmentId" : {
             "format" : "int64",
             "type" : "integer"
@@ -5242,7 +5517,16 @@
             "format" : "date-time",
             "type" : "string"
           },
+          "examResultId" : {
+            "format" : "int64",
+            "nullable" : true,
+            "type" : "integer"
+          },
           "feedback" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "gradeValue" : {
             "nullable" : true,
             "type" : "string"
           },
@@ -5254,6 +5538,10 @@
           "id" : {
             "format" : "int64",
             "type" : "integer"
+          },
+          "passed" : {
+            "nullable" : true,
+            "type" : "boolean"
           },
           "score" : {
             "format" : "int32",
@@ -5279,7 +5567,28 @@
             "type" : "string"
           }
         },
-        "required" : [ "assignmentId", "attachments", "content", "createdAt", "feedback", "gradedAt", "id", "score", "status", "studentId", "submittedAt", "updatedAt" ],
+        "required" : [ "answers", "assignmentId", "attachments", "content", "createdAt", "examResultId", "feedback", "gradeValue", "gradedAt", "id", "passed", "score", "status", "studentId", "submittedAt", "updatedAt" ],
+        "type" : "object"
+      },
+      "SubmitAssignmentRequest" : {
+        "properties" : {
+          "answers" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "attachments" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "content" : {
+            "type" : "string"
+          }
+        },
         "type" : "object"
       },
       "SubscribeRequest" : {
@@ -5796,25 +6105,55 @@
             },
             "type" : "array"
           },
-          "description" : {
-            "type" : "string"
-          },
           "dueDate" : {
             "format" : "date-time",
             "type" : "string"
+          },
+          "evaluationMode" : {
+            "type" : "string"
+          },
+          "linkedExamId" : {
+            "format" : "int64",
+            "type" : "integer"
           },
           "maxScore" : {
             "format" : "int32",
             "type" : "integer"
           },
+          "showCorrectAnswers" : {
+            "type" : "boolean"
+          },
+          "showGrade" : {
+            "type" : "boolean"
+          },
+          "showPassFail" : {
+            "type" : "boolean"
+          },
+          "showQuestionResults" : {
+            "type" : "boolean"
+          },
+          "showScore" : {
+            "type" : "boolean"
+          },
           "status" : {
             "type" : "string"
           },
-          "title" : {
+          "submissionMode" : {
             "type" : "string"
           },
-          "type" : {
-            "type" : "string"
+          "targetClassIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "targetStudentIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"
@@ -6094,6 +6433,12 @@
         "properties" : {
           "feedback" : {
             "type" : "string"
+          },
+          "gradeValue" : {
+            "type" : "string"
+          },
+          "passed" : {
+            "type" : "boolean"
           },
           "score" : {
             "format" : "int32",
@@ -7098,25 +7443,10 @@
           }
         }, {
           "in" : "query",
-          "name" : "type",
-          "required" : false,
-          "schema" : {
-            "enum" : [ "HOMEWORK", "PROJECT", "ESSAY", "WORKSHEET" ],
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
           "name" : "status",
           "required" : false,
           "schema" : {
-            "enum" : [ "ACTIVE", "CLOSED", "DRAFT" ],
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "search",
-          "required" : false,
-          "schema" : {
+            "enum" : [ "ACTIVE", "CLOSED" ],
             "type" : "string"
           }
         }, {
@@ -7250,6 +7580,27 @@
         "tags" : [ "assignment-controller" ]
       }
     },
+    "/v1/assignments/me" : {
+      "get" : {
+        "operationId" : "listMyAssignments",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AssignmentResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "assignment-controller" ]
+      }
+    },
     "/v1/assignments/statistics/dashboard" : {
       "get" : {
         "operationId" : "getDashboardStatistics",
@@ -7352,6 +7703,36 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SubmissionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "assignment-submission-controller" ]
+      }
+    },
+    "/v1/assignments/{assignmentId}/submissions/status" : {
+      "get" : {
+        "operationId" : "getSubmissionStatuses",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "assignmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AssignmentSubmissionStatusResponse"
+                  },
+                  "type" : "array"
                 }
               }
             },
@@ -7543,6 +7924,70 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AssignmentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "assignment-controller" ]
+      }
+    },
+    "/v1/assignments/{id}/me" : {
+      "get" : {
+        "operationId" : "getMyAssignment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentAssignmentDetailResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "assignment-controller" ]
+      }
+    },
+    "/v1/assignments/{id}/me/submission" : {
+      "put" : {
+        "operationId" : "submitMyAssignment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubmitAssignmentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssignmentSubmissionResultResponse"
                 }
               }
             },

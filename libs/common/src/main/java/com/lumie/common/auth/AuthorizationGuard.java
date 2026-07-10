@@ -15,4 +15,11 @@ public final class AuthorizationGuard {
             throw new BusinessException(CommonErrorCode.FORBIDDEN, "Owner role required");
         }
     }
+
+    public static void requireAtLeast(Role required) {
+        Role role = UserContextHolder.getUserRole();
+        if (role == null || !role.hasAuthority(required)) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN, required.name() + " role required");
+        }
+    }
 }

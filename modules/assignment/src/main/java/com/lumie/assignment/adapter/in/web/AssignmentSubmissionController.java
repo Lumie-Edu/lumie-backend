@@ -2,11 +2,14 @@ package com.lumie.assignment.adapter.in.web;
 
 import com.lumie.assignment.application.dto.request.CreateSubmissionRequest;
 import com.lumie.assignment.application.dto.request.UpdateSubmissionRequest;
+import com.lumie.assignment.application.dto.response.AssignmentSubmissionStatusResponse;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.application.service.AssignmentQueryService;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
+import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.auth.Role;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +19,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/v1/assignments/{assignmentId}/submissions")
@@ -30,14 +35,23 @@ public class AssignmentSubmissionController {
     public ResponseEntity<PageResponse<SubmissionResponse>> getSubmissions(
             @PathVariable Long assignmentId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         Page<SubmissionResponse> response = queryService.getSubmissions(assignmentId, pageable);
         return ResponseEntity.ok(PageResponse.from(response));
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<List<AssignmentSubmissionStatusResponse>> getSubmissionStatuses(
+            @PathVariable Long assignmentId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        return ResponseEntity.ok(queryService.getSubmissionStatuses(assignmentId));
     }
 
     @PostMapping
     public ResponseEntity<SubmissionResponse> createSubmission(
             @PathVariable Long assignmentId,
             @Valid @RequestBody CreateSubmissionRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         SubmissionResponse response = commandService.createSubmission(assignmentId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -47,6 +61,7 @@ public class AssignmentSubmissionController {
             @PathVariable Long assignmentId,
             @PathVariable Long submissionId,
             @Valid @RequestBody UpdateSubmissionRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         SubmissionResponse response = commandService.updateSubmission(assignmentId, submissionId, request);
         return ResponseEntity.ok(response);
     }
@@ -57,6 +72,7 @@ public class AssignmentSubmissionController {
             @PathVariable Long assignmentId,
             @PathVariable Long studentId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         Page<SubmissionResponse> response = queryService.getStudentSubmissions(assignmentId, studentId, pageable);
         return ResponseEntity.ok(PageResponse.from(response));
     }

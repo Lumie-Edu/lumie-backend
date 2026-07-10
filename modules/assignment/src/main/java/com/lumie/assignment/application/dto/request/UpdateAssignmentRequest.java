@@ -4,12 +4,23 @@ import java.time.Instant;
 import java.util.List;
 
 public record UpdateAssignmentRequest(
-    String title,
-    String description,
-    String type,
     Instant dueDate,
     Integer maxScore,
     List<Long> attachments,
-    String status
+    String status,
+    String submissionMode,
+    String evaluationMode,
+    Long linkedExamId,
+    List<Long> targetClassIds,
+    List<Long> targetStudentIds,
+    Boolean showScore,
+    Boolean showPassFail,
+    Boolean showGrade,
+    Boolean showQuestionResults,
+    Boolean showCorrectAnswers
 ) {
+    public UpdateAssignmentRequest(Instant dueDate, Integer maxScore, List<Long> attachments, String status) {
+        this(dueDate, maxScore, attachments, status,
+                null, null, null, null, null, null, null, null, null, null);
+    }
 }

@@ -10,8 +10,10 @@ import com.lumie.assignment.application.service.AssignmentQueryService;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
-import com.lumie.assignment.domain.vo.AssignmentType;
+import com.lumie.common.auth.Role;
 import com.lumie.common.exception.GlobalExceptionHandler;
+import com.lumie.common.tenant.UserContextHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,10 +55,16 @@ class AssignmentControllerTest {
 
     @BeforeEach
     void setUp() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        UserContextHolder.clear();
     }
 
     @Test
@@ -66,15 +74,14 @@ class AssignmentControllerTest {
         given(commandService.createAssignment(any(CreateAssignmentRequest.class))).willReturn(response);
 
         CreateAssignmentRequest request = new CreateAssignmentRequest(
-                1L, "수학 숙제", "1장 풀기", "HOMEWORK",
-                LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC), 100, null);
+                1L, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC), 100, null);
 
         mockMvc.perform(post("/v1/assignments")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.title").value("수학 숙제"))
+                .andExpect(jsonPath("$.examName").value("수학 숙제"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
@@ -84,12 +91,12 @@ class AssignmentControllerTest {
         AssignmentResponse response = buildAssignmentResponse(1L);
         Page<AssignmentResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1);
 
-        given(queryService.listAssignments(any(), any(), any(), any(), any())).willReturn(page);
+        given(queryService.listAssignments(any(), any(), any())).willReturn(page);
 
         mockMvc.perform(get("/v1/assignments"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(1))
-                .andExpect(jsonPath("$.items[0].title").value("수학 숙제"));
+                .andExpect(jsonPath("$.items[0].examName").value("수학 숙제"));
     }
 
     @Test
@@ -101,7 +108,7 @@ class AssignmentControllerTest {
         mockMvc.perform(get("/v1/assignments/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.title").value("수학 숙제"));
+                .andExpect(jsonPath("$.examName").value("수학 숙제"));
     }
 
     @Test
@@ -120,7 +127,7 @@ class AssignmentControllerTest {
         given(commandService.updateAssignment(eq(1L), any(UpdateAssignmentRequest.class))).willReturn(response);
 
         UpdateAssignmentRequest request = new UpdateAssignmentRequest(
-                "변경된 제목", null, null, null, null, null, null);
+                null, null, null, null);
 
         mockMvc.perform(patch("/v1/assignments/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -162,9 +169,12 @@ class AssignmentControllerTest {
 
     private AssignmentResponse buildAssignmentResponse(Long id) {
         return new AssignmentResponse(
-                id, 1L, "수학 숙제", "1장 풀기",
-                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
+                id, 1L, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
                 100, null, AssignmentStatus.ACTIVE,
+                com.lumie.assignment.domain.vo.SubmissionMode.EXAM_MANUAL,
+                com.lumie.assignment.domain.vo.EvaluationMode.EXAM_AUTO,
+                10L, "수학 숙제", List.of(1L), List.of(),
+                true, true, false, true, false,
                 Instant.now(), Instant.now());
     }
 }

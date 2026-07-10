@@ -1,6 +1,7 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.exam.application.event.OmrGradingRequestedEvent;
+import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
 import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
@@ -23,13 +24,19 @@ import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.GradeScale;
+import com.lumie.exam.domain.vo.GradingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -179,6 +186,26 @@ public class ResultCommandService {
     }
 
     @Transactional
+    public ExamService.ManualGradeResult gradeManualAnswers(Long examId, Long studentId, Map<String, String> answers) {
+        if (studentId == null) {
+            throw new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND);
+        }
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        if (!studentService.validateStudent(tenantSlug, studentId).valid()) {
+            throw new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND);
+        }
+        StudentService.StudentData student = studentService.getStudent(tenantSlug, studentId)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND));
+        OmrServicePort.OmrGradingResult gradingResult = buildManualGradingResult(exam, answers);
+        ExamResult result = resolveResult(examId, exam, studentId, gradingResult);
+        result.assignPhoneNumber(student.studentPhone());
+        ExamResult saved = resultRepository.save(result);
+        return toManualGradeResult(saved, exam, studentId);
+    }
+
+    @Transactional
     public void deleteResult(Long examId, Long resultId) {
         log.info("Deleting exam result: examId={}, resultId={}", examId, resultId);
 
@@ -250,6 +277,105 @@ public class ResultCommandService {
 
         gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, result);
         return result;
+    }
+
+    private OmrServicePort.OmrGradingResult buildManualGradingResult(Exam exam, Map<String, String> answers) {
+        if (answers == null) {
+            throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA, "Answers are required");
+        }
+        validateManualAnswerKeys(exam, answers);
+
+        List<OmrServicePort.OmrQuestionResult> questions = java.util.stream.IntStream
+                .rangeClosed(1, exam.getTotalQuestions())
+                .mapToObj(questionNumber -> {
+                    String key = String.valueOf(questionNumber);
+                    String selected = normalizeManualAnswer(answers.get(key));
+                    String correct = exam.getCorrectAnswerForQuestion(questionNumber);
+                    int maxScore = exam.getScoreForQuestion(questionNumber);
+                    int earnedScore = Objects.equals(selected, correct) ? maxScore : 0;
+                    return new OmrServicePort.OmrQuestionResult(
+                            questionNumber,
+                            selected,
+                            correct,
+                            maxScore,
+                            earnedScore,
+                            exam.getQuestionType(questionNumber)
+                    );
+                })
+                .toList();
+
+        int totalScore = questions.stream()
+                .mapToInt(OmrServicePort.OmrQuestionResult::earnedScore)
+                .sum();
+        return new OmrServicePort.OmrGradingResult(totalScore, 0, null, questions);
+    }
+
+    private void validateManualAnswerKeys(Exam exam, Map<String, String> answers) {
+        for (String key : answers.keySet()) {
+            int questionNumber;
+            try {
+                questionNumber = Integer.parseInt(key);
+            } catch (NumberFormatException e) {
+                throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA,
+                        "Question number must be numeric: " + key);
+            }
+
+            if (questionNumber < 1 || questionNumber > exam.getTotalQuestions()) {
+                throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA,
+                        "Question number out of range: " + questionNumber);
+            }
+        }
+    }
+
+    private String normalizeManualAnswer(String selected) {
+        if (selected == null) {
+            return null;
+        }
+        String normalized = selected.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private ExamService.ManualGradeResult toManualGradeResult(ExamResult result, Exam exam, Long studentId) {
+        List<ExamService.QuestionGradeData> questionResults = result.getQuestionResults().stream()
+                .sorted(java.util.Comparator.comparing(QuestionResult::getQuestionNumber))
+                .map(questionResult -> {
+                    Integer questionNumber = questionResult.getQuestionNumber();
+                    return new ExamService.QuestionGradeData(
+                            questionResult.getId(),
+                            questionNumber,
+                            questionResult.getSelectedChoice(),
+                            questionResult.isCorrect(),
+                            questionResult.getScore(),
+                            questionResult.getEarnedScore(),
+                            exam.getCorrectAnswerForQuestion(questionNumber),
+                            exam.getQuestionType(questionNumber)
+                    );
+                })
+                .toList();
+
+        Integer grade = result.getGrade();
+        if (exam.getCategory() == ExamCategory.GRADED && exam.getGradingType() == GradingType.ABSOLUTE) {
+            GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
+            grade = gradeCalculator.calculateGradeForScore(
+                    result.getTotalScore(), List.of(), GradingType.ABSOLUTE, gradeScale);
+        } else if (exam.getCategory() == ExamCategory.GRADED && exam.getGradingType() == GradingType.RELATIVE) {
+            GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
+            List<Integer> allScores = resultRepository.findByExamId(exam.getId()).stream()
+                    .map(ExamResult::getTotalScore)
+                    .toList();
+            grade = gradeCalculator.calculateRelativeGrade(result.getTotalScore(), allScores, gradeScale);
+        }
+
+        return new ExamService.ManualGradeResult(
+                result.getId(),
+                exam.getId(),
+                studentId,
+                result.getTotalScore(),
+                exam.calculateTotalPossibleScore(),
+                grade,
+                exam.isPassFail() ? result.isPassed() : null,
+                questionResults
+        );
     }
 
     private String sanitizeFileName(String fileName) {

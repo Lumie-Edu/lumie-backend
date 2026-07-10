@@ -7,9 +7,15 @@ import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
+import com.lumie.assignment.domain.repository.AssignmentTargetRepository;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
-import com.lumie.assignment.domain.vo.AssignmentType;
+import com.lumie.assignment.domain.vo.EvaluationMode;
+import com.lumie.assignment.domain.vo.SubmissionMode;
+import com.lumie.classroom.api.ClassService;
+import com.lumie.exam.api.ExamService;
+import com.lumie.student.api.StudentService;
+import com.lumie.common.test.TenantContextExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,12 +38,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, TenantContextExtension.class})
 @DisplayName("AssignmentQueryService 테스트")
 class AssignmentQueryServiceTest {
 
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private AssignmentSubmissionRepository submissionRepository;
+    @Mock private AssignmentTargetRepository targetRepository;
+    @Mock private ClassService classService;
+    @Mock private StudentService studentService;
+    @Mock private ExamService examService;
     @InjectMocks private AssignmentQueryService queryService;
 
     @Test
@@ -49,7 +59,7 @@ class AssignmentQueryServiceTest {
         AssignmentResponse response = queryService.getAssignment(1L);
 
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.title()).isEqualTo("수학 숙제");
+        assertThat(response.status()).isEqualTo(AssignmentStatus.ACTIVE);
     }
 
     @Test
@@ -70,10 +80,10 @@ class AssignmentQueryServiceTest {
 
         given(assignmentRepository.findAll(any(AssignmentSearchCriteria.class), eq(pageable))).willReturn(page);
 
-        Page<AssignmentResponse> response = queryService.listAssignments(1L, null, null, null, pageable);
+        Page<AssignmentResponse> response = queryService.listAssignments(1L, null, pageable);
 
         assertThat(response.getContent()).hasSize(1);
-        assertThat(response.getContent().get(0).title()).isEqualTo("수학 숙제");
+        assertThat(response.getContent().get(0).status()).isEqualTo(AssignmentStatus.ACTIVE);
     }
 
     @Test
@@ -85,7 +95,7 @@ class AssignmentQueryServiceTest {
         given(assignmentRepository.findAll(any(AssignmentSearchCriteria.class), eq(pageable))).willReturn(emptyPage);
 
         Page<AssignmentResponse> response = queryService.listAssignments(
-                1L, AssignmentType.HOMEWORK, AssignmentStatus.ACTIVE, "수학", pageable);
+                1L, AssignmentStatus.ACTIVE, pageable);
 
         assertThat(response.getContent()).isEmpty();
     }
@@ -97,7 +107,7 @@ class AssignmentQueryServiceTest {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Assignment> page = new PageImpl<>(List.of(entity), pageable, 1);
 
-        given(assignmentRepository.findByClassId(1L, pageable)).willReturn(page);
+        given(assignmentRepository.findByTargetClassId(1L, pageable)).willReturn(page);
 
         Page<AssignmentResponse> response = queryService.getAssignmentsByClass(1L, pageable);
 
@@ -143,9 +153,19 @@ class AssignmentQueryServiceTest {
 
     private Assignment buildAssignment(Long id) throws Exception {
         Assignment entity = Assignment.create(
-                1L, "수학 숙제", "1장 풀기",
-                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(java.time.ZoneOffset.UTC),
-                100, null);
+                1L,
+                LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(java.time.ZoneOffset.UTC),
+                100,
+                null,
+                AssignmentStatus.ACTIVE,
+                SubmissionMode.EXAM_MANUAL,
+                EvaluationMode.EXAM_AUTO,
+                10L,
+                true,
+                true,
+                false,
+                true,
+                false);
         setField(entity, "id", id);
         return entity;
     }

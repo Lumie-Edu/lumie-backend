@@ -1,6 +1,7 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.exam.api.ExamService;
 import com.lumie.exam.test.ExamFixtures;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
@@ -23,11 +24,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,7 +51,7 @@ class ResultCommandServiceTest {
     private ExamResultRepository resultRepository;
     @Mock
     private OmrGradingJobRepository jobRepository;
-    @Mock
+    @Spy
     private GradeCalculator gradeCalculator;
     @Mock
     private StudentService studentService;
@@ -262,5 +265,87 @@ class ResultCommandServiceTest {
 
         assertThat(result).isSameAs(existing);
         assertThat(result.getTotalScore()).isEqualTo(100);
+    }
+
+    @Test
+    @DisplayName("수동 채점은 학생 결과를 생성하고 전화번호를 함께 저장한다")
+    void gradeManualAnswers_newResult_savesStudentPhone() {
+        Long examId = 1L;
+        Long studentId = 100L;
+        Exam exam = buildExam();
+        ExamResult savedResult = ExamResult.create(exam, studentId, 80);
+        savedResult.assignGrade(2);
+        for (int i = 1; i <= 5; i++) {
+            savedResult.addQuestionResult(QuestionResult.create(
+                    i,
+                    i == 5 ? null : String.valueOf(i),
+                    String.valueOf(i),
+                    20
+            ));
+        }
+
+        given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
+        given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
+        given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
+        given(resultRepository.save(any(ExamResult.class))).willReturn(savedResult);
+        given(gradeCalculator.calculateGradeForScore(eq(80), eq(List.of()),
+                eq(exam.getGradingType()), eq(exam.getGradeScale()))).willReturn(2);
+
+        ExamService.ManualGradeResult result = resultCommandService.gradeManualAnswers(
+                examId,
+                studentId,
+                Map.of("1", "1", "2", "2", "3", "3", "4", "4", "5", "")
+        );
+
+        ArgumentCaptor<ExamResult> captor = ArgumentCaptor.forClass(ExamResult.class);
+        verify(resultRepository).save(captor.capture());
+        assertThat(captor.getValue().getPhoneNumber()).isEqualTo("01012345678");
+        assertThat(result.examResultId()).isEqualTo(savedResult.getId());
+        assertThat(result.examId()).isEqualTo(exam.getId());
+        assertThat(result.studentId()).isEqualTo(studentId);
+        assertThat(result.totalScore()).isEqualTo(80);
+        assertThat(result.totalPossibleScore()).isEqualTo(100);
+        assertThat(result.grade()).isEqualTo(2);
+        assertThat(result.passed()).isNull();
+        assertThat(result.questionResults()).hasSize(5);
+        assertThat(result.questionResults().get(0).questionResultId()).isEqualTo(savedResult.getQuestionResults().get(0).getId());
+        assertThat(result.questionResults().get(0).correct()).isTrue();
+        assertThat(result.questionResults().get(0).earnedScore()).isEqualTo(20);
+        assertThat(result.questionResults().get(0).correctAnswer()).isEqualTo("1");
+        assertThat(result.questionResults().get(0).questionType()).isEqualTo("단답");
+        assertThat(result.questionResults().get(4).selectedChoice()).isNull();
+        assertThat(result.questionResults().get(4).correct()).isFalse();
+        assertThat(result.questionResults().get(4).earnedScore()).isZero();
+    }
+
+    @Test
+    @DisplayName("수동 채점은 기존 결과를 덮어써서 재채점한다")
+    void gradeManualAnswers_existingResult_regradesInPlace() {
+        Long examId = 1L;
+        Long studentId = 100L;
+        Exam exam = buildExam();
+        ExamResult existing = ExamResult.create(exam, studentId, 40);
+        for (int i = 1; i <= 5; i++) {
+            existing.addQuestionResult(QuestionResult.create(i, "0", String.valueOf(i), 20));
+        }
+
+        given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
+        given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
+        given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.of(existing));
+        given(resultRepository.save(any(ExamResult.class))).willReturn(existing);
+
+        ExamService.ManualGradeResult result = resultCommandService.gradeManualAnswers(
+                examId,
+                studentId,
+                Map.of("1", "1", "2", "2", "3", "3", "4", "4", "5", "5")
+        );
+
+        verify(resultRepository).save(existing);
+        assertThat(existing.getTotalScore()).isEqualTo(100);
+        assertThat(existing.getQuestionResults()).allMatch(QuestionResult::isCorrect);
+        assertThat(result.totalScore()).isEqualTo(100);
+        assertThat(result.questionResults()).allMatch(ExamService.QuestionGradeData::correct);
     }
 }

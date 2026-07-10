@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
@@ -78,7 +79,25 @@ public class OpenApiResponseRequiredCustomizer {
                 }
                 schema.setRequired(new ArrayList<>(schema.getProperties().keySet()));
             }
+
+            markNullableRefProperty(schemas, "AssignmentSubmissionStatusResponse", "submission");
+            markNullableRefProperty(schemas, "StudentAssignmentDetailResponse", "submission");
         };
+    }
+
+    private static void markNullableRefProperty(Map<String, Schema> schemas, String schemaName, String propertyName) {
+        final Schema<?> schema = schemas.get(schemaName);
+        if (schema == null || schema.getProperties() == null) {
+            return;
+        }
+        final Object property = schema.getProperties().get(propertyName);
+        if (property instanceof Schema<?> propertySchema) {
+            if (propertySchema.get$ref() != null) {
+                propertySchema.setAllOf(List.of(new Schema<>().$ref(propertySchema.get$ref())));
+                propertySchema.set$ref(null);
+            }
+            propertySchema.setNullable(true);
+        }
     }
 
     private static void collectContentRefs(Content content, Set<String> out) {

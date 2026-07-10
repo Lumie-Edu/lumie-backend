@@ -10,7 +10,10 @@ import com.lumie.assignment.application.service.AssignmentQueryService;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
+import com.lumie.common.auth.Role;
 import com.lumie.common.exception.GlobalExceptionHandler;
+import com.lumie.common.tenant.UserContextHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,10 +51,16 @@ class AssignmentSubmissionControllerTest {
 
     @BeforeEach
     void setUp() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        UserContextHolder.clear();
     }
 
     @Test

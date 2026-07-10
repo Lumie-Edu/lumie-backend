@@ -1,7 +1,6 @@
 package com.lumie.assignment.domain.entity;
 
 import com.lumie.assignment.domain.vo.AssignmentStatus;
-import com.lumie.assignment.domain.vo.AssignmentType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -18,17 +17,18 @@ class AssignmentEntityTest {
     @DisplayName("create() 호출 시 기본 상태는 ACTIVE이다")
     void create_defaultStatusIsActive() {
         Assignment entity = Assignment.create(
-                1L, "수학 숙제", "1장~3장 풀기",
-                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
+                1L, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
                 100, List.of(1L, 2L));
 
         assertThat(entity.getStatus()).isEqualTo(AssignmentStatus.ACTIVE);
-        assertThat(entity.getTitle()).isEqualTo("수학 숙제");
-        assertThat(entity.getDescription()).isEqualTo("1장~3장 풀기");
         assertThat(entity.getClassId()).isEqualTo(1L);
-        assertThat(entity.getType()).isEqualTo(AssignmentType.HOMEWORK);
         assertThat(entity.getMaxScore()).isEqualTo(100);
         assertThat(entity.getAttachments()).containsExactly(1L, 2L);
+        assertThat(entity.isShowScore()).isTrue();
+        assertThat(entity.isShowPassFail()).isTrue();
+        assertThat(entity.isShowGrade()).isFalse();
+        assertThat(entity.isShowQuestionResults()).isTrue();
+        assertThat(entity.isShowCorrectAnswers()).isFalse();
     }
 
     @Test
@@ -36,13 +36,9 @@ class AssignmentEntityTest {
     void updateInfo_updatesFields() {
         Assignment entity = buildEntity();
 
-        entity.updateInfo("영어 에세이", "자유 주제 에세이 작성",
-                AssignmentType.ESSAY, LocalDateTime.of(2026, 5, 1, 23, 59).toInstant(ZoneOffset.UTC),
+        entity.updateInfo(LocalDateTime.of(2026, 5, 1, 23, 59).toInstant(ZoneOffset.UTC),
                 50, List.of(3L));
 
-        assertThat(entity.getTitle()).isEqualTo("영어 에세이");
-        assertThat(entity.getDescription()).isEqualTo("자유 주제 에세이 작성");
-        assertThat(entity.getType()).isEqualTo(AssignmentType.ESSAY);
         assertThat(entity.getMaxScore()).isEqualTo(50);
         assertThat(entity.getAttachments()).containsExactly(3L);
     }
@@ -81,22 +77,9 @@ class AssignmentEntityTest {
         assertThat(entity.isActive()).isTrue();
     }
 
-    @Test
-    @DisplayName("create() 시 type이 null이면 HOMEWORK가 기본값이다")
-    void create_nullType_defaultsToHomework() {
-        Assignment entity = Assignment.create(
-                1L, "과제", null, null,
-                null, null, null);
-
-        assertThat(entity.getType()).isEqualTo(AssignmentType.HOMEWORK);
-        assertThat(entity.getDescription()).isNull();
-        assertThat(entity.getDueDate()).isNull();
-    }
-
     private Assignment buildEntity() {
         return Assignment.create(
-                1L, "수학 숙제", "1장~3장 풀기",
-                AssignmentType.HOMEWORK, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
+                1L, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
                 100, null);
     }
 }

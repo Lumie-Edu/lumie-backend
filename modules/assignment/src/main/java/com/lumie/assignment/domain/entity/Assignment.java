@@ -5,7 +5,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
-import com.lumie.assignment.domain.vo.AssignmentType;
+import com.lumie.assignment.domain.vo.EvaluationMode;
+import com.lumie.assignment.domain.vo.SubmissionMode;
 import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.common.exception.BusinessException;
 import jakarta.persistence.*;
@@ -33,18 +34,8 @@ public class Assignment extends TenantScopedEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
-    @Column(name = "class_id", nullable = false)
+    @Column(name = "class_id")
     private Long classId;
-
-    @Column(name = "title", nullable = false, length = 200)
-    private String title;
-
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 30)
-    private AssignmentType type;
 
     @Column(name = "due_date")
     private Instant dueDate;
@@ -61,43 +52,101 @@ public class Assignment extends TenantScopedEntity {
     @Column(name = "status", nullable = false, length = 20)
     private AssignmentStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "submission_mode", nullable = false, length = 30)
+    private SubmissionMode submissionMode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "evaluation_mode", nullable = false, length = 30)
+    private EvaluationMode evaluationMode;
+
+    @Column(name = "linked_exam_id")
+    private Long linkedExamId;
+
+    @Column(name = "show_score", nullable = false)
+    private boolean showScore;
+
+    @Column(name = "show_pass_fail", nullable = false)
+    private boolean showPassFail;
+
+    @Column(name = "show_grade", nullable = false)
+    private boolean showGrade;
+
+    @Column(name = "show_question_results", nullable = false)
+    private boolean showQuestionResults;
+
+    @Column(name = "show_correct_answers", nullable = false)
+    private boolean showCorrectAnswers;
+
     @Builder
-    private Assignment(Long classId, String title, String description,
-                       AssignmentType type, Instant dueDate, Integer maxScore,
-                       List<Long> attachments, AssignmentStatus status) {
+    private Assignment(Long classId, Instant dueDate, Integer maxScore,
+                       List<Long> attachments, AssignmentStatus status,
+                       SubmissionMode submissionMode, EvaluationMode evaluationMode,
+                       Long linkedExamId, Boolean showScore, Boolean showPassFail,
+                       Boolean showGrade, Boolean showQuestionResults, Boolean showCorrectAnswers) {
         this.classId = classId;
-        this.title = title;
-        this.description = description;
-        this.type = type != null ? type : AssignmentType.HOMEWORK;
         this.dueDate = dueDate;
         this.maxScore = maxScore;
         this.attachments = attachments;
         this.status = status != null ? status : AssignmentStatus.ACTIVE;
+        this.submissionMode = submissionMode != null ? submissionMode : SubmissionMode.EXAM_MANUAL;
+        this.evaluationMode = evaluationMode != null ? evaluationMode : EvaluationMode.EXAM_AUTO;
+        this.linkedExamId = linkedExamId;
+        this.showScore = showScore != null ? showScore : true;
+        this.showPassFail = showPassFail != null ? showPassFail : true;
+        this.showGrade = showGrade != null ? showGrade : false;
+        this.showQuestionResults = showQuestionResults != null ? showQuestionResults : true;
+        this.showCorrectAnswers = showCorrectAnswers != null ? showCorrectAnswers : false;
     }
 
-    public static Assignment create(Long classId, String title, String description,
-                                    AssignmentType type, Instant dueDate, Integer maxScore,
-                                    List<Long> attachments) {
+    public static Assignment create(Long classId, Instant dueDate, Integer maxScore, List<Long> attachments) {
+        return create(classId, dueDate, maxScore, attachments,
+                AssignmentStatus.ACTIVE, SubmissionMode.EXAM_MANUAL, EvaluationMode.EXAM_AUTO, null,
+                true, true, false, true, false);
+    }
+
+    public static Assignment create(Long classId, Instant dueDate, Integer maxScore, List<Long> attachments,
+                                    AssignmentStatus status,
+                                    SubmissionMode submissionMode, EvaluationMode evaluationMode,
+                                    Long linkedExamId, Boolean showScore, Boolean showPassFail,
+                                    Boolean showGrade, Boolean showQuestionResults, Boolean showCorrectAnswers) {
         return Assignment.builder()
                 .classId(classId)
-                .title(title)
-                .description(description)
-                .type(type != null ? type : AssignmentType.HOMEWORK)
                 .dueDate(dueDate)
                 .maxScore(maxScore)
                 .attachments(attachments)
-                .status(AssignmentStatus.ACTIVE)
+                .status(status)
+                .submissionMode(submissionMode)
+                .evaluationMode(evaluationMode)
+                .linkedExamId(linkedExamId)
+                .showScore(showScore)
+                .showPassFail(showPassFail)
+                .showGrade(showGrade)
+                .showQuestionResults(showQuestionResults)
+                .showCorrectAnswers(showCorrectAnswers)
                 .build();
     }
 
-    public void updateInfo(String title, String description, AssignmentType type,
-                           Instant dueDate, Integer maxScore, List<Long> attachments) {
-        this.title = title;
-        this.description = description;
-        this.type = type;
+    public void updateInfo(Instant dueDate, Integer maxScore, List<Long> attachments) {
         this.dueDate = dueDate;
         this.maxScore = maxScore;
         this.attachments = attachments;
+    }
+
+    public void updateWorkflow(Long classId, SubmissionMode submissionMode, EvaluationMode evaluationMode,
+                               Long linkedExamId, Boolean showScore, Boolean showPassFail,
+                               Boolean showGrade, Boolean showQuestionResults, Boolean showCorrectAnswers,
+                               AssignmentStatus status) {
+        this.classId = classId;
+        this.submissionMode = submissionMode;
+        this.evaluationMode = evaluationMode;
+        this.linkedExamId = linkedExamId;
+        this.showScore = Boolean.TRUE.equals(showScore);
+        this.showPassFail = Boolean.TRUE.equals(showPassFail);
+        this.showGrade = Boolean.TRUE.equals(showGrade);
+        this.showQuestionResults = Boolean.TRUE.equals(showQuestionResults);
+        this.showCorrectAnswers = Boolean.TRUE.equals(showCorrectAnswers);
+        this.status = status;
     }
 
     public void close() {

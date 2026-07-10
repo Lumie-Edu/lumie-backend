@@ -56,6 +56,10 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     @Query("SELECT r FROM ExamResult r JOIN r.questionResults qr WHERE qr.id = :questionResultId")
     Optional<ExamResult> findByQuestionResultId(@Param("questionResultId") Long questionResultId);
 
+    @EntityGraph(attributePaths = {"exam", "questionResults"})
+    @Query("SELECT r FROM ExamResult r WHERE r.id = :id")
+    Optional<ExamResult> findWithQuestionResultsById(@Param("id") Long id);
+
     /**
      * Top students by average total_score over results graded this month.
      * "This month" is the Asia/Seoul calendar month keyed on updated_at — the

@@ -17,6 +17,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "assignment_submissions",
@@ -47,8 +48,22 @@ public class AssignmentSubmission extends TenantScopedEntity {
     @Column(name = "attachments", columnDefinition = "jsonb")
     private List<Long> attachments;
 
+    @Convert(converter = StringMapConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "answers", columnDefinition = "jsonb")
+    private Map<String, String> answers;
+
+    @Column(name = "exam_result_id")
+    private Long examResultId;
+
     @Column(name = "score")
     private Integer score;
+
+    @Column(name = "passed")
+    private Boolean passed;
+
+    @Column(name = "grade_value", length = 30)
+    private String gradeValue;
 
     @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
@@ -65,14 +80,19 @@ public class AssignmentSubmission extends TenantScopedEntity {
 
     @Builder
     private AssignmentSubmission(Long assignmentId, Long studentId, String content,
-                                List<Long> attachments, Integer score, String feedback,
-                                Instant submittedAt, Instant gradedAt,
-                                SubmissionStatus status) {
+                                List<Long> attachments, Map<String, String> answers,
+                                Long examResultId, Integer score, Boolean passed,
+                                String gradeValue, String feedback, Instant submittedAt,
+                                Instant gradedAt, SubmissionStatus status) {
         this.assignmentId = assignmentId;
         this.studentId = studentId;
         this.content = content;
         this.attachments = attachments;
+        this.answers = answers;
+        this.examResultId = examResultId;
         this.score = score;
+        this.passed = passed;
+        this.gradeValue = gradeValue;
         this.feedback = feedback;
         this.submittedAt = submittedAt;
         this.gradedAt = gradedAt;
@@ -90,7 +110,13 @@ public class AssignmentSubmission extends TenantScopedEntity {
     public void submit(String content, List<Long> attachments) {
         this.content = content;
         this.attachments = attachments;
+        this.answers = null;
+        this.examResultId = null;
         this.submittedAt = Instant.now();
+        this.gradedAt = null;
+        this.score = null;
+        this.passed = null;
+        this.gradeValue = null;
         this.status = SubmissionStatus.SUBMITTED;
     }
 
@@ -98,6 +124,35 @@ public class AssignmentSubmission extends TenantScopedEntity {
         this.score = score;
         this.feedback = feedback;
         this.gradedAt = Instant.now();
+        this.status = SubmissionStatus.GRADED;
+    }
+
+    public void gradePassFail(Boolean passed, String feedback) {
+        this.passed = passed;
+        this.feedback = feedback;
+        this.gradedAt = Instant.now();
+        this.status = SubmissionStatus.GRADED;
+    }
+
+    public void gradeValue(String gradeValue, String feedback) {
+        this.gradeValue = gradeValue;
+        this.feedback = feedback;
+        this.gradedAt = Instant.now();
+        this.status = SubmissionStatus.GRADED;
+    }
+
+    public void submitExam(Map<String, String> answers, Long examResultId,
+                           Integer score, Boolean passed, String gradeValue) {
+        this.content = null;
+        this.attachments = null;
+        this.answers = answers;
+        this.examResultId = examResultId;
+        this.score = score;
+        this.passed = passed;
+        this.gradeValue = gradeValue;
+        Instant now = Instant.now();
+        this.submittedAt = now;
+        this.gradedAt = now;
         this.status = SubmissionStatus.GRADED;
     }
 
@@ -130,6 +185,36 @@ public class AssignmentSubmission extends TenantScopedEntity {
             }
             try {
                 return OBJECT_MAPPER.readValue(dbData, new TypeReference<List<Long>>() {});
+            } catch (JsonProcessingException e) {
+                throw new BusinessException(AssignmentErrorCode.JSON_SERIALIZATION_FAILED, e);
+            }
+        }
+    }
+
+    @Converter
+    static class StringMapConverter implements AttributeConverter<Map<String, String>, String> {
+
+        private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+        @Override
+        public String convertToDatabaseColumn(Map<String, String> attribute) {
+            if (attribute == null) {
+                return null;
+            }
+            try {
+                return OBJECT_MAPPER.writeValueAsString(attribute);
+            } catch (JsonProcessingException e) {
+                throw new BusinessException(AssignmentErrorCode.JSON_SERIALIZATION_FAILED, e);
+            }
+        }
+
+        @Override
+        public Map<String, String> convertToEntityAttribute(String dbData) {
+            if (dbData == null) {
+                return null;
+            }
+            try {
+                return OBJECT_MAPPER.readValue(dbData, new TypeReference<Map<String, String>>() {});
             } catch (JsonProcessingException e) {
                 throw new BusinessException(AssignmentErrorCode.JSON_SERIALIZATION_FAILED, e);
             }
