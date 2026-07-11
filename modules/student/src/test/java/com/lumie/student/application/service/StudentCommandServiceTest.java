@@ -19,6 +19,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -127,6 +128,115 @@ class StudentCommandServiceTest {
 
         verify(studentRepository).existsByPhone("01099999999");
         verify(authService).createUser("김민조", "01099999999", Role.STUDENT.name(), 1L);
+    }
+
+    @Test
+    @DisplayName("registerStudent는 빈 학부모 연락처를 null로 저장한다")
+    void registerStudent_blankParentPhone_storesNull() {
+        StudentRequest request = new StudentRequest(
+                "김민조",
+                "01099999999",
+                "양천고",
+                2000,
+                "",
+                null
+        );
+        given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
+        given(studentRepository.existsByPhone("01099999999")).willReturn(false);
+        given(authService.createUser("김민조", "01099999999", Role.STUDENT.name(), 1L))
+                .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "01099999999"));
+        given(studentRepository.save(any(Student.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        service.registerStudent(request);
+
+        ArgumentCaptor<Student> captor = ArgumentCaptor.forClass(Student.class);
+        verify(studentRepository).save(captor.capture());
+        assertThat(captor.getValue().getParentPhone()).isNull();
+    }
+
+    @Test
+    @DisplayName("registerStudent는 잘못된 학부모 연락처 형식을 막는다")
+    void registerStudent_invalidParentPhone_blocksRegistration() {
+        StudentRequest request = new StudentRequest(
+                "김민조",
+                "01099999999",
+                "양천고",
+                2000,
+                "---",
+                null
+        );
+        given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
+        given(studentRepository.existsByPhone("01099999999")).willReturn(false);
+
+        assertThatThrownBy(() -> service.registerStudent(request))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.INVALID_PHONE_NUMBER));
+
+        verify(authService, never()).createUser(any(), any(), eq(Role.STUDENT.name()), anyLong());
+        verify(studentRepository, never()).save(any(Student.class));
+    }
+
+    @Test
+    @DisplayName("updateStudent는 빈 학부모 연락처를 null로 저장한다")
+    void updateStudent_blankParentPhone_storesNull() {
+        Student student = Student.create(
+                100L,
+                "01099999999",
+                "김민조",
+                "01099999999",
+                "양천고",
+                2000,
+                "01012345678",
+                null
+        );
+        ReflectionTestUtils.setField(student, "id", 42L);
+        given(studentRepository.findById(42L)).willReturn(Optional.of(student));
+        given(studentRepository.save(any(Student.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        service.updateStudent(42L, new com.lumie.student.application.dto.request.StudentUpdateRequest(
+                null,
+                null,
+                null,
+                null,
+                "",
+                null
+        ));
+
+        ArgumentCaptor<Student> captor = ArgumentCaptor.forClass(Student.class);
+        verify(studentRepository).save(captor.capture());
+        assertThat(captor.getValue().getParentPhone()).isNull();
+    }
+
+    @Test
+    @DisplayName("updateStudent는 잘못된 학부모 연락처 형식을 막는다")
+    void updateStudent_invalidParentPhone_blocksUpdate() {
+        Student student = Student.create(
+                100L,
+                "01099999999",
+                "김민조",
+                "01099999999",
+                "양천고",
+                2000,
+                "01012345678",
+                null
+        );
+        ReflectionTestUtils.setField(student, "id", 42L);
+        given(studentRepository.findById(42L)).willReturn(Optional.of(student));
+
+        assertThatThrownBy(() -> service.updateStudent(42L, new com.lumie.student.application.dto.request.StudentUpdateRequest(
+                null,
+                null,
+                null,
+                null,
+                "---",
+                null
+        )))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.INVALID_PHONE_NUMBER));
+
+        verify(studentRepository, never()).save(any(Student.class));
     }
 
     @Test

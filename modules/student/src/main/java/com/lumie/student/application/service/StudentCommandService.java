@@ -53,6 +53,7 @@ public class StudentCommandService {
         checkStudentQuota(tenantSlug);
 
         validatePhoneUniqueness(request.phone(), null);
+        validateParentPhoneFormat(request.parentPhone());
 
         AuthService.CreateUserResult userResult = authService.createUser(
                 request.name(),
@@ -94,6 +95,7 @@ public class StudentCommandService {
                 .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with id: %d".formatted(id)));
 
         validatePhoneUniqueness(request.phone(), id);
+        validateParentPhoneFormat(request.parentPhone());
 
         student.updateInfo(
             request.name(),
@@ -442,6 +444,14 @@ public class StudentCommandService {
             if (p != null && studentRepository.existsByPhoneExcluding(p, excludeId)) {
                 throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
             }
+        }
+    }
+
+    private void validateParentPhoneFormat(String parentPhone) {
+        if (parentPhone != null && !parentPhone.isBlank() && !PhoneNumberUtils.isValid(parentPhone)) {
+            throw new BusinessException(
+                    StudentErrorCode.INVALID_PHONE_NUMBER,
+                    "Invalid parent phone number format: %s".formatted(parentPhone));
         }
     }
 

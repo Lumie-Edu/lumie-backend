@@ -59,7 +59,7 @@ public class Student extends TenantScopedEntity {
         this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         this.studentHighschool = studentHighschool;
         this.studentBirthYear = studentBirthYear;
-        this.parentPhone = com.lumie.common.util.PhoneNumberUtils.toDigits(parentPhone);
+        this.parentPhone = normalizeBlankParentPhone(parentPhone);
         this.studentMemo = studentMemo;
         this.isActive = isActive != null ? isActive : true;
     }
@@ -97,7 +97,7 @@ public class Student extends TenantScopedEntity {
             this.studentBirthYear = studentBirthYear;
         }
         if (parentPhone != null) {
-            this.parentPhone = com.lumie.common.util.PhoneNumberUtils.toDigits(parentPhone);
+            this.parentPhone = normalizeBlankParentPhone(parentPhone);
         }
         if (studentMemo != null) {
             this.studentMemo = studentMemo;
@@ -130,5 +130,12 @@ public class Student extends TenantScopedEntity {
 
     public String getStudentEmail() {
         return userLoginId;
+    }
+
+    private static String normalizeBlankParentPhone(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return null;
+        }
+        return com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
     }
 }
