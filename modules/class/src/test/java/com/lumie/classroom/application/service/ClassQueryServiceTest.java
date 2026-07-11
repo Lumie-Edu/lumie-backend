@@ -10,9 +10,13 @@ import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.ClassSearchCriteria;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.common.test.ReflectionTestUtils;
 import com.lumie.common.test.TenantContextExtension;
+import com.lumie.student.api.StudentService;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +45,18 @@ class ClassQueryServiceTest {
     @Mock private ClassRepository classRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private StaffService staffService;
+    @Mock private StudentService studentService;
     @InjectMocks private ClassQueryService queryService;
+
+    @BeforeEach
+    void setUpUser() {
+        UserContextHolder.setUserId(100L);
+    }
+
+    @AfterEach
+    void tearDownUser() {
+        UserContextHolder.clear();
+    }
 
     @Test
     @DisplayName("getClass 성공 시 ClassResponse를 반환한다")
@@ -168,6 +183,36 @@ class ClassQueryServiceTest {
     }
 
     @Test
+    @DisplayName("getClassesForCurrentStudent는 현재 사용자 ID로 학생을 찾아 수업 목록을 반환한다")
+    void getClassesForCurrentStudent_success() throws Exception {
+        ClassEntity classEntity = buildClassEntity(1L);
+        ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 42L);
+        ReflectionTestUtils.setField(enrollment, "id", 10L);
+
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<ClassEnrollment> page = new PageImpl<>(List.of(enrollment), pageable, 1);
+
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(100L)))
+                .willReturn(studentList(42L));
+        given(enrollmentRepository.findByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED, pageable)).willReturn(page);
+
+        Page<ClassResponse> response = queryService.getClassesForCurrentStudent(pageable);
+
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).id()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("getClassesForCurrentStudent는 현재 사용자에 연결된 학생이 없으면 거부한다")
+    void getClassesForCurrentStudent_withoutStudent_throws() {
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(100L)))
+                .willReturn(new StudentService.StudentListData(List.of(), 0, 0, 0));
+
+        assertThatThrownBy(() -> queryService.getClassesForCurrentStudent(PageRequest.of(0, 20)))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
     @DisplayName("getEnrollments 성공 시 수강생 목록을 반환한다")
     void getEnrollments_success() throws Exception {
         ClassEntity classEntity = buildClassEntity(1L);
@@ -208,5 +253,18 @@ class ClassQueryServiceTest {
                 "수학 기초반", 10L, null, "설명");
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;
+    }
+
+    private static StudentService.StudentListData studentList(Long studentId) {
+        StudentService.StudentData student = new StudentService.StudentData(
+                studentId,
+                100L,
+                "학생",
+                "010-0000-0000",
+                true,
+                null,
+                null
+        );
+        return new StudentService.StudentListData(List.of(student), 1, 0, 1);
     }
 }

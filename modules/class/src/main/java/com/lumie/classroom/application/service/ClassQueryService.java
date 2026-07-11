@@ -4,7 +4,9 @@ import com.lumie.classroom.application.dto.ClassEnrollmentResponse;
 import com.lumie.classroom.application.dto.ClassResponse;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.classroom.domain.entity.ClassEntity;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.exception.ClassErrorCode;
 import com.lumie.common.exception.BusinessException;
@@ -12,6 +14,7 @@ import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.classroom.domain.repository.ClassRepository;
 import com.lumie.classroom.domain.vo.ClassSearchCriteria;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
+import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -39,6 +42,7 @@ public class ClassQueryService {
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
     private final StaffService staffService;
+    private final StudentService studentService;
 
     public ClassResponse getClass(Long id) {
         ClassEntity entity = classRepository.findById(id)
@@ -77,6 +81,10 @@ public class ClassQueryService {
                 String teacherName = resolveTeacherName(entity);
                 return ClassResponse.from(entity, teacherName);
             });
+    }
+
+    public Page<ClassResponse> getClassesForCurrentStudent(Pageable pageable) {
+        return getClassesByStudent(currentStudentId(), pageable);
     }
 
     private Pageable mapEnrollmentSort(Pageable pageable) {
@@ -172,5 +180,14 @@ public class ClassQueryService {
     public Page<ClassEnrollmentResponse> getEnrollments(Long classId, Pageable pageable) {
         return enrollmentRepository.findByClassEntityId(classId, pageable)
             .map(ClassEnrollmentResponse::from);
+    }
+
+    private Long currentStudentId() {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Long userId = UserContextHolder.getRequiredUserId();
+        return studentService.getStudentsByUserIds(tenantSlug, List.of(userId)).students().stream()
+            .findFirst()
+            .map(StudentService.StudentData::id)
+            .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
     }
 }

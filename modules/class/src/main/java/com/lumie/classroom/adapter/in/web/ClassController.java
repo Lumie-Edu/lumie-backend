@@ -43,6 +43,14 @@ public class ClassController {
         return ResponseEntity.ok(PageResponse.from(response));
     }
 
+    @GetMapping("/me")
+    @AllowedSortFields({"createdAt", "name"})
+    public ResponseEntity<PageResponse<ClassResponse>> getClassesForCurrentStudent(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<ClassResponse> response = queryService.getClassesForCurrentStudent(pageable);
+        return ResponseEntity.ok(PageResponse.from(response));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ClassResponse> getClass(@PathVariable Long id) {
         ClassResponse response = queryService.getClass(id);

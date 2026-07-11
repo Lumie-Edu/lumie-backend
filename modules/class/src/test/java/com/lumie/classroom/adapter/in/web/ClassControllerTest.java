@@ -99,6 +99,20 @@ class ClassControllerTest {
     }
 
     @Test
+    @DisplayName("GET /v1/classes/me - 현재 학생의 수업 목록 조회 시 200을 반환한다")
+    void getClassesForCurrentStudent_returns200() throws Exception {
+        ClassResponse response = buildClassResponse(1L);
+        Page<ClassResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1);
+
+        given(queryService.getClassesForCurrentStudent(any())).willReturn(page);
+
+        mockMvc.perform(get("/v1/classes/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(1))
+                .andExpect(jsonPath("$.items[0].name").value("수학 기초반"));
+    }
+
+    @Test
     @DisplayName("GET /v1/classes/{id} - 존재하지 않는 수업 조회 시 404를 반환한다")
     void getClass_notFound_returns404() throws Exception {
         given(queryService.getClass(999L)).willThrow(new BusinessException(ClassErrorCode.CLASS_NOT_FOUND, "Class not found with id: 999"));
