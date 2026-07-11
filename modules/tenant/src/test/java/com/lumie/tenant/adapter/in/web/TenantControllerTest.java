@@ -11,6 +11,7 @@ import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.PublicTenantResponse;
 import com.lumie.tenant.application.dto.response.TenantResponse;
+import com.lumie.tenant.application.port.out.TenantLogoStoragePort.LogoStream;
 import com.lumie.tenant.application.service.TenantCommandService;
 import com.lumie.tenant.application.service.TenantLogoService;
 import com.lumie.tenant.application.service.TenantQueryService;
@@ -30,6 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.MethodValidationInterceptor;
 
+import java.io.ByteArrayInputStream;
 import java.time.Instant;
 import java.util.List;
 
@@ -42,6 +44,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -300,6 +303,19 @@ class TenantControllerTest {
     void deleteTenantSuccess() throws Exception {
         mockMvc.perform(delete("/v1/tenants/test-academy"))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("GET /v1/tenants/{slug}/logo - 공개 캐시 가능한 로고 반환")
+    void getLogoReturnsPublicCacheHeaders() throws Exception {
+        byte[] logoBytes = new byte[] {1, 2, 3};
+        when(tenantLogoService.downloadLogo("test-academy"))
+                .thenReturn(new LogoStream(new ByteArrayInputStream(logoBytes), "image/png", logoBytes.length));
+
+        mockMvc.perform(get("/v1/tenants/test-academy/logo"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "public, max-age=300"))
+                .andExpect(header().string("Content-Type", "image/png"));
     }
 
     @Test

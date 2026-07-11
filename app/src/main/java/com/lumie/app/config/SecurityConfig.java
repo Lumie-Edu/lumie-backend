@@ -5,6 +5,7 @@ import com.lumie.auth.adapter.in.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -45,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers("/v1/payments/paddle/webhook").permitAll()
                         .requestMatchers("/v1/sms/solapi/webhook").permitAll()
                         .requestMatchers("/v1/tenants/public/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/tenants/*/logo").permitAll()
                         .requestMatchers("/v1/homepage/public/**").permitAll()
                         .requestMatchers("/v1/files/public/**").permitAll()
                         .requestMatchers("/v1/sms/**", "/v1/sms-templates/**")

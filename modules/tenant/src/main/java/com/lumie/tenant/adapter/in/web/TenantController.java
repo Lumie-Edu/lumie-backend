@@ -128,7 +128,7 @@ public class TenantController {
                 : MediaType.APPLICATION_OCTET_STREAM;
         return ResponseEntity.ok()
                 .contentType(type)
-                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=300")
+                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300")
                 .body(new InputStreamResource(logo.stream()));
     }
 }
