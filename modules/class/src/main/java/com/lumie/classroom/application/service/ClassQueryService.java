@@ -18,9 +18,7 @@ import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,30 +72,20 @@ public class ClassQueryService {
     }
 
     public Page<ClassResponse> getClassesByStudent(Long studentId, Pageable pageable) {
-        Pageable enrollmentPageable = mapEnrollmentSort(pageable);
-        return enrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED, enrollmentPageable)
-            .map(enrollment -> {
-                ClassEntity entity = enrollment.getClassEntity();
-                String teacherName = resolveTeacherName(entity);
-                return ClassResponse.from(entity, teacherName);
-            });
+        Page<ClassEntity> page = classRepository.findEnrolledClassesByStudentIdAndStatus(
+            studentId,
+            EnrollmentStatus.ENROLLED,
+            pageable
+        );
+        Map<Long, String> teacherNames = resolveTeacherNames(page.getContent());
+
+        return page.map(entity ->
+            ClassResponse.from(entity, resolveTeacherName(entity, teacherNames))
+        );
     }
 
     public Page<ClassResponse> getClassesForCurrentStudent(Pageable pageable) {
         return getClassesByStudent(currentStudentId(), pageable);
-    }
-
-    private Pageable mapEnrollmentSort(Pageable pageable) {
-        if (pageable.isUnpaged()) {
-            return pageable;
-        }
-        Sort sort = Sort.by(pageable.getSort().stream().map(order -> {
-            if ("name".equals(order.getProperty())) {
-                return order.withProperty("classEntity.name");
-            }
-            return order;
-        }).toList());
-        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 
     private String resolveTeacherName(ClassEntity entity) {

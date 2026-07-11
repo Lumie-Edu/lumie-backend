@@ -2,6 +2,7 @@ package com.lumie.classroom.domain.repository;
 
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.classroom.domain.vo.ClassSearchCriteria;
+import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,26 @@ public interface ClassRepository extends JpaRepository<ClassEntity, Long>,
     Optional<ClassEntity> findByIdWithLock(@Param("id") Long id);
 
     Page<ClassEntity> findByTeacherId(Long teacherId, Pageable pageable);
+
+    @Query(value = """
+        SELECT c
+          FROM ClassEntity c
+         WHERE c.id IN (
+               SELECT e.classEntity.id
+                 FROM ClassEnrollment e
+                WHERE e.studentId = :studentId
+                  AND e.status = :status
+         )
+        """, countQuery = """
+        SELECT COUNT(e)
+          FROM ClassEnrollment e
+         WHERE e.studentId = :studentId
+           AND e.status = :status
+        """)
+    Page<ClassEntity> findEnrolledClassesByStudentIdAndStatus(
+            @Param("studentId") Long studentId,
+            @Param("status") EnrollmentStatus status,
+            Pageable pageable);
 
     List<ClassEntity> findAllByTeacherId(Long teacherId);
 

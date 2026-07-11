@@ -150,13 +150,12 @@ class ClassQueryServiceTest {
     @DisplayName("getClassesByStudent 성공 시 해당 학생의 수업 목록을 반환한다")
     void getClassesByStudent_success() throws Exception {
         ClassEntity classEntity = buildClassEntity(1L);
-        ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 42L);
-        ReflectionTestUtils.setField(enrollment, "id", 10L);
 
         Pageable pageable = PageRequest.of(0, 20);
-        Page<ClassEnrollment> page = new PageImpl<>(List.of(enrollment), pageable, 1);
+        Page<ClassEntity> page = new PageImpl<>(List.of(classEntity), pageable, 1);
 
-        given(enrollmentRepository.findByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED, pageable)).willReturn(page);
+        given(classRepository.findEnrolledClassesByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED, pageable))
+                .willReturn(page);
 
         Page<ClassResponse> response = queryService.getClassesByStudent(42L, pageable);
 
@@ -164,17 +163,14 @@ class ClassQueryServiceTest {
     }
 
     @Test
-    @DisplayName("getClassesByStudent는 name 정렬을 수업명 경로로 변환한다")
-    void getClassesByStudent_nameSort_mapsToClassEntityName() throws Exception {
+    @DisplayName("getClassesByStudent는 name 정렬을 수업 조회 쿼리에 그대로 전달한다")
+    void getClassesByStudent_nameSort_queriesClassesByName() throws Exception {
         ClassEntity classEntity = buildClassEntity(1L);
-        ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 42L);
-        ReflectionTestUtils.setField(enrollment, "id", 10L);
 
         Pageable requestPageable = PageRequest.of(0, 20, Sort.by("name").ascending());
-        Pageable repositoryPageable = PageRequest.of(0, 20, Sort.by("classEntity.name").ascending());
-        Page<ClassEnrollment> page = new PageImpl<>(List.of(enrollment), repositoryPageable, 1);
+        Page<ClassEntity> page = new PageImpl<>(List.of(classEntity), requestPageable, 1);
 
-        given(enrollmentRepository.findByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED, repositoryPageable))
+        given(classRepository.findEnrolledClassesByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED, requestPageable))
                 .willReturn(page);
 
         Page<ClassResponse> response = queryService.getClassesByStudent(42L, requestPageable);
@@ -186,15 +182,14 @@ class ClassQueryServiceTest {
     @DisplayName("getClassesForCurrentStudent는 현재 사용자 ID로 학생을 찾아 수업 목록을 반환한다")
     void getClassesForCurrentStudent_success() throws Exception {
         ClassEntity classEntity = buildClassEntity(1L);
-        ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 42L);
-        ReflectionTestUtils.setField(enrollment, "id", 10L);
 
         Pageable pageable = PageRequest.of(0, 20);
-        Page<ClassEnrollment> page = new PageImpl<>(List.of(enrollment), pageable, 1);
+        Page<ClassEntity> page = new PageImpl<>(List.of(classEntity), pageable, 1);
 
         given(studentService.getStudentsByUserIds("test-tenant", List.of(100L)))
                 .willReturn(studentList(42L));
-        given(enrollmentRepository.findByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED, pageable)).willReturn(page);
+        given(classRepository.findEnrolledClassesByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED, pageable))
+                .willReturn(page);
 
         Page<ClassResponse> response = queryService.getClassesForCurrentStudent(pageable);
 
