@@ -23,6 +23,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Optional;
@@ -143,6 +144,25 @@ class ClassQueryServiceTest {
         given(enrollmentRepository.findByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED, pageable)).willReturn(page);
 
         Page<ClassResponse> response = queryService.getClassesByStudent(42L, pageable);
+
+        assertThat(response.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getClassesByStudent는 name 정렬을 수업명 경로로 변환한다")
+    void getClassesByStudent_nameSort_mapsToClassEntityName() throws Exception {
+        ClassEntity classEntity = buildClassEntity(1L);
+        ClassEnrollment enrollment = ClassEnrollment.create(classEntity, 42L);
+        ReflectionTestUtils.setField(enrollment, "id", 10L);
+
+        Pageable requestPageable = PageRequest.of(0, 20, Sort.by("name").ascending());
+        Pageable repositoryPageable = PageRequest.of(0, 20, Sort.by("classEntity.name").ascending());
+        Page<ClassEnrollment> page = new PageImpl<>(List.of(enrollment), repositoryPageable, 1);
+
+        given(enrollmentRepository.findByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED, repositoryPageable))
+                .willReturn(page);
+
+        Page<ClassResponse> response = queryService.getClassesByStudent(42L, requestPageable);
 
         assertThat(response.getContent()).hasSize(1);
     }

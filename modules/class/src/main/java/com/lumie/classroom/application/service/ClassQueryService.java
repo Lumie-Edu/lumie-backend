@@ -15,7 +15,9 @@ import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,12 +70,26 @@ public class ClassQueryService {
     }
 
     public Page<ClassResponse> getClassesByStudent(Long studentId, Pageable pageable) {
-        return enrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED, pageable)
+        Pageable enrollmentPageable = mapEnrollmentSort(pageable);
+        return enrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED, enrollmentPageable)
             .map(enrollment -> {
                 ClassEntity entity = enrollment.getClassEntity();
                 String teacherName = resolveTeacherName(entity);
                 return ClassResponse.from(entity, teacherName);
             });
+    }
+
+    private Pageable mapEnrollmentSort(Pageable pageable) {
+        if (pageable.isUnpaged()) {
+            return pageable;
+        }
+        Sort sort = Sort.by(pageable.getSort().stream().map(order -> {
+            if ("name".equals(order.getProperty())) {
+                return order.withProperty("classEntity.name");
+            }
+            return order;
+        }).toList());
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 
     private String resolveTeacherName(ClassEntity entity) {
