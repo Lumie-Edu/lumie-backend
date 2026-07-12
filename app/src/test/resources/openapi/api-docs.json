@@ -4230,10 +4230,7 @@
       "SavePendingActionRequest" : {
         "properties" : {
           "arguments" : {
-            "additionalProperties" : {
-              "type" : "object"
-            },
-            "type" : "object"
+            "$ref" : "#/components/schemas/JsonNode"
           },
           "conversationId" : {
             "format" : "int64",
@@ -5637,10 +5634,7 @@
       "ToolExecuteRequest" : {
         "properties" : {
           "arguments" : {
-            "additionalProperties" : {
-              "type" : "object"
-            },
-            "type" : "object"
+            "$ref" : "#/components/schemas/JsonNode"
           },
           "tenantId" : {
             "format" : "int64",
