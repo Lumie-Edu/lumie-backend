@@ -14,12 +14,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag("integration")
 class SmsDispatchServiceWiringTest extends FullContextTestBase {
 
-    @Autowired
-    private SmsDispatchService smsDispatchService;
+    private final SmsDispatchService smsDispatchService;
+    private final TransactionTemplate requiresNewTransactionTemplate;
 
-    @Autowired
-    @RequiresNewTransaction
-    private TransactionTemplate requiresNewTransactionTemplate;
+    SmsDispatchServiceWiringTest(
+            @Autowired SmsDispatchService smsDispatchService,
+            @Autowired @RequiresNewTransaction TransactionTemplate requiresNewTransactionTemplate
+    ) {
+        this.smsDispatchService = smsDispatchService;
+        this.requiresNewTransactionTemplate = requiresNewTransactionTemplate;
+    }
 
     @Test
     void smsDispatchServiceReceivesRequiresNewTransactionTemplate() {

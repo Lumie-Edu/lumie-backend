@@ -1,0 +1,58 @@
+# Lumie backend (Java/Spring) forbidden patterns — SSOT.
+#
+# Used by: Verify, backend-reviewer, anti-pattern-tripwire,
+#          backend-scaffolder self-verify.
+# Do NOT duplicate these regex strings anywhere else. Add new patterns here only.
+#
+# Schema:
+#   patterns:
+#     - id: kebab-case-stable-id
+#       severity: error | warn
+#       paths: [ "<glob>", ... ]   # OPTIONAL — restricts rule to matching paths
+#       msg: "human message including remediation"
+#       regex: "<ERE regex>"
+
+patterns:
+  - id: B-no-localdatetime-in-dto
+    severity: error
+    paths:
+      - "*/application/dto/*"
+      - "*Request.java"
+      - "*Response.java"
+      - "*Dto.java"
+    msg: "Use java.time.Instant (UTC) for timestamps in DTOs. LocalDateTime is timezone-naive (DST/migration risk)."
+    regex: "LocalDateTime"
+
+  - id: B-no-field-injection
+    severity: error
+    paths: ["*.java"]
+    msg: "Use @RequiredArgsConstructor (constructor injection). Field injection breaks tests and final fields."
+    regex: '@Autowired[[:space:]]*$'
+
+  - id: B-no-runtime-exception
+    severity: error
+    paths: ["*.java"]
+    msg: "Throw BusinessException(ErrorCode), not raw RuntimeException. ErrorCode is required for the global handler."
+    regex: 'throw[[:space:]]+new[[:space:]]+RuntimeException\('
+
+  - id: B-no-untyped-map-in-controller
+    severity: error
+    paths:
+      - "*Controller.java"
+    msg: "Use a record DTO, not Map<String,Object>. Untyped maps lose validation and OpenAPI schema."
+    regex: 'Map<String,[[:space:]]*Object>'
+
+  - id: B-no-entity-setter
+    severity: error
+    paths:
+      - "*/domain/entity/*.java"
+      - "*Entity.java"
+    msg: "Do not annotate JPA entities with @Setter. Use builder + domain methods."
+    regex: '@Setter'
+
+  - id: B-no-domain-spring
+    severity: error
+    paths:
+      - "*/domain/**/*.java"
+    msg: "Spring stereotype/DI/transaction annotations are forbidden in domain/; JPA mapping annotations are allowed on aggregate entities. See lumie-backend/AGENTS.md for full boundary."
+    regex: '^[[:space:]]*@(Service|Component|Repository|Autowired|Transactional)\b'

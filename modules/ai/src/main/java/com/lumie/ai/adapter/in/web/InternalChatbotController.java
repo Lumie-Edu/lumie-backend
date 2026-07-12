@@ -1,5 +1,7 @@
 package com.lumie.ai.adapter.in.web;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.ai.application.service.ChatService;
 import com.lumie.ai.application.service.SchemaDiscoveryService;
 import com.lumie.ai.application.tool.Tool;
@@ -49,6 +51,7 @@ public class InternalChatbotController {
     private final ToolRegistry toolRegistry;
     private final SchemaDiscoveryService schemaDiscoveryService;
     private final ChatService chatService;
+    private final ObjectMapper objectMapper;
 
     /** Execute a read-only SQL query (SqlValidator + RLS + read-only pool). */
     @PostMapping("/query")
@@ -77,7 +80,7 @@ public class InternalChatbotController {
                     Long previousUserId = UserContextHolder.getUserId();
                     UserContextHolder.setUserId(req.userId());
                     try {
-                        return tool.execute(req.tenantSlug(), req.arguments());
+                        return tool.execute(req.tenantSlug(), toArgumentsMap(req.arguments()));
                     } finally {
                         UserContextHolder.setUserId(previousUserId);
                     }
@@ -114,7 +117,7 @@ public class InternalChatbotController {
                 req.tenantSlug(),
                 req.tenantId(),
                 () -> chatService.savePendingAction(
-                        req.conversationId(), req.toolName(), req.description(), req.arguments()));
+                        req.conversationId(), req.toolName(), req.description(), toArgumentsMap(req.arguments())));
         return ResponseEntity.ok(new MessageIdResponse(messageId));
     }
 
@@ -148,12 +151,17 @@ public class InternalChatbotController {
         }
     }
 
+    @SuppressWarnings("rawtypes")
+    private Map toArgumentsMap(JsonNode arguments) {
+        return objectMapper.convertValue(arguments, Map.class);
+    }
+
     // ── DTOs ──────────────────────────────────────────────────────────────
 
     public record QueryRequest(String tenantSlug, Long tenantId, Long userId, String sql) {}
 
     public record ToolExecuteRequest(
-            String tenantSlug, Long tenantId, Long userId, Map<String, Object> arguments) {}
+            String tenantSlug, Long tenantId, Long userId, JsonNode arguments) {}
 
     public record ToolResultResponse(boolean success, String data, String error) {
         static ToolResultResponse from(ToolResult r) {
@@ -177,7 +185,7 @@ public class InternalChatbotController {
 
     public record SavePendingActionRequest(
             String tenantSlug, Long tenantId, Long userId, Long conversationId,
-            String toolName, String description, Map<String, Object> arguments) {}
+            String toolName, String description, JsonNode arguments) {}
 
     public record SaveMessageRequest(
             String tenantSlug, Long tenantId, Long conversationId,

@@ -29,7 +29,7 @@ import java.sql.Statement;
  *
  * <h2>Why {@code IllegalStateException} instead of {@code BusinessException}</h2>
  *
- * <p>The {@code BusinessException(ErrorCode)} rule from BACKEND_RULES / HARD_RULES
+ * <p>The {@code BusinessException(ErrorCode)} rule from repo AGENTS.md / HARD_RULES_CROSS.md
  * applies to domain-layer / request-handling errors (i.e., things that produce an
  * HTTP 4xx/5xx response to a client). This guard runs at application startup — before
  * any request is ever served — and signals infrastructure misconfiguration, not a

@@ -37,6 +37,9 @@ jobs:
           java-version: "21"
           cache: gradle
 
+      - name: Lumie lint
+        run: bash scripts/lumie-lint/sweep.sh backend --paths '*'
+
       - name: Run tests
         run: |
           chmod +x ./gradlew
