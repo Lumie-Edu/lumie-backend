@@ -34,6 +34,7 @@ public class OmrServiceClient implements OmrServicePort {
     public OmrServiceClient(RestClient.Builder restClientBuilder) {
         // OMR grading is long-running (image processing); override default 30s read timeout to 90s.
         HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(CONNECT_TIMEOUT)
                 .build();
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);

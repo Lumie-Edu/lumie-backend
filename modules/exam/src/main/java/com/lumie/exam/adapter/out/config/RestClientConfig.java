@@ -33,6 +33,7 @@ public class RestClientConfig {
 
     private static ClientHttpRequestFactory defaultRequestFactory() {
         HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(CONNECT_TIMEOUT)
                 .build();
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
