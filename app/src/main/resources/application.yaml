@@ -187,6 +187,8 @@ lumie:
       url: ${GRADING_SVC_URL:http://localhost:8001}
     report:
       url: ${REPORT_SVC_URL:http://localhost:8002}
+    analysis:
+      url: ${ANALYSIS_SVC_URL:http://localhost:8000}
     chatbot:
       url: ${CHATBOT_SVC_URL:http://localhost:18002}
   cors:
