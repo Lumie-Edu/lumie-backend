@@ -1,6 +1,35 @@
 {
   "components" : {
     "schemas" : {
+      "AiReportJobStatusResponse" : {
+        "properties" : {
+          "failCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "jobId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "processedReports" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "successCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "totalReports" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "failCount", "jobId", "processedReports", "status", "successCount", "totalReports" ],
+        "type" : "object"
+      },
       "AlimtalkCreditResponse" : {
         "properties" : {
           "autoRechargeEnabled" : {
@@ -9621,6 +9650,121 @@
           }
         },
         "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/reports/ai-batch" : {
+      "post" : {
+        "operationId" : "createAiBatchReport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportBatchRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/JobAcceptedResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "joossameng-ai-report-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/reports/ai-jobs/{jobId}" : {
+      "get" : {
+        "operationId" : "getAiReportJobStatus",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AiReportJobStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "joossameng-ai-report-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/reports/ai-jobs/{jobId}/download" : {
+      "get" : {
+        "operationId" : "downloadAiReportZip",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/zip" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "joossameng-ai-report-controller" ]
       }
     },
     "/v1/exams/{examId}/reports/batch" : {
