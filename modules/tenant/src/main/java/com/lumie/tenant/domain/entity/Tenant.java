@@ -78,9 +78,10 @@ public class Tenant extends BaseEntity {
             "students", "employees",
             "classes", "attendance", "assignments", "lectures",
             "grades", "omr-grading", "reports",
-            "announcements", "sms", "resources", "qna", "schedules",
+            "announcements", "sms", "resources", "qna",
             "textbooks", "spreadsheets", "reviews"
     );
+    private static final Set<String> REMOVED_LEGACY_SIDEBAR_ITEM_IDS = Set.of("schedules");
 
     private static final java.util.regex.Pattern CUSTOM_ID_PATTERN =
             java.util.regex.Pattern.compile("^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$");
@@ -237,9 +238,14 @@ public class Tenant extends BaseEntity {
         if (itemIds == null) {
             return;
         }
-        this.hiddenSidebarItemIds = itemIds.stream()
+        this.hiddenSidebarItemIds = normalizeSidebarItemIds(itemIds);
+    }
+
+    private List<String> normalizeSidebarItemIds(List<String> itemIds) {
+        return itemIds.stream()
                 .filter(id -> id != null && !id.isBlank())
                 .map(String::trim)
+                .filter(id -> !REMOVED_LEGACY_SIDEBAR_ITEM_IDS.contains(id))
                 .map(this::validatedSidebarItemId)
                 .distinct()
                 .toList();
@@ -254,7 +260,7 @@ public class Tenant extends BaseEntity {
     }
 
     public List<String> getHiddenSidebarItemIds() {
-        return hiddenSidebarItemIds == null ? List.of() : List.copyOf(hiddenSidebarItemIds);
+        return hiddenSidebarItemIds == null ? List.of() : normalizeSidebarItemIds(hiddenSidebarItemIds);
     }
 
     private String validatedSidebarItemId(String itemId) {

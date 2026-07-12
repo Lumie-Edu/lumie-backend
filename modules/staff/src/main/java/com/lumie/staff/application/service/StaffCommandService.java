@@ -6,7 +6,6 @@ import com.lumie.staff.application.dto.response.StaffResponse;
 import com.lumie.auth.api.AuthService;
 import com.lumie.billing.api.BillingService;
 import com.lumie.classroom.api.ClassService;
-import com.lumie.content.api.ContentService;
 import com.lumie.staff.domain.entity.Staff;
 import com.lumie.staff.domain.entity.StaffPermission;
 import com.lumie.common.quota.MetricType;
@@ -47,7 +46,6 @@ public class StaffCommandService {
     private final AuthService authService;
     private final BillingService billingService;
     private final ClassService classService;
-    private final ContentService contentService;
 
     public StaffResponse registerStaff(StaffRequest request) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -248,11 +246,6 @@ public class StaffCommandService {
             throw new BusinessException(
                     StaffErrorCode.CANNOT_DELETE_STAFF_WITH_ASSIGNED_CLASSES,
                     "담당 중인 수업이 있어 직원을 삭제할 수 없습니다. 먼저 수업 담당자를 변경하거나 미배정으로 바꿔 주세요.");
-        }
-        if (contentService.hasUpcomingSchedulesForUser(tenantSlug, staff.getUserId())) {
-            throw new BusinessException(
-                    StaffErrorCode.CANNOT_DELETE_STAFF_WITH_UPCOMING_SCHEDULES,
-                    "예정된 상담 일정이 있어 직원을 삭제할 수 없습니다. 먼저 일정을 닫거나 담당자를 변경해 주세요.");
         }
     }
 

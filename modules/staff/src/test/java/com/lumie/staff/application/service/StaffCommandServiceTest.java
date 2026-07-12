@@ -7,7 +7,6 @@ import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.content.api.ContentService;
 import com.lumie.staff.domain.entity.Staff;
 import com.lumie.staff.domain.exception.StaffErrorCode;
 import com.lumie.staff.domain.repository.StaffPermissionRepository;
@@ -52,9 +51,6 @@ class StaffCommandServiceTest {
     @Mock
     private ClassService classService;
 
-    @Mock
-    private ContentService contentService;
-
     @InjectMocks
     private StaffCommandService service;
 
@@ -81,21 +77,6 @@ class StaffCommandServiceTest {
         assertThatThrownBy(() -> service.deleteStaff(10L))
                 .isInstanceOfSatisfying(BusinessException.class, e ->
                         assertThat(e.getErrorCode()).isEqualTo(StaffErrorCode.CANNOT_DELETE_STAFF_WITH_ASSIGNED_CLASSES));
-
-        verify(authService, never()).deleteUser(anyLong());
-    }
-
-    @Test
-    @DisplayName("deleteStaff는 예정 상담 일정이 있는 직원 삭제를 막는다")
-    void deleteStaff_upcomingSchedules_blocksDeletion() {
-        Staff staff = inactiveStaff(10L, 100L);
-        given(staffRepository.findById(10L)).willReturn(Optional.of(staff));
-        given(classService.hasAssignedClasses(TENANT, 10L)).willReturn(false);
-        given(contentService.hasUpcomingSchedulesForUser(TENANT, 100L)).willReturn(true);
-
-        assertThatThrownBy(() -> service.deleteStaff(10L))
-                .isInstanceOfSatisfying(BusinessException.class, e ->
-                        assertThat(e.getErrorCode()).isEqualTo(StaffErrorCode.CANNOT_DELETE_STAFF_WITH_UPCOMING_SCHEDULES));
 
         verify(authService, never()).deleteUser(anyLong());
     }

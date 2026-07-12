@@ -7,7 +7,6 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.auth.Role;
 import com.lumie.common.quota.MetricType;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.content.api.ContentService;
 import com.lumie.student.application.dto.request.StudentRequest;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.StudentErrorCode;
@@ -55,9 +54,6 @@ class StudentCommandServiceTest {
     private ClassService classService;
 
     @Mock
-    private ContentService contentService;
-
-    @Mock
     private EntityManager entityManager;
 
     @Mock
@@ -82,28 +78,12 @@ class StudentCommandServiceTest {
     void deleteStudent_activeEnrollment_dropsEnrollmentAndDeletes() {
         Student student = inactiveStudent(42L, 100L);
         given(studentRepository.findById(42L)).willReturn(Optional.of(student));
-        given(contentService.hasActiveOrUpcomingReservationsForStudent(TENANT, 42L)).willReturn(false);
         given(authService.deleteUser(100L)).willReturn(new AuthService.DeleteUserResult(true, "ok"));
 
         service.deleteStudent(42L);
 
         verify(classService).dropActiveEnrollmentsForStudent(TENANT, 42L);
         verify(authService).deleteUser(100L);
-    }
-
-    @Test
-    @DisplayName("deleteStudent는 예정 상담 예약이 있는 학생 삭제를 막는다")
-    void deleteStudent_upcomingReservation_blocksDeletion() {
-        Student student = inactiveStudent(42L, 100L);
-        given(studentRepository.findById(42L)).willReturn(Optional.of(student));
-        given(contentService.hasActiveOrUpcomingReservationsForStudent(TENANT, 42L)).willReturn(true);
-
-        assertThatThrownBy(() -> service.deleteStudent(42L))
-                .isInstanceOfSatisfying(BusinessException.class, e ->
-                        assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.CANNOT_DELETE_STUDENT_WITH_UPCOMING_RESERVATION));
-
-        verify(authService, never()).deleteUser(anyLong());
-        verify(classService, never()).dropActiveEnrollmentsForStudent(TENANT, 42L);
     }
 
     @Test

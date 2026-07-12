@@ -24,7 +24,7 @@ public record CompleteTenantOnboardingRequest(
                 "students", "employees",
                 "classes", "attendance", "assignments", "lectures",
                 "grades", "omr-grading", "reports",
-                "announcements", "sms", "resources", "qna", "schedules",
+                "announcements", "sms", "resources", "qna",
                 "textbooks", "spreadsheets", "reviews"
         }))
         @Size(max = 100, message = "Hidden sidebar item ids must contain at most 100 entries")

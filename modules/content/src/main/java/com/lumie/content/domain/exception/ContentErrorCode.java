@@ -16,21 +16,12 @@ public enum ContentErrorCode implements ErrorCode {
     QNA_NOT_FOUND("CONTENT_202", "Q&A not found", 404),
     COMMENT_NOT_FOUND("CONTENT_203", "Comment not found", 404),
     TEXTBOOK_NOT_FOUND("CONTENT_204", "Textbook not found", 404),
-    SCHEDULE_NOT_FOUND("CONTENT_205", "Schedule not found", 404),
-    RESERVATION_NOT_FOUND("CONTENT_206", "Reservation not found", 404),
     STUDENT_NOT_FOUND("CONTENT_207", "Student not found", 404),
     ADMIN_NOT_FOUND("CONTENT_208", "Admin not found", 404),
     REVIEW_NOT_FOUND("CONTENT_209", "Review not found", 404),
 
-    // 409 Conflict
-    DUPLICATE_RESERVATION("CONTENT_301", "Duplicate reservation", 409),
-    SCHEDULE_FULL("CONTENT_302", "Schedule is full", 409),
-
     // 400 Bad Request
-    INVALID_RESERVATION_STATUS("CONTENT_401", "Invalid reservation status transition", 400),
-    SCHEDULE_NOT_AVAILABLE("CONTENT_402", "Schedule is not available", 400),
     INVALID_DATE_RANGE("CONTENT_403", "Invalid date range", 400),
-    INVALID_TIME_RANGE("CONTENT_404", "End time must be after start time", 400),
     INVALID_CLASS_TARGET("CONTENT_405", "Invalid class target", 400);
 
     private final String code;

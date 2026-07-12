@@ -24,7 +24,6 @@ public enum StaffErrorCode implements ErrorCode {
     DUPLICATE_PHONE("ADMIN_529", "이미 사용 중인 전화번호입니다.", 409),
     CANNOT_DELETE_ACTIVE_STAFF("ADMIN_533", "Cannot delete active staff. Deactivate first.", 409),
     CANNOT_DELETE_STAFF_WITH_ASSIGNED_CLASSES("ADMIN_534", "Cannot delete staff with assigned classes.", 409),
-    CANNOT_DELETE_STAFF_WITH_UPCOMING_SCHEDULES("ADMIN_535", "Cannot delete staff with upcoming schedules.", 409),
 
     // 403 Forbidden
     QUOTA_EXCEEDED("ADMIN_530", "Plan quota exceeded", 403),

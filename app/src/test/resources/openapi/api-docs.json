@@ -979,7 +979,7 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "schedules", "textbooks", "spreadsheets", "reviews" ],
+              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
               "maxLength" : 80,
               "minLength" : 0,
               "pattern" : "^[a-z0-9][a-z0-9-]*$",
@@ -1454,27 +1454,6 @@
         "required" : [ "qnaContent", "qnaTitle", "qnaUserId" ],
         "type" : "object"
       },
-      "CreateReservationRequest" : {
-        "properties" : {
-          "consultationContent" : {
-            "type" : "string"
-          },
-          "scheduleId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "studentId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "userId" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "scheduleId", "studentId", "userId" ],
-        "type" : "object"
-      },
       "CreateReviewRequest" : {
         "properties" : {
           "reviewContent" : {
@@ -1489,27 +1468,6 @@
           }
         },
         "required" : [ "reviewContent", "reviewTitle" ],
-        "type" : "object"
-      },
-      "CreateScheduleRequest" : {
-        "properties" : {
-          "date" : {
-            "format" : "date",
-            "type" : "string"
-          },
-          "description" : {
-            "type" : "string"
-          },
-          "endTime" : {
-            "example" : "09:00",
-            "type" : "string"
-          },
-          "startTime" : {
-            "example" : "09:00",
-            "type" : "string"
-          }
-        },
-        "required" : [ "date", "endTime", "startTime" ],
         "type" : "object"
       },
       "CreateSmsRecipientGroupRequest" : {
@@ -3191,37 +3149,6 @@
         "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
         "type" : "object"
       },
-      "PageResponseReservationResponse" : {
-        "properties" : {
-          "hasNext" : {
-            "type" : "boolean"
-          },
-          "items" : {
-            "items" : {
-              "$ref" : "#/components/schemas/ReservationResponse"
-            },
-            "type" : "array"
-          },
-          "page" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "perPage" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "total" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "totalPages" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
-        "type" : "object"
-      },
       "PageResponseReviewResponse" : {
         "properties" : {
           "hasNext" : {
@@ -3230,37 +3157,6 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/ReviewResponse"
-            },
-            "type" : "array"
-          },
-          "page" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "perPage" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "total" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "totalPages" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
-        "type" : "object"
-      },
-      "PageResponseScheduleResponse" : {
-        "properties" : {
-          "hasNext" : {
-            "type" : "boolean"
-          },
-          "items" : {
-            "items" : {
-              "$ref" : "#/components/schemas/ScheduleResponse"
             },
             "type" : "array"
           },
@@ -4207,58 +4103,6 @@
         "required" : [ "failCount", "jobId", "processedReports", "status", "successCount", "totalReports", "zipFileKey" ],
         "type" : "object"
       },
-      "ReservationResponse" : {
-        "properties" : {
-          "consultationContent" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "createdAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "date" : {
-            "format" : "date",
-            "type" : "string"
-          },
-          "endTime" : {
-            "example" : "09:00",
-            "type" : "string"
-          },
-          "id" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "scheduleId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "startTime" : {
-            "example" : "09:00",
-            "type" : "string"
-          },
-          "status" : {
-            "enum" : [ "PENDING", "CONFIRMED", "CANCELLED", "COMPLETED" ],
-            "type" : "string"
-          },
-          "studentId" : {
-            "format" : "int64",
-            "nullable" : true,
-            "type" : "integer"
-          },
-          "updatedAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "userId" : {
-            "format" : "int64",
-            "nullable" : true,
-            "type" : "integer"
-          }
-        },
-        "required" : [ "consultationContent", "createdAt", "date", "endTime", "id", "scheduleId", "startTime", "status", "studentId", "updatedAt", "userId" ],
-        "type" : "object"
-      },
       "ReviewPopupSettingResponse" : {
         "properties" : {
           "createdAt" : {
@@ -4434,55 +4278,6 @@
           }
         },
         "required" : [ "days", "endTime", "sessions", "startTime" ],
-        "type" : "object"
-      },
-      "ScheduleResponse" : {
-        "properties" : {
-          "confirmedCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "createdAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "date" : {
-            "format" : "date",
-            "type" : "string"
-          },
-          "description" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "endTime" : {
-            "example" : "09:00",
-            "type" : "string"
-          },
-          "hasReservation" : {
-            "type" : "boolean"
-          },
-          "id" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "isAvailable" : {
-            "type" : "boolean"
-          },
-          "startTime" : {
-            "example" : "09:00",
-            "type" : "string"
-          },
-          "updatedAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "userId" : {
-            "format" : "int64",
-            "nullable" : true,
-            "type" : "integer"
-          }
-        },
-        "required" : [ "confirmedCount", "createdAt", "date", "description", "endTime", "hasReservation", "id", "isAvailable", "startTime", "updatedAt", "userId" ],
         "type" : "object"
       },
       "ScheduleSessionRequest" : {
@@ -5724,7 +5519,7 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "schedules", "textbooks", "spreadsheets", "reviews" ],
+              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
               "type" : "string"
             },
             "type" : "array"
@@ -5808,53 +5603,6 @@
           }
         },
         "required" : [ "createdAt", "depth", "id", "name", "parentId" ],
-        "type" : "object"
-      },
-      "TodayReservationResponse" : {
-        "properties" : {
-          "consultationContent" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "createdAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "date" : {
-            "format" : "date",
-            "type" : "string"
-          },
-          "endTime" : {
-            "example" : "09:00",
-            "type" : "string"
-          },
-          "id" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "scheduleId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "startTime" : {
-            "example" : "09:00",
-            "type" : "string"
-          },
-          "status" : {
-            "enum" : [ "PENDING", "CONFIRMED", "CANCELLED", "COMPLETED" ],
-            "type" : "string"
-          },
-          "studentId" : {
-            "format" : "int64",
-            "nullable" : true,
-            "type" : "integer"
-          },
-          "studentName" : {
-            "nullable" : true,
-            "type" : "string"
-          }
-        },
-        "required" : [ "consultationContent", "createdAt", "date", "endTime", "id", "scheduleId", "startTime", "status", "studentId", "studentName" ],
         "type" : "object"
       },
       "ToolExecuteRequest" : {
@@ -6391,19 +6139,6 @@
         "required" : [ "selectedChoice" ],
         "type" : "object"
       },
-      "UpdateReservationStatusRequest" : {
-        "properties" : {
-          "cancelReason" : {
-            "type" : "string"
-          },
-          "status" : {
-            "enum" : [ "PENDING", "CONFIRMED", "CANCELLED", "COMPLETED" ],
-            "type" : "string"
-          }
-        },
-        "required" : [ "status" ],
-        "type" : "object"
-      },
       "UpdateReviewPopupSettingRequest" : {
         "properties" : {
           "isReviewPopupOn" : {
@@ -6411,26 +6146,6 @@
           }
         },
         "required" : [ "isReviewPopupOn" ],
-        "type" : "object"
-      },
-      "UpdateScheduleRequest" : {
-        "properties" : {
-          "date" : {
-            "format" : "date",
-            "type" : "string"
-          },
-          "endTime" : {
-            "example" : "09:00",
-            "type" : "string"
-          },
-          "isAvailable" : {
-            "type" : "boolean"
-          },
-          "startTime" : {
-            "example" : "09:00",
-            "type" : "string"
-          }
-        },
         "type" : "object"
       },
       "UpdateSubmissionRequest" : {
@@ -6482,7 +6197,7 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "schedules", "textbooks", "spreadsheets", "reviews" ],
+              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
               "maxLength" : 80,
               "minLength" : 0,
               "pattern" : "^[a-z0-9][a-z0-9-]*$",
@@ -12061,253 +11776,6 @@
         "tags" : [ "report-controller" ]
       }
     },
-    "/v1/reservations" : {
-      "get" : {
-        "operationId" : "listReservations",
-        "parameters" : [ {
-          "description" : "Zero-based page index (0..N)",
-          "in" : "query",
-          "name" : "page",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "minimum" : 0,
-            "type" : "integer"
-          }
-        }, {
-          "description" : "The size of the page to be returned",
-          "in" : "query",
-          "name" : "size",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "minimum" : 1,
-            "type" : "integer"
-          }
-        }, {
-          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
-          "in" : "query",
-          "name" : "sort",
-          "required" : false,
-          "schema" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PageResponseReservationResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "reservation-controller" ]
-      },
-      "post" : {
-        "operationId" : "createReservation",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CreateReservationRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ReservationResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "reservation-controller" ]
-      }
-    },
-    "/v1/reservations/schedule/{scheduleId}" : {
-      "get" : {
-        "operationId" : "listReservationsBySchedule",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "scheduleId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/ReservationResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "reservation-controller" ]
-      }
-    },
-    "/v1/reservations/student/{studentId}" : {
-      "get" : {
-        "operationId" : "listReservationsByStudent",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "studentId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "status",
-          "required" : false,
-          "schema" : {
-            "enum" : [ "PENDING", "CONFIRMED", "CANCELLED", "COMPLETED" ],
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/ReservationResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "reservation-controller" ]
-      }
-    },
-    "/v1/reservations/today" : {
-      "get" : {
-        "operationId" : "listTodayReservations",
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/TodayReservationResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "reservation-controller" ]
-      }
-    },
-    "/v1/reservations/{id}" : {
-      "delete" : {
-        "operationId" : "cancelReservation",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "reservation-controller" ]
-      },
-      "get" : {
-        "operationId" : "getReservation",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ReservationResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "reservation-controller" ]
-      }
-    },
-    "/v1/reservations/{id}/status" : {
-      "patch" : {
-        "operationId" : "updateReservationStatus",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/UpdateReservationStatusRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ReservationResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "reservation-controller" ]
-      }
-    },
     "/v1/results/{resultId}/questions" : {
       "get" : {
         "operationId" : "getQuestionResults",
@@ -12476,284 +11944,6 @@
           }
         },
         "tags" : [ "review-controller" ]
-      }
-    },
-    "/v1/schedules" : {
-      "get" : {
-        "operationId" : "listSchedules",
-        "parameters" : [ {
-          "description" : "Zero-based page index (0..N)",
-          "in" : "query",
-          "name" : "page",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "minimum" : 0,
-            "type" : "integer"
-          }
-        }, {
-          "description" : "The size of the page to be returned",
-          "in" : "query",
-          "name" : "size",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "minimum" : 1,
-            "type" : "integer"
-          }
-        }, {
-          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
-          "in" : "query",
-          "name" : "sort",
-          "required" : false,
-          "schema" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PageResponseScheduleResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "schedule-controller" ]
-      },
-      "post" : {
-        "operationId" : "createSchedule",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CreateScheduleRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ScheduleResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "schedule-controller" ]
-      }
-    },
-    "/v1/schedules/available" : {
-      "get" : {
-        "operationId" : "listAvailableSchedules",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "startDate",
-          "required" : true,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "endDate",
-          "required" : true,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/ScheduleResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "schedule-controller" ]
-      }
-    },
-    "/v1/schedules/range" : {
-      "get" : {
-        "operationId" : "listSchedulesByDateRange",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "startDate",
-          "required" : true,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "endDate",
-          "required" : true,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/ScheduleResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "schedule-controller" ]
-      }
-    },
-    "/v1/schedules/user/{userId}" : {
-      "get" : {
-        "operationId" : "listSchedulesByUser",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "userId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "startDate",
-          "required" : true,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "endDate",
-          "required" : true,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/ScheduleResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "schedule-controller" ]
-      }
-    },
-    "/v1/schedules/{id}" : {
-      "delete" : {
-        "operationId" : "deleteSchedule",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "schedule-controller" ]
-      },
-      "get" : {
-        "operationId" : "getSchedule",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ScheduleResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "schedule-controller" ]
-      },
-      "patch" : {
-        "operationId" : "updateSchedule",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/UpdateScheduleRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ScheduleResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "schedule-controller" ]
       }
     },
     "/v1/sms-templates" : {

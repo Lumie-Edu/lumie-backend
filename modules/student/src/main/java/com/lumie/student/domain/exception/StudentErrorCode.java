@@ -21,7 +21,6 @@ public enum StudentErrorCode implements ErrorCode {
     DUPLICATE_PHONE("STUDENT_204", "이미 사용 중인 전화번호입니다.", 409),
     CANNOT_DELETE_ACTIVE_STUDENT("STUDENT_303", "Cannot delete active student. Deactivate first.", 409),
     CANNOT_DELETE_STUDENT_WITH_ACTIVE_ENROLLMENT("STUDENT_304", "Cannot delete student with active enrollment.", 409),
-    CANNOT_DELETE_STUDENT_WITH_UPCOMING_RESERVATION("STUDENT_305", "Cannot delete student with active or upcoming reservation.", 409),
 
     // 403 Forbidden
     QUOTA_EXCEEDED("STUDENT_301", "Plan quota exceeded", 403),

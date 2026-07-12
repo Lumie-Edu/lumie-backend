@@ -8,6 +8,7 @@ import com.lumie.tenant.api.TenantStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -164,6 +165,27 @@ class TenantTest {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
 
         tenant.updateHiddenSidebarItemIds(List.of(" attendance ", "attendance", "", "reviews"));
+
+        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+    }
+
+    @Test
+    @DisplayName("제거된 legacy sidebar 항목은 저장 요청에서 무시한다")
+    void updateHiddenSidebarItemIdsIgnoresRemovedLegacyId() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
+
+        tenant.updateHiddenSidebarItemIds(List.of("attendance", "schedules", "reviews"));
+
+        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+    }
+
+    @Test
+    @DisplayName("제거된 legacy sidebar 항목은 조회 응답에서 노출하지 않는다")
+    void getHiddenSidebarItemIdsFiltersRemovedLegacyId() throws ReflectiveOperationException {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
+        Field field = Tenant.class.getDeclaredField("hiddenSidebarItemIds");
+        field.setAccessible(true);
+        field.set(tenant, List.of("attendance", "schedules", "reviews"));
 
         assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("attendance", "reviews");
     }
