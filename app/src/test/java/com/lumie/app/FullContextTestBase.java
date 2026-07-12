@@ -7,8 +7,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
 
 /**
@@ -27,31 +26,27 @@ import org.testcontainers.utility.DockerImageName;
  *
  * <p>Real TestContainers back Postgres/Redis/RabbitMQ so every module {@code @Configuration}
  * resolves. Flyway is off (its {@code CREATE INDEX CONCURRENTLY} deadlocks on a fresh PG)
- * with {@code ddl-auto=none}; missing-queue RabbitMQ listeners are made non-fatal; Spring
- * Security autoconfig is excluded (the app's own {@code @EnableWebSecurity SecurityConfig}
- * provides the filter chain and permits {@code /v3/api-docs}).
+ * with {@code ddl-auto=none}; RabbitMQ listeners are not auto-started; Spring Security
+ * autoconfig is excluded (the app's own {@code @EnableWebSecurity SecurityConfig} provides
+ * the filter chain and permits {@code /v3/api-docs}).
  */
 @SpringBootTest(classes = LumieApplication.class, webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
-@Testcontainers
 abstract class FullContextTestBase {
 
     private static final Duration CONTAINER_STARTUP_TIMEOUT = Duration.ofMinutes(3);
 
-    @Container
     @SuppressWarnings("resource")
     static final PostgreSQLContainer<?> POSTGRES =
             new PostgreSQLContainer<>("postgres:18-alpine")
                     .withStartupTimeout(CONTAINER_STARTUP_TIMEOUT);
 
-    @Container
     @SuppressWarnings("resource")
     static final GenericContainer<?> REDIS =
             new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
                     .withExposedPorts(6379)
                     .withStartupTimeout(CONTAINER_STARTUP_TIMEOUT);
 
-    @Container
     @SuppressWarnings("resource")
     static final GenericContainer<?> RABBITMQ =
             new GenericContainer<>(DockerImageName.parse("rabbitmq:3-alpine"))
@@ -59,6 +54,10 @@ abstract class FullContextTestBase {
                     .withEnv("RABBITMQ_DEFAULT_USER", "guest")
                     .withEnv("RABBITMQ_DEFAULT_PASS", "guest")
                     .withStartupTimeout(CONTAINER_STARTUP_TIMEOUT);
+
+    static {
+        Startables.deepStart(POSTGRES, REDIS, RABBITMQ).join();
+    }
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
@@ -83,7 +82,9 @@ abstract class FullContextTestBase {
         registry.add("spring.rabbitmq.virtual-host", () -> "/");
 
         registry.add("spring.modulith.events.republish-outstanding-events-on-restart", () -> "false");
+        registry.add("spring.modulith.events.jdbc.schema-initialization.enabled", () -> "true");
         registry.add("lumie.rabbitmq.missing-queues-fatal", () -> "false");
+        registry.add("lumie.rabbitmq.listener-auto-startup", () -> "false");
 
         // TestContainers provisions a superuser — the guard is a deployed-env safeguard.
         // Disable it here so full-context tests are not blocked by the superuser role.

@@ -56,7 +56,8 @@ public class RabbitMqConfig {
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
             ConnectionFactory connectionFactory,
             MessageConverter messageConverter,
-            @Value("${lumie.rabbitmq.missing-queues-fatal:true}") boolean missingQueuesFatal) {
+            @Value("${lumie.rabbitmq.missing-queues-fatal:true}") boolean missingQueuesFatal,
+            @Value("${lumie.rabbitmq.listener-auto-startup:true}") boolean listenerAutoStartup) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(messageConverter);
@@ -64,6 +65,7 @@ public class RabbitMqConfig {
         // Default true matches Spring Boot's prior behavior; tests + rolling Rabbit
         // operator deploys can flip it via lumie.rabbitmq.missing-queues-fatal=false.
         factory.setMissingQueuesFatal(missingQueuesFatal);
+        factory.setAutoStartup(listenerAutoStartup);
         return factory;
     }
 }

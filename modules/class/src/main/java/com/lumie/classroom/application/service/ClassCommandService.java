@@ -37,9 +37,10 @@ public class ClassCommandService {
 
     public ClassResponse createClass(CreateClassRequest request) {
         if (request.teacherId() != null) {
-            staffService.getStaff(TenantContextHolder.getRequiredTenant(), request.teacherId())
-                .orElseThrow(() -> new BusinessException(ClassErrorCode.TEACHER_NOT_FOUND,
-                    "Teacher not found with id: " + request.teacherId()));
+            if (staffService.getStaff(TenantContextHolder.getRequiredTenant(), request.teacherId()).isEmpty()) {
+                throw new BusinessException(ClassErrorCode.TEACHER_NOT_FOUND,
+                    "Teacher not found with id: " + request.teacherId());
+            }
         }
 
         SchedulePattern createPattern = request.schedulePattern() != null ? request.schedulePattern().toVo() : null;

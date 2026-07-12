@@ -15,7 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,7 +49,7 @@ class ClassComparisonQueryServiceTest {
 
         given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
         given(resultRepository.findByExamId(EXAM_ID)).willReturn(List.of(r1, r2, r3, r4));
-        given(classService.getEnrolledClassesForStudents(any(), any(Collection.class)))
+        given(classService.getEnrolledClassesForStudents(any(), any()))
                 .willReturn(List.of(
                         new ClassService.EnrolledClassData(10L, "고2 A반", 100L),
                         new ClassService.EnrolledClassData(10L, "고2 A반", 200L),

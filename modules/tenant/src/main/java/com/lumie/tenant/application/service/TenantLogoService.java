@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Set;
 
 @Slf4j
@@ -73,7 +74,7 @@ public class TenantLogoService {
             throw new BusinessException(TenantErrorCode.LOGO_TOO_LARGE);
         }
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
             throw new BusinessException(TenantErrorCode.LOGO_UNSUPPORTED_CONTENT_TYPE,
                     "Unsupported logo content type: " + contentType);
         }

@@ -16,6 +16,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 public interface ClassRepository extends JpaRepository<ClassEntity, Long>,
@@ -59,7 +60,7 @@ public interface ClassRepository extends JpaRepository<ClassEntity, Long>,
             }
             if (criteria.search() != null && !criteria.search().isBlank()) {
                 predicates.add(cb.like(cb.lower(root.get("name")),
-                        "%" + criteria.search().toLowerCase() + "%"));
+                        "%" + criteria.search().toLowerCase(Locale.ROOT) + "%"));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };

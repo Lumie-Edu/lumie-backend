@@ -134,9 +134,10 @@ public class AttendanceSessionCommandService {
     }
 
     public void deleteSession(Long id) {
-        sessionRepository.findById(id)
-            .orElseThrow(() -> new BusinessException(AttendanceErrorCode.SESSION_NOT_FOUND,
-                "Attendance session not found with id: %d".formatted(id)));
+        if (sessionRepository.findById(id).isEmpty()) {
+            throw new BusinessException(AttendanceErrorCode.SESSION_NOT_FOUND,
+                "Attendance session not found with id: %d".formatted(id));
+        }
 
         sessionRepository.deleteById(id);
 

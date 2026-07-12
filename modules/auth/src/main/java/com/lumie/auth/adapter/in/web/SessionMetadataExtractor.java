@@ -26,8 +26,8 @@ public final class SessionMetadataExtractor {
     private static String parseBrowser(String ua) {
         if (ua.contains("Edg/") || ua.contains("Edge/")) return "Edge";
         if (ua.contains("OPR/") || ua.contains("Opera/")) return "Opera";
-        if (ua.contains("Chrome/") && !ua.contains("Edg/")) return "Chrome";
-        if (ua.contains("Safari/") && !ua.contains("Chrome/")) return "Safari";
+        if (ua.contains("Chrome/")) return "Chrome";
+        if (ua.contains("Safari/")) return "Safari";
         if (ua.contains("Firefox/")) return "Firefox";
         if (ua.contains("MSIE") || ua.contains("Trident/")) return "IE";
         return "Unknown Browser";

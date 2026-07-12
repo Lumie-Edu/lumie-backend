@@ -79,9 +79,8 @@ public class FileCommandService {
 
     @Transactional
     public FileMetadataResponse uploadFile(EntityType entityType, Long entityId, UUID folderId, MultipartFile file) {
-        if (folderId != null) {
-            textbookFolderRepository.findById(folderId)
-                    .orElseThrow(() -> new BusinessException(FileErrorCode.FOLDER_NOT_FOUND));
+        if (folderId != null && textbookFolderRepository.findById(folderId).isEmpty()) {
+            throw new BusinessException(FileErrorCode.FOLDER_NOT_FOUND);
         }
 
         UUID fileId = UUID.randomUUID();

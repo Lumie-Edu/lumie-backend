@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -37,7 +38,7 @@ public interface QnaBoardRepository extends JpaRepository<QnaBoard, Long>, JpaSp
                 predicates.add(cb.equal(root.get("isAnswered"), isAnswered));
             }
             if (keyword != null && !keyword.isBlank()) {
-                String pattern = "%" + keyword.toLowerCase() + "%";
+                String pattern = "%" + keyword.toLowerCase(Locale.ROOT) + "%";
                 Predicate titleMatch = cb.like(cb.lower(root.get("qnaTitle")), pattern);
                 Predicate contentMatch = cb.like(cb.lower(root.get("qnaContent")), pattern);
 

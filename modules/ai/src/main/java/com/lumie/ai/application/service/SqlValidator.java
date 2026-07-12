@@ -4,6 +4,7 @@ import com.lumie.ai.domain.exception.AiErrorCode;
 import com.lumie.ai.domain.exception.AiException;
 import org.springframework.stereotype.Component;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -45,7 +46,7 @@ public class SqlValidator {
                     "Multiple statements not allowed (semicolons detected)");
         }
 
-        String upper = trimmed.toUpperCase();
+        String upper = trimmed.toUpperCase(Locale.ROOT);
 
         if (!upper.startsWith("SELECT") && !upper.startsWith("WITH")) {
             throw new AiException(AiErrorCode.INVALID_SQL,

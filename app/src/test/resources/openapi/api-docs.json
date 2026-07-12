@@ -8863,6 +8863,56 @@
         "tags" : [ "class-controller" ]
       }
     },
+    "/v1/classes/me" : {
+      "get" : {
+        "operationId" : "getClassesForCurrentStudent",
+        "parameters" : [ {
+          "description" : "Zero-based page index (0..N)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The size of the page to be returned",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseClassResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "class-controller" ]
+      }
+    },
     "/v1/classes/statistics/dashboard" : {
       "get" : {
         "operationId" : "getDashboardStatistics",

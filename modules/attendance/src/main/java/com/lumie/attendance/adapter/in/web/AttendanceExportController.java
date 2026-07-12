@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 @RestController
@@ -29,7 +30,7 @@ public class AttendanceExportController {
         AuthorizationGuard.requireOwner();
         String filename = "%s_attendance_%s.csv".formatted(
             TenantContextHolder.getRequiredTenant(),
-            LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+            LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE)
         );
 
         return ResponseEntity.ok()

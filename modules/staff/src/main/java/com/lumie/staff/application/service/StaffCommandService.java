@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
@@ -53,7 +54,7 @@ public class StaffCommandService {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         Role creatorRole = UserContextHolder.getUserRole();
 
-        String requestedRole = request.role().toUpperCase();
+        String requestedRole = request.role().toUpperCase(Locale.ROOT);
         validateRolePermission(creatorRole, requestedRole);
 
         checkStaffQuota(tenantSlug);

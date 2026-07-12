@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 public interface StudentRepository extends JpaRepository<Student, Long>,
@@ -93,7 +94,7 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
                 predicates.add(cb.equal(root.get("isActive"), isActive));
             }
             if (search != null && !search.isBlank()) {
-                String pattern = "%" + search.toLowerCase() + "%";
+                String pattern = "%" + search.toLowerCase(Locale.ROOT) + "%";
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.get("name")), pattern),
                         cb.like(cb.lower(root.get("studentHighschool")), pattern),

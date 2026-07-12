@@ -62,13 +62,13 @@ public class AuthRegistrationService {
                     request.userLoginId(), request.name(), request.phone(), passwordHash, Role.STUDENT);
 
             IssuedTokens issued = loginSessionHelper.issueTokensForLogin(user, request.tenantSlug(), tenant.id(), metadata);
-            
+
             eventPublisher.publishEvent(new com.lumie.auth.api.StudentSelfRegisteredEvent(
                     user.id(), request.userLoginId(), request.name(), request.phone(),
                     request.studentHighschool(), request.studentBirthYear(), request.parentPhone(),
                     request.tenantSlug(), tenant.id()
             ));
-            
+
             log.info("Registration successful for user: {} on tenant: {}", user.id(), request.tenantSlug());
             return LoginResponse.of(issued.tokenPair(), user.toUserResponse(
                     request.tenantSlug(),

@@ -39,6 +39,8 @@ public record AttendanceSessionResponse(
                     case ABSENT -> absentCount++;
                     case LATE -> lateCount++;
                     case EXCUSED -> excusedCount++;
+                    case PENDING -> {
+                    }
                 }
             }
         }

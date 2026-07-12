@@ -63,8 +63,9 @@ public class StaffQueryService {
 
     @Cacheable(value = CacheConfig.CACHE_ADMIN_PERMISSIONS, key = "#staffId")
     public List<StaffPermissionResponse> getStaffPermissions(Long staffId) {
-        staffRepository.findById(staffId)
-                .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(staffId)));
+        if (staffRepository.findById(staffId).isEmpty()) {
+            throw new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(staffId));
+        }
         return staffPermissionRepository.findByStaffId(staffId).stream()
                 .map(StaffPermissionResponse::from)
                 .toList();

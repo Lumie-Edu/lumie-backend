@@ -151,6 +151,7 @@ class ExamQuestionTypeServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void seedDefaultQuestionTypesIfEmptyCreatesDefaults() {
         when(examQuestionTypePort.findAllByNameIn(any())).thenReturn(List.of());
 

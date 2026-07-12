@@ -35,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 @RestController
@@ -181,7 +182,7 @@ public class StudentController {
         AuthorizationGuard.requireOwner();
         String filename = "%s_students_%s.csv".formatted(
             TenantContextHolder.getRequiredTenant(),
-            LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+            LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE)
         );
 
         return ResponseEntity.ok()

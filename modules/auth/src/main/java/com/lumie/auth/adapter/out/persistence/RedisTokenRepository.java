@@ -160,7 +160,7 @@ public class RedisTokenRepository implements TokenRepository, TokenPersistencePo
     @Override
     public Map<String, String> findSessionsBulk(String tenantSlug, Set<String> jtis) {
         if (jtis.isEmpty()) {
-            return Collections.emptyMap();
+            return new HashMap<>();
         }
         List<String> jtiList = new ArrayList<>(jtis);
         List<String> keys = jtiList.stream()

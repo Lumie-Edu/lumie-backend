@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Slf4j
@@ -138,7 +139,7 @@ public class TenantServiceAdapter implements TenantService {
     private TenantPlan parsePlan(String planId) {
         if (planId == null) return null;
         try {
-            return TenantPlan.valueOf(planId.toUpperCase());
+            return TenantPlan.valueOf(planId.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return null;
         }

@@ -1,5 +1,6 @@
 package com.lumie.common.util;
 
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -24,6 +25,6 @@ public final class SlugValidator {
     }
 
     public static boolean isReserved(String slug) {
-        return slug != null && RESERVED_SLUGS.contains(slug.toLowerCase());
+        return slug != null && RESERVED_SLUGS.contains(slug.toLowerCase(Locale.ROOT));
     }
 }

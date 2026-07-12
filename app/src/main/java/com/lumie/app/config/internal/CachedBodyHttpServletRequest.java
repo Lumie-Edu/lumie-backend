@@ -48,6 +48,11 @@ public final class CachedBodyHttpServletRequest extends HttpServletRequestWrappe
             public int read() {
                 return backing.read();
             }
+
+            @Override
+            public int read(byte[] b, int off, int len) {
+                return backing.read(b, off, len);
+            }
         };
     }
 

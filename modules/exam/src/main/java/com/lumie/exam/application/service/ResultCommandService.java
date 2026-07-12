@@ -110,8 +110,9 @@ public class ResultCommandService {
     public OmrPresignResponse generatePresignedUrls(Long examId, OmrPresignRequest request) {
         log.info("Generating presigned URLs for exam: {}, files: {}", examId, request.fileNames().size());
 
-        examRepository.findById(examId)
-                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
+        if (examRepository.findById(examId).isEmpty()) {
+            throw new BusinessException(ExamErrorCode.EXAM_NOT_FOUND);
+        }
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         String tenantId = TenantContextHolder.toStorageTenantId(tenantSlug);

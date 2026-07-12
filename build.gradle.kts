@@ -72,6 +72,7 @@ subprojects {
 
         // Spring Boot test starter: universal (JUnit5 + AssertJ + Mockito).
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
+        "testRuntimeOnly"("org.junit.platform:junit-platform-launcher")
     }
 
     tasks.withType<JavaCompile> {
@@ -98,6 +99,7 @@ subprojects {
     val runIntegration = project.hasProperty("integration")
 
     tasks.withType<Test>().configureEach {
+        jvmArgs("-Xshare:off")
         useJUnitPlatform {
             if (!runIntegration && name == "test") {
                 excludeTags("integration")

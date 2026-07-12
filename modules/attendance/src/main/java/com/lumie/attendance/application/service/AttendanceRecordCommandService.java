@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Slf4j
@@ -48,7 +49,7 @@ public class AttendanceRecordCommandService {
             .orElseThrow(() -> new BusinessException(AttendanceErrorCode.RECORD_NOT_FOUND,
                 "No attendance record found for this student in session"));
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         LocalDateTime sessionStart = session.getSessionDate().atStartOfDay();
         long minutesSinceStart = java.time.Duration.between(sessionStart, now).toMinutes();
 
@@ -81,9 +82,10 @@ public class AttendanceRecordCommandService {
     }
 
     public void bulkUpdateStatus(Long sessionId, BulkUpdateStatusRequest request) {
-        sessionRepository.findById(sessionId)
-            .orElseThrow(() -> new BusinessException(AttendanceErrorCode.SESSION_NOT_FOUND,
-                "Attendance session not found with id: %d".formatted(sessionId)));
+        if (sessionRepository.findById(sessionId).isEmpty()) {
+            throw new BusinessException(AttendanceErrorCode.SESSION_NOT_FOUND,
+                "Attendance session not found with id: %d".formatted(sessionId));
+        }
 
         List<AttendanceRecord> records = recordRepository.findAllById(request.recordIds());
 

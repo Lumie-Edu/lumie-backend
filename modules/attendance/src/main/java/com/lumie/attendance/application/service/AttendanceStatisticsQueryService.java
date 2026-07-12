@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 
 @Service
@@ -25,7 +26,7 @@ public class AttendanceStatisticsQueryService {
     public AttendanceDashboardResponse getDashboardStatistics() {
         log.debug("Getting attendance dashboard statistics");
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
         LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate weekEnd = today;
 

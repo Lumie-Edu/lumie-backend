@@ -68,8 +68,9 @@ public class TextbookFolderCommandService {
 
     @Transactional
     public void deleteFolder(UUID folderId) {
-        textbookFolderRepository.findById(folderId)
-                .orElseThrow(() -> new BusinessException(FileErrorCode.FOLDER_NOT_FOUND));
+        if (textbookFolderRepository.findById(folderId).isEmpty()) {
+            throw new BusinessException(FileErrorCode.FOLDER_NOT_FOUND);
+        }
 
         assertFolderTreeHasNoLinkedFiles(folderId);
         deleteFolderRecursive(folderId);

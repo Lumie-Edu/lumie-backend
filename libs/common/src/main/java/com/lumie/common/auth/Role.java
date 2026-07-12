@@ -1,5 +1,7 @@
 package com.lumie.common.auth;
 
+import java.util.Locale;
+
 /**
  * User role with hierarchical authority.
  *
@@ -52,10 +54,11 @@ public enum Role {
         if (value == null || value.isBlank()) {
             return STUDENT;
         }
+        String normalized = value.toUpperCase(Locale.ROOT);
         try {
-            return Role.valueOf(value.toUpperCase());
+            return Role.valueOf(normalized);
         } catch (IllegalArgumentException e) {
-            return switch (value.toUpperCase()) {
+            return switch (normalized) {
                 case "ADMIN" -> INSTRUCTOR;
                 case "DEVELOPER" -> MANAGER;
                 default -> STUDENT;

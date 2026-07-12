@@ -10,6 +10,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Locale;
+
 @Embeddable
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -28,7 +30,7 @@ public class TenantSlug {
             throw new BusinessException(TenantErrorCode.INVALID_SLUG,
                     "Invalid tenant slug: " + value);
         }
-        return new TenantSlug(value.toLowerCase());
+        return new TenantSlug(value.toLowerCase(Locale.ROOT));
     }
 
     @Override
