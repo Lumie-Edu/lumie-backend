@@ -217,12 +217,12 @@ public class StudentQueryService {
 
     private List<String> toRow(Student s) {
         return List.of(
-            nullToEmpty(s.getName()),
-            nullToEmpty(s.getPhone()),
-            nullToEmpty(s.getParentPhone()),
-            nullToEmpty(s.getStudentHighschool()),
-            s.getStudentBirthYear() == null ? "" : s.getStudentBirthYear().toString(),
-            nullToEmpty(s.getStudentMemo()),
+            spreadsheetSafe(nullToEmpty(s.getName())),
+            spreadsheetSafe(nullToEmpty(s.getPhone())),
+            spreadsheetSafe(nullToEmpty(s.getParentPhone())),
+            spreadsheetSafe(nullToEmpty(s.getStudentHighschool())),
+            spreadsheetSafe(s.getStudentBirthYear() == null ? "" : s.getStudentBirthYear().toString()),
+            spreadsheetSafe(nullToEmpty(s.getStudentMemo())),
             s.isActive() ? "재원" : "휴원",
             s.getCreatedAt() == null ? "" : LocalDate.ofInstant(s.getCreatedAt(), ZoneId.systemDefault()).format(DATE_FMT)
         );
@@ -230,5 +230,16 @@ public class StudentQueryService {
 
     private static String nullToEmpty(String v) {
         return Objects.requireNonNullElse(v, "");
+    }
+
+    private static String spreadsheetSafe(String value) {
+        if (value.isBlank()) {
+            return value;
+        }
+        char first = value.stripLeading().charAt(0);
+        if (first == '=' || first == '+' || first == '-' || first == '@') {
+            return "'" + value;
+        }
+        return value;
     }
 }

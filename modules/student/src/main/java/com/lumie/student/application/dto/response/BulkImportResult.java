@@ -1,5 +1,7 @@
 package com.lumie.student.application.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.List;
 
 public record BulkImportResult(
@@ -21,7 +23,9 @@ public record BulkImportResult(
      */
     public record RowError(
         int rowNumber,
+        @Schema(nullable = true)
         String column,
+        @Schema(nullable = true)
         String value,
         String code,
         String message

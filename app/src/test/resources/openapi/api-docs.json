@@ -4186,6 +4186,7 @@
             "type" : "string"
           },
           "column" : {
+            "nullable" : true,
             "type" : "string"
           },
           "message" : {
@@ -4196,6 +4197,7 @@
             "type" : "integer"
           },
           "value" : {
+            "nullable" : true,
             "type" : "string"
           }
         },
@@ -13485,7 +13487,7 @@
         "parameters" : [ {
           "in" : "header",
           "name" : "Idempotency-Key",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }

@@ -8,6 +8,7 @@ import com.lumie.common.auth.Role;
 import com.lumie.common.quota.MetricType;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.student.application.dto.request.StudentRequest;
+import com.lumie.student.application.dto.response.BulkImportResult;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.StudentErrorCode;
 import com.lumie.student.domain.repository.StudentRepository;
@@ -22,12 +23,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -239,6 +243,62 @@ class StudentCommandServiceTest {
                         assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.DUPLICATE_PHONE));
 
         verify(authService, never()).createUser(any(), any(), eq(Role.STUDENT.name()), anyLong());
+    }
+
+    @Test
+    @DisplayName("bulkImportStudents는 스프레드시트 수식으로 해석될 수 있는 값을 row 오류로 처리한다")
+    void bulkImportStudents_unsafeSpreadsheetValue_returnsRowError() {
+        String csv = """
+                학생 이름,학생 연락처,학교명,출생 연도,학부모 연락처,메모
+                =CMD(),010-1234-5678,,,,
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "students.csv",
+                "text/csv",
+                csv.getBytes(UTF_8)
+        );
+        given(studentRepository.existsByPhone("01012345678")).willReturn(false);
+
+        BulkImportResult result = service.bulkImportStudents(file);
+
+        assertThat(result.successCount()).isZero();
+        assertThat(result.failureCount()).isEqualTo(1);
+        assertThat(result.errors())
+                .extracting(BulkImportResult.RowError::code)
+                .containsExactly(StudentErrorCode.BULK_IMPORT_UNSAFE_SPREADSHEET_VALUE.getCode());
+        verify(authService, never()).createUser(any(), any(), eq(Role.STUDENT.name()), anyLong());
+        verify(studentRepository, never()).save(any(Student.class));
+    }
+
+    @Test
+    @DisplayName("bulkImportStudents는 같은 파일 안의 중복 학생 연락처를 row 오류로 처리한다")
+    void bulkImportStudents_duplicatePhoneInSameFile_returnsRowErrorBeforeAuth() {
+        String csv = """
+                학생 이름,학생 연락처,학교명,출생 연도,학부모 연락처,메모
+                김민조,010-1234-5678,,,,
+                이민조,010-1234-5678,,,,
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "students.csv",
+                "text/csv",
+                csv.getBytes(UTF_8)
+        );
+        given(studentRepository.existsByPhone("01012345678")).willReturn(false);
+        given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
+        given(authService.createUser("김민조", "010-1234-5678", Role.STUDENT.name(), 1L))
+                .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "01012345678"));
+        given(studentRepository.save(any(Student.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        BulkImportResult result = service.bulkImportStudents(file);
+
+        assertThat(result.successCount()).isEqualTo(1);
+        assertThat(result.failureCount()).isEqualTo(1);
+        assertThat(result.errors())
+                .extracting(BulkImportResult.RowError::rowNumber, BulkImportResult.RowError::code)
+                .containsExactly(tuple(3, StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE.getCode()));
     }
 
     private static Student inactiveStudent(Long id, Long userId) {

@@ -35,6 +35,7 @@ public enum StudentErrorCode implements ErrorCode {
     BULK_IMPORT_AUTH_FAILED("STUDENT_506", "계정 생성에 실패하였습니다.", 422),
     BULK_IMPORT_UNEXPECTED("STUDENT_507", "예기치 못한 오류가 발생했습니다.", 500),
     BULK_IMPORT_INVALID_LENGTH("STUDENT_508", "입력값이 최대 길이를 초과했습니다.", 422),
+    BULK_IMPORT_UNSAFE_SPREADSHEET_VALUE("STUDENT_509", "스프레드시트 수식으로 해석될 수 있는 값은 입력할 수 없습니다.", 422),
 
     // 500 Internal — Excel parse failure on student bulk import
     EXCEL_PARSE_FAILED("STUDENT_401", "Failed to read Excel file", 500),

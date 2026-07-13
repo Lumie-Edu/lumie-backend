@@ -76,9 +76,9 @@ class IdempotencyHeaderInterceptorTest {
                     .isTrue();
         }
 
-        /* Non-billing /v1 domains — replay-safety not required by these flows.
+        /* Most non-billing /v1 domains — replay-safety not required by these flows.
          * Auth (login/refresh/logout): each call must mint fresh state.
-         * Domain APIs (students, lectures, etc): no money-moving mutations today.
+         * Domain APIs (lectures, regular student CRUD, etc): no money-moving mutations today.
          * If any future endpoint needs Idempotency-Key, add its prefix to
          * ENFORCED_PATTERNS explicitly. */
 
@@ -173,6 +173,14 @@ class IdempotencyHeaderInterceptorTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", CommonErrorCode.MISSING_IDEMPOTENCY_KEY);
         }
+
+        @Test
+        void studentBulkImportWithoutHeaderThrows() {
+            assertThatThrownBy(() -> interceptor.preHandle(
+                    req("POST", "/v1/students/bulk", null), response, new Object()))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", CommonErrorCode.MISSING_IDEMPOTENCY_KEY);
+        }
     }
 
     @Nested
@@ -257,6 +265,14 @@ class IdempotencyHeaderInterceptorTest {
             String key = "tenant_15:subscribe:abc.123-xyz";  // 31 chars
             assertThat(interceptor.preHandle(
                     req("POST", "/v1/billing/subscribe", key), response, new Object()))
+                    .isTrue();
+        }
+
+        @Test
+        void studentBulkImportWithValidHeaderPasses() {
+            String key = "550e8400-e29b-41d4-a716-446655440000";
+            assertThat(interceptor.preHandle(
+                    req("POST", "/v1/students/bulk", key), response, new Object()))
                     .isTrue();
         }
     }

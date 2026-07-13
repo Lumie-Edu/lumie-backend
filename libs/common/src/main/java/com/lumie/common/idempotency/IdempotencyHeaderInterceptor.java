@@ -24,20 +24,20 @@ import java.util.regex.Pattern;
  *   <li>HTTP method ∈ {POST, PUT, PATCH, DELETE}</li>
  *   <li>Request path matches one of {@link #ENFORCED_PATTERNS} — only the
  *       billing surface (subscribe, change plan, cancel, billing-keys,
- *       payments, alimtalk credits). Replay-safety matters here because
- *       these calls move money or provision paid resources.</li>
+ *       payments, alimtalk credits) or replay-sensitive bulk write paths.
+ *       Replay-safety matters here because these calls move money, provision
+ *       paid resources, or create many records in one request.</li>
  *   <li>Path NOT matched by any {@link #EXEMPT_PATTERNS} entry — defense
  *       in depth for webhook callbacks that might be misrouted under a
  *       billing path (PG-managed retry, not client-driven idempotency).</li>
  * </ul>
  *
- * <p>Everything outside the billing surface — auth (login/refresh/logout),
- * attendance, lecture, class, student, exam, etc. — is intentionally not
- * gated. Auth endpoints must mint fresh state on every call (replay
- * semantics are wrong for them). The other domains do not currently issue
- * money-moving mutations; if a future endpoint needs replay-safety, add
- * its path prefix to {@link #ENFORCED_PATTERNS} explicitly and pair it
- * with an ArchUnit guard.
+ * <p>Everything outside the listed surfaces — auth (login/refresh/logout),
+ * attendance, lecture, class, most student/exam endpoints, etc. — is
+ * intentionally not gated. Auth endpoints must mint fresh state on every call
+ * (replay semantics are wrong for them). If a future endpoint needs
+ * replay-safety, add its path prefix to {@link #ENFORCED_PATTERNS} explicitly
+ * and pair it with an ArchUnit guard.
  *
  * <p>Header value validation: 16–128 chars, ASCII subset
  * {@code [A-Za-z0-9._:\-]} (covers UUID v4, Stripe-style {@code req_xxx},
@@ -56,7 +56,8 @@ public class IdempotencyHeaderInterceptor implements HandlerInterceptor {
             "/v1/billing-keys/**",
             "/v1/subscriptions/**",
             "/v1/payments/**",
-            "/v1/alimtalk/credits/**"
+            "/v1/alimtalk/credits/**",
+            "/v1/students/bulk"
     );
     private static final List<String> EXEMPT_PATTERNS = List.of(
             "/internal/webhooks/**",

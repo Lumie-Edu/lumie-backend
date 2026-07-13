@@ -27,15 +27,24 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class StudentCommandService {
+
+    private static final int FINGERPRINT_BUFFER_SIZE = 8_192;
 
     private final StudentRepository studentRepository;
     private final AuthService authService;
@@ -288,16 +297,33 @@ public class StudentCommandService {
         return BatchOperationResult.partial(ids.size(), successCount, failures);
     }
 
+    public String hashBulkImportFile(MultipartFile file) {
+        MessageDigest digest = sha256();
+        byte[] buffer = new byte[FINGERPRINT_BUFFER_SIZE];
+
+        try (InputStream input = file.getInputStream()) {
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                digest.update(buffer, 0, read);
+            }
+        } catch (IOException e) {
+            log.error("Failed to fingerprint student import file", e);
+            throw new BusinessException(StudentErrorCode.EXCEL_PARSE_FAILED, "Failed to read student import file: " + e.getMessage());
+        }
+
+        return HexFormat.of().formatHex(digest.digest());
+    }
+
     public BulkImportResult bulkImportStudents(MultipartFile file) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Long tenantId = TenantContextHolder.getRequiredTenantId();
 
         List<StudentExcelParser.StudentRow> rows;
         try {
-            rows = StudentExcelParser.parse(file.getInputStream());
+            rows = StudentExcelParser.parse(file.getInputStream(), file.getOriginalFilename());
         } catch (IOException e) {
-            log.error("Failed to read Excel file", e);
-            throw new BusinessException(StudentErrorCode.EXCEL_PARSE_FAILED, "Failed to read Excel file: " + e.getMessage());
+            log.error("Failed to read student import file", e);
+            throw new BusinessException(StudentErrorCode.EXCEL_PARSE_FAILED, "Failed to read student import file: " + e.getMessage());
         }
 
         // ── Pass 1: validate all rows upfront, collecting every error ──────────
@@ -305,17 +331,20 @@ public class StudentCommandService {
         // duplicate detection is intentionally omitted here (the duplicate will surface
         // as a BULK_IMPORT_DUPLICATE_PHONE error on the second row that conflicts).
         List<BulkImportResult.RowError> errors = new ArrayList<>();
+        Set<String> seenPhones = new HashSet<>();
         for (StudentExcelParser.StudentRow row : rows) {
-            validateBulkRow(row, errors);
+            validateBulkRow(row, errors, seenPhones);
         }
+        Set<Integer> rowsWithValidationErrors = errors.stream()
+                .map(BulkImportResult.RowError::rowNumber)
+                .collect(Collectors.toSet());
 
         // ── Pass 2: insert only the rows that passed validation ───────────────
         int successCount = 0;
         boolean quotaExhausted = false;
 
         for (StudentExcelParser.StudentRow row : rows) {
-            boolean rowHasError = errors.stream().anyMatch(e -> e.rowNumber() == row.rowNumber());
-            if (rowHasError) continue;
+            if (rowsWithValidationErrors.contains(row.rowNumber())) continue;
 
             if (quotaExhausted) {
                 errors.add(rowError(row.rowNumber(), "quota", null,
@@ -376,7 +405,8 @@ public class StudentCommandService {
      * teacher sees every problem at once.
      */
     private void validateBulkRow(StudentExcelParser.StudentRow row,
-                                  List<BulkImportResult.RowError> errors) {
+                                  List<BulkImportResult.RowError> errors,
+                                  Set<String> seenPhones) {
         // name: required
         if (row.name() == null || row.name().isBlank()) {
             errors.add(rowError(row.rowNumber(), "name", row.name(),
@@ -384,6 +414,9 @@ public class StudentCommandService {
         } else if (row.name().length() > 100) {
             errors.add(rowError(row.rowNumber(), "name", row.name(),
                     StudentErrorCode.BULK_IMPORT_INVALID_LENGTH, "이름은 100자를 초과할 수 없습니다."));
+        } else if (isUnsafeSpreadsheetValue(row.name())) {
+            errors.add(rowError(row.rowNumber(), "name", row.name(),
+                    StudentErrorCode.BULK_IMPORT_UNSAFE_SPREADSHEET_VALUE));
         }
 
         // phone: format + uniqueness (optional field — only validate when present)
@@ -394,9 +427,15 @@ public class StudentCommandService {
             } else if (!PhoneNumberUtils.isValid(row.phone())) {
                 errors.add(rowError(row.rowNumber(), "phone", row.phone(),
                         StudentErrorCode.BULK_IMPORT_INVALID_PHONE));
-            } else if (studentRepository.existsByPhone(PhoneNumberUtils.toDigits(row.phone()))) {
-                errors.add(rowError(row.rowNumber(), "phone", row.phone(),
-                        StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE));
+            } else {
+                String normalizedPhone = PhoneNumberUtils.toDigits(row.phone());
+                if (!seenPhones.add(normalizedPhone)) {
+                    errors.add(rowError(row.rowNumber(), "phone", row.phone(),
+                            StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE));
+                } else if (studentRepository.existsByPhone(normalizedPhone)) {
+                    errors.add(rowError(row.rowNumber(), "phone", row.phone(),
+                            StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE));
+                }
             }
         }
 
@@ -415,6 +454,30 @@ public class StudentCommandService {
         if (row.studentHighschool() != null && row.studentHighschool().length() > 100) {
             errors.add(rowError(row.rowNumber(), "studentHighschool", row.studentHighschool(),
                     StudentErrorCode.BULK_IMPORT_INVALID_LENGTH, "학교명은 100자를 초과할 수 없습니다."));
+        } else if (isUnsafeSpreadsheetValue(row.studentHighschool())) {
+            errors.add(rowError(row.rowNumber(), "studentHighschool", row.studentHighschool(),
+                    StudentErrorCode.BULK_IMPORT_UNSAFE_SPREADSHEET_VALUE));
+        }
+
+        if (isUnsafeSpreadsheetValue(row.studentMemo())) {
+            errors.add(rowError(row.rowNumber(), "studentMemo", row.studentMemo(),
+                    StudentErrorCode.BULK_IMPORT_UNSAFE_SPREADSHEET_VALUE));
+        }
+    }
+
+    private static boolean isUnsafeSpreadsheetValue(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        char first = value.stripLeading().charAt(0);
+        return first == '=' || first == '+' || first == '-' || first == '@';
+    }
+
+    private static MessageDigest sha256() {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new BusinessException(StudentErrorCode.EXCEL_PARSE_FAILED, "Unable to fingerprint student import file");
         }
     }
 

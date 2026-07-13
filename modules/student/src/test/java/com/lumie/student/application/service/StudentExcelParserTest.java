@@ -1,5 +1,6 @@
 package com.lumie.student.application.service;
 
+import com.lumie.common.exception.BusinessException;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -11,7 +12,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class StudentExcelParserTest {
 
@@ -87,8 +90,76 @@ class StudentExcelParserTest {
     }
 
     @Test
+    void parsesCsvWhenFilenameHasCsvExtension() throws IOException {
+        String csv = """
+                \uFEFF"학생 이름","학생 연락처","학교명","출생 연도","학부모 연락처","메모"
+                "김철수","010-1234-0001","한빛고","2008","010-1234-0002","쉼표, 포함"
+                "이영희","010-9999-0001","","not-a-year","",""
+                """;
+
+        List<StudentExcelParser.StudentRow> rows = StudentExcelParser.parse(
+                new ByteArrayInputStream(csv.getBytes(UTF_8)),
+                "students.csv"
+        );
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).rowNumber()).isEqualTo(2);
+        assertThat(rows.get(0).studentMemo()).isEqualTo("쉼표, 포함");
+        assertThat(rows.get(1).rowNumber()).isEqualTo(3);
+        assertThat(rows.get(1).studentBirthYear()).isNull();
+    }
+
+    @Test
+    void skipsBlankCsvRowsButKeepsFileRowNumbers() throws IOException {
+        String csv = """
+                학생 이름,학생 연락처,학교명,출생 연도,학부모 연락처,메모
+                김철수,010-1234-0001,,,,
+                ,,,,,
+                이영희,010-9999-0001,,,,
+                """;
+
+        List<StudentExcelParser.StudentRow> rows = StudentExcelParser.parse(
+                new ByteArrayInputStream(csv.getBytes(UTF_8)),
+                "students.csv"
+        );
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows).extracting(StudentExcelParser.StudentRow::rowNumber).containsExactly(2, 4);
+    }
+
+    @Test
+    void rejectsCsvWithUnclosedQuote() {
+        String csv = """
+                학생 이름,학생 연락처,학교명,출생 연도,학부모 연락처,메모
+                "김철수,010-1234-0001,,,,
+                """;
+
+        assertThatThrownBy(() -> StudentExcelParser.parse(
+                new ByteArrayInputStream(csv.getBytes(UTF_8)),
+                "students.csv"
+        ))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("양식이 올바르지 않습니다");
+    }
+
+    @Test
+    void rejectsCsvWithTooManyDataRows() {
+        StringBuilder csv = new StringBuilder("학생 이름,학생 연락처,학교명,출생 연도,학부모 연락처,메모\n");
+        for (int i = 0; i < 1_001; i++) {
+            csv.append("학생").append(i).append(",010-1234-0001,,,,\n");
+        }
+
+        assertThatThrownBy(() -> StudentExcelParser.parse(
+                new ByteArrayInputStream(csv.toString().getBytes(UTF_8)),
+                "students.csv"
+        ))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("최대 1,000행");
+    }
+
+    @Test
     void corruptStreamPropagatesIOException() {
-        InputStream notAnXlsx = new ByteArrayInputStream("definitely not a workbook".getBytes());
+        InputStream notAnXlsx = new ByteArrayInputStream("definitely not a workbook".getBytes(UTF_8));
 
         assertThatThrownByParse(notAnXlsx);
     }
