@@ -70,6 +70,7 @@ Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NO
 
 ```
 ./gradlew build          # compile + test
+./gradlew check          # Lumie lint + license/spotless checks + test
 ./gradlew test
 ./gradlew :modules:student:test
 ./gradlew bootRun

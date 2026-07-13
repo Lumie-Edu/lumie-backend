@@ -5,7 +5,6 @@ import com.lumie.exam.application.dto.request.ReportBatchRequest;
 import com.lumie.exam.application.dto.response.AiReportCreateResponse;
 import com.lumie.exam.application.dto.response.AiReportJobStatusResponse;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;

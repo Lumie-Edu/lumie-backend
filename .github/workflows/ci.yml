@@ -19,7 +19,7 @@ env:
 
 jobs:
   test:
-    name: Gradle test
+    name: Gradle check
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     env:
@@ -37,13 +37,10 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      - name: Lumie lint
-        run: bash scripts/lumie-lint/sweep.sh backend --paths '*'
-
-      - name: Run tests
+      - name: Run checks
         run: |
           chmod +x ./gradlew
-          ./gradlew test --no-daemon --console=plain
+          ./gradlew check --no-daemon --console=plain
 
   build-push:
     name: Build and push ARM image

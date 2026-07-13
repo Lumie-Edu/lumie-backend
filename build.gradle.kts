@@ -197,6 +197,16 @@ tasks.named("check") {
     dependsOn("checkLicense")
 }
 
+tasks.register<Exec>("lumieLint") {
+    description = "Runs Lumie backend repository lint sweeps."
+    group = "verification"
+    commandLine("bash", "scripts/lumie-lint/sweep.sh", "backend", "--paths", "*")
+}
+
+tasks.named("check") {
+    dependsOn("lumieLint")
+}
+
 // jk1.license plugin's tasks aren't config-cache compatible (they retain
 // Project references). Mark them explicitly so the rest of the build can
 // still benefit from the config cache. Until upstream adds support, these
