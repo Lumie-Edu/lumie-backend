@@ -9,6 +9,7 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.student.api.StudentService;
@@ -77,6 +78,11 @@ public class ResultQueryService {
                 .toList();
     }
 
+    public List<ExamResultResponse> getCurrentStudentResults() {
+        Long studentId = currentStudentId();
+        return getStudentResults(studentId);
+    }
+
     /**
      * Batched student-name lookup for a result list — single internal-api call
      * even when the list contains hundreds of rows. Null/unregistered student_id
@@ -107,6 +113,15 @@ public class ResultQueryService {
             return result.getPhoneNumber();
         }
         return nameByStudentId.getOrDefault(result.getStudentId(), DELETED_STUDENT_NAME);
+    }
+
+    private Long currentStudentId() {
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        Long userId = UserContextHolder.getRequiredUserId();
+        return studentService.getStudentsByUserIds(tenantSlug, List.of(userId)).students().stream()
+                .findFirst()
+                .map(StudentService.StudentData::id)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND));
     }
 
     public List<TopStudentMonthlyResponse> getTopStudentsMonthly(int limit) {

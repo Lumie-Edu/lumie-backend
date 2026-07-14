@@ -133,6 +133,11 @@ public class ResultController {
         return ResponseEntity.ok(resultQueryService.getExamResults(examId));
     }
 
+    @GetMapping("/students/me/results")
+    public ResponseEntity<List<ExamResultResponse>> getCurrentStudentResults() {
+        return ResponseEntity.ok(resultQueryService.getCurrentStudentResults());
+    }
+
     @GetMapping("/students/{studentId}/results")
     public ResponseEntity<List<ExamResultResponse>> getStudentResults(@PathVariable Long studentId) {
         return ResponseEntity.ok(resultQueryService.getStudentResults(studentId));
