@@ -13541,6 +13541,27 @@
         "tags" : [ "student-controller" ]
       }
     },
+    "/v1/students/me/results" : {
+      "get" : {
+        "operationId" : "getCurrentStudentResults",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExamResultResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
     "/v1/students/statistics/dropout-summary" : {
       "get" : {
         "operationId" : "getDropoutSummary",
