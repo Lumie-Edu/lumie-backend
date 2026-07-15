@@ -1,5 +1,6 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.classroom.api.ClassService;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.response.statistics.StudentGradeResponse;
 import com.lumie.exam.application.dto.response.statistics.StudentResultSummaryResponse;
@@ -49,6 +50,7 @@ class StudentGradeQueryServiceTest {
     @Spy  private StatisticsCalculator statisticsCalculator = new StatisticsCalculator();
     @Mock private GradeCalculator gradeCalculator;
     @Mock private StudentService studentService;
+    @Mock private ClassService classService;
 
     @InjectMocks private StudentGradeQueryService service;
 
@@ -485,6 +487,35 @@ class StudentGradeQueryServiceTest {
         assertThat(summaries.get(0).phoneNumber()).isNull();
         assertThat(summaries.get(0).isRegistered()).isFalse();
         assertThat(summaries.get(0).studentName()).isEqualTo("삭제된 학생");
+    }
+
+    @Test
+    @DisplayName("getStudentResultSummaries: 등록 학생의 재원 클래스 목록을 함께 반환한다")
+    void getStudentResultSummaries_registeredStudent_includesEnrolledClasses() {
+        Exam exam = gradedExam();
+        List<ExamResult> results = List.of(
+                ExamResult.create(exam, 1L, 80),
+                ExamResult.create(exam, 2L, 70)
+        );
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        stubStudentService(results);
+        given(classService.getEnrolledClassesForStudents(anyString(), anyList()))
+                .willReturn(List.of(
+                        new ClassService.EnrolledClassData(20L, "B반", 1L),
+                        new ClassService.EnrolledClassData(20L, "B반", 2L),
+                        new ClassService.EnrolledClassData(10L, "A반", 1L)
+                ));
+
+        List<StudentResultSummaryResponse> summaries = service.getStudentResultSummaries(EXAM_ID);
+
+        assertThat(summaries).hasSize(2);
+        assertThat(summaries.get(0).classes())
+                .extracting(StudentResultSummaryResponse.StudentClassSummary::className)
+                .containsExactly("A반", "B반");
+        assertThat(summaries.get(1).classes())
+                .extracting(StudentResultSummaryResponse.StudentClassSummary::classId)
+                .containsExactly(20L);
     }
 
     @Test

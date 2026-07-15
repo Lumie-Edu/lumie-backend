@@ -5247,6 +5247,12 @@
       },
       "StudentResultSummaryResponse" : {
         "properties" : {
+          "classes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/StudentClassSummary"
+            },
+            "type" : "array"
+          },
           "examCategory" : {
             "enum" : [ "GRADED", "PASS_FAIL" ],
             "type" : "string"
@@ -5286,7 +5292,20 @@
             "type" : "string"
           }
         },
-        "required" : [ "examCategory", "grade", "isActive", "isPassed", "isRegistered", "phoneNumber", "resultId", "score", "studentId", "studentName" ],
+        "required" : [ "classes", "examCategory", "grade", "isActive", "isPassed", "isRegistered", "phoneNumber", "resultId", "score", "studentId", "studentName" ],
+        "type" : "object"
+      },
+      "StudentClassSummary" : {
+        "properties" : {
+          "classId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "className" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "classId", "className" ],
         "type" : "object"
       },
       "StudentUpdateRequest" : {

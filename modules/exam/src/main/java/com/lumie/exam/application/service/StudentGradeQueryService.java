@@ -1,10 +1,10 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.classroom.api.ClassService;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.response.statistics.StudentGradeResponse;
 import com.lumie.exam.application.dto.response.statistics.StudentResultSummaryResponse;
 import com.lumie.exam.domain.entity.Exam;
-import com.lumie.student.api.StudentService;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
@@ -13,6 +13,7 @@ import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
+import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +41,7 @@ public class StudentGradeQueryService {
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
     private final StudentService studentService;
+    private final ClassService classService;
 
     /**
      * Returns a page of student grade responses for the given exam.
@@ -176,11 +179,16 @@ public class StudentGradeQueryService {
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
         Map<Long, StudentService.StudentData> studentMap = fetchStudentMap(results);
+        Map<Long, List<StudentResultSummaryResponse.StudentClassSummary>> classesByStudentId =
+                fetchClassesByStudentId(results, studentMap);
 
         return results.stream()
                 .map(result -> {
                     StudentService.StudentData student = resolveStudent(studentMap, result);
                     boolean isRegistered = isRegisteredStudent(studentMap, result);
+                    List<StudentResultSummaryResponse.StudentClassSummary> classes = isRegistered
+                            ? classesByStudentId.getOrDefault(result.getStudentId(), List.of())
+                            : List.of();
                     return new StudentResultSummaryResponse(
                             result.getId(),
                             isRegistered ? result.getStudentId() : null,
@@ -191,11 +199,44 @@ public class StudentGradeQueryService {
                             result.getTotalScore(),
                             result.getGrade(),
                             exam.getCategory(),
-                            result.isPassed()
+                            result.isPassed(),
+                            classes
                     );
                 })
                 .sorted(Comparator.comparing(StudentResultSummaryResponse::studentName))
                 .toList();
+    }
+
+    private Map<Long, List<StudentResultSummaryResponse.StudentClassSummary>> fetchClassesByStudentId(
+            List<ExamResult> results,
+            Map<Long, StudentService.StudentData> studentMap
+    ) {
+        List<Long> registeredStudentIds = results.stream()
+                .filter(result -> isRegisteredStudent(studentMap, result))
+                .map(ExamResult::getStudentId)
+                .distinct()
+                .toList();
+
+        if (registeredStudentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        return classService.getEnrolledClassesForStudents(tenantSlug, registeredStudentIds)
+                .stream()
+                .sorted(Comparator
+                        .comparing(ClassService.EnrolledClassData::className)
+                        .thenComparing(ClassService.EnrolledClassData::classId))
+                .collect(Collectors.groupingBy(
+                        ClassService.EnrolledClassData::studentId,
+                        Collectors.mapping(
+                                classData -> new StudentResultSummaryResponse.StudentClassSummary(
+                                        classData.classId(),
+                                        classData.className()
+                                ),
+                                Collectors.toList()
+                        )
+                ));
     }
 
     private static boolean isRegisteredStudent(

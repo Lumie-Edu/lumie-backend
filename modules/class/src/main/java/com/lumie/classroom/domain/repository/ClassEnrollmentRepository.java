@@ -4,6 +4,7 @@ import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
@@ -18,6 +19,7 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
 
     List<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status);
 
+    @EntityGraph(attributePaths = "classEntity")
     List<ClassEnrollment> findByStudentIdInAndStatus(Collection<Long> studentIds, EnrollmentStatus status);
 
     Page<ClassEnrollment> findByStudentId(Long studentId, Pageable pageable);
