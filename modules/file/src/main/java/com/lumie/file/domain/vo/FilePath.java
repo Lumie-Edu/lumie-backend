@@ -16,6 +16,6 @@ public record FilePath(
     public String toObjectKey() {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         String tenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
-        return tenantId + "/" + entityType.getPathSegment() + "/" + filename;
+        return tenantId + "/" + entityType.getPathSegment() + "/" + fileId + "/" + filename;
     }
 }
