@@ -11,7 +11,7 @@ import com.lumie.event.DomainEvent;
  * student. Replaces the direct {@code student → exam.linkUnregistered}
  * call that created the student↔exam circular dependency.
  *
- * <p>Schema version 1.
+ * <p>Schema version 2.
  *
  * @param studentId persisted student id
  * @param phone phone number recorded on the student (may be null/blank)
@@ -19,10 +19,13 @@ import com.lumie.event.DomainEvent;
  *                   request thread is recycled — allows them to
  *                   {@link com.lumie.common.tenant.TenantContextHolder#withinContext}
  *                   restore.
+ * @param tenantId tenant id snapshot for RLS-scoped listeners that run after the
+ *                 request thread is recycled.
  */
 public record StudentRegisteredEvent(
         Long studentId,
         String phone,
-        String tenantSlug
+        String tenantSlug,
+        Long tenantId
 ) implements DomainEvent {
 }

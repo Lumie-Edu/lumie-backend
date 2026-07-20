@@ -9,6 +9,7 @@ import com.lumie.common.quota.MetricType;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.student.application.dto.request.StudentRequest;
 import com.lumie.student.application.dto.response.BulkImportResult;
+import com.lumie.student.api.StudentRegisteredEvent;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.StudentErrorCode;
 import com.lumie.student.domain.repository.StudentRepository;
@@ -163,6 +164,27 @@ class StudentCommandServiceTest {
     }
 
     @Test
+    @DisplayName("registerStudent는 11자리가 아닌 학생 연락처를 막는다")
+    void registerStudent_tenDigitStudentPhone_blocksRegistration() {
+        StudentRequest request = new StudentRequest(
+                "김민조",
+                "02-1234-5678",
+                "양천고",
+                2000,
+                "01012345678",
+                null
+        );
+        given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
+
+        assertThatThrownBy(() -> service.registerStudent(request))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.INVALID_PHONE_NUMBER));
+
+        verify(authService, never()).createUser(any(), any(), eq(Role.STUDENT.name()), anyLong());
+    }
+
+    @Test
     @DisplayName("updateStudent는 빈 학부모 연락처를 null로 저장한다")
     void updateStudent_blankParentPhone_storesNull() {
         Student student = Student.create(
@@ -299,6 +321,76 @@ class StudentCommandServiceTest {
         assertThat(result.errors())
                 .extracting(BulkImportResult.RowError::rowNumber, BulkImportResult.RowError::code)
                 .containsExactly(tuple(3, StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE.getCode()));
+    }
+
+    @Test
+    @DisplayName("bulkImportStudents는 성공 row마다 학생 등록 event를 발행한다")
+    void bulkImportStudents_successRows_publishRegisteredEvents() {
+        String csv = """
+                학생 이름,학생 연락처,학교명,출생 연도,학부모 연락처,메모
+                김민조,010-1234-5678,,,,
+                이민조,010-9999-9999,,,,
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "students.csv",
+                "text/csv",
+                csv.getBytes(UTF_8)
+        );
+        given(studentRepository.existsByPhone("01012345678")).willReturn(false);
+        given(studentRepository.existsByPhone("01099999999")).willReturn(false);
+        given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
+        given(authService.createUser("김민조", "010-1234-5678", Role.STUDENT.name(), 1L))
+                .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "01012345678"));
+        given(authService.createUser("이민조", "010-9999-9999", Role.STUDENT.name(), 1L))
+                .willReturn(new AuthService.CreateUserResult(true, "ok", 101L, "01099999999"));
+        given(studentRepository.save(any(Student.class))).willAnswer(invocation -> {
+            Student student = invocation.getArgument(0);
+            ReflectionTestUtils.setField(student, "id", student.getUserId() + 1_000L);
+            return student;
+        });
+
+        BulkImportResult result = service.bulkImportStudents(file);
+
+        assertThat(result.successCount()).isEqualTo(2);
+        ArgumentCaptor<StudentRegisteredEvent> eventCaptor = ArgumentCaptor.forClass(StudentRegisteredEvent.class);
+        verify(eventPublisher, org.mockito.Mockito.times(2)).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getAllValues())
+                .extracting(
+                        StudentRegisteredEvent::studentId,
+                        StudentRegisteredEvent::phone,
+                        StudentRegisteredEvent::tenantSlug,
+                        StudentRegisteredEvent::tenantId
+                )
+                .containsExactly(
+                        tuple(1_100L, "01012345678", TENANT, 1L),
+                        tuple(1_101L, "01099999999", TENANT, 1L)
+                );
+    }
+
+    @Test
+    @DisplayName("bulkImportStudents는 11자리가 아닌 학생 연락처를 row 오류로 처리한다")
+    void bulkImportStudents_tenDigitStudentPhone_returnsRowError() {
+        String csv = """
+                학생 이름,학생 연락처,학교명,출생 연도,학부모 연락처,메모
+                김민조,02-1234-5678,,,,
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "students.csv",
+                "text/csv",
+                csv.getBytes(UTF_8)
+        );
+
+        BulkImportResult result = service.bulkImportStudents(file);
+
+        assertThat(result.successCount()).isZero();
+        assertThat(result.failureCount()).isEqualTo(1);
+        assertThat(result.errors())
+                .extracting(BulkImportResult.RowError::rowNumber, BulkImportResult.RowError::code)
+                .containsExactly(tuple(2, StudentErrorCode.BULK_IMPORT_INVALID_PHONE.getCode()));
+        verify(authService, never()).createUser(any(), any(), eq(Role.STUDENT.name()), anyLong());
     }
 
     private static Student inactiveStudent(Long id, Long userId) {

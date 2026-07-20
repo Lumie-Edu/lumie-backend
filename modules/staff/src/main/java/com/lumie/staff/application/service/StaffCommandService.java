@@ -56,9 +56,10 @@ public class StaffCommandService {
         validateRolePermission(creatorRole, requestedRole);
 
         checkStaffQuota(tenantSlug);
+        validateStaffPhoneFormat(request.phone());
 
         String normalizedPhone = PhoneNumberUtils.toDigits(request.phone());
-        if (normalizedPhone != null && staffRepository.existsByPhone(normalizedPhone)) {
+        if (normalizedPhone != null && !normalizedPhone.isBlank() && staffRepository.existsByPhone(normalizedPhone)) {
             throw new BusinessException(StaffErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(request.phone()));
         }
 
@@ -97,8 +98,9 @@ public class StaffCommandService {
 
         validateActorAuthority(staff, "update");
 
+        validateStaffPhoneFormat(request.phone());
         String normalizedPhone = PhoneNumberUtils.toDigits(request.phone());
-        if (normalizedPhone != null && staffRepository.existsByPhoneAndIdNot(normalizedPhone, id)) {
+        if (normalizedPhone != null && !normalizedPhone.isBlank() && staffRepository.existsByPhoneAndIdNot(normalizedPhone, id)) {
             throw new BusinessException(StaffErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(request.phone()));
         }
 
@@ -226,6 +228,14 @@ public class StaffCommandService {
         if (!actor.canManage(targetRole)) {
             throw new BusinessException(CommonErrorCode.FORBIDDEN,
                     actor + " cannot " + action + " " + targetRole);
+        }
+    }
+
+    private void validateStaffPhoneFormat(String phone) {
+        if (phone != null && !phone.isBlank() && !PhoneNumberUtils.isValidStudentPhone(phone)) {
+            throw new BusinessException(
+                    StaffErrorCode.INVALID_PHONE_NUMBER,
+                    "Invalid staff phone number format: %s".formatted(phone));
         }
     }
 

@@ -2,10 +2,12 @@ package com.lumie.exam.adapter.in.web;
 
 import com.lumie.common.api.JobAcceptedResponse;
 import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.auth.Role;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
+import com.lumie.exam.application.dto.request.UpdateResultPhoneRequest;
 import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobResponse;
@@ -163,6 +165,15 @@ public class ResultController {
             @PathVariable Long resultId) {
         resultCommandService.deleteResult(examId, resultId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/exams/{examId}/results/{resultId}/phone")
+    public ResponseEntity<ExamResultResponse> updateResultPhone(
+            @PathVariable Long examId,
+            @PathVariable Long resultId,
+            @Valid @RequestBody UpdateResultPhoneRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        return ResponseEntity.ok(resultCommandService.updateResultPhone(examId, resultId, request));
     }
 
     @GetMapping("/results/{resultId}/questions")

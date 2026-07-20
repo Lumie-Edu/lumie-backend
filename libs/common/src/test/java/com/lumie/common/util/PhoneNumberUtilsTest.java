@@ -39,6 +39,14 @@ class PhoneNumberUtilsTest {
         assertThat(PhoneNumberUtils.isValid("notaphone")).isFalse();
     }
 
+    @Test
+    void isValidStudentPhone_requiresElevenDigits() {
+        assertThat(PhoneNumberUtils.isValidStudentPhone("010-1234-5678")).isTrue();
+        assertThat(PhoneNumberUtils.isValidStudentPhone("01012345678")).isTrue();
+        assertThat(PhoneNumberUtils.isValidStudentPhone("02-1234-5678")).isFalse();
+        assertThat(PhoneNumberUtils.isValidStudentPhone("1012345678")).isFalse();
+    }
+
     // --- toHyphenated (equivalent to old normalize) ---
 
     @Test

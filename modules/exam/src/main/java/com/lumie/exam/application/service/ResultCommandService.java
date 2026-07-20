@@ -4,6 +4,7 @@ import com.lumie.exam.application.event.OmrGradingRequestedEvent;
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
+import com.lumie.exam.application.dto.request.UpdateResultPhoneRequest;
 import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
@@ -20,6 +21,7 @@ import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.quota.MetricType;
+import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
@@ -30,6 +32,7 @@ import com.lumie.exam.domain.vo.GradingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -228,6 +231,52 @@ public class ResultCommandService {
         resultRepository.deleteById(resultId);
     }
 
+    @Transactional
+    public ExamResultResponse updateResultPhone(Long examId, Long resultId, UpdateResultPhoneRequest request) {
+        String normalizedPhone = PhoneNumberUtils.toDigits(request.phoneNumber());
+        if (!PhoneNumberUtils.isValidStudentPhone(normalizedPhone)) {
+            throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,
+                    "전화번호 형식이 올바르지 않습니다. (예: 01012345678)");
+        }
+
+        ExamResult result = resultRepository.findById(resultId)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+        if (!result.getExam().getId().equals(examId)
+                || result.isStudentDeleted()
+                || result.getStudentId() != null) {
+            throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
+        }
+
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        StudentService.StudentData matchedStudent = studentService.getStudentByPhone(tenantSlug, normalizedPhone)
+                .map(student -> {
+                    if (!student.isActive()) {
+                        throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,
+                                "이 전화번호는 비활성 학생 기록에 존재합니다.");
+                    }
+                    return student;
+                })
+                .orElse(null);
+
+        if (matchedStudent != null) {
+            resultRepository.findByExamIdAndStudentId(examId, matchedStudent.id())
+                    .filter(existing -> !existing.getId().equals(resultId))
+                    .ifPresent(existing -> {
+                        throw new BusinessException(ExamErrorCode.DUPLICATE_RESULT,
+                                "이미 해당 학생의 시험 성적이 있습니다.");
+                    });
+        }
+
+        try {
+            result.updatePhoneMatch(normalizedPhone, matchedStudent != null ? matchedStudent.id() : null);
+            ExamResult saved = resultRepository.saveAndFlush(result);
+            return ExamResultResponse.from(saved, matchedStudent != null ? matchedStudent.studentName() : null);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ExamErrorCode.DUPLICATE_RESULT,
+                    "이미 해당 학생의 시험 성적이 있습니다.", e);
+        }
+    }
+
     public ExamResult resolveResult(Exam exam, Long studentId, OmrServicePort.OmrGradingResult omrResult) {
         return resolveResult(exam.getId(), exam, studentId, omrResult);
     }
@@ -257,24 +306,11 @@ public class ResultCommandService {
     }
 
     public ExamResult resolveResultForUnregistered(Exam exam, String phoneNumber, OmrServicePort.OmrGradingResult omrResult) {
-        List<ExamResult.OmrQuestionUpdate> updates = omrResult.results().stream()
-                .map(qr -> new ExamResult.OmrQuestionUpdate(
-                        qr.questionNumber(), qr.studentAnswer(), qr.correctAnswer(), qr.score()))
-                .toList();
-
-        ExamResult result = resultRepository.findByExamIdAndPhoneNumber(exam.getId(), phoneNumber)
-                .map(existing -> {
-                    existing.regrade(omrResult.totalScore(), updates);
-                    return existing;
-                })
-                .orElseGet(() -> {
-                    ExamResult newResult = ExamResult.createForUnregistered(exam, phoneNumber, omrResult.totalScore());
-                    for (OmrServicePort.OmrQuestionResult qr : omrResult.results()) {
-                        newResult.addQuestionResult(QuestionResult.create(
-                                qr.questionNumber(), qr.studentAnswer(), qr.correctAnswer(), qr.score()));
-                    }
-                    return newResult;
-                });
+        ExamResult result = ExamResult.createForUnregistered(exam, phoneNumber, omrResult.totalScore());
+        for (OmrServicePort.OmrQuestionResult qr : omrResult.results()) {
+            result.addQuestionResult(QuestionResult.create(
+                    qr.questionNumber(), qr.studentAnswer(), qr.correctAnswer(), qr.score()));
+        }
 
         gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, result);
         return result;

@@ -17,6 +17,7 @@ import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -108,7 +109,22 @@ public class OmrGradingJobProcessor {
             }
 
             // Phase 3 (write tx): save result + update counters
-            tx.saveSuccess(request, prep);
+            try {
+                tx.saveSuccess(request, prep);
+            } catch (DataIntegrityViolationException e) {
+                if (prep.studentOpt().isEmpty()) {
+                    throw e;
+                }
+                Long studentId = prep.studentOpt().get().id();
+                log.warn("OMR callback save raced with existing registered result, overwriting existing row: jobId={}, studentId={}",
+                        request.jobId(), studentId, e);
+                tx.overwriteRegisteredResult(
+                        request,
+                        studentId,
+                        fullPhoneNumber(request),
+                        prep.examResult().getOmrImageKey()
+                );
+            }
         } else {
             tx.recordFail(request.jobId());
         }
@@ -222,7 +238,6 @@ public class OmrGradingJobProcessor {
 
         @Transactional
         public void saveSuccess(OmrGradingCallbackRequest request, SuccessPrep prep) {
-            OmrServicePort.OmrGradingResult omrResult = toOmrGradingResult(request);
             ExamResult examResult = prep.examResult();
 
             // Registered results otherwise lack the phone; persist it here (inside the
@@ -233,29 +248,30 @@ public class OmrGradingJobProcessor {
                 examResult.assignPhoneNumber(fullPhoneNumber(request));
             }
 
-            try {
-                resultRepository.save(examResult);
-            } catch (BusinessException e) {
-                if (e.getErrorCode() != ExamErrorCode.DUPLICATE_RESULT) {
-                    throw e;
-                }
-                log.warn("Duplicate result detected, retrying with existing record: jobId={}", request.jobId());
-                String fullPhone = fullPhoneNumber(request);
-                if (prep.studentOpt().isPresent()) {
-                    examResult = resultCommandService.resolveResult(prep.exam(), prep.studentOpt().get().id(), omrResult);
-                    examResult.assignPhoneNumber(fullPhone);
-                } else {
-                    examResult = resultCommandService.resolveResultForUnregistered(prep.exam(), fullPhone, omrResult);
-                }
-                resultRepository.save(examResult);
-            }
-
+            resultRepository.saveAndFlush(examResult);
             jobRepository.incrementSuccess(request.jobId());
         }
 
         @Transactional
         public void recordFail(Long jobId) {
             jobRepository.incrementFail(jobId);
+        }
+
+        @Transactional
+        public void overwriteRegisteredResult(
+                OmrGradingCallbackRequest request,
+                Long studentId,
+                String phoneNumber,
+                String omrImageKey
+        ) {
+            Exam exam = examRepository.findById(request.examId())
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
+            ExamResult examResult = resultCommandService.resolveResult(exam, studentId, toOmrGradingResult(request));
+            examResult.assignPhoneNumber(phoneNumber);
+            examResult.assignOmrGradingJob(request.jobId());
+            examResult.assignOmrImage(omrImageKey);
+            resultRepository.saveAndFlush(examResult);
+            jobRepository.incrementSuccess(request.jobId());
         }
 
         private OmrServicePort.OmrGradingResult toOmrGradingResult(OmrGradingCallbackRequest request) {

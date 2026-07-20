@@ -3,6 +3,7 @@ package com.lumie.exam.adapter.in.event;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.api.ExamService;
 import com.lumie.student.api.StudentRegisteredEvent;
+import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.modulith.events.ApplicationModuleListener;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Component;
 public class StudentRegisteredListener {
 
     private final ExamService examService;
+    private final TenantService tenantService;
 
     @ApplicationModuleListener
     public void onStudentRegistered(StudentRegisteredEvent event) {
@@ -35,26 +37,30 @@ public class StudentRegisteredListener {
             return;
         }
         Runnable backfill = () -> {
-            try {
-                int linked = examService.linkUnregisteredResultsByPhone(event.phone(), event.studentId());
-                if (linked > 0) {
-                    log.info("Backfilled {} exam results for student {} (phone={})",
-                            linked, event.studentId(), event.phone());
-                }
-            } catch (Exception e) {
-                // Non-fatal: registration must not be undone if backfill fails.
-                log.warn("Failed to backfill exam results for student {} (phone={}): {}",
-                        event.studentId(), event.phone(), e.getMessage());
+            int linked = examService.linkUnregisteredResultsByPhone(event.phone(), event.studentId());
+            if (linked > 0) {
+                log.info("Backfilled {} exam results for student {} (phone={})",
+                        linked, event.studentId(), event.phone());
             }
         };
-        // Re-establish tenant context if the listener is invoked outside the original request thread.
-        if (TenantContextHolder.getTenant() == null && event.tenantSlug() != null) {
-            TenantContextHolder.withinContext(event.tenantSlug(), null, () -> {
-                backfill.run();
-                return null;
-            });
-        } else {
-            backfill.run();
+        if (event.tenantSlug() == null || event.tenantSlug().isBlank()) {
+            throw new IllegalStateException("StudentRegisteredEvent tenantSlug is required for exam backfill");
         }
+        Long tenantId = resolveTenantId(event);
+        TenantContextHolder.withinContext(event.tenantSlug(), tenantId, () -> {
+            backfill.run();
+            return null;
+        });
+    }
+
+    private Long resolveTenantId(StudentRegisteredEvent event) {
+        if (event.tenantId() != null) {
+            return event.tenantId();
+        }
+        return tenantService.getTenantBySlug(event.tenantSlug())
+                .map(TenantService.TenantData::id)
+                .orElseThrow(() -> new IllegalStateException(
+                        "StudentRegisteredEvent tenantId is missing and tenant slug cannot be resolved: "
+                                + event.tenantSlug()));
     }
 }

@@ -14,6 +14,7 @@ import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.exam.test.ExamFixtures;
 import com.lumie.student.api.StudentService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -93,15 +94,52 @@ class OmrGradingJobProcessorTest {
         given(resultCommandService.resolveResult(eq(exam), eq(studentId), any())).willReturn(resolvedResult);
         given(storagePort.getObject(any())).willReturn(new byte[]{1, 2, 3});
         given(storagePort.putObject(any(), any(), any())).willReturn("omr/results/abc123/10/200");
-        given(resultRepository.save(any(ExamResult.class))).willReturn(resolvedResult);
+        given(resultRepository.saveAndFlush(any(ExamResult.class))).willReturn(resolvedResult);
         given(jobRepository.tryFinalize(1L, 1)).willReturn(true);
 
         processor.processGradingCallback(request);
 
         verify(jobRepository).incrementSuccess(1L);
-        verify(resultRepository).save(any(ExamResult.class));
+        verify(resultRepository).saveAndFlush(any(ExamResult.class));
         // 가입 학생도 채점 결과에 전화번호가 저장되어야 한다 (010 + 콜백 phoneNumber).
         assertThat(resolvedResult.getPhoneNumber()).isEqualTo("01012345678");
+    }
+
+    @Test
+    @DisplayName("등록 학생 결과 저장이 unique 충돌하면 기존 결과를 다시 찾아 덮어쓴다")
+    void processGradingCallback_registeredDuplicate_overwritesExistingResult() {
+        OmrGradingCallbackRequest request = buildSuccessCallback();
+        Exam exam = ExamFixtures.aGradedExam(3);
+        StudentService.StudentData student = new StudentService.StudentData(
+                200L, 1000L, "홍길동", "01012345678", true, null, null);
+        ExamResult resolvedResult = ExamResult.create(exam, student.id(), 100);
+        OmrGradingJobProcessor.Tx retryTx = mock(OmrGradingJobProcessor.Tx.class);
+        OmrGradingJobProcessor retryingProcessor =
+                new OmrGradingJobProcessor(storagePort, callbackDeduplication, jobRepository, retryTx);
+        OmrGradingJobProcessor.Tx.SuccessPrep prep =
+                new OmrGradingJobProcessor.Tx.SuccessPrep(
+                        exam,
+                        Optional.of(student),
+                        resolvedResult,
+                        "inst-abc123/omr/10/200"
+                );
+
+        given(callbackDeduplication.markIfAbsent("omr:cb:1:0")).willReturn(true);
+        given(retryTx.isOpenJob(1L)).willReturn(true);
+        given(retryTx.prepareSuccess(request)).willReturn(prep);
+        given(storagePort.getObject(any())).willReturn(new byte[]{1, 2, 3});
+        given(storagePort.putObject(any(), any(), any())).willReturn("inst-abc123/omr/10/200");
+        doThrow(new DataIntegrityViolationException("uq_exam_result_student"))
+                .when(retryTx)
+                .saveSuccess(eq(request), any(OmrGradingJobProcessor.Tx.SuccessPrep.class));
+        given(retryTx.finalizeIfDone(1L, 1)).willReturn(true);
+
+        retryingProcessor.processGradingCallback(request);
+
+        verify(retryTx).saveSuccess(eq(request), any(OmrGradingJobProcessor.Tx.SuccessPrep.class));
+        verify(retryTx).overwriteRegisteredResult(request, student.id(), "01012345678", "inst-abc123/omr/10/200");
+        verify(retryTx).finalizeIfDone(1L, 1);
+        verify(callbackDeduplication, never()).forget("omr:cb:1:0");
     }
 
     @Test
@@ -182,7 +220,7 @@ class OmrGradingJobProcessorTest {
 
         verify(jobRepository).incrementFail(1L);
         verify(jobRepository, never()).incrementSuccess(any());
-        verify(resultRepository, never()).save(any());
+        verify(resultRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -206,7 +244,7 @@ class OmrGradingJobProcessorTest {
 
         verify(jobRepository).incrementFail(1L);
         verify(jobRepository, never()).incrementSuccess(any());
-        verify(resultRepository, never()).save(any());
+        verify(resultRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -224,7 +262,7 @@ class OmrGradingJobProcessorTest {
         verify(jobRepository, never()).incrementSuccess(any());
         verify(jobRepository, never()).incrementFail(any());
         verify(jobRepository, never()).tryFinalize(any(), anyInt());
-        verify(resultRepository, never()).save(any());
+        verify(resultRepository, never()).saveAndFlush(any());
         verify(storagePort, never()).getObject(any());
     }
 }

@@ -59,6 +59,7 @@ public class StudentCommandService {
 
         checkStudentQuota(tenantSlug);
 
+        validateStudentPhoneFormat(request.phone());
         validatePhoneUniqueness(request.phone(), null);
         validateParentPhoneFormat(request.parentPhone());
 
@@ -89,7 +90,12 @@ public class StudentCommandService {
         // Cross-module backfill (e.g. exam.linkUnregisteredResultsByPhone) runs as
         // an AFTER_COMMIT listener on this event. Breaks the previous student↔exam
         // cycle (CIRCULAR_MODULE_DEPS_AUDIT Resolution A, pair 2).
-        eventPublisher.publishEvent(new StudentRegisteredEvent(saved.getId(), saved.getPhone(), tenantSlug));
+        eventPublisher.publishEvent(new StudentRegisteredEvent(
+                saved.getId(),
+                saved.getPhone(),
+                tenantSlug,
+                TenantContextHolder.getRequiredTenantId()
+        ));
 
         log.info("Student registered: {} in tenant: {}", saved.getUserLoginId(), tenantSlug);
         return StudentResponse.from(saved);
@@ -101,6 +107,7 @@ public class StudentCommandService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with id: %d".formatted(id)));
 
+        validateStudentPhoneFormat(request.phone());
         validatePhoneUniqueness(request.phone(), id);
         validateParentPhoneFormat(request.parentPhone());
 
@@ -380,7 +387,13 @@ public class StudentCommandService {
                         row.parentPhone(),
                         row.studentMemo()
                 );
-                studentRepository.save(student);
+                Student saved = studentRepository.save(student);
+                eventPublisher.publishEvent(new StudentRegisteredEvent(
+                        saved.getId(),
+                        saved.getPhone(),
+                        tenantSlug,
+                        tenantId
+                ));
                 successCount++;
 
             } catch (QuotaExceededException e) {
@@ -424,7 +437,7 @@ public class StudentCommandService {
             if (row.phone().length() > 20) {
                 errors.add(rowError(row.rowNumber(), "phone", row.phone(),
                         StudentErrorCode.BULK_IMPORT_INVALID_LENGTH, "연락처는 20자를 초과할 수 없습니다."));
-            } else if (!PhoneNumberUtils.isValid(row.phone())) {
+            } else if (!PhoneNumberUtils.isValidStudentPhone(row.phone())) {
                 errors.add(rowError(row.rowNumber(), "phone", row.phone(),
                         StudentErrorCode.BULK_IMPORT_INVALID_PHONE));
             } else {
@@ -493,6 +506,9 @@ public class StudentCommandService {
 
     private void validatePhoneUniqueness(String phone, Long excludeId) {
         String p = PhoneNumberUtils.toDigits(phone);
+        if (p == null || p.isBlank()) {
+            return;
+        }
 
         if (excludeId == null) {
             if (p != null && studentRepository.existsByPhone(p)) {
@@ -502,6 +518,14 @@ public class StudentCommandService {
             if (p != null && studentRepository.existsByPhoneExcluding(p, excludeId)) {
                 throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
             }
+        }
+    }
+
+    private void validateStudentPhoneFormat(String phone) {
+        if (phone != null && !phone.isBlank() && !PhoneNumberUtils.isValidStudentPhone(phone)) {
+            throw new BusinessException(
+                    StudentErrorCode.INVALID_PHONE_NUMBER,
+                    "Invalid student phone number format: %s".formatted(phone));
         }
     }
 

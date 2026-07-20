@@ -3,7 +3,6 @@ package com.lumie.exam.domain.repository;
 import com.lumie.exam.domain.entity.ExamResult;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,9 +14,6 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     @EntityGraph(attributePaths = {"exam"})
     Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
-
-    @EntityGraph(attributePaths = {"exam"})
-    Optional<ExamResult> findByExamIdAndPhoneNumber(Long examId, String phoneNumber);
 
     @EntityGraph(attributePaths = {"exam", "questionResults"})
     List<ExamResult> findByExamId(Long examId);
@@ -41,16 +37,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);
 
-    @Modifying(clearAutomatically = true)
-    @Query("""
-        UPDATE ExamResult r
-           SET r.studentId = :studentId
-         WHERE r.phoneNumber = :phoneNumber
-           AND r.studentId IS NULL
-           AND r.studentDeleted = false
-        """)
-    int linkUnregisteredByPhone(@Param("phoneNumber") String phoneNumber,
-                                @Param("studentId") Long studentId);
+    @EntityGraph(attributePaths = {"exam"})
+    List<ExamResult> findByPhoneNumberAndStudentIdIsNullAndStudentDeletedFalse(String phoneNumber);
 
     @EntityGraph(attributePaths = {"exam", "questionResults"})
     @Query("SELECT r FROM ExamResult r JOIN r.questionResults qr WHERE qr.id = :questionResultId")
@@ -68,11 +56,11 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
      * filtering on created_at silently drops every re-graded sheet. The month
      * boundary is computed in Asia/Seoul so it matches the Korean calendar
      * rather than UTC (which lags by 9h at the month edge).
-     * <p>Known edge: {@code linkUnregisteredByPhone} also bumps updated_at, so a
-     * prior-month result back-filled to a student who registers this month can
-     * surface in the window. Accepted over an {@code omr_grading_job_id IS NOT
-     * NULL} guard, which would silently drop manually-graded results. Native
-     * query — studentName is left joined later in the service via StudentService.
+     * <p>Known edge: student-registration backfill can bump updated_at, so a
+     * prior-month result linked to a student who registers this month can surface
+     * in the window. Accepted over an {@code omr_grading_job_id IS NOT NULL}
+     * guard, which would silently drop manually-graded results. Native query —
+     * studentName is left joined later in the service via StudentService.
      */
     @Query(value = """
         SELECT r.student_id AS studentId,

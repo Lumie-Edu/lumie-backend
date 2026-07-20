@@ -5,8 +5,10 @@ import com.lumie.billing.api.BillingService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.quota.MetricType;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.staff.application.dto.request.StaffRequest;
 import com.lumie.staff.domain.entity.Staff;
 import com.lumie.staff.domain.exception.StaffErrorCode;
 import com.lumie.staff.domain.repository.StaffPermissionRepository;
@@ -25,6 +27,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -57,6 +60,7 @@ class StaffCommandServiceTest {
     @BeforeEach
     void setUp() {
         TenantContextHolder.setTenant(TENANT);
+        TenantContextHolder.setTenantId(1L);
         UserContextHolder.setUserId(900L);
         UserContextHolder.setUserRole(Role.OWNER);
     }
@@ -79,6 +83,26 @@ class StaffCommandServiceTest {
                         assertThat(e.getErrorCode()).isEqualTo(StaffErrorCode.CANNOT_DELETE_STAFF_WITH_ASSIGNED_CLASSES));
 
         verify(authService, never()).deleteUser(anyLong());
+    }
+
+    @Test
+    @DisplayName("registerStaff는 11자리가 아닌 직원 연락처를 막는다")
+    void registerStaff_tenDigitPhone_blocksRegistration() {
+        StaffRequest request = new StaffRequest(
+                Role.INSTRUCTOR.name(),
+                "강사",
+                "02-1234-5678",
+                "teacher@example.com",
+                null
+        );
+        given(billingService.checkQuota(TENANT, MetricType.ADMINS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.ADMINS, "ok"));
+
+        assertThatThrownBy(() -> service.registerStaff(request))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(StaffErrorCode.INVALID_PHONE_NUMBER));
+
+        verify(authService, never()).createUser(any(), any(), any(), anyLong());
     }
 
     private static Staff inactiveStaff(Long id, Long userId) {

@@ -71,6 +71,12 @@ public class ExamResult extends TenantScopedEntity {
         this.phoneNumber = phoneNumber;
     }
 
+    public void updatePhoneMatch(String phoneNumber, Long studentId) {
+        this.phoneNumber = phoneNumber;
+        this.studentId = studentId;
+        this.studentDeleted = false;
+    }
+
     public void assignOmrGradingJob(Long omrGradingJobId) {
         this.omrGradingJobId = omrGradingJobId;
     }

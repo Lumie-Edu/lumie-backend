@@ -1,10 +1,12 @@
 package com.lumie.exam.adapter.in.internal;
 
+import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
 import com.lumie.exam.application.service.ExamCommandService;
 import com.lumie.exam.domain.entity.Exam;
+import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.application.service.ResultCommandService;
@@ -19,10 +21,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Slf4j
@@ -41,12 +45,56 @@ public class ExamServiceAdapter implements ExamService {
         if (phoneNumber == null || phoneNumber.isBlank() || studentId == null) {
             return 0;
         }
-        int updated = examResultRepository.linkUnregisteredByPhone(phoneNumber, studentId);
-        if (updated > 0) {
-            log.info("Linked {} unregistered exam results to studentId={} (phone={})",
-                    updated, studentId, phoneNumber);
+        String normalizedPhone = PhoneNumberUtils.toDigits(phoneNumber);
+        if (!PhoneNumberUtils.isValidStudentPhone(normalizedPhone)) {
+            return 0;
         }
-        return updated;
+        List<ExamResult> candidates =
+                examResultRepository.findByPhoneNumberAndStudentIdIsNullAndStudentDeletedFalse(normalizedPhone);
+        if (candidates.isEmpty()) {
+            return 0;
+        }
+
+        Map<Long, List<ExamResult>> candidatesByExamId = candidates.stream()
+                .collect(Collectors.groupingBy(
+                        result -> result.getExam().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        int linkedCount = 0;
+        for (Map.Entry<Long, List<ExamResult>> entry : candidatesByExamId.entrySet()) {
+            Long examId = entry.getKey();
+            List<ExamResult> examCandidates = entry.getValue();
+
+            if (examCandidates.size() > 1) {
+                log.warn("Skipping ambiguous unregistered exam-result backfill for studentId={} phone={} examId={} resultIds={}",
+                        studentId,
+                        normalizedPhone,
+                        examId,
+                        examCandidates.stream().map(ExamResult::getId).toList());
+                continue;
+            }
+
+            ExamResult candidate = examCandidates.get(0);
+            Optional<ExamResult> duplicateStudentResult = examResultRepository.findByExamIdAndStudentId(examId, studentId)
+                        .filter(existing -> !existing.getId().equals(candidate.getId()));
+            if (duplicateStudentResult.isPresent()) {
+                log.warn("Skipping exam-result backfill because studentId={} already has a registered result for examId={} (existingResultId={}, candidateResultId={})",
+                        studentId,
+                        examId,
+                        duplicateStudentResult.get().getId(),
+                        candidate.getId());
+                continue;
+            }
+
+            candidate.updatePhoneMatch(normalizedPhone, studentId);
+            examResultRepository.save(candidate);
+            linkedCount++;
+            log.info("Linked unregistered exam result to studentId={} (phone={}, resultId={}, examId={})",
+                    studentId, normalizedPhone, candidate.getId(), examId);
+        }
+        return linkedCount;
     }
 
     @Override

@@ -11,8 +11,9 @@ public interface ExamService {
 
     /**
      * Links previously unregistered exam results (student_id IS NULL, matching phone_number,
-     * not marked as deleted-student history) to a newly registered student. Runs within the
-     * current tenant scope.
+     * not marked as deleted-student history) to a newly registered student when the
+     * phone resolves to exactly one clear unregistered candidate for that exam. Duplicate
+     * candidates in the same exam are skipped as ambiguous. Runs within the current tenant scope.
      *
      * @param phoneNumber the phone number recorded on unregistered exam results
      * @param studentId   the student id to backfill

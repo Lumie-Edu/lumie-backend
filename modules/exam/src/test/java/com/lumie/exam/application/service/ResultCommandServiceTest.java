@@ -2,6 +2,8 @@ package com.lumie.exam.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.api.ExamService;
+import com.lumie.exam.application.dto.request.UpdateResultPhoneRequest;
+import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.test.ExamFixtures;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
@@ -103,6 +105,11 @@ class ResultCommandServiceTest {
                 studentId, 1000L, "홍길동", "01012345678", true, null, null);
     }
 
+    private StudentService.StudentData aStudent(Long studentId, String name, String phone) {
+        return new StudentService.StudentData(
+                studentId, 1000L + studentId, name, phone, true, null, null);
+    }
+
     @Test
     @DisplayName("신규 학생이면 새 결과를 생성하여 저장한다")
     void processOmrGrading_newStudent_createsNewResult() {
@@ -156,6 +163,11 @@ class ResultCommandServiceTest {
 
         // then
         verify(resultRepository).save(existingResult);
+        assertThat(existingResult.getTotalScore()).isEqualTo(100);
+        assertThat(existingResult.getQuestionResults()).allMatch(QuestionResult::isCorrect);
+        assertThat(existingResult.getQuestionResults())
+                .extracting(QuestionResult::getSelectedChoice)
+                .containsExactly("1", "2", "3", "4", "5");
     }
 
     @Test
@@ -239,8 +251,6 @@ class ResultCommandServiceTest {
         Exam exam = buildExam();
         String phoneNumber = "01099999999";
 
-        given(resultRepository.findByExamIdAndPhoneNumber(any(), eq(phoneNumber))).willReturn(Optional.empty());
-
         ExamResult result = resultCommandService.resolveResultForUnregistered(exam, phoneNumber, buildOmrResult(80));
 
         assertThat(result.getStudentId()).isNull();
@@ -250,8 +260,8 @@ class ResultCommandServiceTest {
     }
 
     @Test
-    @DisplayName("미등록 학생이 재시험 시 기존 결과를 업데이트한다")
-    void resolveResultForUnregistered_existingPhone_regradesResult() {
+    @DisplayName("미등록 학생 결과는 같은 전화번호가 있어도 별도 결과를 생성한다")
+    void resolveResultForUnregistered_duplicatePhone_createsSeparateResult() {
         Exam exam = buildExam();
         String phoneNumber = "01099999999";
         ExamResult existing = ExamResult.createForUnregistered(exam, phoneNumber, 60);
@@ -259,12 +269,179 @@ class ResultCommandServiceTest {
             existing.addQuestionResult(QuestionResult.create(i, "0", String.valueOf(i), 20));
         }
 
-        given(resultRepository.findByExamIdAndPhoneNumber(any(), eq(phoneNumber))).willReturn(Optional.of(existing));
-
         ExamResult result = resultCommandService.resolveResultForUnregistered(exam, phoneNumber, buildOmrResult(100));
 
-        assertThat(result).isSameAs(existing);
+        assertThat(result).isNotSameAs(existing);
+        assertThat(result.getId()).isNull();
+        assertThat(result.getStudentId()).isNull();
+        assertThat(result.getPhoneNumber()).isEqualTo(phoneNumber);
         assertThat(result.getTotalScore()).isEqualTo(100);
+        assertThat(result.getQuestionResults()).hasSize(5);
+    }
+
+    @Test
+    @DisplayName("결과 전화번호 수정 시 등록 학생이 있으면 학생 결과로 연결한다")
+    void updateResultPhone_matchingStudent_linksResult() {
+        Long examId = 1L;
+        Long resultId = 10L;
+        Long studentId = 100L;
+        Exam exam = buildExam();
+        setId(exam, examId);
+        ExamResult result = ExamResult.createForUnregistered(exam, "01000000000", 80);
+        setId(result, resultId);
+
+        given(resultRepository.findById(resultId)).willReturn(Optional.of(result));
+        given(studentService.getStudentByPhone(any(), eq("01030985821")))
+                .willReturn(Optional.of(aStudent(studentId, "박시현", "01030985821")));
+        given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
+        given(resultRepository.saveAndFlush(result)).willReturn(result);
+
+        ExamResultResponse response = resultCommandService.updateResultPhone(
+                examId,
+                resultId,
+                new UpdateResultPhoneRequest("010-3098-5821")
+        );
+
+        assertThat(result.getStudentId()).isEqualTo(studentId);
+        assertThat(result.getPhoneNumber()).isEqualTo("01030985821");
+        assertThat(response.studentId()).isEqualTo(studentId);
+        assertThat(response.studentName()).isEqualTo("박시현");
+        assertThat(response.isRegistered()).isTrue();
+    }
+
+    @Test
+    @DisplayName("결과 전화번호 수정 시 같은 시험의 기존 학생 결과가 있으면 거절한다")
+    void updateResultPhone_duplicateStudentResult_throwsConflict() {
+        Long examId = 1L;
+        Long resultId = 10L;
+        Long studentId = 100L;
+        Exam exam = buildExam();
+        setId(exam, examId);
+        ExamResult result = ExamResult.createForUnregistered(exam, "01000000000", 80);
+        ExamResult existing = ExamResult.create(exam, studentId, 90);
+        setId(result, resultId);
+        setId(existing, 11L);
+
+        given(resultRepository.findById(resultId)).willReturn(Optional.of(result));
+        given(studentService.getStudentByPhone(any(), eq("01030985821")))
+                .willReturn(Optional.of(aStudent(studentId, "박시현", "01030985821")));
+        given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> resultCommandService.updateResultPhone(
+                examId,
+                resultId,
+                new UpdateResultPhoneRequest("01030985821")
+        ))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ExamErrorCode.DUPLICATE_RESULT);
+
+        verify(resultRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("결과 전화번호 수정 시 같은 시험의 기존 미등록 결과 전화번호가 있어도 허용한다")
+    void updateResultPhone_duplicateUnregisteredPhone_allowsCorrection() {
+        Long examId = 1L;
+        Long resultId = 10L;
+        Exam exam = buildExam();
+        setId(exam, examId);
+        ExamResult result = ExamResult.createForUnregistered(exam, "01000000000", 80);
+        setId(result, resultId);
+
+        given(resultRepository.findById(resultId)).willReturn(Optional.of(result));
+        given(studentService.getStudentByPhone(any(), eq("01030985821"))).willReturn(Optional.empty());
+        given(resultRepository.saveAndFlush(result)).willReturn(result);
+
+        ExamResultResponse response = resultCommandService.updateResultPhone(
+                examId,
+                resultId,
+                new UpdateResultPhoneRequest("01030985821")
+        );
+
+        assertThat(result.getStudentId()).isNull();
+        assertThat(result.getPhoneNumber()).isEqualTo("01030985821");
+        assertThat(response.studentId()).isNull();
+        assertThat(response.studentName()).isNull();
+        assertThat(response.isRegistered()).isFalse();
+        verify(resultRepository).saveAndFlush(result);
+    }
+
+    @Test
+    @DisplayName("결과 전화번호 수정 시 비활성 학생 전화번호면 명시적으로 거절한다")
+    void updateResultPhone_inactiveStudentPhone_throwsExplicitError() {
+        Long examId = 1L;
+        Long resultId = 10L;
+        Exam exam = buildExam();
+        setId(exam, examId);
+        ExamResult result = ExamResult.createForUnregistered(exam, "01000000000", 80);
+        setId(result, resultId);
+
+        given(resultRepository.findById(resultId)).willReturn(Optional.of(result));
+        given(studentService.getStudentByPhone(any(), eq("01030985821")))
+                .willReturn(Optional.of(new StudentService.StudentData(
+                        100L, 1100L, "박시현", "01030985821", false, null, null
+                )));
+
+        assertThatThrownBy(() -> resultCommandService.updateResultPhone(
+                examId,
+                resultId,
+                new UpdateResultPhoneRequest("01030985821")
+        ))
+                .isInstanceOfSatisfying(BusinessException.class, e -> {
+                    assertThat(e.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA);
+                    assertThat(e.getMessage()).isEqualTo("이 전화번호는 비활성 학생 기록에 존재합니다.");
+                });
+
+        verify(resultRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("결과 전화번호 수정 시 학생 매칭용 전화번호는 11자리여야 한다")
+    void updateResultPhone_tenDigitPhone_throwsInvalidExamData() {
+        assertThatThrownBy(() -> resultCommandService.updateResultPhone(
+                1L,
+                10L,
+                new UpdateResultPhoneRequest("02-1234-5678")
+        ))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA));
+
+        verifyNoInteractions(resultRepository, studentService);
+    }
+
+    @Test
+    @DisplayName("등록된 결과의 전화번호 수정은 학생 재연결을 허용하지 않는다")
+    void updateResultPhone_registeredResult_throwsNotFound() {
+        Long examId = 1L;
+        Long resultId = 10L;
+        Long studentId = 100L;
+        Exam exam = buildExam();
+        setId(exam, examId);
+        ExamResult result = ExamResult.create(exam, studentId, 80);
+        setId(result, resultId);
+
+        given(resultRepository.findById(resultId)).willReturn(Optional.of(result));
+
+        assertThatThrownBy(() -> resultCommandService.updateResultPhone(
+                examId,
+                resultId,
+                new UpdateResultPhoneRequest("01030985821")
+        ))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ExamErrorCode.RESULT_NOT_FOUND);
+
+        verifyNoInteractions(studentService);
+        verify(resultRepository, never()).saveAndFlush(any());
+    }
+
+    private static void setId(ExamResult result, Long id) {
+        org.springframework.test.util.ReflectionTestUtils.setField(result, "id", id);
+    }
+
+    private static void setId(Exam exam, Long id) {
+        org.springframework.test.util.ReflectionTestUtils.setField(exam, "id", id);
     }
 
     @Test

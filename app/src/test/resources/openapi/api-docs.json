@@ -5019,6 +5019,19 @@
         "required" : [ "absentCount", "attendanceRate", "excusedCount", "lateCount", "presentCount", "studentId", "totalSessions" ],
         "type" : "object"
       },
+      "StudentClassSummary" : {
+        "properties" : {
+          "classId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "className" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "classId", "className" ],
+        "type" : "object"
+      },
       "StudentData" : {
         "properties" : {
           "createdAt" : {
@@ -5293,19 +5306,6 @@
           }
         },
         "required" : [ "classes", "examCategory", "grade", "isActive", "isPassed", "isRegistered", "phoneNumber", "resultId", "score", "studentId", "studentName" ],
-        "type" : "object"
-      },
-      "StudentClassSummary" : {
-        "properties" : {
-          "classId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "className" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "classId", "className" ],
         "type" : "object"
       },
       "StudentUpdateRequest" : {
@@ -6181,6 +6181,15 @@
           }
         },
         "required" : [ "selectedChoice" ],
+        "type" : "object"
+      },
+      "UpdateResultPhoneRequest" : {
+        "properties" : {
+          "phoneNumber" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "phoneNumber" ],
         "type" : "object"
       },
       "UpdateReviewPopupSettingRequest" : {
@@ -10128,6 +10137,51 @@
                 "schema" : {
                   "format" : "byte",
                   "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/results/{resultId}/phone" : {
+      "patch" : {
+        "operationId" : "updateResultPhone",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "resultId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateResultPhoneRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamResultResponse"
                 }
               }
             },

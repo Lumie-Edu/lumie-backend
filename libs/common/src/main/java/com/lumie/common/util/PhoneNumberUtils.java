@@ -7,6 +7,7 @@ public class PhoneNumberUtils {
 
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{2,3}-\\d{3,4}-\\d{4}$");
     private static final Pattern DIGITS_ONLY = Pattern.compile("^\\d{10,11}$");
+    private static final Pattern STUDENT_PHONE_DIGITS_ONLY = Pattern.compile("^\\d{11}$");
 
     private PhoneNumberUtils() {
         // Utility class
@@ -45,5 +46,15 @@ public class PhoneNumberUtils {
         if (raw == null || raw.isBlank()) return false;
         String digits = toDigits(raw);
         return DIGITS_ONLY.matcher(digits).matches();
+    }
+
+    /**
+     * Validates a student/staff phone number used for person matching.
+     * Those surfaces require an 11-digit mobile number after normalization.
+     */
+    public static boolean isValidStudentPhone(String raw) {
+        if (raw == null || raw.isBlank()) return false;
+        String digits = toDigits(raw);
+        return STUDENT_PHONE_DIGITS_ONLY.matcher(digits).matches();
     }
 }
