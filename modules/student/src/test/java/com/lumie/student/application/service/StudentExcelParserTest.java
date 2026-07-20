@@ -10,6 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -107,6 +108,26 @@ class StudentExcelParserTest {
         assertThat(rows.get(0).studentMemo()).isEqualTo("쉼표, 포함");
         assertThat(rows.get(1).rowNumber()).isEqualTo(3);
         assertThat(rows.get(1).studentBirthYear()).isNull();
+    }
+
+    @Test
+    void parsesCp949CsvExportedFromKoreanExcel() throws IOException {
+        String csv = """
+                학생 이름,학생 연락처,학교명,출생 연도,학부모 연락처,메모
+                김루미,010-1234-5678,루미고,2008,010-9876-5432,신규 등록
+                """;
+
+        List<StudentExcelParser.StudentRow> rows = StudentExcelParser.parse(
+                new ByteArrayInputStream(csv.getBytes(Charset.forName("x-windows-949"))),
+                "students.csv"
+        );
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).name()).isEqualTo("김루미");
+        assertThat(rows.get(0).phone()).isEqualTo("010-1234-5678");
+        assertThat(rows.get(0).studentHighschool()).isEqualTo("루미고");
+        assertThat(rows.get(0).parentPhone()).isEqualTo("010-9876-5432");
+        assertThat(rows.get(0).studentMemo()).isEqualTo("신규 등록");
     }
 
     @Test

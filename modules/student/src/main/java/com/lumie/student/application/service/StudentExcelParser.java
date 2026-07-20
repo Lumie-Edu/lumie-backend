@@ -11,8 +11,12 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +34,12 @@ final class StudentExcelParser {
 
     private static final int MAX_DATA_ROWS = 1_000;
     private static final int MAX_CELLS_PER_ROW = 32;
+    private static final int MAX_CSV_BYTES = 5 * 1024 * 1024;
+    private static final List<Charset> CSV_CHARSETS = List.of(
+            StandardCharsets.UTF_8,
+            Charset.forName("x-windows-949"),
+            Charset.forName("EUC-KR")
+    );
 
     private StudentExcelParser() {}
 
@@ -118,13 +128,43 @@ final class StudentExcelParser {
     }
 
     private static List<List<String>> parseCsvRecords(InputStream input) throws IOException {
+        byte[] bytes = input.readNBytes(MAX_CSV_BYTES + 1);
+        if (bytes.length > MAX_CSV_BYTES) {
+            throw invalidTemplate();
+        }
+
+        for (Charset charset : CSV_CHARSETS) {
+            String text;
+            try {
+                text = decodeCsv(bytes, charset);
+            } catch (CharacterCodingException e) {
+                continue;
+            }
+
+            List<List<String>> records = parseCsvText(text);
+            if (hasExpectedCsvHeader(records)) {
+                return records;
+            }
+        }
+        throw invalidTemplate();
+    }
+
+    private static String decodeCsv(byte[] bytes, Charset charset) throws CharacterCodingException {
+        return charset.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(ByteBuffer.wrap(bytes))
+                .toString();
+    }
+
+    private static List<List<String>> parseCsvText(String text) throws IOException {
         List<List<String>> records = new ArrayList<>();
         List<String> record = new ArrayList<>();
         StringBuilder cell = new StringBuilder();
         boolean inQuotes = false;
         boolean isFirstCharacter = true;
 
-        try (Reader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+        try (Reader reader = new BufferedReader(new StringReader(text))) {
             int raw;
             while ((raw = reader.read()) != -1) {
                 char ch = (char) raw;
@@ -186,6 +226,12 @@ final class StudentExcelParser {
             addCsvRecord(records, record);
         }
         return records;
+    }
+
+    private static boolean hasExpectedCsvHeader(List<List<String>> records) {
+        return !records.isEmpty() &&
+                "학생 이름".equals(getCsvCell(records.get(0), 0)) &&
+                "학생 연락처".equals(getCsvCell(records.get(0), 1));
     }
 
     private static void addCsvRecord(List<List<String>> records, List<String> record) throws IOException {
