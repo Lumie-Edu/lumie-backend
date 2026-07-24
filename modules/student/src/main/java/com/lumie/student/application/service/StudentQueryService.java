@@ -1,7 +1,9 @@
 package com.lumie.student.application.service;
 
 import com.lumie.common.csv.CsvWriter;
+import com.lumie.classroom.api.ClassService;
 import com.lumie.auth.api.AuthService;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.student.application.dto.response.DropoutSummaryResponse;
 import com.lumie.student.application.dto.response.EnrollmentTrendResponse;
 import com.lumie.student.application.dto.response.StudentResponse;
@@ -40,6 +42,7 @@ public class StudentQueryService {
 
     private final StudentRepository studentRepository;
     private final AuthService authService;
+    private final ClassService classService;
 
     public StudentResponse getStudent(Long id) {
         Student student = studentRepository.findById(id)
@@ -84,11 +87,51 @@ public class StudentQueryService {
     }
 
     public Page<StudentResponse> getStudents(Boolean isActive, Pageable pageable) {
-        return searchStudents(isActive, null, pageable);
+        return searchStudents(isActive, null, null, null, pageable);
     }
 
-    public Page<StudentResponse> searchStudents(Boolean isActive, String search, Pageable pageable) {
-        return enrichPage(studentRepository.search(isActive, search, pageable));
+    public Page<StudentResponse> searchStudents(
+            Boolean isActive,
+            String search,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Pageable pageable
+    ) {
+        List<Long> includedStudentIds = null;
+        List<Long> excludedStudentIds = null;
+
+        if (classId != null) {
+            includedStudentIds = classService.getEnrolledStudentIds(
+                    TenantContextHolder.getRequiredTenant(),
+                    TenantContextHolder.getRequiredTenantId(),
+                    classId
+            );
+            if (includedStudentIds.isEmpty()) {
+                return Page.empty(pageable);
+            }
+        } else if (hasActiveEnrollment != null) {
+            List<Long> activeEnrollmentStudentIds = classService
+                    .getActiveEnrolledStudentIds(
+                            TenantContextHolder.getRequiredTenant(),
+                            TenantContextHolder.getRequiredTenantId()
+                    );
+            if (Boolean.TRUE.equals(hasActiveEnrollment)) {
+                if (activeEnrollmentStudentIds.isEmpty()) {
+                    return Page.empty(pageable);
+                }
+                includedStudentIds = activeEnrollmentStudentIds;
+            } else if (!activeEnrollmentStudentIds.isEmpty()) {
+                excludedStudentIds = activeEnrollmentStudentIds;
+            }
+        }
+
+        return enrichPage(studentRepository.search(
+                isActive,
+                search,
+                includedStudentIds,
+                excludedStudentIds,
+                pageable
+        ));
     }
 
     private StudentResponse enrich(Student student) {

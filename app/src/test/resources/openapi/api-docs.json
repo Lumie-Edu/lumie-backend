@@ -13397,6 +13397,21 @@
             "type" : "string"
           }
         }, {
+          "in" : "query",
+          "name" : "classId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hasActiveEnrollment",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
           "description" : "Zero-based page index (0..N)",
           "in" : "query",
           "name" : "page",

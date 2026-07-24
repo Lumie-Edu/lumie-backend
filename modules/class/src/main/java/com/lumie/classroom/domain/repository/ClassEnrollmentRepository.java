@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
 import java.util.List;
@@ -27,6 +29,11 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
     Page<ClassEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status, Pageable pageable);
 
     List<ClassEnrollment> findByClassEntityIdAndStatus(Long classEntityId, EnrollmentStatus status);
+
+    @Query("SELECT DISTINCT enrollment.studentId FROM ClassEnrollment enrollment "
+            + "WHERE enrollment.status = :status "
+            + "AND enrollment.studentId IS NOT NULL")
+    List<Long> findStudentIdsByStatus(@Param("status") EnrollmentStatus status);
 
     long countByClassEntityIdAndStatus(Long classEntityId, EnrollmentStatus status);
 

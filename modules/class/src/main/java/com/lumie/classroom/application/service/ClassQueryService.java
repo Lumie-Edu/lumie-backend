@@ -134,6 +134,10 @@ public class ClassQueryService {
             .toList();
     }
 
+    public List<Long> getActiveEnrolledStudentIds() {
+        return enrollmentRepository.findStudentIdsByStatus(EnrollmentStatus.ENROLLED);
+    }
+
     public List<StudentClassRow> getEnrolledClassesForStudents(Collection<Long> studentIds) {
         if (studentIds == null || studentIds.isEmpty()) {
             return List.of();

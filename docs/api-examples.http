@@ -5,6 +5,7 @@
 @host = http://localhost:8080
 @token = <your-jwt-here>
 @tenant = dev
+@classId = 1
 
 ### Auth — Login
 POST {{host}}/v1/login
@@ -38,6 +39,12 @@ X-Tenant-Slug: {{tenant}}
 
 ### Students — List
 GET {{host}}/v1/students?page=0&size=20
+Authorization: Bearer {{token}}
+X-Tenant-Slug: {{tenant}}
+
+### Students — List with class, enrollment, and school filters
+# classId takes precedence over hasActiveEnrollment when both are supplied.
+GET {{host}}/v1/students?classId={{classId}}&hasActiveEnrollment=true&page=0&size=20
 Authorization: Bearer {{token}}
 X-Tenant-Slug: {{tenant}}
 

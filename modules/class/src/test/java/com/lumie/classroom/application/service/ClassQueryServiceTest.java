@@ -37,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith({MockitoExtension.class, TenantContextExtension.class})
 @DisplayName("ClassQueryService 테스트")
@@ -160,6 +161,18 @@ class ClassQueryServiceTest {
         Page<ClassResponse> response = queryService.getClassesByStudent(42L, pageable);
 
         assertThat(response.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getActiveEnrolledStudentIds는 재원 상태의 학생 ID를 조회한다")
+    void getActiveEnrolledStudentIds_returnsEnrolledStudentIds() {
+        given(enrollmentRepository.findStudentIdsByStatus(EnrollmentStatus.ENROLLED))
+                .willReturn(List.of(10L, 20L));
+
+        List<Long> response = queryService.getActiveEnrolledStudentIds();
+
+        assertThat(response).containsExactly(10L, 20L);
+        verify(enrollmentRepository).findStudentIdsByStatus(EnrollmentStatus.ENROLLED);
     }
 
     @Test

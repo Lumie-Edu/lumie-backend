@@ -82,7 +82,13 @@ public class StudentServiceAdapter implements StudentService {
         if (keyword == null || keyword.isBlank()) {
             return List.of();
         }
-        return studentRepository.search(null, keyword, org.springframework.data.domain.PageRequest.of(0, 1000))
+        return studentRepository.search(
+                null,
+                keyword,
+                null,
+                null,
+                org.springframework.data.domain.PageRequest.of(0, 1000)
+                )
                 .stream()
                 .map(Student::getUserId)
                 .filter(id -> id != null)

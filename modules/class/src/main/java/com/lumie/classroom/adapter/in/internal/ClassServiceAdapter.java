@@ -85,6 +85,19 @@ public class ClassServiceAdapter implements ClassService {
     }
 
     @Override
+    public List<Long> getEnrolledStudentIds(String tenantSlug, Long tenantId, Long classId) {
+        return TenantContextHolder.withinContext(tenantSlug, tenantId, () ->
+                classQueryService.getEnrolledStudentIds(classId)
+        );
+    }
+
+    @Override
+    public List<Long> getActiveEnrolledStudentIds(String tenantSlug, Long tenantId) {
+        return TenantContextHolder.withinContext(tenantSlug, tenantId,
+                classQueryService::getActiveEnrolledStudentIds);
+    }
+
+    @Override
     public List<EnrolledClassData> getEnrolledClassesForStudents(String tenantSlug, Collection<Long> studentIds) {
         return TenantContextHolder.withinContext(tenantSlug, () ->
                 classQueryService.getEnrolledClassesForStudents(studentIds).stream()

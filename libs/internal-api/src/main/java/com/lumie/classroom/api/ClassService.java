@@ -16,6 +16,10 @@ public interface ClassService {
 
     List<Long> getEnrolledStudentIds(String tenantSlug, Long classId);
 
+    List<Long> getEnrolledStudentIds(String tenantSlug, Long tenantId, Long classId);
+
+    List<Long> getActiveEnrolledStudentIds(String tenantSlug, Long tenantId);
+
     List<EnrolledClassData> getEnrolledClassesForStudents(String tenantSlug, Collection<Long> studentIds);
 
     boolean isStudentEnrolledInClass(String tenantSlug, Long studentId, Long classId);

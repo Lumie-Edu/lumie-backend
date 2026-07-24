@@ -87,7 +87,13 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
      * Searches active/inactive students by free-text keyword across name, school,
      * phones, and birth year. Composes a Specification inline.
      */
-    default Page<Student> search(Boolean isActive, String search, Pageable pageable) {
+    default Page<Student> search(
+            Boolean isActive,
+            String search,
+            Collection<Long> includedStudentIds,
+            Collection<Long> excludedStudentIds,
+            Pageable pageable
+    ) {
         Specification<Student> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (isActive != null) {
@@ -102,6 +108,12 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
                         cb.like(root.get("parentPhone"), "%" + search + "%"),
                         cb.like(cb.toString(root.get("studentBirthYear")), "%" + search + "%")
                 ));
+            }
+            if (includedStudentIds != null && !includedStudentIds.isEmpty()) {
+                predicates.add(root.get("id").in(includedStudentIds));
+            }
+            if (excludedStudentIds != null && !excludedStudentIds.isEmpty()) {
+                predicates.add(cb.not(root.get("id").in(excludedStudentIds)));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };

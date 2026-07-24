@@ -78,8 +78,16 @@ public class StudentController {
     public ResponseEntity<PageResponse<StudentResponse>> getStudents(
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Boolean hasActiveEnrollment,
             @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<StudentResponse> response = studentQueryService.searchStudents(isActive, search, pageable);
+        Page<StudentResponse> response = studentQueryService.searchStudents(
+                isActive,
+                search,
+                classId,
+                hasActiveEnrollment,
+                pageable
+        );
         return ResponseEntity.ok(PageResponse.from(response));
     }
 
