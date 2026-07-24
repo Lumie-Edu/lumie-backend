@@ -48,7 +48,7 @@ class ReportBatchDataQueryServiceTest {
         StatisticsCalculator statisticsCalculator = new StatisticsCalculator();
         GradeCalculator gradeCalculator = new GradeCalculator();
         ExamSummaryStatisticsService examSummaryStatisticsService = new ExamSummaryStatisticsService(
-                null, null, statisticsCalculator, gradeCalculator);
+                null, null, statisticsCalculator, gradeCalculator, null);
         service = new ReportBatchDataQueryService(
                 examRepository,
                 resultRepository,

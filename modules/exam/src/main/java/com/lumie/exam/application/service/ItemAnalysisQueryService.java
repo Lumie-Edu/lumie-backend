@@ -32,14 +32,24 @@ public class ItemAnalysisQueryService {
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
     private final StatisticsCalculator statisticsCalculator;
+    private final ExamResultCohortResolver cohortResolver;
 
     public ItemAnalysisResponse getItemAnalysis(Long examId) {
+        return getItemAnalysis(examId, null, null, null);
+    }
+
+    public ItemAnalysisResponse getItemAnalysis(
+            Long examId,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Boolean isActive) {
         log.debug("Getting item analysis for exam: {}", examId);
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
-        List<ExamResult> results = resultRepository.findByExamId(examId);
+        List<ExamResult> results = filterResults(
+                resultRepository.findByExamId(examId), classId, hasActiveEnrollment, isActive);
         int participantCount = results.size();
 
         if (participantCount < 2) {
@@ -101,5 +111,16 @@ public class ItemAnalysisQueryService {
         if (pValue < 0.3) return ItemAnalysisResponse.Quadrant.TOO_HARD;
         if (discrimination >= 0.3) return ItemAnalysisResponse.Quadrant.GOOD;
         return ItemAnalysisResponse.Quadrant.DISCARD;
+    }
+
+    private List<ExamResult> filterResults(
+            List<ExamResult> results,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Boolean isActive) {
+        if (classId == null && hasActiveEnrollment == null && isActive == null) {
+            return results;
+        }
+        return cohortResolver.filter(results, classId, hasActiveEnrollment, isActive);
     }
 }

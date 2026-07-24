@@ -13041,6 +13041,28 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "query",
+          "name" : "classId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hasActiveEnrollment",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "isActive",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -13067,6 +13089,28 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "classId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hasActiveEnrollment",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "isActive",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
           }
         } ],
         "responses" : {
@@ -13095,6 +13139,28 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "query",
+          "name" : "classId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hasActiveEnrollment",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "isActive",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -13121,6 +13187,28 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "classId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hasActiveEnrollment",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "isActive",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
           }
         }, {
           "description" : "Zero-based page index (0..N)",
@@ -13179,6 +13267,28 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "classId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hasActiveEnrollment",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "isActive",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
           }
         } ],
         "responses" : {

@@ -52,19 +52,47 @@ public class ExamSummaryStatisticsService {
     private final ExamResultRepository resultRepository;
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
+    private final ExamResultCohortResolver cohortResolver;
 
     public ExamStatisticsResponse getExamStatistics(Long examId) {
+        return getExamStatistics(examId, null, null, null);
+    }
+
+    public ExamStatisticsResponse getExamStatistics(
+            Long examId,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Boolean isActive) {
         log.debug("Getting statistics for exam: {}", examId);
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
-        List<ExamResult> results = resultRepository.findByExamId(examId);
+        List<ExamResult> allResults = resultRepository.findByExamId(examId);
+        List<ExamResult> results = filterResults(allResults, classId, hasActiveEnrollment, isActive);
 
-        return buildExamStatistics(exam, results);
+        return buildExamStatistics(exam, results, allResults);
     }
 
     ExamStatisticsResponse buildExamStatistics(Exam exam, List<ExamResult> results) {
+        return buildExamStatistics(exam, results, results);
+    }
+
+    private List<ExamResult> filterResults(
+            List<ExamResult> results,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Boolean isActive) {
+        if (classId == null && hasActiveEnrollment == null && isActive == null) {
+            return results;
+        }
+        return cohortResolver.filter(results, classId, hasActiveEnrollment, isActive);
+    }
+
+    private ExamStatisticsResponse buildExamStatistics(
+            Exam exam,
+            List<ExamResult> results,
+            List<ExamResult> allExamResults) {
         if (results.isEmpty()) {
             return new ExamStatisticsResponse(
                     exam.getId(), exam.getName(), exam.getCategory(), exam.getGradingType(), exam.getGradeScale(),
@@ -95,7 +123,7 @@ public class ExamSummaryStatisticsService {
             passCount = pfStats.passCount;
             failCount = pfStats.failCount;
         } else {
-            gradeDistribution = calculateGradeDistribution(exam, results);
+            gradeDistribution = calculateGradeDistribution(exam, results, allExamResults);
         }
 
         List<ExamStatisticsResponse.ScoreRangeDistribution> scoreRangeDistribution = calculateScoreRangeDistribution(scores);
@@ -280,8 +308,11 @@ public class ExamSummaryStatisticsService {
         return new PassFailStats(Math.round(passRate * 10) / 10.0, passCount, failCount);
     }
 
-    private List<ExamStatisticsResponse.GradeDistribution> calculateGradeDistribution(Exam exam, List<ExamResult> results) {
-        List<Integer> allScores = results.stream().map(ExamResult::getTotalScore).toList();
+    private List<ExamStatisticsResponse.GradeDistribution> calculateGradeDistribution(
+            Exam exam,
+            List<ExamResult> results,
+            List<ExamResult> allExamResults) {
+        List<Integer> allScores = allExamResults.stream().map(ExamResult::getTotalScore).toList();
 
         GradingType gradingType = exam.getGradingType() != null ? exam.getGradingType() : GradingType.ABSOLUTE;
         GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;

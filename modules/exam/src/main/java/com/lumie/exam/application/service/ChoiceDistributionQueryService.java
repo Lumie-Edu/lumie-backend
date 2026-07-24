@@ -34,14 +34,24 @@ public class ChoiceDistributionQueryService {
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
     private final StatisticsCalculator statisticsCalculator;
+    private final ExamResultCohortResolver cohortResolver;
 
     public ChoiceDistributionResponse getChoiceDistribution(Long examId) {
+        return getChoiceDistribution(examId, null, null, null);
+    }
+
+    public ChoiceDistributionResponse getChoiceDistribution(
+            Long examId,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Boolean isActive) {
         log.debug("Getting choice distribution for exam: {}", examId);
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
-        List<ExamResult> results = resultRepository.findByExamId(examId);
+        List<ExamResult> results = filterResults(
+                resultRepository.findByExamId(examId), classId, hasActiveEnrollment, isActive);
         int totalParticipants = results.size();
 
         Map<Integer, Map<String, Integer>> questionChoiceCounts = new HashMap<>();
@@ -93,5 +103,16 @@ public class ChoiceDistributionQueryService {
         }
 
         return new ChoiceDistributionResponse(examId, exam.getName(), totalParticipants, questions);
+    }
+
+    private List<ExamResult> filterResults(
+            List<ExamResult> results,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Boolean isActive) {
+        if (classId == null && hasActiveEnrollment == null && isActive == null) {
+            return results;
+        }
+        return cohortResolver.filter(results, classId, hasActiveEnrollment, isActive);
     }
 }

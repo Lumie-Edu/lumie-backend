@@ -30,6 +30,7 @@ class ClassComparisonQueryServiceTest {
     @Mock private ExamResultRepository resultRepository;
     @Mock private GradeCalculator gradeCalculator;
     @Mock private ClassService classService;
+    @Mock private ExamResultCohortResolver cohortResolver;
 
     @org.mockito.Spy private StatisticsCalculator statisticsCalculator = new StatisticsCalculator();
 
@@ -79,5 +80,27 @@ class ClassComparisonQueryServiceTest {
 
         assertThat(response.totalParticipants()).isZero();
         assertThat(response.classes()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("반별 비교: 클래스 필터는 선택한 반의 지표만 반환한다")
+    void getClassComparison_classFilter_returnsOnlySelectedClass() {
+        Exam exam = ExamFixtures.aGradedExam();
+        ExamResult result = ExamFixtures.anExamResult(exam, 100L, 90, List.of(true, true, true, true, false));
+        List<ExamResult> results = List.of(result);
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        given(cohortResolver.filter(results, 10L, false, null)).willReturn(results);
+        given(classService.getEnrolledClassesForStudents(any(), any()))
+                .willReturn(List.of(
+                        new ClassService.EnrolledClassData(10L, "고2 A반", 100L),
+                        new ClassService.EnrolledClassData(20L, "고2 B반", 100L)
+                ));
+
+        ClassComparisonResponse response = service.getClassComparison(EXAM_ID, 10L, false, null);
+
+        assertThat(response.classes())
+                .extracting(ClassComparisonResponse.ClassMetric::classId)
+                .containsExactly(10L);
     }
 }

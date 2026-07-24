@@ -46,14 +46,24 @@ public class ClassComparisonQueryService {
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
     private final ClassService classService;
+    private final ExamResultCohortResolver cohortResolver;
 
     public ClassComparisonResponse getClassComparison(Long examId) {
+        return getClassComparison(examId, null, null, null);
+    }
+
+    public ClassComparisonResponse getClassComparison(
+            Long examId,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Boolean isActive) {
         log.debug("Getting class comparison for exam: {}", examId);
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
-        List<ExamResult> results = resultRepository.findByExamId(examId);
+        List<ExamResult> results = filterResults(
+                resultRepository.findByExamId(examId), classId, hasActiveEnrollment, isActive);
         if (results.isEmpty()) {
             return new ClassComparisonResponse(
                     examId, exam.getName(), exam.getCategory(), 0, Collections.emptyList()
@@ -78,6 +88,12 @@ public class ClassComparisonQueryService {
             Long studentId = result.getStudentId();
             List<ClassService.EnrolledClassData> memberships =
                     studentId != null ? classesByStudent.get(studentId) : null;
+
+            if (memberships != null && classId != null) {
+                memberships = memberships.stream()
+                        .filter(membership -> classId.equals(membership.classId()))
+                        .toList();
+            }
 
             if (memberships == null || memberships.isEmpty()) {
                 unassigned.add(result);
@@ -159,5 +175,16 @@ public class ClassComparisonQueryService {
                         Math.round((double) e.getValue() / groupResults.size() * 1000) / 10.0
                 ))
                 .toList();
+    }
+
+    private List<ExamResult> filterResults(
+            List<ExamResult> results,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Boolean isActive) {
+        if (classId == null && hasActiveEnrollment == null && isActive == null) {
+            return results;
+        }
+        return cohortResolver.filter(results, classId, hasActiveEnrollment, isActive);
     }
 }

@@ -42,6 +42,7 @@ public class StudentGradeQueryService {
     private final GradeCalculator gradeCalculator;
     private final StudentService studentService;
     private final ClassService classService;
+    private final ExamResultCohortResolver cohortResolver;
 
     /**
      * Returns a page of student grade responses for the given exam.
@@ -61,6 +62,20 @@ public class StudentGradeQueryService {
      * passed students above failed ones when ranks or scores are equal.
      */
     public Page<StudentGradeResponse> getStudentGrades(Long examId, Pageable pageable) {
+        return getStudentGrades(examId, null, null, null, pageable);
+    }
+
+    /**
+     * Returns grades filtered by the student's current enrollment and active status.
+     * Rank, percentile, and relative grade always remain calculated against every
+     * result submitted for the exam, not the filtered subset.
+     */
+    public Page<StudentGradeResponse> getStudentGrades(
+            Long examId,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Boolean isActive,
+            Pageable pageable) {
         log.debug("Getting student grades for exam: {}", examId);
 
         Exam exam = examRepository.findById(examId)
@@ -72,10 +87,13 @@ public class StudentGradeQueryService {
         List<Integer> allScores = results.stream()
                 .map(ExamResult::getTotalScore)
                 .toList();
+        List<ExamResult> filteredResults = hasResultFilter(classId, hasActiveEnrollment, isActive)
+                ? cohortResolver.filter(results, classId, hasActiveEnrollment, isActive)
+                : results;
 
         GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
 
-        List<StudentGradeResponse> grades = results.stream()
+        List<StudentGradeResponse> grades = filteredResults.stream()
                 .map(result -> {
                     StudentService.StudentData student = resolveStudent(studentMap, result);
                     int rank = statisticsCalculator.calculateRank(result.getTotalScore(), allScores);
@@ -115,6 +133,10 @@ public class StudentGradeQueryService {
         List<StudentGradeResponse> pageContent = grades.subList(start, end);
 
         return new PageImpl<>(pageContent, pageable, grades.size());
+    }
+
+    private static boolean hasResultFilter(Long classId, Boolean hasActiveEnrollment, Boolean isActive) {
+        return classId != null || hasActiveEnrollment != null || isActive != null;
     }
 
     /**

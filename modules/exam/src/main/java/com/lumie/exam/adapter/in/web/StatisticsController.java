@@ -32,16 +32,25 @@ public class StatisticsController {
     private final StudentGradeQueryService studentGradeQueryService;
 
     @GetMapping("/exams/{examId}")
-    public ResponseEntity<ExamStatisticsResponse> getExamStatistics(@PathVariable Long examId) {
-        return ResponseEntity.ok(examSummaryStatisticsService.getExamStatistics(examId));
+    public ResponseEntity<ExamStatisticsResponse> getExamStatistics(
+            @PathVariable Long examId,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Boolean hasActiveEnrollment,
+            @RequestParam(required = false) Boolean isActive) {
+        return ResponseEntity.ok(examSummaryStatisticsService.getExamStatistics(
+                examId, classId, hasActiveEnrollment, isActive));
     }
 
     @GetMapping("/exams/{examId}/grades")
     @AllowedSortFields({StudentGradeQueryService.SORT_FIELD_RANK, StudentGradeQueryService.SORT_FIELD_TOTAL_SCORE})
     public ResponseEntity<PageResponse<StudentGradeResponse>> getStudentGrades(
             @PathVariable Long examId,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Boolean hasActiveEnrollment,
+            @RequestParam(required = false) Boolean isActive,
             @PageableDefault(size = 20, sort = "rank") Pageable pageable) {
-        return ResponseEntity.ok(PageResponse.from(studentGradeQueryService.getStudentGrades(examId, pageable)));
+        return ResponseEntity.ok(PageResponse.from(studentGradeQueryService.getStudentGrades(
+                examId, classId, hasActiveEnrollment, isActive, pageable)));
     }
 
     @GetMapping("/exams/{examId}/results-summary")
@@ -51,18 +60,33 @@ public class StatisticsController {
     }
 
     @GetMapping("/exams/{examId}/choices")
-    public ResponseEntity<ChoiceDistributionResponse> getChoiceDistribution(@PathVariable Long examId) {
-        return ResponseEntity.ok(choiceDistributionQueryService.getChoiceDistribution(examId));
+    public ResponseEntity<ChoiceDistributionResponse> getChoiceDistribution(
+            @PathVariable Long examId,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Boolean hasActiveEnrollment,
+            @RequestParam(required = false) Boolean isActive) {
+        return ResponseEntity.ok(choiceDistributionQueryService.getChoiceDistribution(
+                examId, classId, hasActiveEnrollment, isActive));
     }
 
     @GetMapping("/exams/{examId}/class-comparison")
-    public ResponseEntity<ClassComparisonResponse> getClassComparison(@PathVariable Long examId) {
-        return ResponseEntity.ok(classComparisonQueryService.getClassComparison(examId));
+    public ResponseEntity<ClassComparisonResponse> getClassComparison(
+            @PathVariable Long examId,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Boolean hasActiveEnrollment,
+            @RequestParam(required = false) Boolean isActive) {
+        return ResponseEntity.ok(classComparisonQueryService.getClassComparison(
+                examId, classId, hasActiveEnrollment, isActive));
     }
 
     @GetMapping("/exams/{examId}/item-analysis")
-    public ResponseEntity<ItemAnalysisResponse> getItemAnalysis(@PathVariable Long examId) {
-        return ResponseEntity.ok(itemAnalysisQueryService.getItemAnalysis(examId));
+    public ResponseEntity<ItemAnalysisResponse> getItemAnalysis(
+            @PathVariable Long examId,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Boolean hasActiveEnrollment,
+            @RequestParam(required = false) Boolean isActive) {
+        return ResponseEntity.ok(itemAnalysisQueryService.getItemAnalysis(
+                examId, classId, hasActiveEnrollment, isActive));
     }
 
     @GetMapping("/students/{studentId}/rank")

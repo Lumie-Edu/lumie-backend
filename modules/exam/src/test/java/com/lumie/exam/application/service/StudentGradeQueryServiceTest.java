@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("StudentGradeQueryService 단위 테스트")
@@ -51,6 +52,7 @@ class StudentGradeQueryServiceTest {
     @Mock private GradeCalculator gradeCalculator;
     @Mock private StudentService studentService;
     @Mock private ClassService classService;
+    @Mock private ExamResultCohortResolver cohortResolver;
 
     @InjectMocks private StudentGradeQueryService service;
 
@@ -59,6 +61,7 @@ class StudentGradeQueryServiceTest {
     @BeforeEach
     void setUpTenantContext() {
         TenantContextHolder.setTenant("test-academy");
+        TenantContextHolder.setTenantId(101L);
     }
 
     @AfterEach
@@ -102,6 +105,83 @@ class StudentGradeQueryServiceTest {
                 .toList();
         given(studentService.getStudentsByIds(anyString(), anyList()))
                 .willReturn(new StudentService.StudentListData(students, students.size(), 0, students.size()));
+    }
+
+    // ---------------------------------------------------------------------------
+    // Filters
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("getStudentGrades: 클래스 필터는 해당 클래스의 등록 학생 결과만 반환한다")
+    void getStudentGrades_classFilter_returnsOnlyClassStudents() {
+        Exam exam = gradedExam();
+        List<ExamResult> results = List.of(
+                ExamResult.create(exam, 1L, 50),
+                ExamResult.create(exam, 2L, 90)
+        );
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        stubStudentService(results);
+        given(cohortResolver.filter(results, 10L, false, null)).willReturn(List.of(results.get(1)));
+
+        Page<StudentGradeResponse> page = service.getStudentGrades(
+                EXAM_ID, 10L, false, null, PageRequest.of(0, 10));
+
+        assertThat(page.getContent())
+                .extracting(StudentGradeResponse::studentId)
+                .containsExactly(2L);
+        assertThat(page.getContent().get(0).rank()).isEqualTo(1);
+        then(cohortResolver).should().filter(results, 10L, false, null);
+    }
+
+    @Test
+    @DisplayName("getStudentGrades: 미배정 필터는 활성 수강생을 제외하고 미등록 결과도 포함한다")
+    void getStudentGrades_unassignedFilter_excludesActiveEnrollments() {
+        Exam exam = gradedExam();
+        List<ExamResult> results = List.of(
+                ExamResult.create(exam, 1L, 90),
+                ExamResult.create(exam, 2L, 70),
+                ExamResult.createForUnregistered(exam, "01099998888", 50)
+        );
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        stubStudentService(results);
+        given(cohortResolver.filter(results, null, false, null))
+                .willReturn(List.of(results.get(1), results.get(2)));
+
+        Page<StudentGradeResponse> page = service.getStudentGrades(
+                EXAM_ID, null, false, null, PageRequest.of(0, 10));
+
+        assertThat(page.getContent())
+                .extracting(StudentGradeResponse::studentId)
+                .containsExactly(2L, null);
+    }
+
+    @Test
+    @DisplayName("getStudentGrades: 재원 상태 필터는 등록된 학생의 현재 상태를 사용한다")
+    void getStudentGrades_activeFilter_returnsOnlyMatchingStudentState() {
+        Exam exam = gradedExam();
+        List<ExamResult> results = List.of(
+                ExamResult.create(exam, 1L, 90),
+                ExamResult.create(exam, 2L, 70),
+                ExamResult.createForUnregistered(exam, "01099998888", 50)
+        );
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        given(studentService.getStudentsByIds(anyString(), anyList()))
+                .willReturn(new StudentService.StudentListData(List.of(
+                        new StudentService.StudentData(1L, null, "재원", "010-0000-0001", true, null, null),
+                        new StudentService.StudentData(2L, null, "퇴원", "010-0000-0002", false, null, null)
+                ), 2, 0, 2));
+        given(cohortResolver.filter(results, null, null, false)).willReturn(List.of(results.get(1)));
+
+        Page<StudentGradeResponse> page = service.getStudentGrades(
+                EXAM_ID, null, null, false, PageRequest.of(0, 10));
+
+        assertThat(page.getContent())
+                .extracting(StudentGradeResponse::studentId)
+                .containsExactly(2L);
+        then(classService).shouldHaveNoInteractions();
     }
 
     // ---------------------------------------------------------------------------
