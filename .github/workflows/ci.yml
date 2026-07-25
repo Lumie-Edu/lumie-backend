@@ -60,7 +60,7 @@ jobs:
           {
             echo "short_sha=${short_sha}"
             echo "image=${image}"
-            echo "tags=${image}:${short_sha},${image}:main"
+            echo "tags=${image}:${short_sha}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Log in to Zot
