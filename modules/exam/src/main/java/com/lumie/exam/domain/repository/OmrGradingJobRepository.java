@@ -19,7 +19,7 @@ public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Lo
 
     @Modifying
     @Query(value = "UPDATE omr_grading_jobs SET processed_images = processed_images + 1, " +
-            "success_count = success_count + 1, saved_count = saved_count + 1 " +
+            "success_count = success_count + 1 " +
             "WHERE id = :jobId", nativeQuery = true)
     void incrementSuccess(@Param("jobId") Long jobId);
 

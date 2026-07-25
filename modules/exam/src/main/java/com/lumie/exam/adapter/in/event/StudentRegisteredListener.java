@@ -2,6 +2,7 @@ package com.lumie.exam.adapter.in.event;
 
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.api.ExamService;
+import com.lumie.exam.application.service.OmrSubmissionService;
 import com.lumie.student.api.StudentRegisteredEvent;
 import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Component;
 public class StudentRegisteredListener {
 
     private final ExamService examService;
+    private final OmrSubmissionService omrSubmissionService;
     private final TenantService tenantService;
 
     @ApplicationModuleListener
@@ -38,9 +40,14 @@ public class StudentRegisteredListener {
         }
         Runnable backfill = () -> {
             int linked = examService.linkUnregisteredResultsByPhone(event.phone(), event.studentId());
+            int linkedSubmissions = omrSubmissionService.linkSingleUnmatchedByPhone(event.phone(), event.studentId());
             if (linked > 0) {
                 log.info("Backfilled {} exam results for student {} (phone={})",
                         linked, event.studentId(), event.phone());
+            }
+            if (linkedSubmissions > 0) {
+                log.info("Backfilled {} OMR submissions for student {} (phone={})",
+                        linkedSubmissions, event.studentId(), event.phone());
             }
         };
         if (event.tenantSlug() == null || event.tenantSlug().isBlank()) {

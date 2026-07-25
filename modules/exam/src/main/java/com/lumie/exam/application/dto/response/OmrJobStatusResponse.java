@@ -16,6 +16,10 @@ public record OmrJobStatusResponse(
         Instant createdAt
 ) {
     public static OmrJobStatusResponse from(OmrGradingJob job) {
+        return from(job, job.getSavedCount());
+    }
+
+    public static OmrJobStatusResponse from(OmrGradingJob job, int savedCount) {
         return new OmrJobStatusResponse(
                 job.getId(),
                 job.getExam().getId(),
@@ -24,7 +28,7 @@ public record OmrJobStatusResponse(
                 job.getProcessedImages(),
                 job.getSuccessCount(),
                 job.getFailCount(),
-                job.getSavedCount(),
+                savedCount,
                 job.getCreatedAt()
         );
     }

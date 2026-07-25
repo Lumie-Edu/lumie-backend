@@ -304,6 +304,7 @@ class ResultCommandServiceTest {
 
         assertThat(result.getStudentId()).isEqualTo(studentId);
         assertThat(result.getPhoneNumber()).isEqualTo("01030985821");
+        assertThat(result.getManualOverrideAt()).isNotNull();
         assertThat(response.studentId()).isEqualTo(studentId);
         assertThat(response.studentName()).isEqualTo("박시현");
         assertThat(response.isRegistered()).isTrue();

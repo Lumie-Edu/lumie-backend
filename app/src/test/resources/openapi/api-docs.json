@@ -112,6 +112,19 @@
         "required" : [ "announcementContent", "announcementTitle", "authorId", "authorName", "classIds", "createdAt", "id", "isItAssetAnnouncement", "isItImportantAnnouncement", "updatedAt" ],
         "type" : "object"
       },
+      "ApplyOmrSubmissionRequest" : {
+        "properties" : {
+          "replaceCurrentResult" : {
+            "type" : "boolean"
+          },
+          "studentId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "studentId" ],
+        "type" : "object"
+      },
       "AssignmentDashboardResponse" : {
         "properties" : {
           "graded" : {
@@ -1041,6 +1054,27 @@
         },
         "type" : "object"
       },
+      "ConfirmOmrSubmissionReconciliationRequest" : {
+        "properties" : {
+          "expectedCurrentResultId" : {
+            "format" : "int64",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "expectedStudentId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "phoneNumber" : {
+            "type" : "string"
+          },
+          "replaceCurrentResult" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "expectedStudentId", "phoneNumber", "replaceCurrentResult" ],
+        "type" : "object"
+      },
       "ConfirmPaymentRequest" : {
         "properties" : {
           "amount" : {
@@ -1618,6 +1652,40 @@
           }
         },
         "required" : [ "name" ],
+        "type" : "object"
+      },
+      "CurrentResult" : {
+        "nullable" : true,
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "currentSubmissionId" : {
+            "format" : "int64",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "grade" : {
+            "format" : "int32",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "manualOverrideAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "resultId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "score" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "createdAt", "currentSubmissionId", "grade", "manualOverrideAt", "resultId", "score" ],
         "type" : "object"
       },
       "DashboardStatisticsResponse" : {
@@ -2804,6 +2872,103 @@
         "required" : [ "batchKey", "uploads" ],
         "type" : "object"
       },
+      "OmrSubmissionReconciliationPreviewResponse" : {
+        "properties" : {
+          "currentResult" : {
+            "$ref" : "#/components/schemas/CurrentResult"
+          },
+          "replaceRequired" : {
+            "type" : "boolean"
+          },
+          "student" : {
+            "$ref" : "#/components/schemas/Student"
+          }
+        },
+        "required" : [ "currentResult", "replaceRequired", "student" ],
+        "type" : "object"
+      },
+      "OmrSubmissionResponse" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "examId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "grade" : {
+            "format" : "int32",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "gradingStatus" : {
+            "enum" : [ "PENDING", "SUCCEEDED", "FAILED" ],
+            "type" : "string"
+          },
+          "hasOmrImage" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "imageIndex" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "isOfficial" : {
+            "type" : "boolean"
+          },
+          "jobId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "matchedStudentId" : {
+            "format" : "int64",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "matchedStudentName" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "ocrPhoneNumber" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "questions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Question"
+            },
+            "type" : "array"
+          },
+          "reconciliationPhoneNumber" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "reconciliationReason" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "reconciliationStatus" : {
+            "enum" : [ "MATCHED", "UNMATCHED", "AMBIGUOUS", "REJECTED" ],
+            "nullable" : true,
+            "type" : "string"
+          },
+          "score" : {
+            "format" : "int32",
+            "nullable" : true,
+            "type" : "integer"
+          }
+        },
+        "required" : [ "createdAt", "examId", "grade", "gradingStatus", "hasOmrImage", "id", "imageIndex", "isOfficial", "jobId", "matchedStudentId", "matchedStudentName", "ocrPhoneNumber", "phoneNumber", "questions", "reconciliationPhoneNumber", "reconciliationReason", "reconciliationStatus", "score" ],
+        "type" : "object"
+      },
       "OwnerRegisterRequest" : {
         "properties" : {
           "instituteName" : {
@@ -3597,6 +3762,15 @@
         "required" : [ "expiresInSeconds", "fileId", "uploadUrl" ],
         "type" : "object"
       },
+      "PreviewOmrSubmissionReconciliationRequest" : {
+        "properties" : {
+          "phoneNumber" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "phoneNumber" ],
+        "type" : "object"
+      },
       "ProblemDetail" : {
         "properties" : {
           "detail" : {
@@ -3809,6 +3983,36 @@
             "type" : "integer"
           }
         },
+        "type" : "object"
+      },
+      "Question" : {
+        "properties" : {
+          "correctAnswer" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "earnedScore" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "maxScore" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "questionNumber" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "questionType" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "studentAnswer" : {
+            "nullable" : true,
+            "type" : "string"
+          }
+        },
+        "required" : [ "correctAnswer", "earnedScore", "maxScore", "questionNumber", "questionType", "studentAnswer" ],
         "type" : "object"
       },
       "QuestionChoiceDistribution" : {
@@ -4031,6 +4235,41 @@
           }
         },
         "required" : [ "name", "password", "studentBirthYear", "studentHighschool", "tenantSlug", "userLoginId" ],
+        "type" : "object"
+      },
+      "RegisterStudentFromOmrSubmissionRequest" : {
+        "properties" : {
+          "name" : {
+            "maxLength" : 100,
+            "minLength" : 2,
+            "type" : "string"
+          },
+          "parentPhone" : {
+            "pattern" : "^$|^[0-9-]{10,13}$",
+            "type" : "string"
+          },
+          "phone" : {
+            "pattern" : "^$|^[0-9-]{11,13}$",
+            "type" : "string"
+          },
+          "studentBirthYear" : {
+            "format" : "int32",
+            "maximum" : 2100,
+            "minimum" : 1900,
+            "type" : "integer"
+          },
+          "studentHighschool" : {
+            "maxLength" : 100,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "studentMemo" : {
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "name" ],
         "type" : "object"
       },
       "RegisterUploadRequest" : {
@@ -4915,6 +5154,22 @@
         "type" : "object"
       },
       "StreamingResponseBody" : {
+        "type" : "object"
+      },
+      "Student" : {
+        "properties" : {
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name", "phoneNumber" ],
         "type" : "object"
       },
       "StudentAssignmentDetailResponse" : {
@@ -6133,6 +6388,15 @@
             "type" : "string"
           }
         },
+        "type" : "object"
+      },
+      "UpdateOmrSubmissionPhoneRequest" : {
+        "properties" : {
+          "phoneNumber" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "phoneNumber" ],
         "type" : "object"
       },
       "UpdateProfileRequest" : {
@@ -9671,6 +9935,356 @@
               }
             },
             "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/omr-jobs/{jobId}/submissions" : {
+      "get" : {
+        "operationId" : "getOmrJobSubmissions",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OmrSubmissionResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/omr-submissions/reconciliation" : {
+      "get" : {
+        "operationId" : "getOmrReconciliationQueue",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OmrSubmissionResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/omr-submissions/{submissionId}/apply" : {
+      "post" : {
+        "operationId" : "applyOmrSubmission",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "submissionId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApplyOmrSubmissionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OmrSubmissionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/omr-submissions/{submissionId}/image" : {
+      "get" : {
+        "operationId" : "getOmrSubmissionImage",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "submissionId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/omr-submissions/{submissionId}/phone" : {
+      "patch" : {
+        "operationId" : "updateOmrSubmissionPhone",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "submissionId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateOmrSubmissionPhoneRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OmrSubmissionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/omr-submissions/{submissionId}/reconciliation/confirm" : {
+      "post" : {
+        "operationId" : "confirmOmrSubmissionReconciliation",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "submissionId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfirmOmrSubmissionReconciliationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OmrSubmissionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/omr-submissions/{submissionId}/reconciliation/preview" : {
+      "post" : {
+        "operationId" : "previewOmrSubmissionReconciliation",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "submissionId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PreviewOmrSubmissionReconciliationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OmrSubmissionReconciliationPreviewResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/omr-submissions/{submissionId}/register-student" : {
+      "post" : {
+        "operationId" : "registerStudentFromOmrSubmission",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "submissionId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterStudentFromOmrSubmissionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OmrSubmissionResponse"
+                }
+              }
+            },
+            "description" : "Created"
           }
         },
         "tags" : [ "result-controller" ]

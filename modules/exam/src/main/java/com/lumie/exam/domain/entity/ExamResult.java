@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Instant;
 
 @Entity
 @Table(name = "exam_results")
@@ -51,6 +52,12 @@ public class ExamResult extends TenantScopedEntity {
     @Column(name = "omr_grading_job_id")
     private Long omrGradingJobId;
 
+    @Column(name = "current_submission_id")
+    private Long currentSubmissionId;
+
+    @Column(name = "manual_override_at")
+    private Instant manualOverrideAt;
+
     @OneToMany(mappedBy = "examResult", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuestionResult> questionResults = new ArrayList<>();
 
@@ -79,6 +86,17 @@ public class ExamResult extends TenantScopedEntity {
 
     public void assignOmrGradingJob(Long omrGradingJobId) {
         this.omrGradingJobId = omrGradingJobId;
+    }
+
+    public void applyOmrSubmission(Long submissionId, Long omrGradingJobId, String omrImageKey) {
+        this.currentSubmissionId = submissionId;
+        this.omrGradingJobId = omrGradingJobId;
+        this.omrImageKey = omrImageKey;
+        this.manualOverrideAt = null;
+    }
+
+    public void recordManualOverride(Instant overriddenAt) {
+        this.manualOverrideAt = overriddenAt;
     }
 
     public static ExamResult create(Exam exam, Long studentId, Integer totalScore) {
