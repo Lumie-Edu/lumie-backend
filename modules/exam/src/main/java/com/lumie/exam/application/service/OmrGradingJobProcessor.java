@@ -4,8 +4,6 @@ import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.OmrGradingJob;
-import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.common.tenant.TenantContextHolder;
