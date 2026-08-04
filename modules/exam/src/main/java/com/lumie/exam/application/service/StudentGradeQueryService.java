@@ -82,6 +82,22 @@ public class StudentGradeQueryService {
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
         List<ExamResult> results = resultRepository.findByExamId(examId);
+        return getStudentGrades(exam, results, classId, hasActiveEnrollment, isActive, pageable);
+    }
+
+    /**
+     * Returns grades for an already-loaded exam result cohort.
+     *
+     * <p>This allows export callers to reuse the same result graph for row details and
+     * grade calculations instead of issuing a second full-result query.
+     */
+    Page<StudentGradeResponse> getStudentGrades(
+            Exam exam,
+            List<ExamResult> results,
+            Long classId,
+            Boolean hasActiveEnrollment,
+            Boolean isActive,
+            Pageable pageable) {
         Map<Long, StudentService.StudentData> studentMap = fetchStudentMap(results);
 
         List<Integer> allScores = results.stream()

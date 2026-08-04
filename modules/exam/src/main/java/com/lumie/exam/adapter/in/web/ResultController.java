@@ -1,6 +1,7 @@
 package com.lumie.exam.adapter.in.web;
 
 import com.lumie.common.api.JobAcceptedResponse;
+import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.auth.Role;
 import com.lumie.common.idempotency.IdempotencyService;
@@ -16,6 +17,7 @@ import com.lumie.exam.application.dto.response.OmrPresignResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.dto.response.statistics.TopStudentMonthlyResponse;
 import com.lumie.exam.application.service.ExamExportService;
+import com.lumie.exam.application.service.StudentGradeQueryService;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
 import jakarta.validation.Valid;
@@ -25,6 +27,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Sort;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
@@ -195,6 +199,7 @@ public class ResultController {
     @GetMapping(value = "/exams/results/export.csv", produces = "text/csv;charset=UTF-8")
     public ResponseEntity<StreamingResponseBody> exportResultsCsv() {
         AuthorizationGuard.requireOwner();
+        ExamExportService.CsvExport csvExport = examExportService.prepareTenantWideCsv();
         String filename = "%s_grades_%s.csv".formatted(
             TenantContextHolder.getRequiredTenant(),
             LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE)
@@ -204,6 +209,35 @@ public class ResultController {
             .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
             .header(HttpHeaders.CONTENT_DISPOSITION,
                 ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString())
-            .body(examExportService::writeCsv);
+            .body(csvExport::writeTo);
+    }
+
+    @GetMapping(value = "/exams/{examId}/results/export.csv", produces = "text/csv;charset=UTF-8")
+    @AllowedSortFields({StudentGradeQueryService.SORT_FIELD_RANK, StudentGradeQueryService.SORT_FIELD_TOTAL_SCORE})
+    public ResponseEntity<StreamingResponseBody> exportExamResultsCsv(
+            @PathVariable Long examId,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Boolean hasActiveEnrollment,
+            @RequestParam(required = false) Boolean isActive,
+            @ParameterObject Sort sort) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        ExamExportService.CsvExport csvExport = examExportService.prepareCsvForExam(
+            examId,
+            classId,
+            hasActiveEnrollment,
+            isActive,
+            sort
+        );
+        String filename = "%s_exam_%d_grades_%s.csv".formatted(
+            TenantContextHolder.getRequiredTenant(),
+            examId,
+            LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE)
+        );
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString())
+            .body(csvExport::writeTo);
     }
 }
