@@ -25,7 +25,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.io.ByteArrayOutputStream;
@@ -67,8 +67,8 @@ class ExamExportServiceTest {
     }
 
     @Test
-    @DisplayName("prepareTenantWideCsv: 기존 전역 export는 시험 관리 시험 결과를 CSV로 유지한다")
-    void prepareTenantWideCsv_writesTenantWideRows() throws Exception {
+    @DisplayName("writeTenantWideCsv: 기존 전역 export는 시험 관리 시험 결과를 스트리밍한다")
+    void writeTenantWideCsv_streamsTenantWideRows() throws Exception {
         Exam exam = ExamFixtures.aGradedExam(2);
         ReflectionTestUtils.setField(exam, "id", 10L);
 
@@ -85,7 +85,7 @@ class ExamExportServiceTest {
         );
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        service.prepareTenantWideCsv().writeTo(out);
+        service.writeTenantWideCsv(out);
 
         String csv = csv(out);
         assertThat(csv).contains("학생명,휴대폰,시험명,응시일,점수,만점,정답수,오답수,등수,백분위,등급");
@@ -119,7 +119,7 @@ class ExamExportServiceTest {
             55L,
             true,
             false,
-            PageRequest.of(0, Integer.MAX_VALUE, sort)
+            Pageable.unpaged(sort)
         )).willReturn(new PageImpl<>(List.of(
             new StudentGradeResponse(2L, "010-2222-0002", true, "학생 2", 40, 1, 66.7,
                 1, ExamCategory.GRADED, false, Instant.parse("2026-08-02T00:00:00Z"), 200L),

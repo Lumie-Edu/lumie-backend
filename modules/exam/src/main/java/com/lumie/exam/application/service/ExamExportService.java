@@ -16,7 +16,7 @@ import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,11 +54,14 @@ public class ExamExportService {
     private final StudentGradeQueryService studentGradeQueryService;
 
     @Transactional(readOnly = true)
-    public CsvExport prepareTenantWideCsv() {
-        List<ExamCsvRow> rows = examRepository.findBySource(ExamSource.EXAM_MANAGEMENT).stream()
-            .flatMap(exam -> buildRowsForTenantWideExport(exam).stream())
-            .toList();
-        return CsvExport.from(rows);
+    public void writeTenantWideCsv(OutputStream out) {
+        try (CsvWriter csv = new CsvWriter(out)) {
+            csv.writeHeader(HEADERS);
+            for (Exam exam : examRepository.findBySource(ExamSource.EXAM_MANAGEMENT)) {
+                writeTenantWideRows(csv, exam);
+                csv.flush();
+            }
+        }
     }
 
     @Transactional(readOnly = true)
@@ -98,19 +101,19 @@ public class ExamExportService {
         return sort == null ? Sort.unsorted() : sort;
     }
 
-    private List<ExamCsvRow> buildRowsForTenantWideExport(Exam exam) {
+    private void writeTenantWideRows(CsvWriter csv, Exam exam) {
         List<ExamResult> results = resultRepository.findByExamId(exam.getId());
         if (results.isEmpty()) {
-            return List.of();
+            return;
         }
 
         Map<Long, StudentService.StudentData> studentMap = fetchStudentMap(results);
         List<Integer> allScores = results.stream()
             .map(ExamResult::getTotalScore)
             .toList();
-        return results.stream()
-            .map(result -> toTenantWideRow(exam, result, studentMap, allScores))
-            .toList();
+        for (ExamResult result : results) {
+            writeCsvRow(csv, toTenantWideRow(exam, result, studentMap, allScores));
+        }
     }
 
     private List<ExamCsvRow> buildRowsForSingleExam(
@@ -134,7 +137,7 @@ public class ExamExportService {
                 classId,
                 hasActiveEnrollment,
                 isActive,
-                PageRequest.of(0, Integer.MAX_VALUE, sort)
+                Pageable.unpaged(sort)
             )
             .getContent()
             .stream()
@@ -221,19 +224,7 @@ public class ExamExportService {
     public record CsvExport(List<List<String>> rows) {
 
         private static CsvExport from(List<ExamCsvRow> sourceRows) {
-            return new CsvExport(sourceRows.stream().map(row -> List.of(
-                row.studentName(),
-                row.phoneNumber(),
-                row.examName(),
-                row.submittedDate(),
-                Integer.toString(row.score()),
-                Integer.toString(row.totalPossible()),
-                Integer.toString(row.correctCount()),
-                Integer.toString(row.incorrectCount()),
-                Integer.toString(row.rank()),
-                Double.toString(row.percentile()),
-                row.grade() == null ? "" : row.grade().toString()
-            )).toList());
+            return new CsvExport(sourceRows.stream().map(ExamExportService::toCsvColumns).toList());
         }
 
         public void writeTo(OutputStream out) {
@@ -245,6 +236,26 @@ public class ExamExportService {
                 csv.flush();
             }
         }
+    }
+
+    private static void writeCsvRow(CsvWriter csv, ExamCsvRow row) {
+        csv.writeRow(toCsvColumns(row));
+    }
+
+    private static List<String> toCsvColumns(ExamCsvRow row) {
+        return List.of(
+            row.studentName(),
+            row.phoneNumber(),
+            row.examName(),
+            row.submittedDate(),
+            Integer.toString(row.score()),
+            Integer.toString(row.totalPossible()),
+            Integer.toString(row.correctCount()),
+            Integer.toString(row.incorrectCount()),
+            Integer.toString(row.rank()),
+            Double.toString(row.percentile()),
+            row.grade() == null ? "" : row.grade().toString()
+        );
     }
 
     private static String formatSubmittedDate(Instant submittedAt) {

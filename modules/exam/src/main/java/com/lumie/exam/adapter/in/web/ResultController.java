@@ -199,7 +199,6 @@ public class ResultController {
     @GetMapping(value = "/exams/results/export.csv", produces = "text/csv;charset=UTF-8")
     public ResponseEntity<StreamingResponseBody> exportResultsCsv() {
         AuthorizationGuard.requireOwner();
-        ExamExportService.CsvExport csvExport = examExportService.prepareTenantWideCsv();
         String filename = "%s_grades_%s.csv".formatted(
             TenantContextHolder.getRequiredTenant(),
             LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE)
@@ -209,7 +208,7 @@ public class ResultController {
             .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
             .header(HttpHeaders.CONTENT_DISPOSITION,
                 ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString())
-            .body(csvExport::writeTo);
+            .body(examExportService::writeTenantWideCsv);
     }
 
     @GetMapping(value = "/exams/{examId}/results/export.csv", produces = "text/csv;charset=UTF-8")
