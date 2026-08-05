@@ -21,11 +21,17 @@ public interface FileMetadataRepository extends JpaRepository<FileMetadata, UUID
         SELECT f FROM FileMetadata f
         WHERE f.entityType = :entityType
           AND ((:folderId IS NULL AND f.folderId IS NULL) OR f.folderId = :folderId)
+        ORDER BY f.createdAt DESC, f.originalFilename ASC, f.id DESC
         """)
     List<FileMetadata> findByEntityTypeAndFolderId(@Param("entityType") EntityType entityType,
                                                    @Param("folderId") UUID folderId);
 
-    List<FileMetadata> findByEntityType(EntityType entityType);
+    @Query("""
+        SELECT f FROM FileMetadata f
+        WHERE f.entityType = :entityType
+        ORDER BY f.createdAt DESC, f.originalFilename ASC, f.id DESC
+        """)
+    List<FileMetadata> findByEntityType(@Param("entityType") EntityType entityType);
 
     boolean existsByFolderId(UUID folderId);
 }
