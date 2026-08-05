@@ -7,11 +7,9 @@ import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.application.service.ExamExportService;
-import com.lumie.exam.application.service.OmrSubmissionService;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
 import com.lumie.exam.application.service.StudentGradeQueryService;
-import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.common.idempotency.IdempotencyService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,8 +57,6 @@ class ResultControllerTest {
 
     @Mock private ResultCommandService resultCommandService;
     @Mock private ResultQueryService resultQueryService;
-    @Mock private OmrSubmissionService omrSubmissionService;
-    @Mock private OmrStoragePort omrStoragePort;
     @Mock private ExamExportService examExportService;
     @Mock private IdempotencyService idempotencyService;
 
@@ -72,8 +68,6 @@ class ResultControllerTest {
         controller = new ResultController(
             resultCommandService,
             resultQueryService,
-            omrSubmissionService,
-            omrStoragePort,
             examExportService,
             idempotencyService
         );
