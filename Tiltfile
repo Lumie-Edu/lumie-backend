@@ -65,6 +65,15 @@ spec:
         app: lumie-backend
         environment: development
     spec:
+      # The dev backend is the sole application workload allowed on the
+      # control-plane node. Keep the control-plane taint intact so workers and
+      # unrelated workloads cannot land there.
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -185,8 +194,8 @@ spec:
               key: TOSS_WEBHOOK_SECRET
         resources:
           requests:
-            cpu: 25m
-            memory: 256Mi
+            cpu: 250m
+            memory: 768Mi
           limits:
             memory: 768Mi
         livenessProbe:
