@@ -171,7 +171,7 @@ public class OmrSubmissionService {
         return responseFor(submission, student.studentName());
     }
 
-    @Transactional(noRollbackFor = BusinessException.class)
+    @Transactional(readOnly = true)
     public OmrSubmissionReconciliationPreviewResponse previewReconciliation(
             Long examId, Long submissionId, PreviewOmrSubmissionReconciliationRequest request) {
         OmrSubmission submission = requireReconciliableSubmission(examId, submissionId);
@@ -181,15 +181,13 @@ public class OmrSubmissionService {
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND,
                         "입력한 전화번호와 일치하는 학생이 없습니다."));
         if (!student.isActive()) {
-            submission.reject("INACTIVE_STUDENT_PHONE");
-            throw new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND,
-                    "이 전화번호는 비활성 학생 기록에 존재합니다.");
+            throw new BusinessException(ExamErrorCode.INACTIVE_STUDENT_PHONE);
         }
         ExamResult currentResult = resultRepository.findByExamIdAndStudentId(examId, student.id()).orElse(null);
         return OmrSubmissionReconciliationPreviewResponse.of(student, currentResult);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BusinessException.class)
     public OmrSubmissionResponse confirmReconciliation(
             Long examId, Long submissionId, ConfirmOmrSubmissionReconciliationRequest request) {
         OmrSubmission submission = requireReconciliableSubmission(examId, submissionId);
@@ -200,8 +198,7 @@ public class OmrSubmissionService {
                         "입력한 전화번호와 일치하는 학생이 없습니다."));
         if (!student.isActive()) {
             submission.reject("INACTIVE_STUDENT_PHONE");
-            throw new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND,
-                    "이 전화번호는 비활성 학생 기록에 존재합니다.");
+            throw new BusinessException(ExamErrorCode.INACTIVE_STUDENT_PHONE);
         }
         if (!student.id().equals(request.expectedStudentId())) {
             throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,

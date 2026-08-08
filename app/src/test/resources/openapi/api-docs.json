@@ -10083,14 +10083,14 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "image/png" : {
                 "schema" : {
-                  "format" : "byte",
+                  "format" : "binary",
                   "type" : "string"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "OMR image"
           }
         },
         "tags" : [ "result-controller" ]
@@ -10188,6 +10188,16 @@
               }
             },
             "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Inactive student phone or result conflict"
           }
         },
         "tags" : [ "result-controller" ]
@@ -10233,6 +10243,16 @@
               }
             },
             "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Inactive student phone"
           }
         },
         "tags" : [ "result-controller" ]
@@ -10285,6 +10305,16 @@
               }
             },
             "description" : "Created"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Inactive student phone or duplicate student phone"
           }
         },
         "tags" : [ "result-controller" ]
@@ -10654,7 +10684,7 @@
           }
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -10662,7 +10692,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "result-controller" ]
@@ -10698,7 +10728,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "202" : {
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -10706,7 +10736,17 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Accepted",
+            "headers" : {
+              "Location" : {
+                "description" : "OMR grading job status URL",
+                "schema" : {
+                  "format" : "uri-reference",
+                  "type" : "string"
+                },
+                "style" : "simple"
+              }
+            }
           }
         },
         "tags" : [ "result-controller" ]
@@ -10807,14 +10847,14 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "image/png" : {
                 "schema" : {
-                  "format" : "byte",
+                  "format" : "binary",
                   "type" : "string"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "OMR image"
           }
         },
         "tags" : [ "result-controller" ]
@@ -10860,6 +10900,16 @@
               }
             },
             "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Inactive student phone or duplicate result"
           }
         },
         "tags" : [ "result-controller" ]

@@ -390,8 +390,9 @@ class ResultCommandServiceTest {
                 new UpdateResultPhoneRequest("01030985821")
         ))
                 .isInstanceOfSatisfying(BusinessException.class, e -> {
-                    assertThat(e.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA);
-                    assertThat(e.getMessage()).isEqualTo("이 전화번호는 비활성 학생 기록에 존재합니다.");
+                    assertThat(e.getErrorCode()).isEqualTo(ExamErrorCode.INACTIVE_STUDENT_PHONE);
+                    assertThat(e.getErrorCode().getCode()).isEqualTo("STUDENT_205");
+                    assertThat(e.getMessage()).isEqualTo("이 전화번호는 퇴원 학생 기록에 존재합니다.");
                 });
 
         verify(resultRepository, never()).saveAndFlush(any());

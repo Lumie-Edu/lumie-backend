@@ -264,8 +264,7 @@ public class ResultCommandService {
         StudentService.StudentData matchedStudent = studentService.getStudentByPhone(tenantSlug, normalizedPhone)
                 .map(student -> {
                     if (!student.isActive()) {
-                        throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,
-                                "이 전화번호는 비활성 학생 기록에 존재합니다.");
+                        throw new BusinessException(ExamErrorCode.INACTIVE_STUDENT_PHONE);
                     }
                     return student;
                 })

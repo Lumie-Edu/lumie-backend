@@ -9,6 +9,7 @@ import com.lumie.exam.application.dto.request.RegisterStudentFromOmrSubmissionRe
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.OmrSubmission;
+import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.repository.OmrSubmissionRepository;
@@ -208,8 +209,8 @@ class OmrSubmissionServiceTest {
     }
 
     @Test
-    @DisplayName("비활성 학생 번호 미리보기는 submission을 거절 상태로 남기고 명시적 오류를 낸다")
-    void previewReconciliationRejectsInactiveStudentPhone() {
+    @DisplayName("비활성 학생 번호 미리보기는 submission 상태를 바꾸지 않고 명시적 오류를 낸다")
+    void previewReconciliationDoesNotMutateForInactiveStudentPhone() {
         OmrSubmission submission = submission(14L, OmrGradingStatus.SUCCEEDED);
         given(submissionRepository.findById(14L)).willReturn(Optional.of(submission));
         given(resultRepository.findByCurrentSubmissionId(14L)).willReturn(Optional.empty());
@@ -218,8 +219,31 @@ class OmrSubmissionServiceTest {
 
         assertThatThrownBy(() -> service.previewReconciliation(
                 1L, 14L, new PreviewOmrSubmissionReconciliationRequest("01012345678")))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("비활성 학생 기록");
+                .isInstanceOfSatisfying(BusinessException.class, e -> {
+                    assertThat(e.getErrorCode()).isEqualTo(ExamErrorCode.INACTIVE_STUDENT_PHONE);
+                    assertThat(e.getErrorCode().getCode()).isEqualTo("STUDENT_205");
+                    assertThat(e.getMessage()).isEqualTo("이 전화번호는 퇴원 학생 기록에 존재합니다.");
+                });
+
+        org.mockito.Mockito.verify(submission, org.mockito.Mockito.never()).reject("INACTIVE_STUDENT_PHONE");
+    }
+
+    @Test
+    @DisplayName("비활성 학생 번호 확정은 submission을 거절 상태로 남기고 공통 오류 코드를 낸다")
+    void confirmReconciliationRejectsInactiveStudentPhone() {
+        OmrSubmission submission = submission(18L, OmrGradingStatus.SUCCEEDED);
+        given(submissionRepository.findById(18L)).willReturn(Optional.of(submission));
+        given(resultRepository.findByCurrentSubmissionId(18L)).willReturn(Optional.empty());
+        given(studentService.getStudentByPhone("test-academy", "01012345678")).willReturn(Optional.of(
+                new StudentService.StudentData(7L, 8L, "퇴원생", "01012345678", false, null, null)));
+
+        assertThatThrownBy(() -> service.confirmReconciliation(
+                1L, 18L, new ConfirmOmrSubmissionReconciliationRequest("01012345678", 7L, null, false)))
+                .isInstanceOfSatisfying(BusinessException.class, e -> {
+                    assertThat(e.getErrorCode()).isEqualTo(ExamErrorCode.INACTIVE_STUDENT_PHONE);
+                    assertThat(e.getErrorCode().getCode()).isEqualTo("STUDENT_205");
+                    assertThat(e.getMessage()).isEqualTo("이 전화번호는 퇴원 학생 기록에 존재합니다.");
+                });
 
         org.mockito.Mockito.verify(submission).reject("INACTIVE_STUDENT_PHONE");
     }

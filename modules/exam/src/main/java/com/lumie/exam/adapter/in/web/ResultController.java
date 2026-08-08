@@ -29,6 +29,10 @@ import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
 import com.lumie.exam.application.service.OmrSubmissionService;
 import com.lumie.exam.application.port.out.OmrStoragePort;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +40,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Sort;
 import org.springdoc.core.annotations.ParameterObject;
@@ -73,6 +78,7 @@ public class ResultController {
     private final IdempotencyService idempotencyService;
 
     @PostMapping(value = "/exams/{examId}/results/omr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<ExamResultResponse> processOmrGrading(
             @PathVariable Long examId,
             @RequestParam Long studentId,
@@ -110,6 +116,13 @@ public class ResultController {
     }
 
     @PostMapping("/exams/{examId}/results/omr/batch/confirm")
+    @ApiResponse(
+            responseCode = "202",
+            description = "Accepted",
+            headers = @Header(
+                    name = HttpHeaders.LOCATION,
+                    description = "OMR grading job status URL",
+                    schema = @Schema(type = "string", format = "uri-reference")))
     public ResponseEntity<JobAcceptedResponse> confirmBatchUpload(
             @PathVariable Long examId,
             @Valid @RequestBody OmrBatchConfirmRequest request,
@@ -189,6 +202,16 @@ public class ResultController {
     }
 
     @PostMapping("/exams/{examId}/omr-submissions/{submissionId}/reconciliation/preview")
+    @ApiResponse(
+            responseCode = "200",
+            description = "OK",
+            content = @Content(schema = @Schema(implementation = OmrSubmissionReconciliationPreviewResponse.class)))
+    @ApiResponse(
+            responseCode = "409",
+            description = "Inactive student phone",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<OmrSubmissionReconciliationPreviewResponse> previewOmrSubmissionReconciliation(
             @PathVariable Long examId,
             @PathVariable Long submissionId,
@@ -198,6 +221,16 @@ public class ResultController {
     }
 
     @PostMapping("/exams/{examId}/omr-submissions/{submissionId}/reconciliation/confirm")
+    @ApiResponse(
+            responseCode = "200",
+            description = "OK",
+            content = @Content(schema = @Schema(implementation = OmrSubmissionResponse.class)))
+    @ApiResponse(
+            responseCode = "409",
+            description = "Inactive student phone or result conflict",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<OmrSubmissionResponse> confirmOmrSubmissionReconciliation(
             @PathVariable Long examId,
             @PathVariable Long submissionId,
@@ -217,6 +250,12 @@ public class ResultController {
 
     @PostMapping("/exams/{examId}/omr-submissions/{submissionId}/register-student")
     @ApiResponse(responseCode = "201", description = "Created")
+    @ApiResponse(
+            responseCode = "409",
+            description = "Inactive student phone or duplicate student phone",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<OmrSubmissionResponse> registerStudentFromOmrSubmission(
             @PathVariable Long examId,
             @PathVariable Long submissionId,
@@ -237,6 +276,12 @@ public class ResultController {
     }
 
     @GetMapping("/exams/{examId}/omr-submissions/{submissionId}/image")
+    @Operation(responses = @ApiResponse(
+            responseCode = "200",
+            description = "OMR image",
+            content = @Content(
+                    mediaType = MediaType.IMAGE_PNG_VALUE,
+                    schema = @Schema(type = "string", format = "binary"))))
     public ResponseEntity<byte[]> getOmrSubmissionImage(
             @PathVariable Long examId,
             @PathVariable Long submissionId) {
@@ -291,6 +336,16 @@ public class ResultController {
     }
 
     @PatchMapping("/exams/{examId}/results/{resultId}/phone")
+    @ApiResponse(
+            responseCode = "200",
+            description = "OK",
+            content = @Content(schema = @Schema(implementation = ExamResultResponse.class)))
+    @ApiResponse(
+            responseCode = "409",
+            description = "Inactive student phone or duplicate result",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ExamResultResponse> updateResultPhone(
             @PathVariable Long examId,
             @PathVariable Long resultId,
@@ -305,6 +360,12 @@ public class ResultController {
     }
 
     @GetMapping("/exams/{examId}/results/{resultId}/omr-image")
+    @Operation(responses = @ApiResponse(
+            responseCode = "200",
+            description = "OMR image",
+            content = @Content(
+                    mediaType = MediaType.IMAGE_PNG_VALUE,
+                    schema = @Schema(type = "string", format = "binary"))))
     public ResponseEntity<byte[]> getOmrImage(
             @PathVariable Long examId,
             @PathVariable Long resultId) {
