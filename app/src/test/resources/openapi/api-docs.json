@@ -1,6 +1,30 @@
 {
   "components" : {
     "schemas" : {
+      "AiCommentaryResponse" : {
+        "properties" : {
+          "content" : {
+            "type" : "string"
+          },
+          "editedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "isEdited" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "content", "editedAt", "generatedAt", "isEdited", "version" ],
+        "type" : "object"
+      },
       "AiReportJobStatusResponse" : {
         "properties" : {
           "failCount" : {
@@ -5854,6 +5878,21 @@
         "required" : [ "overallGrowthRate", "questionType", "trendPoints" ],
         "type" : "object"
       },
+      "UpdateAiCommentaryRequest" : {
+        "properties" : {
+          "content" : {
+            "maxLength" : 10000,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "expectedVersion" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "content", "expectedVersion" ],
+        "type" : "object"
+      },
       "UpdateAnnouncementRequest" : {
         "properties" : {
           "announcementContent" : {
@@ -9573,6 +9612,102 @@
         "tags" : [ "result-controller" ]
       }
     },
+    "/v1/exams/{examId}/ai-commentary" : {
+      "get" : {
+        "operationId" : "getAiCommentary",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AiCommentaryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "joossameng-ai-report-controller" ]
+      },
+      "put" : {
+        "operationId" : "updateAiCommentary",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateAiCommentaryRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AiCommentaryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "joossameng-ai-report-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/ai-commentary/generate" : {
+      "post" : {
+        "operationId" : "generateAiCommentary",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AiCommentaryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "joossameng-ai-report-controller" ]
+      }
+    },
     "/v1/exams/{examId}/omr-jobs" : {
       "get" : {
         "operationId" : "getOmrJobs",
@@ -9706,7 +9841,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "202" : {
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -9714,7 +9849,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Accepted"
           }
         },
         "tags" : [ "joossameng-ai-report-controller" ]
