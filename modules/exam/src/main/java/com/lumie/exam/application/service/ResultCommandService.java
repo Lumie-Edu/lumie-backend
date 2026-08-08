@@ -25,6 +25,7 @@ import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.exam.domain.repository.OmrSubmissionRepository;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
@@ -37,6 +38,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,6 +51,7 @@ public class ResultCommandService {
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
     private final OmrGradingJobRepository jobRepository;
+    private final OmrSubmissionRepository submissionRepository;
     private final GradeCalculator gradeCalculator;
     private final StudentService studentService;
     private final BillingService billingService;
@@ -152,8 +155,16 @@ public class ResultCommandService {
         }
 
         List<String> imageKeys = request.objectKeys();
+        Instant batchAcceptedAt = Instant.now();
         OmrGradingJob job = OmrGradingJob.create(exam, tenantSlug, imageKeys.size(), imageKeys);
         OmrGradingJob savedJob = jobRepository.save(job);
+
+        List<com.lumie.exam.domain.entity.OmrSubmission> submissions = java.util.stream.IntStream
+                .range(0, imageKeys.size())
+                .mapToObj(index -> com.lumie.exam.domain.entity.OmrSubmission.pending(
+                        exam, savedJob.getId(), index, imageKeys.get(index), batchAcceptedAt))
+                .toList();
+        submissionRepository.saveAll(submissions);
 
         // Outbox: each event is persisted to event_publication in THIS transaction,
         // atomically with the job row, then forwarded to RabbitMQ after commit by
@@ -180,6 +191,7 @@ public class ResultCommandService {
 
         QuestionResult updated = result.updateQuestionAnswer(questionResultId, request.selectedChoice());
         gradeCalculator.calculateAndAssignGradeIfAbsolute(result.getExam(), result);
+        result.recordManualOverride(java.time.Instant.now());
 
         ExamResult saved = resultRepository.save(result);
         QuestionResult refreshed = saved.getQuestionResults().stream()
@@ -205,6 +217,7 @@ public class ResultCommandService {
         OmrServicePort.OmrGradingResult gradingResult = buildManualGradingResult(exam, answers);
         ExamResult result = resolveResult(examId, exam, studentId, gradingResult);
         result.assignPhoneNumber(student.studentPhone());
+        result.recordManualOverride(java.time.Instant.now());
         ExamResult saved = resultRepository.save(result);
         return toManualGradeResult(saved, exam, studentId);
     }
@@ -251,8 +264,7 @@ public class ResultCommandService {
         StudentService.StudentData matchedStudent = studentService.getStudentByPhone(tenantSlug, normalizedPhone)
                 .map(student -> {
                     if (!student.isActive()) {
-                        throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,
-                                "이 전화번호는 비활성 학생 기록에 존재합니다.");
+                        throw new BusinessException(ExamErrorCode.INACTIVE_STUDENT_PHONE);
                     }
                     return student;
                 })
@@ -269,6 +281,7 @@ public class ResultCommandService {
 
         try {
             result.updatePhoneMatch(normalizedPhone, matchedStudent != null ? matchedStudent.id() : null);
+            result.recordManualOverride(Instant.now());
             ExamResult saved = resultRepository.saveAndFlush(result);
             return ExamResultResponse.from(saved, matchedStudent != null ? matchedStudent.studentName() : null);
         } catch (DataIntegrityViolationException e) {

@@ -2,6 +2,7 @@ package com.lumie.exam.adapter.in.event;
 
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.api.ExamService;
+import com.lumie.exam.application.service.OmrSubmissionService;
 import com.lumie.student.api.StudentRegisteredEvent;
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.api.TenantStatus;
@@ -30,6 +31,9 @@ class StudentRegisteredListenerTest {
 
     @Mock
     private TenantService tenantService;
+
+    @Mock
+    private OmrSubmissionService omrSubmissionService;
 
     @InjectMocks
     private StudentRegisteredListener listener;

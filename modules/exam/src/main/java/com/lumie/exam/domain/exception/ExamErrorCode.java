@@ -1,6 +1,7 @@
 package com.lumie.exam.domain.exception;
 
 import com.lumie.common.exception.ErrorCode;
+import com.lumie.student.api.StudentPhoneConflict;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +28,10 @@ public enum ExamErrorCode implements ErrorCode {
     // 409 Conflict
     DUPLICATE_RESULT("EXAM_201", "Exam result already exists for this student", 409),
     DUPLICATE_QUESTION_TYPE("EXAM_202", "Exam question type already exists", 409),
+    INACTIVE_STUDENT_PHONE(
+            StudentPhoneConflict.INACTIVE_STUDENT_PHONE.code(),
+            StudentPhoneConflict.INACTIVE_STUDENT_PHONE.message(),
+            StudentPhoneConflict.INACTIVE_STUDENT_PHONE.status()),
 
     // 403 Forbidden
     OMR_QUOTA_EXCEEDED("EXAM_301", "OMR grading quota exceeded", 403),

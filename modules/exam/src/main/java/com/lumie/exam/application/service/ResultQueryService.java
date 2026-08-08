@@ -6,6 +6,7 @@ import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.dto.response.statistics.TopStudentMonthlyResponse;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.ExamResult;
+import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -171,14 +172,17 @@ public class ResultQueryService {
         if (!job.getExam().getId().equals(examId)) {
             throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
         }
-        return OmrJobStatusResponse.from(job);
+        return OmrJobStatusResponse.from(job, resultRepository.countOfficializedByJobId(jobId));
     }
 
     public List<OmrJobStatusResponse> getOmrJobs(Long examId) {
         log.debug("Getting OMR jobs for exam: {}", examId);
 
-        return jobRepository.findByExamIdOrderByCreatedAtDesc(examId).stream()
-                .map(OmrJobStatusResponse::from)
+        List<OmrGradingJob> jobs = jobRepository.findByExamIdOrderByCreatedAtDesc(examId);
+        Map<Long, Integer> savedCounts = resolveOfficializedCounts(jobs);
+
+        return jobs.stream()
+                .map(job -> OmrJobStatusResponse.from(job, savedCounts.getOrDefault(job.getId(), 0)))
                 .toList();
     }
 
@@ -191,5 +195,19 @@ public class ResultQueryService {
         }
 
         return storagePort.getObject(result.getOmrImageKey());
+    }
+
+    private Map<Long, Integer> resolveOfficializedCounts(List<OmrGradingJob> jobs) {
+        List<Long> jobIds = jobs.stream()
+                .map(OmrGradingJob::getId)
+                .toList();
+        if (jobIds.isEmpty()) {
+            return Map.of();
+        }
+        return resultRepository.countOfficializedByJobIds(jobIds).stream()
+                .collect(Collectors.toMap(
+                        ExamResultRepository.JobSavedCountRow::getJobId,
+                        row -> Math.toIntExact(row.getSavedCount())
+                ));
     }
 }

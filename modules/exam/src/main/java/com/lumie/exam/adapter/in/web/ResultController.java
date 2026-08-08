@@ -8,24 +8,39 @@ import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
+import com.lumie.exam.application.dto.request.ApplyOmrSubmissionRequest;
+import com.lumie.exam.application.dto.request.ConfirmOmrSubmissionReconciliationRequest;
+import com.lumie.exam.application.dto.request.PreviewOmrSubmissionReconciliationRequest;
+import com.lumie.exam.application.dto.request.UpdateOmrSubmissionPhoneRequest;
+import com.lumie.exam.application.dto.request.RegisterStudentFromOmrSubmissionRequest;
 import com.lumie.exam.application.dto.request.UpdateResultPhoneRequest;
 import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
 import com.lumie.exam.application.dto.response.OmrPresignResponse;
+import com.lumie.exam.application.dto.response.OmrSubmissionResponse;
+import com.lumie.exam.application.dto.response.OmrSubmissionReconciliationPreviewResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.dto.response.statistics.TopStudentMonthlyResponse;
 import com.lumie.exam.application.service.ExamExportService;
 import com.lumie.exam.application.service.StudentGradeQueryService;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
+import com.lumie.exam.application.service.OmrSubmissionService;
+import com.lumie.exam.application.port.out.OmrStoragePort;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Sort;
 import org.springdoc.core.annotations.ParameterObject;
@@ -48,13 +63,22 @@ public class ResultController {
     private static final String OMR_SINGLE_SCOPE = "POST /v1/exams/{examId}/results/omr";
     private static final String OMR_BATCH_PRESIGN_SCOPE = "POST /v1/exams/{examId}/results/omr/batch/presign";
     private static final String OMR_BATCH_CONFIRM_SCOPE = "POST /v1/exams/{examId}/results/omr/batch/confirm";
+    private static final String OMR_SUBMISSION_REGISTER_STUDENT_SCOPE =
+            "POST /v1/exams/{examId}/omr-submissions/{submissionId}/register-student";
+    private static final String OMR_SUBMISSION_APPLY_SCOPE =
+            "POST /v1/exams/{examId}/omr-submissions/{submissionId}/apply";
+    private static final String OMR_SUBMISSION_RECONCILIATION_CONFIRM_SCOPE =
+            "POST /v1/exams/{examId}/omr-submissions/{submissionId}/reconciliation/confirm";
 
     private final ResultCommandService resultCommandService;
     private final ResultQueryService resultQueryService;
+    private final OmrSubmissionService omrSubmissionService;
+    private final OmrStoragePort omrStoragePort;
     private final ExamExportService examExportService;
     private final IdempotencyService idempotencyService;
 
     @PostMapping(value = "/exams/{examId}/results/omr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<ExamResultResponse> processOmrGrading(
             @PathVariable Long examId,
             @RequestParam Long studentId,
@@ -62,7 +86,7 @@ public class ResultController {
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
         byte[] imageData = image.getBytes();
         if (idempotencyKey != null) {
-            return idempotencyService.executeOnce(
+            return idempotencyService.executeOnceWithoutResponseBody(
                     idempotencyKey,
                     OMR_SINGLE_SCOPE,
                     java.util.Map.of("examId", examId, "studentId", studentId),
@@ -80,7 +104,7 @@ public class ResultController {
             @Valid @RequestBody OmrPresignRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         if (idempotencyKey != null) {
-            return idempotencyService.executeOnce(
+            return idempotencyService.executeOnceWithoutResponseBody(
                     idempotencyKey,
                     OMR_BATCH_PRESIGN_SCOPE,
                     java.util.Map.of("examId", examId, "request", request),
@@ -92,6 +116,13 @@ public class ResultController {
     }
 
     @PostMapping("/exams/{examId}/results/omr/batch/confirm")
+    @ApiResponse(
+            responseCode = "202",
+            description = "Accepted",
+            headers = @Header(
+                    name = HttpHeaders.LOCATION,
+                    description = "OMR grading job status URL",
+                    schema = @Schema(type = "string", format = "uri-reference")))
     public ResponseEntity<JobAcceptedResponse> confirmBatchUpload(
             @PathVariable Long examId,
             @Valid @RequestBody OmrBatchConfirmRequest request,
@@ -127,6 +158,139 @@ public class ResultController {
             @PathVariable Long examId,
             @PathVariable Long jobId) {
         return ResponseEntity.ok(resultQueryService.getOmrJobResults(examId, jobId));
+    }
+
+    @GetMapping("/exams/{examId}/omr-jobs/{jobId}/submissions")
+    public ResponseEntity<List<OmrSubmissionResponse>> getOmrJobSubmissions(
+            @PathVariable Long examId,
+            @PathVariable Long jobId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        return ResponseEntity.ok(omrSubmissionService.getJobSubmissions(examId, jobId));
+    }
+
+    @GetMapping("/exams/{examId}/omr-submissions/reconciliation")
+    public ResponseEntity<List<OmrSubmissionResponse>> getOmrReconciliationQueue(@PathVariable Long examId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        return ResponseEntity.ok(omrSubmissionService.getReconciliationQueue(examId));
+    }
+
+    @PatchMapping("/exams/{examId}/omr-submissions/{submissionId}/phone")
+    public ResponseEntity<OmrSubmissionResponse> updateOmrSubmissionPhone(
+            @PathVariable Long examId,
+            @PathVariable Long submissionId,
+            @Valid @RequestBody UpdateOmrSubmissionPhoneRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        return ResponseEntity.ok(omrSubmissionService.correctPhone(examId, submissionId, request.phoneNumber()));
+    }
+
+    @PostMapping("/exams/{examId}/omr-submissions/{submissionId}/apply")
+    public ResponseEntity<OmrSubmissionResponse> applyOmrSubmission(
+            @PathVariable Long examId,
+            @PathVariable Long submissionId,
+            @Valid @RequestBody ApplyOmrSubmissionRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        if (idempotencyKey != null) {
+            return idempotencyService.executeOnceWithoutResponseBody(
+                    idempotencyKey,
+                    OMR_SUBMISSION_APPLY_SCOPE,
+                    java.util.Map.of("examId", examId, "submissionId", submissionId, "request", request),
+                    () -> ResponseEntity.ok(omrSubmissionService.apply(examId, submissionId, request))
+            );
+        }
+        return ResponseEntity.ok(omrSubmissionService.apply(examId, submissionId, request));
+    }
+
+    @PostMapping("/exams/{examId}/omr-submissions/{submissionId}/reconciliation/preview")
+    @ApiResponse(
+            responseCode = "200",
+            description = "OK",
+            content = @Content(schema = @Schema(implementation = OmrSubmissionReconciliationPreviewResponse.class)))
+    @ApiResponse(
+            responseCode = "409",
+            description = "Inactive student phone",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    public ResponseEntity<OmrSubmissionReconciliationPreviewResponse> previewOmrSubmissionReconciliation(
+            @PathVariable Long examId,
+            @PathVariable Long submissionId,
+            @Valid @RequestBody PreviewOmrSubmissionReconciliationRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        return ResponseEntity.ok(omrSubmissionService.previewReconciliation(examId, submissionId, request));
+    }
+
+    @PostMapping("/exams/{examId}/omr-submissions/{submissionId}/reconciliation/confirm")
+    @ApiResponse(
+            responseCode = "200",
+            description = "OK",
+            content = @Content(schema = @Schema(implementation = OmrSubmissionResponse.class)))
+    @ApiResponse(
+            responseCode = "409",
+            description = "Inactive student phone or result conflict",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    public ResponseEntity<OmrSubmissionResponse> confirmOmrSubmissionReconciliation(
+            @PathVariable Long examId,
+            @PathVariable Long submissionId,
+            @Valid @RequestBody ConfirmOmrSubmissionReconciliationRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        if (idempotencyKey != null) {
+            return idempotencyService.executeOnceWithoutResponseBody(
+                    idempotencyKey,
+                    OMR_SUBMISSION_RECONCILIATION_CONFIRM_SCOPE,
+                    java.util.Map.of("examId", examId, "submissionId", submissionId, "request", request),
+                    () -> ResponseEntity.ok(omrSubmissionService.confirmReconciliation(examId, submissionId, request))
+            );
+        }
+        return ResponseEntity.ok(omrSubmissionService.confirmReconciliation(examId, submissionId, request));
+    }
+
+    @PostMapping("/exams/{examId}/omr-submissions/{submissionId}/register-student")
+    @ApiResponse(responseCode = "201", description = "Created")
+    @ApiResponse(
+            responseCode = "409",
+            description = "Inactive student phone or duplicate student phone",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    public ResponseEntity<OmrSubmissionResponse> registerStudentFromOmrSubmission(
+            @PathVariable Long examId,
+            @PathVariable Long submissionId,
+            @Valid @RequestBody RegisterStudentFromOmrSubmissionRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        if (idempotencyKey != null) {
+            return idempotencyService.executeOnceWithoutResponseBody(
+                    idempotencyKey,
+                    OMR_SUBMISSION_REGISTER_STUDENT_SCOPE,
+                    java.util.Map.of("examId", examId, "submissionId", submissionId, "request", request),
+                    () -> ResponseEntity.status(HttpStatus.CREATED)
+                            .body(omrSubmissionService.registerStudentAndApply(examId, submissionId, request))
+            );
+        }
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(omrSubmissionService.registerStudentAndApply(examId, submissionId, request));
+    }
+
+    @GetMapping("/exams/{examId}/omr-submissions/{submissionId}/image")
+    @Operation(responses = @ApiResponse(
+            responseCode = "200",
+            description = "OMR image",
+            content = @Content(
+                    mediaType = MediaType.IMAGE_PNG_VALUE,
+                    schema = @Schema(type = "string", format = "binary"))))
+    public ResponseEntity<byte[]> getOmrSubmissionImage(
+            @PathVariable Long examId,
+            @PathVariable Long submissionId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        byte[] imageData = omrSubmissionService.getImage(examId, submissionId, omrStoragePort);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .contentLength(imageData.length)
+                .body(imageData);
     }
 
     @GetMapping("/exams/{examId}/omr-jobs")
@@ -172,6 +336,16 @@ public class ResultController {
     }
 
     @PatchMapping("/exams/{examId}/results/{resultId}/phone")
+    @ApiResponse(
+            responseCode = "200",
+            description = "OK",
+            content = @Content(schema = @Schema(implementation = ExamResultResponse.class)))
+    @ApiResponse(
+            responseCode = "409",
+            description = "Inactive student phone or duplicate result",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ExamResultResponse> updateResultPhone(
             @PathVariable Long examId,
             @PathVariable Long resultId,
@@ -186,6 +360,12 @@ public class ResultController {
     }
 
     @GetMapping("/exams/{examId}/results/{resultId}/omr-image")
+    @Operation(responses = @ApiResponse(
+            responseCode = "200",
+            description = "OMR image",
+            content = @Content(
+                    mediaType = MediaType.IMAGE_PNG_VALUE,
+                    schema = @Schema(type = "string", format = "binary"))))
     public ResponseEntity<byte[]> getOmrImage(
             @PathVariable Long examId,
             @PathVariable Long resultId) {

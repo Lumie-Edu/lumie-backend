@@ -334,9 +334,8 @@ public class StudentCommandService {
         }
 
         // ── Pass 1: validate all rows upfront, collecting every error ──────────
-        // Phone uniqueness is checked against the DB state at request time; within-file
-        // duplicate detection is intentionally omitted here (the duplicate will surface
-        // as a BULK_IMPORT_DUPLICATE_PHONE error on the second row that conflicts).
+        // Phone conflicts are classified against the DB state and duplicate rows in the
+        // same file are reported before any auth user or student row is created.
         List<BulkImportResult.RowError> errors = new ArrayList<>();
         Set<String> seenPhones = new HashSet<>();
         for (StudentExcelParser.StudentRow row : rows) {
@@ -445,9 +444,15 @@ public class StudentCommandService {
                 if (!seenPhones.add(normalizedPhone)) {
                     errors.add(rowError(row.rowNumber(), "phone", row.phone(),
                             StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE));
-                } else if (studentRepository.existsByPhone(normalizedPhone)) {
-                    errors.add(rowError(row.rowNumber(), "phone", row.phone(),
-                            StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE));
+                } else {
+                    StudentPhoneConflictStatus conflict = resolveStudentPhoneConflict(normalizedPhone, null);
+                    if (conflict == StudentPhoneConflictStatus.INACTIVE_STUDENT) {
+                        errors.add(rowError(row.rowNumber(), "phone", row.phone(),
+                                StudentErrorCode.BULK_IMPORT_INACTIVE_STUDENT_PHONE));
+                    } else if (conflict == StudentPhoneConflictStatus.ACTIVE_STUDENT) {
+                        errors.add(rowError(row.rowNumber(), "phone", row.phone(),
+                                StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE));
+                    }
                 }
             }
         }
@@ -510,15 +515,38 @@ public class StudentCommandService {
             return;
         }
 
-        if (excludeId == null) {
-            if (p != null && studentRepository.existsByPhone(p)) {
-                throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
+        switch (resolveStudentPhoneConflict(p, excludeId)) {
+            case NONE -> {
+                return;
             }
-        } else {
-            if (p != null && studentRepository.existsByPhoneExcluding(p, excludeId)) {
-                throw new BusinessException(StudentErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(phone));
-            }
+            case INACTIVE_STUDENT -> throw new BusinessException(StudentErrorCode.INACTIVE_STUDENT_PHONE);
+            case ACTIVE_STUDENT -> throw new BusinessException(
+                    StudentErrorCode.DUPLICATE_PHONE,
+                    "Phone number already exists: %s".formatted(phone));
         }
+    }
+
+    private StudentPhoneConflictStatus resolveStudentPhoneConflict(String normalizedPhone, Long excludeId) {
+        boolean duplicate = excludeId == null
+                ? studentRepository.existsByPhone(normalizedPhone)
+                : studentRepository.existsByPhoneExcluding(normalizedPhone, excludeId);
+        if (!duplicate) {
+            return StudentPhoneConflictStatus.NONE;
+        }
+
+        return studentRepository.findByPhone(normalizedPhone)
+                .filter(existing -> excludeId == null || !java.util.Objects.equals(existing.getId(), excludeId))
+                .map(existing -> existing.isActive()
+                        ? StudentPhoneConflictStatus.ACTIVE_STUDENT
+                        : StudentPhoneConflictStatus.INACTIVE_STUDENT)
+                // A concurrent deletion or update must never allow a duplicate registration.
+                .orElse(StudentPhoneConflictStatus.ACTIVE_STUDENT);
+    }
+
+    private enum StudentPhoneConflictStatus {
+        NONE,
+        ACTIVE_STUDENT,
+        INACTIVE_STUDENT
     }
 
     private void validateStudentPhoneFormat(String phone) {
