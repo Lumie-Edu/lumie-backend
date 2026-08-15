@@ -11,7 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 
 @Service
@@ -20,29 +21,41 @@ import java.time.temporal.TemporalAdjusters;
 @Transactional(readOnly = true)
 public class AttendanceStatisticsQueryService {
 
+    private static final ZoneId REPORTING_ZONE = ZoneId.of("Asia/Seoul");
+
     private final AttendanceSessionRepository sessionRepository;
     private final AttendanceRecordRepository recordRepository;
 
     public AttendanceDashboardResponse getDashboardStatistics() {
         log.debug("Getting attendance dashboard statistics");
 
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate today = LocalDate.now(REPORTING_ZONE);
         LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        LocalDate weekEnd = today;
+        return getDashboardStatistics(weekStart, today);
+    }
 
-        long sessionsThisWeek = sessionRepository.countBySessionDateBetween(weekStart, weekEnd);
-        // Exclude PENDING (미인증) — undecided records must not dilute the weekly rate.
+    public AttendanceDashboardResponse getDashboardStatistics(int months) {
+        int window = Math.max(1, Math.min(months, 24));
+        LocalDate today = LocalDate.now(REPORTING_ZONE);
+        LocalDate firstDay = YearMonth.now(REPORTING_ZONE)
+                .minusMonths(window - 1L)
+                .atDay(1);
+        return getDashboardStatistics(firstDay, today);
+    }
+
+    private AttendanceDashboardResponse getDashboardStatistics(LocalDate from, LocalDate to) {
+        long sessions = sessionRepository.countBySessionDateBetween(from, to);
         long totalCount = recordRepository.countBySessionSessionDateBetweenAndStatusNot(
-                weekStart, weekEnd, AttendanceStatus.PENDING);
+                from, to, AttendanceStatus.PENDING);
         long presentCount = recordRepository.countBySessionSessionDateBetweenAndStatus(
-                weekStart, weekEnd, AttendanceStatus.PRESENT);
+                from, to, AttendanceStatus.PRESENT);
 
         double attendanceRate = totalCount > 0
                 ? Math.round((double) presentCount / totalCount * 1000.0) / 10.0
                 : 0.0;
 
         return new AttendanceDashboardResponse(
-                (int) sessionsThisWeek,
+                (int) sessions,
                 attendanceRate,
                 (int) presentCount,
                 (int) totalCount

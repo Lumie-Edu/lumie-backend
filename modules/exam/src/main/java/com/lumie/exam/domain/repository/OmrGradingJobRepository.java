@@ -15,6 +15,38 @@ public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Lo
 
     List<OmrGradingJob> findByExamIdOrderByCreatedAtDesc(Long examId);
 
+    /**
+     * Dashboard-sized OMR completion summaries. The RLS policy on every joined
+     * table scopes this native aggregate to the active tenant.
+     */
+    @Query(value = """
+        WITH recent_exams AS (
+            SELECT DISTINCT ON (j.exam_id)
+                   j.exam_id,
+                   j.updated_at
+              FROM omr_grading_jobs j
+              JOIN exams e ON e.id = j.exam_id
+             WHERE j.status = 'COMPLETED'
+               AND e.source = 'EXAM_MANAGEMENT'
+             ORDER BY j.exam_id, j.updated_at DESC
+        )
+        SELECT recent_exams.exam_id AS "examId",
+               e.name AS "examName",
+               recent_exams.updated_at AS "completedAt",
+               COUNT(r.id) FILTER (WHERE r.current_submission_id IS NOT NULL) AS "participantCount",
+               COALESCE(
+                   AVG(r.total_score) FILTER (WHERE r.current_submission_id IS NOT NULL),
+                   0
+               ) AS "averageScore"
+          FROM recent_exams
+          JOIN exams e ON e.id = recent_exams.exam_id
+          LEFT JOIN exam_results r ON r.exam_id = recent_exams.exam_id
+         GROUP BY recent_exams.exam_id, e.name, recent_exams.updated_at
+         ORDER BY recent_exams.updated_at DESC
+         LIMIT 4
+        """, nativeQuery = true)
+    List<RecentCompletedExamRow> findRecentCompletedExams();
+
     boolean existsByIdAndStatusIn(Long id, Collection<JobStatus> statuses);
 
     @Modifying
@@ -47,6 +79,18 @@ public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Lo
 
     default boolean startProcessingIfPending(Long jobId) {
         return markProcessingIfPending(jobId) > 0;
+    }
+
+    interface RecentCompletedExamRow {
+        Long getExamId();
+
+        String getExamName();
+
+        Instant getCompletedAt();
+
+        long getParticipantCount();
+
+        Double getAverageScore();
     }
 
     /**

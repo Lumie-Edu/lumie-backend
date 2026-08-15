@@ -212,6 +212,12 @@ public class ResultController {
             content = @Content(
                     mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(
+            responseCode = "404",
+            description = "Student not found",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<OmrSubmissionReconciliationPreviewResponse> previewOmrSubmissionReconciliation(
             @PathVariable Long examId,
             @PathVariable Long submissionId,

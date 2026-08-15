@@ -3,6 +3,7 @@ package com.lumie.exam.application.service;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
+import com.lumie.exam.application.dto.response.RecentCompletedExamResponse;
 import com.lumie.exam.application.dto.response.statistics.TopStudentMonthlyResponse;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.ExamResult;
@@ -45,6 +46,18 @@ public class ResultQueryService {
 
         return results.stream()
                 .map(r -> ExamResultResponse.from(r, resolveStudentName(r, nameByStudentId)))
+                .toList();
+    }
+
+    public List<RecentCompletedExamResponse> getRecentCompletedExams() {
+        return jobRepository.findRecentCompletedExams().stream()
+                .map(row -> new RecentCompletedExamResponse(
+                        row.getExamId(),
+                        row.getExamName(),
+                        row.getCompletedAt(),
+                        row.getParticipantCount(),
+                        row.getAverageScore()
+                ))
                 .toList();
     }
 
