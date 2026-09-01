@@ -65,15 +65,8 @@ spec:
         app: lumie-backend
         environment: development
     spec:
-      # The dev backend is the sole application workload allowed on the
-      # control-plane node. Keep the control-plane taint intact so workers and
-      # unrelated workloads cannot land there.
       nodeSelector:
-        node-role.kubernetes.io/control-plane: "true"
-      tolerations:
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: NoSchedule
+        lumie.io/account: second
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
