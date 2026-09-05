@@ -23,7 +23,7 @@ Modular monolith with pragmatic hexagonal boundaries per module. Each module und
 - JDK 21 (or let Gradle toolchain download it)
 - Docker (for TestContainers integration tests and Tilt)
 - SSH access to the dev k3s cluster (host alias `k3s`)
-- Access to Gitea (`github.lumie-infra.com/Lumie-Edu/lumie-backend`)
+- Access to GitHub (`github.com/Lumie-Edu/lumie-backend`)
 
 ## Setup
 
