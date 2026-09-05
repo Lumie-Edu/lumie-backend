@@ -245,7 +245,7 @@ k8s_yaml(blob(deployment_yaml + '\n---\n' + service_yaml))
 # Remote BuildKit build. Gradle and Docker layers stay on the staging node.
 custom_build(
     '%s/dev/lumie-backend' % REGISTRY,
-    './scripts/remote-buildkit-build.sh Dockerfile.dev .tilt-image-ref',
+    './scripts/remote-buildkit-build.sh Dockerfile.dev .tilt-image-ref zot.lumie-infra.com/dev/lumie-backend',
     deps=['.'],
     outputs_image_ref_to='.tilt-image-ref',
     skips_local_docker=True,

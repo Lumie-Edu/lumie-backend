@@ -3,8 +3,7 @@ set -euo pipefail
 
 dockerfile=${1:?dockerfile path is required}
 output_ref_file=${2:?Tilt output ref file is required}
-
-: "${EXPECTED_REF:?Tilt must set EXPECTED_REF}"
+image_repository=${3:?image repository is required}
 
 for command in kubectl docker; do
   command -v "$command" >/dev/null || {
@@ -24,6 +23,7 @@ pod=$(kubectl -n buildkit get pods \
 
 builder=lumie-remote-buildkit
 endpoint="kube-pod://${pod}?namespace=buildkit&container=buildkitd"
+image_ref="${image_repository}:tilt-$(date -u +%Y%m%d%H%M%S)-${RANDOM}"
 
 docker buildx rm --force "$builder" >/dev/null 2>&1 || true
 docker buildx create --name "$builder" --driver remote "$endpoint" >/dev/null
@@ -31,8 +31,8 @@ docker buildx build \
   --builder "$builder" \
   --platform linux/arm64 \
   --file "$dockerfile" \
-  --tag "$EXPECTED_REF" \
+  --tag "$image_ref" \
   --push \
   .
 
-printf '%s\n' "$EXPECTED_REF" > "$output_ref_file"
+printf '%s\n' "$image_ref" > "$output_ref_file"
