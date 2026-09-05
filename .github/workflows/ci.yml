@@ -91,11 +91,11 @@ jobs:
           TAG_REPO: Lumie-Edu/lumie-image-tags
           TAG_FILE: applications/lumie/backend/image-values.yaml
           IMAGE_TAG: ${{ steps.tags.outputs.short_sha }}
-          TAG_REPO_TOKEN: ${{ secrets.GITHUB_GITOPS_TOKEN }}
+          TAG_REPO_TOKEN: ${{ secrets.LUMIE_GITOPS_TOKEN }}
         run: |
           set -euo pipefail
           if [ -z "${TAG_REPO_TOKEN}" ]; then
-            echo "::error::GITHUB_GITOPS_TOKEN is required to update ${TAG_REPO}."
+            echo "::error::LUMIE_GITOPS_TOKEN is required to update ${TAG_REPO}."
             exit 1
           fi
 
