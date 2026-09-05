@@ -1,12 +1,20 @@
-# Development Dockerfile for Tilt
-FROM eclipse-temurin:21-jre-alpine
+# Development Dockerfile for remote BuildKit + Tilt.
+FROM zot.lumie-infra.com/library/eclipse-temurin:21-jdk@sha256:5f42d89380984fc2d16f42dfeb97f7221dfb29697223c4d773455dbf4af30de6 AS builder
+
+WORKDIR /workspace
+
+COPY . .
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew :app:bootJar -x test --parallel
+
+FROM zot.lumie-infra.com/library/eclipse-temurin:21-jre-alpine@sha256:cc0a57a8aa0730b543dc34e56ff6679609532a43f685f459863330d64e97fbb6
 
 WORKDIR /app
 
 RUN apk add --no-cache curl && \
     addgroup -g 1000 app && adduser -u 1000 -G app -D app
 
-COPY --chown=app:app app/build/libs/lumie-backend.jar app.jar
+COPY --from=builder --chown=app:app /workspace/app/build/libs/lumie-backend.jar app.jar
 
 USER app
 
