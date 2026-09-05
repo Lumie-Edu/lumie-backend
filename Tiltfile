@@ -242,14 +242,19 @@ spec:
 
 k8s_yaml(blob(deployment_yaml + '\n---\n' + service_yaml))
 
-# Docker build (rebuild when jar changes)
-docker_build(
+# Remote BuildKit build. Gradle and Docker layers stay on the staging node.
+custom_build(
     '%s/dev/lumie-backend' % REGISTRY,
-    context='.',
-    dockerfile='Dockerfile.dev',
-    only=[
-        'app/build/libs/',
-        'Dockerfile.dev',
+    './scripts/remote-buildkit-build.sh Dockerfile.dev .tilt-image-ref',
+    deps=['.'],
+    outputs_image_ref_to='.tilt-image-ref',
+    skips_local_docker=True,
+    disable_push=True,
+    ignore=[
+        '.git',
+        '**/build/',
+        '**/.gradle/',
+        '.tilt-image-ref',
     ],
 )
 
@@ -257,23 +262,4 @@ k8s_resource(
     'lumie-backend',
     port_forwards=['18080:8080'],
     labels=['lumie-dev'],
-    resource_deps=['gradle-build'],
-)
-
-# Gradle build
-local_resource(
-    'gradle-build',
-    cmd='./gradlew :app:bootJar -x test --parallel',
-    deps=[
-        'modules/',
-        'libs/',
-        'app/',
-        'build.gradle.kts',
-        'settings.gradle.kts',
-    ],
-    ignore=[
-        '**/build/',
-        '**/.gradle/',
-    ],
-    labels=['build'],
 )
