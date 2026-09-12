@@ -259,7 +259,7 @@ custom_build(
         sync('libs', '/workspace/libs'),
         sync('modules', '/workspace/modules'),
         run(
-            './gradlew -Dorg.gradle.jvmargs=-Xmx512m :app:classes --no-daemon',
+            './gradlew -Dorg.gradle.jvmargs=-Xmx256m -Dorg.gradle.workers.max=1 :devClasses --no-daemon',
             trigger=['app/src/main/**', 'libs/**', 'modules/**'],
         ),
     ],

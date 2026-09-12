@@ -1,9 +1,9 @@
 # Development image for remote BuildKit + Tilt live updates.
 #
-# This intentionally runs Gradle's bootRun rather than a packaged JAR. Tilt
-# syncs Java source/resources into this workspace and recompiles them in-place;
-# Spring Boot DevTools then restarts only the application context. Production
-# continues to use Dockerfile's immutable bootJar image.
+# Tilt syncs Java source/resources into this workspace and recompiles them
+# in-place. The container starts the compiled classpath directly so Spring Boot
+# DevTools can restart the application without a Gradle JVM competing for the
+# Pod's memory. Production continues to use Dockerfile's immutable bootJar.
 FROM zot.lumie-infra.com/library/eclipse-temurin:21-jdk@sha256:5f42d89380984fc2d16f42dfeb97f7221dfb29697223c4d773455dbf4af30de6
 
 WORKDIR /workspace
@@ -15,13 +15,13 @@ COPY --chown=ubuntu:ubuntu . .
 USER ubuntu
 
 ENV GRADLE_USER_HOME=/workspace/.gradle
-ENV JAVA_TOOL_OPTIONS="-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"
-ENV TILT_GRADLE_JVM_ARGS="-Dorg.gradle.jvmargs=-Xmx512m"
+ENV JAVA_OPTS="-XX:+UseG1GC -Xmx450m"
+ENV TILT_GRADLE_JVM_ARGS="-Dorg.gradle.jvmargs=-Xmx512m -Dorg.gradle.workers.max=2"
 
 # Prime the Gradle cache and verify the initial development classpath while the
 # remote BuildKit cache is warm. Subsequent source edits are incremental.
-RUN ./gradlew $TILT_GRADLE_JVM_ARGS :app:classes --no-daemon
+RUN ./gradlew $TILT_GRADLE_JVM_ARGS :devClasses :app:writeDevRuntimeClasspath --no-daemon
 
 EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "./gradlew $TILT_GRADLE_JVM_ARGS :app:bootRun --no-daemon"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -cp \"$(cat /workspace/app/build/dev-runtime-classpath)\" com.lumie.app.LumieApplication"]

@@ -90,6 +90,19 @@ tasks.bootJar {
     archiveFileName.set("lumie-backend.jar")
 }
 
+// The Tilt development image runs the compiled classpath directly rather than
+// keeping Gradle's bootRun process alive in the constrained development Pod.
+// This keeps DevTools on the runtime classpath while avoiding a second JVM.
+tasks.register("writeDevRuntimeClasspath") {
+    val runtimeClasspath = sourceSets.main.get().runtimeClasspath
+    val outputFile = layout.buildDirectory.file("dev-runtime-classpath")
+
+    outputs.file(outputFile)
+    doLast {
+        outputFile.get().asFile.writeText(runtimeClasspath.asPath)
+    }
+}
+
 // Forward -DupdateOpenApiSnapshot to the forked test JVM so OpenApiSnapshotTest can
 // regenerate its golden (a plain `-D` only reaches the Gradle daemon JVM otherwise).
 tasks.withType<Test>().configureEach {
