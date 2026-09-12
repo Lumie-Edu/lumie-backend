@@ -1,25 +1,27 @@
-# Development Dockerfile for remote BuildKit + Tilt.
-FROM zot.lumie-infra.com/library/eclipse-temurin:21-jdk@sha256:5f42d89380984fc2d16f42dfeb97f7221dfb29697223c4d773455dbf4af30de6 AS builder
+# Development image for remote BuildKit + Tilt live updates.
+#
+# This intentionally runs Gradle's bootRun rather than a packaged JAR. Tilt
+# syncs Java source/resources into this workspace and recompiles them in-place;
+# Spring Boot DevTools then restarts only the application context. Production
+# continues to use Dockerfile's immutable bootJar image.
+FROM zot.lumie-infra.com/library/eclipse-temurin:21-jdk@sha256:5f42d89380984fc2d16f42dfeb97f7221dfb29697223c4d773455dbf4af30de6
 
 WORKDIR /workspace
 
-COPY . .
-RUN --mount=type=cache,target=/root/.gradle \
-    ./gradlew :app:bootJar -x test --parallel
+RUN chown ubuntu:ubuntu /workspace
 
-FROM zot.lumie-infra.com/library/eclipse-temurin:21-jre-alpine@sha256:cc0a57a8aa0730b543dc34e56ff6679609532a43f685f459863330d64e97fbb6
+COPY --chown=ubuntu:ubuntu . .
 
-WORKDIR /app
+USER ubuntu
 
-RUN apk add --no-cache curl && \
-    addgroup -g 1000 app && adduser -u 1000 -G app -D app
+ENV GRADLE_USER_HOME=/workspace/.gradle
+ENV JAVA_TOOL_OPTIONS="-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"
+ENV TILT_GRADLE_JVM_ARGS="-Dorg.gradle.jvmargs=-Xmx512m"
 
-COPY --from=builder --chown=app:app /workspace/app/build/libs/lumie-backend.jar app.jar
-
-USER app
+# Prime the Gradle cache and verify the initial development classpath while the
+# remote BuildKit cache is warm. Subsequent source edits are incremental.
+RUN ./gradlew $TILT_GRADLE_JVM_ARGS :app:classes --no-daemon
 
 EXPOSE 8080
 
-ENV JAVA_OPTS="-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"
-
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+ENTRYPOINT ["sh", "-c", "./gradlew $TILT_GRADLE_JVM_ARGS :app:bootRun --no-daemon"]

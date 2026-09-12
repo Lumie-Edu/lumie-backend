@@ -35,6 +35,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     // Spring Modulith — transactional outbox for cross-module domain events.
     // Replaces hand-rolled @TransactionalEventListener(AFTER_COMMIT) so events
