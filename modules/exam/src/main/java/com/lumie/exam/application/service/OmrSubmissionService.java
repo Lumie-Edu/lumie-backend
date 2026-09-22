@@ -58,8 +58,11 @@ public class OmrSubmissionService {
     }
 
     @Transactional
-    public void complete(Long jobId, int imageIndex, OmrGradingCallbackRequest request, String permanentImageKey) {
-        OmrSubmission submission = getSubmission(jobId, imageIndex);
+    public boolean completeIfPending(Long jobId, int imageIndex, OmrGradingCallbackRequest request, String permanentImageKey) {
+        OmrSubmission submission = getSubmissionForUpdate(jobId, imageIndex);
+        if (submission.getGradingStatus() != OmrGradingStatus.PENDING) {
+            return false;
+        }
         List<OmrSubmissionQuestion> questions = request.results().stream()
                 .map(q -> OmrSubmissionQuestion.create(q.questionNumber(), q.studentAnswer(), q.correctAnswer(),
                         q.score(), q.earnedScore(), q.questionType()))
@@ -69,7 +72,7 @@ public class OmrSubmissionService {
 
         if (submission.getEffectivePhoneNumber() == null) {
             submission.markUnmatched("PHONE_NOT_DETECTED");
-            return;
+            return true;
         }
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -77,20 +80,26 @@ public class OmrSubmissionService {
                 .orElse(null);
         if (student == null) {
             submission.markUnmatched("NO_ACTIVE_STUDENT_MATCH");
-            return;
+            return true;
         }
         if (!student.isActive()) {
             submission.reject("INACTIVE_STUDENT_PHONE");
-            return;
+            return true;
         }
 
         submission.markMatched(student.id());
         applyAutomatic(submission, student);
+        return true;
     }
 
     @Transactional
-    public void fail(Long jobId, int imageIndex, String reason) {
-        getSubmission(jobId, imageIndex).fail(reason);
+    public boolean failIfPending(Long jobId, int imageIndex, String reason) {
+        OmrSubmission submission = getSubmissionForUpdate(jobId, imageIndex);
+        if (submission.getGradingStatus() != OmrGradingStatus.PENDING) {
+            return false;
+        }
+        submission.fail(reason);
+        return true;
     }
 
     @Transactional
@@ -297,6 +306,11 @@ public class OmrSubmissionService {
     @Transactional(readOnly = true)
     public List<String> getSourceImageKeysWithoutPermanentCopy(Long jobId) {
         return submissionRepository.findSourceImageKeysWithoutPermanentCopyByJobId(jobId);
+    }
+
+    private OmrSubmission getSubmissionForUpdate(Long jobId, int imageIndex) {
+        return submissionRepository.findByJobIdAndImageIndexForUpdate(jobId, imageIndex)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
     }
 
     private void applyAutomatic(OmrSubmission submission, StudentService.StudentData student) {

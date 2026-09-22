@@ -1,7 +1,6 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
-import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
@@ -9,26 +8,18 @@ import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OmrGradingJobProcessor {
 
-    private static final String DEDUP_KEY_PREFIX = "omr:cb:";
-    private static final int MAX_OPTIMISTIC_LOCK_ATTEMPTS = 3;
-    private static final long OPTIMISTIC_LOCK_BACKOFF_MILLIS = 50;
-
     private final OmrStoragePort storagePort;
-    private final CallbackDeduplicationPort callbackDeduplication;
     private final OmrGradingJobRepository jobRepository;
     private final Tx tx;
 
@@ -36,37 +27,12 @@ public class OmrGradingJobProcessor {
         log.info("Processing grading callback: jobId={}, imageIndex={}/{}, success={}",
                 request.jobId(), request.imageIndex() + 1, request.totalImages(), request.success());
 
-        String dedupKey = DEDUP_KEY_PREFIX + request.jobId() + ":" + request.imageIndex();
-        for (int attempt = 1; attempt <= MAX_OPTIMISTIC_LOCK_ATTEMPTS; attempt++) {
-            if (!callbackDeduplication.markIfAbsent(dedupKey)) {
-                log.warn("Duplicate OMR callback skips counting and retries finalization: jobId={}, imageIndex={}",
-                        request.jobId(), request.imageIndex());
-                finalizeAndCleanupIfDone(request);
-                return;
-            }
-
-            boolean counted;
-            try {
-                counted = recordCallbackBeforeFinalize(request);
-            } catch (OptimisticLockingFailureException e) {
-                forgetDedupAfterUncommittedFailure(dedupKey, request);
-                if (attempt == MAX_OPTIMISTIC_LOCK_ATTEMPTS) {
-                    throw e;
-                }
-                log.warn("Retrying OMR callback after optimistic lock failure: jobId={}, imageIndex={}, attempt={}/{}",
-                        request.jobId(), request.imageIndex(), attempt + 1, MAX_OPTIMISTIC_LOCK_ATTEMPTS);
-                backoff(attempt);
-                continue;
-            } catch (RuntimeException e) {
-                forgetDedupAfterUncommittedFailure(dedupKey, request);
-                throw e;
-            }
-
-            if (counted) {
-                finalizeAndCleanupIfDone(request);
-            }
-            return;
+        boolean transitioned = recordCallbackBeforeFinalize(request);
+        if (!transitioned) {
+            log.info("Duplicate or terminal OMR callback skipped mutation: jobId={}, imageIndex={}",
+                    request.jobId(), request.imageIndex());
         }
+        finalizeAndCleanupIfDone(request);
     }
 
     private void finalizeAndCleanupIfDone(OmrGradingCallbackRequest request) {
@@ -95,31 +61,13 @@ public class OmrGradingJobProcessor {
                 permanentKey = copyImage(request, prep.permanentKey());
             } catch (Exception e) {
                 log.warn("Failed to copy OMR image to permanent path: {}", prep.permanentKey(), e);
-                tx.recordFail(request.jobId(), request.imageIndex(), "IMAGE_PERSISTENCE_FAILED");
-                return true;
+                return tx.recordFail(request.jobId(), request.imageIndex(), "IMAGE_PERSISTENCE_FAILED");
             }
 
             // Phase 3 (write tx): persist raw submission, then conditionally project it.
-            tx.saveSuccess(request, prep, permanentKey);
-        } else {
-            tx.recordFail(request.jobId(), request.imageIndex(), request.error());
+            return tx.saveSuccess(request, prep, permanentKey);
         }
-
-        return true;
-    }
-
-    private void forgetDedupAfterUncommittedFailure(String dedupKey, OmrGradingCallbackRequest request) {
-        try {
-            callbackDeduplication.forget(dedupKey);
-        } catch (RuntimeException e) {
-            log.warn("Failed to release OMR callback dedup key after uncommitted failure: jobId={}, imageIndex={}",
-                    request.jobId(), request.imageIndex(), e);
-        }
-    }
-
-    private static void backoff(int previousAttempt) {
-        long millis = OPTIMISTIC_LOCK_BACKOFF_MILLIS * previousAttempt;
-        LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(millis));
+        return tx.recordFail(request.jobId(), request.imageIndex(), request.error());
     }
 
     private String copyImage(OmrGradingCallbackRequest request, String permanentKey) {
@@ -187,15 +135,22 @@ public class OmrGradingJobProcessor {
         }
 
         @Transactional
-        public void saveSuccess(OmrGradingCallbackRequest request, SuccessPrep prep, String permanentKey) {
-            submissionService.complete(request.jobId(), request.imageIndex(), request, permanentKey);
-            jobRepository.incrementSuccess(request.jobId());
+        public boolean saveSuccess(OmrGradingCallbackRequest request, SuccessPrep prep, String permanentKey) {
+            boolean transitioned = submissionService.completeIfPending(
+                    request.jobId(), request.imageIndex(), request, permanentKey);
+            if (transitioned) {
+                jobRepository.incrementSuccess(request.jobId());
+            }
+            return transitioned;
         }
 
         @Transactional
-        public void recordFail(Long jobId, int imageIndex, String reason) {
-            submissionService.fail(jobId, imageIndex, reason);
-            jobRepository.incrementFail(jobId);
+        public boolean recordFail(Long jobId, int imageIndex, String reason) {
+            boolean transitioned = submissionService.failIfPending(jobId, imageIndex, reason);
+            if (transitioned) {
+                jobRepository.incrementFail(jobId);
+            }
+            return transitioned;
         }
 
         @Transactional(readOnly = true)
