@@ -268,6 +268,69 @@ class StudentCommandServiceTest {
     }
 
     @Test
+    @DisplayName("registerStudent는 비활성 학생 전화번호를 명시적으로 안내한다")
+    void registerStudent_inactiveStudentPhone_reportsInactiveRecord() {
+        StudentRequest request = new StudentRequest(
+                "김민조",
+                "01012345678",
+                "양천고",
+                2000,
+                "01088888888",
+                null
+        );
+        Student inactiveStudent = Student.builder()
+                .name("퇴원생")
+                .phone("01012345678")
+                .isActive(false)
+                .build();
+        given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
+        given(studentRepository.existsByPhone("01012345678")).willReturn(true);
+        given(studentRepository.findByPhone("01012345678")).willReturn(java.util.Optional.of(inactiveStudent));
+
+        assertThatThrownBy(() -> service.registerStudent(request))
+                .isInstanceOfSatisfying(BusinessException.class, e -> {
+                    assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.INACTIVE_STUDENT_PHONE);
+                    assertThat(e.getMessage()).isEqualTo("이 전화번호는 퇴원 학생 기록에 존재합니다.");
+                });
+
+        verify(authService, never()).createUser(any(), any(), eq(Role.STUDENT.name()), anyLong());
+    }
+
+    @Test
+    @DisplayName("updateStudent는 퇴원 학생 전화번호를 명시적으로 안내한다")
+    void updateStudent_inactiveStudentPhone_reportsInactiveRecord() {
+        Student student = Student.create(
+                100L,
+                "student@example.com",
+                "김민조",
+                "01099999999",
+                "양천고",
+                2000,
+                "01088888888",
+                null
+        );
+        Student inactiveStudent = inactiveStudent(43L, 101L);
+        ReflectionTestUtils.setField(student, "id", 42L);
+        given(studentRepository.findById(42L)).willReturn(Optional.of(student));
+        given(studentRepository.existsByPhoneExcluding("01012345678", 42L)).willReturn(true);
+        given(studentRepository.findByPhone("01012345678")).willReturn(Optional.of(inactiveStudent));
+
+        assertThatThrownBy(() -> service.updateStudent(42L, new com.lumie.student.application.dto.request.StudentUpdateRequest(
+                null,
+                "01012345678",
+                null,
+                null,
+                null,
+                null
+        )))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.INACTIVE_STUDENT_PHONE));
+
+        verify(studentRepository, never()).save(any(Student.class));
+    }
+
+    @Test
     @DisplayName("bulkImportStudents는 스프레드시트 수식으로 해석될 수 있는 값을 row 오류로 처리한다")
     void bulkImportStudents_unsafeSpreadsheetValue_returnsRowError() {
         String csv = """
@@ -321,6 +384,37 @@ class StudentCommandServiceTest {
         assertThat(result.errors())
                 .extracting(BulkImportResult.RowError::rowNumber, BulkImportResult.RowError::code)
                 .containsExactly(tuple(3, StudentErrorCode.BULK_IMPORT_DUPLICATE_PHONE.getCode()));
+    }
+
+    @Test
+    @DisplayName("bulkImportStudents는 퇴원 학생 연락처를 명시적인 row 오류로 처리한다")
+    void bulkImportStudents_inactiveStudentPhone_returnsExplicitRowError() {
+        String csv = """
+                학생 이름,학생 연락처,학교명,출생 연도,학부모 연락처,메모
+                김민조,010-1234-5678,,,,
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "students.csv",
+                "text/csv",
+                csv.getBytes(UTF_8)
+        );
+        given(studentRepository.existsByPhone("01012345678")).willReturn(true);
+        given(studentRepository.findByPhone("01012345678")).willReturn(Optional.of(inactiveStudent(43L, 101L)));
+
+        BulkImportResult result = service.bulkImportStudents(file);
+
+        assertThat(result.successCount()).isZero();
+        assertThat(result.failureCount()).isEqualTo(1);
+        assertThat(result.errors())
+                .extracting(BulkImportResult.RowError::rowNumber, BulkImportResult.RowError::code,
+                        BulkImportResult.RowError::message)
+                .containsExactly(tuple(
+                        2,
+                        StudentErrorCode.BULK_IMPORT_INACTIVE_STUDENT_PHONE.getCode(),
+                        "이 전화번호는 퇴원 학생 기록에 존재합니다."
+                ));
+        verify(authService, never()).createUser(any(), any(), eq(Role.STUDENT.name()), anyLong());
     }
 
     @Test

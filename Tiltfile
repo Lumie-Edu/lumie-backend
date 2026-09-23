@@ -243,6 +243,10 @@ spec:
 k8s_yaml(blob(deployment_yaml + '\n---\n' + service_yaml))
 
 # Remote BuildKit build. Gradle and Docker layers stay on the staging node.
+# Java and resource changes are synced into the development image, compiled in
+# place, and picked up by Spring Boot DevTools. Build scripts, dependencies,
+# Dockerfile changes, and deployment configuration are deliberately omitted so
+# they retain the safer full remote-build-and-redeploy path.
 custom_build(
     '%s/dev/lumie-backend' % REGISTRY,
     './scripts/remote-buildkit-build.sh Dockerfile.dev .tilt-image-ref zot.lumie-infra.com/dev/lumie-backend',
@@ -250,6 +254,15 @@ custom_build(
     outputs_image_ref_to='.tilt-image-ref',
     skips_local_docker=True,
     disable_push=True,
+    live_update=[
+        sync('app/src/main', '/workspace/app/src/main'),
+        sync('libs', '/workspace/libs'),
+        sync('modules', '/workspace/modules'),
+        run(
+            './gradlew -Dorg.gradle.jvmargs=-Xmx256m -Dorg.gradle.workers.max=1 :devClasses --no-daemon',
+            trigger=['app/src/main/**', 'libs/**', 'modules/**'],
+        ),
+    ],
     ignore=[
         '.git',
         '**/build/',

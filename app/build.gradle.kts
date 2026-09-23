@@ -35,6 +35,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     // Spring Modulith — transactional outbox for cross-module domain events.
     // Replaces hand-rolled @TransactionalEventListener(AFTER_COMMIT) so events
@@ -87,6 +88,19 @@ dependencies {
 
 tasks.bootJar {
     archiveFileName.set("lumie-backend.jar")
+}
+
+// The Tilt development image runs the compiled classpath directly rather than
+// keeping Gradle's bootRun process alive in the constrained development Pod.
+// This keeps DevTools on the runtime classpath while avoiding a second JVM.
+tasks.register("writeDevRuntimeClasspath") {
+    val runtimeClasspath = sourceSets.main.get().runtimeClasspath
+    val outputFile = layout.buildDirectory.file("dev-runtime-classpath")
+
+    outputs.file(outputFile)
+    doLast {
+        outputFile.get().asFile.writeText(runtimeClasspath.asPath)
+    }
 }
 
 // Forward -DupdateOpenApiSnapshot to the forked test JVM so OpenApiSnapshotTest can

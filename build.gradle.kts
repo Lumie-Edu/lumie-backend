@@ -207,6 +207,14 @@ tasks.named("check") {
     dependsOn("lumieLint")
 }
 
+// Tilt syncs source into the running development Pod. Rebuild every project
+// JAR after an incremental compile because the direct development classpath
+// contains the module artifacts rather than Gradle's bootRun class directories.
+tasks.register("devClasses") {
+    dependsOn(subprojects.map { it.tasks.named("classes") })
+    dependsOn(subprojects.map { it.tasks.named("jar") })
+}
+
 // jk1.license plugin's tasks aren't config-cache compatible (they retain
 // Project references). Mark them explicitly so the rest of the build can
 // still benefit from the config cache. Until upstream adds support, these

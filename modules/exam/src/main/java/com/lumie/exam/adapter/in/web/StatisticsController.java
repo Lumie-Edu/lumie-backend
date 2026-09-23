@@ -8,6 +8,8 @@ import com.lumie.exam.application.service.ExamSummaryStatisticsService;
 import com.lumie.exam.application.service.ItemAnalysisQueryService;
 import com.lumie.exam.application.service.StudentAnalyticsQueryService;
 import com.lumie.exam.application.service.StudentGradeQueryService;
+import com.lumie.exam.application.service.ResultQueryService;
+import com.lumie.exam.application.dto.response.RecentCompletedExamResponse;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
@@ -30,6 +32,12 @@ public class StatisticsController {
     private final ItemAnalysisQueryService itemAnalysisQueryService;
     private final StudentAnalyticsQueryService studentAnalyticsQueryService;
     private final StudentGradeQueryService studentGradeQueryService;
+    private final ResultQueryService resultQueryService;
+
+    @GetMapping("/dashboard/recent-completed-exams")
+    public ResponseEntity<List<RecentCompletedExamResponse>> getRecentCompletedExams() {
+        return ResponseEntity.ok(resultQueryService.getRecentCompletedExams());
+    }
 
     @GetMapping("/exams/{examId}")
     public ResponseEntity<ExamStatisticsResponse> getExamStatistics(

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -16,7 +17,11 @@ public class AttendanceStatisticsController {
     private final AttendanceStatisticsQueryService attendanceStatisticsQueryService;
 
     @GetMapping("/dashboard")
-    public ResponseEntity<AttendanceDashboardResponse> getDashboardStatistics() {
-        return ResponseEntity.ok(attendanceStatisticsQueryService.getDashboardStatistics());
+    public ResponseEntity<AttendanceDashboardResponse> getDashboardStatistics(
+            @RequestParam(required = false) Integer months) {
+        AttendanceDashboardResponse response = months == null
+                ? attendanceStatisticsQueryService.getDashboardStatistics()
+                : attendanceStatisticsQueryService.getDashboardStatistics(months);
+        return ResponseEntity.ok(response);
     }
 }

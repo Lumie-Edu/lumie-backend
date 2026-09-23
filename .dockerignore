@@ -54,9 +54,3 @@ docker-compose*.yml
 README.md
 CLAUDE.md
 *.md
-
-# Dev image exception: Dockerfile.dev COPYs the locally pre-built bootJar from
-# app/build/libs/, which the build/ exclusions above would drop from the context.
-# Re-include exactly that one artifact. Prod Dockerfile builds from source and is
-# unaffected (it never COPYs from app/build/).
-!app/build/libs/lumie-backend.jar

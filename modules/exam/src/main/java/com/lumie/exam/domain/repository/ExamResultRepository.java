@@ -15,6 +15,25 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     @EntityGraph(attributePaths = {"exam"})
     Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
 
+    Optional<ExamResult> findByCurrentSubmissionId(Long currentSubmissionId);
+
+    @Query("""
+        select count(r)
+          from ExamResult r
+         where r.omrGradingJobId = :jobId
+           and r.currentSubmissionId is not null
+        """)
+    int countOfficializedByJobId(@Param("jobId") Long jobId);
+
+    @Query("""
+        select r.omrGradingJobId as jobId, count(r) as savedCount
+          from ExamResult r
+         where r.omrGradingJobId in :jobIds
+           and r.currentSubmissionId is not null
+         group by r.omrGradingJobId
+        """)
+    List<JobSavedCountRow> countOfficializedByJobIds(@Param("jobIds") Collection<Long> jobIds);
+
     @EntityGraph(attributePaths = {"exam", "questionResults"})
     List<ExamResult> findByExamId(Long examId);
 
@@ -81,6 +100,11 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
         Long getStudentId();
         Double getAvgScore();
         Integer getAttemptCount();
+    }
+
+    interface JobSavedCountRow {
+        Long getJobId();
+        long getSavedCount();
     }
 
     // ---------------------------------------------------------------------

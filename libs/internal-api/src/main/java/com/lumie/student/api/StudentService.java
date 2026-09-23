@@ -49,4 +49,5 @@ public interface StudentService {
             String message,
             Long studentId
     ) {}
+
 }
