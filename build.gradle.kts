@@ -20,6 +20,7 @@ plugins {
 // doesn't exist. Capture the values here, reference them below.
 val javaLanguageVersion = libs.versions.java.get()
 val springBootBomVersion = libs.versions.spring.boot.get()
+val flywayVersion = "11.20.3"
 val errorproneCoreDep = libs.errorprone.core
 val lombokDep = libs.lombok
 val springdocDep = libs.springdoc.openapi.webmvc
@@ -52,6 +53,10 @@ subprojects {
     configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
         imports {
             mavenBom("org.springframework.boot:spring-boot-dependencies:$springBootBomVersion")
+        }
+        dependencies {
+            dependency("org.flywaydb:flyway-core:$flywayVersion")
+            dependency("org.flywaydb:flyway-database-postgresql:$flywayVersion")
         }
     }
 
