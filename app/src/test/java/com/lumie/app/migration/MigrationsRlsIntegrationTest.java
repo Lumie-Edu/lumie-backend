@@ -2,6 +2,7 @@ package com.lumie.app.migration;
 
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
+import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -14,7 +15,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -101,13 +101,15 @@ class MigrationsRlsIntegrationTest {
         // pg_advisory_xact_lock. Session-level locking avoids this. Prod mirrors
         // this via spring.flyway.postgresql.transactional-lock=false in
         // application.yaml, so this run reproduces deploy exactly. See class Javadoc.
-        Flyway flyway = Flyway.configure()
+        var configuration = Flyway.configure()
                 .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
                 .locations("classpath:db/migration/public")
                 .baselineOnMigrate(true)
-                .baselineVersion("0")
-                .configuration(Map.of("flyway.postgresql.transactional.lock", "false"))
-                .load();
+                .baselineVersion("0");
+        configuration
+                .getConfigurationExtension(PostgreSQLConfigurationExtension.class)
+                .setTransactionalLock(false);
+        Flyway flyway = configuration.load();
 
         MigrateResult migrateResult;
         try {
