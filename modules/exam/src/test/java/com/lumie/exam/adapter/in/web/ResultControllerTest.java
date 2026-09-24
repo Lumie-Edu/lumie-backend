@@ -8,8 +8,10 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.application.service.ExamExportService;
 import com.lumie.exam.application.service.OmrSubmissionService;
+import com.lumie.exam.application.service.OmrUploadTelemetryService;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
+import com.lumie.exam.application.dto.request.OmrUploadTelemetryRequest;
 import com.lumie.exam.application.service.StudentGradeQueryService;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.common.idempotency.IdempotencyService;
@@ -63,6 +65,7 @@ class ResultControllerTest {
     @Mock private OmrStoragePort omrStoragePort;
     @Mock private ExamExportService examExportService;
     @Mock private IdempotencyService idempotencyService;
+    @Mock private OmrUploadTelemetryService omrUploadTelemetryService;
 
     private ResultController controller;
     private MockMvc mockMvc;
@@ -75,7 +78,8 @@ class ResultControllerTest {
             omrSubmissionService,
             omrStoragePort,
             examExportService,
-            idempotencyService
+            idempotencyService,
+            omrUploadTelemetryService
         );
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setControllerAdvice(new GlobalExceptionHandler())
@@ -137,6 +141,31 @@ class ResultControllerTest {
             .hasMessageContaining("INSTRUCTOR role required");
 
         then(examExportService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("recordBatchUploadTelemetry: 강사 이상이면 클라이언트 업로드 측정값을 기록한다")
+    void recordBatchUploadTelemetry_allowsInstructorAndDelegates() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        OmrUploadTelemetryRequest request = new OmrUploadTelemetryRequest(
+            "batch-123",
+            6,
+            1_200,
+            3_000,
+            "4g",
+            List.of(new OmrUploadTelemetryRequest.OmrUploadTelemetryFile(
+                0,
+                3_000,
+                3_000,
+                1_200,
+                200,
+                OmrUploadTelemetryRequest.OmrUploadOutcome.SUCCESS
+            ))
+        );
+
+        controller.recordBatchUploadTelemetry(55L, request);
+
+        then(omrUploadTelemetryService).should().record(55L, request);
     }
 
     @Test

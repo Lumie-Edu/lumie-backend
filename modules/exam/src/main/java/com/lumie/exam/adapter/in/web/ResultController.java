@@ -8,6 +8,7 @@ import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
+import com.lumie.exam.application.dto.request.OmrUploadTelemetryRequest;
 import com.lumie.exam.application.dto.request.ApplyOmrSubmissionRequest;
 import com.lumie.exam.application.dto.request.ConfirmOmrSubmissionReconciliationRequest;
 import com.lumie.exam.application.dto.request.PreviewOmrSubmissionReconciliationRequest;
@@ -28,6 +29,7 @@ import com.lumie.exam.application.service.StudentGradeQueryService;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
 import com.lumie.exam.application.service.OmrSubmissionService;
+import com.lumie.exam.application.service.OmrUploadTelemetryService;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -76,6 +78,7 @@ public class ResultController {
     private final OmrStoragePort omrStoragePort;
     private final ExamExportService examExportService;
     private final IdempotencyService idempotencyService;
+    private final OmrUploadTelemetryService omrUploadTelemetryService;
 
     @PostMapping(value = "/exams/{examId}/results/omr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ApiResponse(responseCode = "201", description = "Created")
@@ -137,6 +140,15 @@ public class ResultController {
         }
         OmrJobResponse response = resultCommandService.confirmBatchOmrGrading(examId, request);
         return acceptedOmrJob(examId, response);
+    }
+
+    @PostMapping("/exams/{examId}/results/omr/batch/upload-events")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void recordBatchUploadTelemetry(
+            @PathVariable Long examId,
+            @Valid @RequestBody OmrUploadTelemetryRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        omrUploadTelemetryService.record(examId, request);
     }
 
     private ResponseEntity<JobAcceptedResponse> acceptedOmrJob(Long examId, OmrJobResponse response) {
