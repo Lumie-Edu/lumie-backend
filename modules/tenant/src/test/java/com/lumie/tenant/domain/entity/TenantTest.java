@@ -164,9 +164,9 @@ class TenantTest {
     void updateHiddenSidebarItemIds() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
 
-        tenant.updateHiddenSidebarItemIds(List.of(" attendance ", "attendance", "", "reviews"));
+        tenant.updateHiddenSidebarItemIds(List.of(" classes ", "classes", "", "reviews"));
 
-        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("classes", "reviews");
     }
 
     @Test
@@ -174,9 +174,9 @@ class TenantTest {
     void updateHiddenSidebarItemIdsIgnoresRemovedLegacyId() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
 
-        tenant.updateHiddenSidebarItemIds(List.of("attendance", "schedules", "reviews"));
+        tenant.updateHiddenSidebarItemIds(List.of("classes", "schedules", "reviews"));
 
-        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("classes", "reviews");
     }
 
     @Test
@@ -185,21 +185,21 @@ class TenantTest {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
         Field field = Tenant.class.getDeclaredField("hiddenSidebarItemIds");
         field.setAccessible(true);
-        field.set(tenant, List.of("attendance", "schedules", "reviews"));
+        field.set(tenant, List.of("classes", "schedules", "reviews"));
 
-        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("classes", "reviews");
     }
 
     @Test
     @DisplayName("숨김 sidebar 항목은 외부 리스트 변경으로 변하지 않는다")
     void hiddenSidebarItemIdsAreDefensivelyCopied() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
-        List<String> source = new ArrayList<>(List.of("attendance"));
+        List<String> source = new ArrayList<>(List.of("classes"));
 
         tenant.updateHiddenSidebarItemIds(source);
         source.add("reviews");
 
-        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("attendance");
+        assertThat(tenant.getHiddenSidebarItemIds()).containsExactly("classes");
         assertThatThrownBy(() -> tenant.getHiddenSidebarItemIds().add("reviews"))
                 .isInstanceOf(UnsupportedOperationException.class);
     }

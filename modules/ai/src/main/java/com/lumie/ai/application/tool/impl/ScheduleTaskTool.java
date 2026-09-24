@@ -31,7 +31,7 @@ public class ScheduleTaskTool implements Tool {
 
     @Override
     public String getDescription() {
-        return "Schedule a recurring or one-time task. For example, schedule daily attendance reports or weekly grade summaries.";
+        return "Schedule a recurring or one-time task. For example, schedule weekly grade summaries.";
     }
 
     @Override

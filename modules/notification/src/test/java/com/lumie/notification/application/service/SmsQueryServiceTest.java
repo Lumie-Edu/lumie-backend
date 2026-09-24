@@ -171,7 +171,7 @@ class SmsQueryServiceTest {
     @Test
     @DisplayName("listTemplates 성공 시 페이지네이션된 결과를 반환한다")
     void listTemplates_success() throws Exception {
-        SmsTemplate template = SmsTemplate.create("출석 알림", "내용", TemplateCategory.ATTENDANCE);
+        SmsTemplate template = SmsTemplate.create("시험 알림", "내용", TemplateCategory.EXAM);
         setField(template, "id", 1L);
         Pageable pageable = PageRequest.of(0, 20);
         Page<SmsTemplate> page = new PageImpl<>(List.of(template), pageable, 1);
@@ -181,7 +181,7 @@ class SmsQueryServiceTest {
         Page<SmsTemplateResponse> response = queryService.listTemplates(pageable);
 
         assertThat(response.getContent()).hasSize(1);
-        assertThat(response.getContent().get(0).name()).isEqualTo("출석 알림");
+        assertThat(response.getContent().get(0).name()).isEqualTo("시험 알림");
     }
 
     // -- helpers --

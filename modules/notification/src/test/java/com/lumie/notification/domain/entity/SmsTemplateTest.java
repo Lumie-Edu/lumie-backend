@@ -13,20 +13,20 @@ class SmsTemplateTest {
     @DisplayName("create() 호출 시 기본 카테고리는 GENERAL이다")
     void create_defaultCategoryIsGeneral() {
         SmsTemplate template = SmsTemplate.create(
-                "출석 알림", "{학생명}님이 출석했습니다.", null);
+                "시험 알림", "시험 결과가 등록되었습니다.", null);
 
         assertThat(template.getCategory()).isEqualTo(TemplateCategory.GENERAL);
-        assertThat(template.getName()).isEqualTo("출석 알림");
-        assertThat(template.getContent()).isEqualTo("{학생명}님이 출석했습니다.");
+        assertThat(template.getName()).isEqualTo("시험 알림");
+        assertThat(template.getContent()).isEqualTo("시험 결과가 등록되었습니다.");
     }
 
     @Test
     @DisplayName("create() 시 카테고리를 지정하면 해당 카테고리로 생성된다")
     void create_withCategory() {
         SmsTemplate template = SmsTemplate.create(
-                "출석 알림", "내용", TemplateCategory.ATTENDANCE);
+                "시험 알림", "내용", TemplateCategory.EXAM);
 
-        assertThat(template.getCategory()).isEqualTo(TemplateCategory.ATTENDANCE);
+        assertThat(template.getCategory()).isEqualTo(TemplateCategory.EXAM);
     }
 
     @Test

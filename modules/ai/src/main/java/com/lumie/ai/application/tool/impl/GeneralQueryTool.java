@@ -42,7 +42,7 @@ public class GeneralQueryTool implements Tool {
 
     @Override
     public String getDescription() {
-        return "Execute a read-only SQL query against the tenant database to retrieve information about students, academies, exams, announcements, attendance, etc.";
+        return "Execute a read-only SQL query against the tenant database to retrieve information about students, academies, exams, announcements, etc.";
     }
 
     @Override

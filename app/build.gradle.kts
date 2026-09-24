@@ -25,7 +25,6 @@ dependencies {
     implementation(project(":modules:class"))
     implementation(project(":modules:assignment"))
     implementation(project(":modules:lecture"))
-    implementation(project(":modules:attendance"))
     implementation(project(":modules:ai"))
     implementation(project(":modules:notification"))
     implementation(project(":modules:file"))

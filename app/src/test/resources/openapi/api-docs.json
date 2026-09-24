@@ -347,150 +347,6 @@
         "required" : [ "status", "studentId", "studentName", "submission" ],
         "type" : "object"
       },
-      "AttendanceDashboardResponse" : {
-        "properties" : {
-          "attendanceRate" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "presentCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "sessionsThisWeek" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "totalCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "attendanceRate", "presentCount", "sessionsThisWeek", "totalCount" ],
-        "type" : "object"
-      },
-      "AttendanceRecordResponse" : {
-        "properties" : {
-          "checkedAt" : {
-            "format" : "date-time",
-            "nullable" : true,
-            "type" : "string"
-          },
-          "id" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "memo" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "sessionId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "status" : {
-            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED", "PENDING" ],
-            "type" : "string"
-          },
-          "studentId" : {
-            "format" : "int64",
-            "nullable" : true,
-            "type" : "integer"
-          },
-          "studentName" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "checkedAt", "id", "memo", "sessionId", "status", "studentId", "studentName" ],
-        "type" : "object"
-      },
-      "AttendanceSessionRequest" : {
-        "properties" : {
-          "classId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "lateThresholdMinutes" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "sessionDate" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        },
-        "required" : [ "name", "sessionDate" ],
-        "type" : "object"
-      },
-      "AttendanceSessionResponse" : {
-        "properties" : {
-          "absentCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "attendanceCode" : {
-            "type" : "string"
-          },
-          "classId" : {
-            "format" : "int64",
-            "nullable" : true,
-            "type" : "integer"
-          },
-          "className" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "codeExpiresAt" : {
-            "format" : "date-time",
-            "nullable" : true,
-            "type" : "string"
-          },
-          "createdAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "excusedCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "id" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "lateCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "lateThresholdMinutes" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "presentCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "sessionDate" : {
-            "format" : "date",
-            "type" : "string"
-          },
-          "totalStudents" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "updatedAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          }
-        },
-        "required" : [ "absentCount", "attendanceCode", "classId", "className", "codeExpiresAt", "createdAt", "excusedCount", "id", "lateCount", "lateThresholdMinutes", "name", "presentCount", "sessionDate", "totalStudents", "updatedAt" ],
-        "type" : "object"
-      },
       "AttractiveDistractor" : {
         "properties" : {
           "choice" : {
@@ -637,23 +493,6 @@
         "required" : [ "errors", "failureCount", "successCount", "totalRows" ],
         "type" : "object"
       },
-      "BulkUpdateStatusRequest" : {
-        "properties" : {
-          "recordIds" : {
-            "items" : {
-              "format" : "int64",
-              "type" : "integer"
-            },
-            "type" : "array"
-          },
-          "status" : {
-            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED", "PENDING" ],
-            "type" : "string"
-          }
-        },
-        "required" : [ "recordIds", "status" ],
-        "type" : "object"
-      },
       "ChangeLoginIdRequest" : {
         "properties" : {
           "loginId" : {
@@ -725,29 +564,6 @@
         "required" : [ "message" ],
         "type" : "object"
       },
-      "CheckInRequest" : {
-        "properties" : {
-          "code" : {
-            "pattern" : "\\d{6}",
-            "type" : "string"
-          }
-        },
-        "required" : [ "code" ],
-        "type" : "object"
-      },
-      "CheckInResponse" : {
-        "properties" : {
-          "message" : {
-            "type" : "string"
-          },
-          "status" : {
-            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED", "PENDING" ],
-            "type" : "string"
-          }
-        },
-        "required" : [ "message", "status" ],
-        "type" : "object"
-      },
       "ChoiceDistributionResponse" : {
         "properties" : {
           "examId" : {
@@ -786,53 +602,6 @@
           }
         },
         "required" : [ "count", "isCorrect", "percentage" ],
-        "type" : "object"
-      },
-      "ClassAttendanceStatisticsResponse" : {
-        "properties" : {
-          "absentCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "attendanceRate" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "classId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "className" : {
-            "type" : "string"
-          },
-          "excusedCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "lateCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "presentCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "totalSessions" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "totalStudents" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "weeklyTrend" : {
-            "items" : {
-              "$ref" : "#/components/schemas/WeeklyRate"
-            },
-            "type" : "array"
-          }
-        },
-        "required" : [ "absentCount", "attendanceRate", "classId", "className", "excusedCount", "lateCount", "presentCount", "totalSessions", "totalStudents", "weeklyTrend" ],
         "type" : "object"
       },
       "ClassComparisonResponse" : {
@@ -999,44 +768,6 @@
         "required" : [ "createdAt", "description", "id", "name", "schedulePattern", "teacherId", "teacherName", "updatedAt" ],
         "type" : "object"
       },
-      "ClassStudentAttendanceResponse" : {
-        "properties" : {
-          "absentCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "attendanceRate" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "excusedCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "lateCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "presentCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "studentId" : {
-            "format" : "int64",
-            "nullable" : true,
-            "type" : "integer"
-          },
-          "studentName" : {
-            "type" : "string"
-          },
-          "totalSessions" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "absentCount", "attendanceRate", "excusedCount", "lateCount", "presentCount", "studentId", "studentName", "totalSessions" ],
-        "type" : "object"
-      },
       "CompleteTenantOnboardingRequest" : {
         "properties" : {
           "customId" : {
@@ -1045,7 +776,7 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
+              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
               "maxLength" : 80,
               "minLength" : 0,
               "pattern" : "^[a-z0-9][a-z0-9-]*$",
@@ -1630,7 +1361,7 @@
       "CreateTemplateRequest" : {
         "properties" : {
           "category" : {
-            "enum" : [ "ATTENDANCE", "EXAM", "PAYMENT", "GENERAL" ],
+            "enum" : [ "EXAM", "PAYMENT", "GENERAL" ],
             "type" : "string"
           },
           "content" : {
@@ -3065,37 +2796,6 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/AssignmentResponse"
-            },
-            "type" : "array"
-          },
-          "page" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "perPage" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "total" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "totalPages" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
-        "type" : "object"
-      },
-      "PageResponseAttendanceSessionResponse" : {
-        "properties" : {
-          "hasNext" : {
-            "type" : "boolean"
-          },
-          "items" : {
-            "items" : {
-              "$ref" : "#/components/schemas/AttendanceSessionResponse"
             },
             "type" : "array"
           },
@@ -5011,7 +4711,7 @@
       "SmsTemplateResponse" : {
         "properties" : {
           "category" : {
-            "enum" : [ "ATTENDANCE", "EXAM", "PAYMENT", "GENERAL" ],
+            "enum" : [ "EXAM", "PAYMENT", "GENERAL" ],
             "type" : "string"
           },
           "content" : {
@@ -5246,81 +4946,6 @@
           }
         },
         "required" : [ "assignment", "canSubmit", "exam", "questionResults", "submission" ],
-        "type" : "object"
-      },
-      "StudentAttendanceRecordResponse" : {
-        "properties" : {
-          "checkedAt" : {
-            "format" : "date-time",
-            "nullable" : true,
-            "type" : "string"
-          },
-          "id" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "memo" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "sessionDate" : {
-            "format" : "date",
-            "type" : "string"
-          },
-          "sessionId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "sessionName" : {
-            "type" : "string"
-          },
-          "status" : {
-            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED", "PENDING" ],
-            "type" : "string"
-          },
-          "studentId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "studentName" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "checkedAt", "id", "memo", "sessionDate", "sessionId", "sessionName", "status", "studentId", "studentName" ],
-        "type" : "object"
-      },
-      "StudentAttendanceStatisticsResponse" : {
-        "properties" : {
-          "absentCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "attendanceRate" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "excusedCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "lateCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "presentCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "studentId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "totalSessions" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "absentCount", "attendanceRate", "excusedCount", "lateCount", "presentCount", "studentId", "totalSessions" ],
         "type" : "object"
       },
       "StudentClassSummary" : {
@@ -5870,7 +5495,7 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
+              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
               "type" : "string"
             },
             "type" : "array"
@@ -6273,19 +5898,6 @@
         },
         "type" : "object"
       },
-      "UpdateAttendanceStatusRequest" : {
-        "properties" : {
-          "memo" : {
-            "type" : "string"
-          },
-          "status" : {
-            "enum" : [ "PRESENT", "ABSENT", "LATE", "EXCUSED", "PENDING" ],
-            "type" : "string"
-          }
-        },
-        "required" : [ "status" ],
-        "type" : "object"
-      },
       "UpdateAvatarRequest" : {
         "properties" : {
           "avatarSeed" : {
@@ -6553,7 +6165,7 @@
       "UpdateTemplateRequest" : {
         "properties" : {
           "category" : {
-            "enum" : [ "ATTENDANCE", "EXAM", "PAYMENT", "GENERAL" ],
+            "enum" : [ "EXAM", "PAYMENT", "GENERAL" ],
             "type" : "string"
           },
           "content" : {
@@ -6578,7 +6190,7 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "attendance", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
+              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
               "maxLength" : 80,
               "minLength" : 0,
               "pattern" : "^[a-z0-9][a-z0-9-]*$",
@@ -6685,19 +6297,6 @@
           }
         },
         "required" : [ "description", "lectureId", "title", "visibility", "youtubeUrl" ],
-        "type" : "object"
-      },
-      "WeeklyRate" : {
-        "properties" : {
-          "rate" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "weekLabel" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "rate", "weekLabel" ],
         "type" : "object"
       }
     },
@@ -8112,532 +7711,6 @@
           }
         },
         "tags" : [ "assignment-controller" ]
-      }
-    },
-    "/v1/attendance/check-in" : {
-      "post" : {
-        "operationId" : "checkIn",
-        "parameters" : [ {
-          "in" : "header",
-          "name" : "X-User-Id",
-          "required" : false,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CheckInRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/CheckInResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "student-check-in-controller" ]
-      }
-    },
-    "/v1/attendance/classes/{classId}/sessions/ensure" : {
-      "post" : {
-        "operationId" : "ensureClassSessionToday",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "classId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/AttendanceSessionResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "summary" : "Get or create today's attendance session for a class",
-        "tags" : [ "class-attendance-controller" ]
-      }
-    },
-    "/v1/attendance/classes/{classId}/statistics" : {
-      "get" : {
-        "operationId" : "getClassStatistics",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "classId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "dateFrom",
-          "required" : true,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "dateTo",
-          "required" : true,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClassAttendanceStatisticsResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "class-attendance-controller" ]
-      }
-    },
-    "/v1/attendance/classes/{classId}/students" : {
-      "get" : {
-        "operationId" : "getClassStudentStatistics",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "classId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "dateFrom",
-          "required" : true,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "dateTo",
-          "required" : true,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/ClassStudentAttendanceResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "class-attendance-controller" ]
-      }
-    },
-    "/v1/attendance/records/export.csv" : {
-      "get" : {
-        "operationId" : "exportRecordsCsv",
-        "responses" : {
-          "200" : {
-            "content" : {
-              "text/csv;charset=UTF-8" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/StreamingResponseBody"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "attendance-export-controller" ]
-      }
-    },
-    "/v1/attendance/sessions" : {
-      "get" : {
-        "operationId" : "getSessions",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "classId",
-          "required" : false,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "dateFrom",
-          "required" : false,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "dateTo",
-          "required" : false,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        }, {
-          "description" : "Zero-based page index (0..N)",
-          "in" : "query",
-          "name" : "page",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "minimum" : 0,
-            "type" : "integer"
-          }
-        }, {
-          "description" : "The size of the page to be returned",
-          "in" : "query",
-          "name" : "size",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "minimum" : 1,
-            "type" : "integer"
-          }
-        }, {
-          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
-          "in" : "query",
-          "name" : "sort",
-          "required" : false,
-          "schema" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PageResponseAttendanceSessionResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "attendance-session-controller" ]
-      },
-      "post" : {
-        "operationId" : "createSession",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/AttendanceSessionRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/AttendanceSessionResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "attendance-session-controller" ]
-      }
-    },
-    "/v1/attendance/sessions/{id}" : {
-      "delete" : {
-        "operationId" : "deleteSession",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "attendance-session-controller" ]
-      },
-      "get" : {
-        "operationId" : "getSession",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/AttendanceSessionResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "attendance-session-controller" ]
-      }
-    },
-    "/v1/attendance/sessions/{id}/regenerate-code" : {
-      "post" : {
-        "operationId" : "regenerateCode",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/AttendanceSessionResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "attendance-session-controller" ]
-      }
-    },
-    "/v1/attendance/sessions/{sessionId}/records" : {
-      "get" : {
-        "operationId" : "getRecords",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "sessionId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/AttendanceRecordResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "attendance-record-controller" ]
-      }
-    },
-    "/v1/attendance/sessions/{sessionId}/records/bulk-update" : {
-      "post" : {
-        "operationId" : "bulkUpdateStatus",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "sessionId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/BulkUpdateStatusRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "attendance-record-controller" ]
-      }
-    },
-    "/v1/attendance/sessions/{sessionId}/records/{recordId}" : {
-      "patch" : {
-        "operationId" : "updateStatus",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "sessionId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "path",
-          "name" : "recordId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/UpdateAttendanceStatusRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "attendance-record-controller" ]
-      }
-    },
-    "/v1/attendance/statistics/dashboard" : {
-      "get" : {
-        "operationId" : "getDashboardStatistics",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "months",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/AttendanceDashboardResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "attendance-statistics-controller" ]
-      }
-    },
-    "/v1/attendance/students/{studentId}/records" : {
-      "get" : {
-        "operationId" : "getStudentRecords",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "studentId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/StudentAttendanceRecordResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "student-attendance-controller" ]
-      }
-    },
-    "/v1/attendance/students/{studentId}/statistics" : {
-      "get" : {
-        "operationId" : "getStudentStatistics",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "studentId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/StudentAttendanceStatisticsResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "student-attendance-controller" ]
       }
     },
     "/v1/billing-keys" : {

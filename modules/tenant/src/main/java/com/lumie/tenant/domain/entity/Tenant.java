@@ -76,7 +76,7 @@ public class Tenant extends BaseEntity {
     private static final Set<String> ALLOWED_SIDEBAR_ITEM_IDS = Set.of(
             "ai",
             "students", "employees",
-            "classes", "attendance", "assignments", "lectures",
+            "classes", "assignments", "lectures",
             "grades", "omr-grading", "reports",
             "announcements", "sms", "resources", "qna",
             "textbooks", "spreadsheets", "reviews"

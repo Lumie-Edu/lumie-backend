@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
  * </ul>
  *
  * <p>Everything outside the listed surfaces — auth (login/refresh/logout),
- * attendance, lecture, class, most student/exam endpoints, etc. — is
+ * lecture, class, most student/exam endpoints, etc. — is
  * intentionally not gated. Auth endpoints must mint fresh state on every call
  * (replay semantics are wrong for them). If a future endpoint needs
  * replay-safety, add its path prefix to {@link #ENFORCED_PATTERNS} explicitly

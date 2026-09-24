@@ -160,14 +160,14 @@ class TenantControllerTest {
     @DisplayName("PATCH /v1/tenants/{slug} - 숨김 sidebar 항목 저장")
     void updateTenantHiddenSidebarItemsSuccess() throws Exception {
         UpdateTenantRequest request = UpdateTenantRequest.builder()
-                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .build();
         TenantResponse response = TenantResponse.builder()
                 .id(1L)
                 .slug("test-academy")
                 .name("Test Academy")
                 .status(TenantStatus.ACTIVE)
-                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -178,12 +178,12 @@ class TenantControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hiddenSidebarItemIds[0]").value("attendance"))
+                .andExpect(jsonPath("$.hiddenSidebarItemIds[0]").value("classes"))
                 .andExpect(jsonPath("$.hiddenSidebarItemIds[1]").value("reviews"));
 
         ArgumentCaptor<UpdateTenantRequest> requestCaptor = ArgumentCaptor.forClass(UpdateTenantRequest.class);
         verify(tenantCommandService).updateTenant(any(), requestCaptor.capture());
-        assertThat(requestCaptor.getValue().hiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+        assertThat(requestCaptor.getValue().hiddenSidebarItemIds()).containsExactly("classes", "reviews");
     }
 
     @Test
@@ -192,7 +192,7 @@ class TenantControllerTest {
         mockMvc.perform(patch("/v1/tenants/test-academy")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"hiddenSidebarItemIds":["Attendance"]}
+                                {"hiddenSidebarItemIds":["Classes"]}
                                 """))
                 .andExpect(status().isBadRequest());
     }
@@ -217,7 +217,7 @@ class TenantControllerTest {
         CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
                 .customId("academy")
                 .phone("02-1234-5678")
-                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .build();
         Instant completedAt = Instant.now();
         TenantResponse response = TenantResponse.builder()
@@ -227,7 +227,7 @@ class TenantControllerTest {
                 .status(TenantStatus.ACTIVE)
                 .customId("academy")
                 .phone("02-1234-5678")
-                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .onboardingCompletedAt(completedAt)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -241,13 +241,13 @@ class TenantControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.customId").value("academy"))
                 .andExpect(jsonPath("$.phone").value("02-1234-5678"))
-                .andExpect(jsonPath("$.hiddenSidebarItemIds[0]").value("attendance"))
+                .andExpect(jsonPath("$.hiddenSidebarItemIds[0]").value("classes"))
                 .andExpect(jsonPath("$.onboardingCompletedAt").exists());
 
         ArgumentCaptor<CompleteTenantOnboardingRequest> requestCaptor =
                 ArgumentCaptor.forClass(CompleteTenantOnboardingRequest.class);
         verify(tenantCommandService).completeOnboarding(any(), requestCaptor.capture());
-        assertThat(requestCaptor.getValue().hiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+        assertThat(requestCaptor.getValue().hiddenSidebarItemIds()).containsExactly("classes", "reviews");
     }
 
     @Test
