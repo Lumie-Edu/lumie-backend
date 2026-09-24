@@ -2724,6 +2724,83 @@
         "required" : [ "createdAt", "examId", "grade", "gradingStatus", "hasOmrImage", "id", "imageIndex", "isOfficial", "jobId", "matchedStudentId", "matchedStudentName", "ocrPhoneNumber", "phoneNumber", "questions", "reconciliationPhoneNumber", "reconciliationReason", "reconciliationStatus", "score" ],
         "type" : "object"
       },
+      "OmrUploadTelemetryFile" : {
+        "properties" : {
+          "durationMs" : {
+            "format" : "int64",
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "httpStatus" : {
+            "format" : "int32",
+            "maximum" : 599,
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "imageIndex" : {
+            "format" : "int32",
+            "maximum" : 99,
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "outcome" : {
+            "enum" : [ "SUCCESS", "HTTP_ERROR", "NETWORK_ERROR", "ABORTED" ],
+            "type" : "string"
+          },
+          "totalBytes" : {
+            "format" : "int64",
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "uploadedBytes" : {
+            "format" : "int64",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        },
+        "required" : [ "outcome" ],
+        "type" : "object"
+      },
+      "OmrUploadTelemetryRequest" : {
+        "properties" : {
+          "batchDurationMs" : {
+            "format" : "int64",
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "batchKey" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "concurrency" : {
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "connectionType" : {
+            "maxLength" : 24,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "files" : {
+            "items" : {
+              "$ref" : "#/components/schemas/OmrUploadTelemetryFile"
+            },
+            "maxItems" : 100,
+            "minItems" : 0,
+            "type" : "array"
+          },
+          "totalBytes" : {
+            "format" : "int64",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        },
+        "required" : [ "batchKey", "files" ],
+        "type" : "object"
+      },
       "OwnerRegisterRequest" : {
         "properties" : {
           "instituteName" : {
@@ -10052,6 +10129,36 @@
               }
             },
             "description" : "OK"
+          }
+        },
+        "tags" : [ "result-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/results/omr/batch/upload-events" : {
+      "post" : {
+        "operationId" : "recordBatchUploadTelemetry",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OmrUploadTelemetryRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "result-controller" ]
