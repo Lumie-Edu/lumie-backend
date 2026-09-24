@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Locale;
 
 @Slf4j
 @Service
@@ -31,10 +32,10 @@ public class OmrUploadTelemetryService {
                 .tag("connection_type", connectionType)
                 .publishPercentileHistogram()
                 .register(meterRegistry)
-                .record(request.totalBytes());
+                .record((double) request.totalBytes());
 
         for (OmrUploadTelemetryRequest.OmrUploadTelemetryFile file : request.files()) {
-            String outcome = file.outcome().name().toLowerCase();
+            String outcome = file.outcome().name().toLowerCase(Locale.ROOT);
             Timer.builder("omr.upload.client.file.duration")
                     .tag("outcome", outcome)
                     .tag("connection_type", connectionType)
@@ -46,7 +47,7 @@ public class OmrUploadTelemetryService {
                     .tag("connection_type", connectionType)
                     .publishPercentileHistogram()
                     .register(meterRegistry)
-                    .record(file.uploadedBytes());
+                    .record((double) file.uploadedBytes());
             if (file.outcome() != OmrUploadTelemetryRequest.OmrUploadOutcome.SUCCESS) {
                 Counter.builder("omr.upload.client.file.failures")
                         .tag("outcome", outcome)
