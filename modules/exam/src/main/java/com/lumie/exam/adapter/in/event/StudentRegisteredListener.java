@@ -1,7 +1,6 @@
 package com.lumie.exam.adapter.in.event;
 
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.service.OmrSubmissionService;
 import com.lumie.student.api.StudentRegisteredEvent;
 import com.lumie.tenant.api.TenantService;
@@ -12,12 +11,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Listens for {@link StudentRegisteredEvent} after the student-registration
- * commit and backfills any unregistered exam results that match the student's
- * phone number.
- *
- * <p>Replaces the direct {@code student.StudentCommandService → exam.ExamService.linkUnregisteredResultsByPhone}
- * call that created the student↔exam circular dependency
- * (see {@code temp/audits-cleanup/CIRCULAR_MODULE_DEPS_AUDIT.md}, Resolution A pair 2).
+ * commit and backfills a single unmatched OMR submission when its phone number
+ * resolves to the newly registered student.
  *
  * <p>Uses Spring Modulith's {@link ApplicationModuleListener}: each invocation
  * is recorded in the {@code event_publication} outbox before the originating
@@ -29,7 +24,6 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StudentRegisteredListener {
 
-    private final ExamService examService;
     private final OmrSubmissionService omrSubmissionService;
     private final TenantService tenantService;
 
@@ -39,12 +33,7 @@ public class StudentRegisteredListener {
             return;
         }
         Runnable backfill = () -> {
-            int linked = examService.linkUnregisteredResultsByPhone(event.phone(), event.studentId());
             int linkedSubmissions = omrSubmissionService.linkSingleUnmatchedByPhone(event.phone(), event.studentId());
-            if (linked > 0) {
-                log.info("Backfilled {} exam results for student {} (phone={})",
-                        linked, event.studentId(), event.phone());
-            }
             if (linkedSubmissions > 0) {
                 log.info("Backfilled {} OMR submissions for student {} (phone={})",
                         linkedSubmissions, event.studentId(), event.phone());

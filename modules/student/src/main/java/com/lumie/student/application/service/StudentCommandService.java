@@ -87,9 +87,8 @@ public class StudentCommandService {
 
         Student saved = studentRepository.save(student);
 
-        // Cross-module backfill (e.g. exam.linkUnregisteredResultsByPhone) runs as
-        // an AFTER_COMMIT listener on this event. Breaks the previous student↔exam
-        // cycle (CIRCULAR_MODULE_DEPS_AUDIT Resolution A, pair 2).
+        // Submission reconciliation runs as an AFTER_COMMIT listener to keep the
+        // student and exam modules decoupled.
         eventPublisher.publishEvent(new StudentRegisteredEvent(
                 saved.getId(),
                 saved.getPhone(),

@@ -1,7 +1,6 @@
 package com.lumie.exam.adapter.in.event;
 
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.service.OmrSubmissionService;
 import com.lumie.student.api.StudentRegisteredEvent;
 import com.lumie.tenant.api.TenantService;
@@ -27,9 +26,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class StudentRegisteredListenerTest {
 
     @Mock
-    private ExamService examService;
-
-    @Mock
     private TenantService tenantService;
 
     @Mock
@@ -44,9 +40,9 @@ class StudentRegisteredListenerTest {
     }
 
     @Test
-    @DisplayName("요청 thread 밖에서는 이벤트의 tenantId까지 복원해 backfill을 실행한다")
+    @DisplayName("요청 thread 밖에서는 이벤트의 tenantId까지 복원해 submission backfill을 실행한다")
     void onStudentRegistered_restoresTenantSlugAndIdForReplay() {
-        given(examService.linkUnregisteredResultsByPhone("01012345678", 100L)).willAnswer(invocation -> {
+        given(omrSubmissionService.linkSingleUnmatchedByPhone("01012345678", 100L)).willAnswer(invocation -> {
             assertThat(TenantContextHolder.getTenant()).isEqualTo("inst-acme");
             assertThat(TenantContextHolder.getTenantId()).isEqualTo(7L);
             return 1;
@@ -54,17 +50,17 @@ class StudentRegisteredListenerTest {
 
         listener.onStudentRegistered(new StudentRegisteredEvent(100L, "01012345678", "inst-acme", 7L));
 
-        verify(examService).linkUnregisteredResultsByPhone("01012345678", 100L);
+        verify(omrSubmissionService).linkSingleUnmatchedByPhone("01012345678", 100L);
         assertThat(TenantContextHolder.getTenant()).isNull();
         assertThat(TenantContextHolder.getTenantId()).isNull();
     }
 
     @Test
-    @DisplayName("기존 thread context가 있어도 event snapshot으로 덮어 backfill을 실행한다")
+    @DisplayName("기존 thread context가 있어도 event snapshot으로 덮어 submission backfill을 실행한다")
     void onStudentRegistered_usesEventTenantSnapshotOverAmbientContext() {
         TenantContextHolder.setTenant("inst-stale");
         TenantContextHolder.setTenantId(99L);
-        given(examService.linkUnregisteredResultsByPhone("01012345678", 100L)).willAnswer(invocation -> {
+        given(omrSubmissionService.linkSingleUnmatchedByPhone("01012345678", 100L)).willAnswer(invocation -> {
             assertThat(TenantContextHolder.getTenant()).isEqualTo("inst-acme");
             assertThat(TenantContextHolder.getTenantId()).isEqualTo(7L);
             return 1;
@@ -72,7 +68,7 @@ class StudentRegisteredListenerTest {
 
         listener.onStudentRegistered(new StudentRegisteredEvent(100L, "01012345678", "inst-acme", 7L));
 
-        verify(examService).linkUnregisteredResultsByPhone("01012345678", 100L);
+        verify(omrSubmissionService).linkSingleUnmatchedByPhone("01012345678", 100L);
         assertThat(TenantContextHolder.getTenant()).isEqualTo("inst-stale");
         assertThat(TenantContextHolder.getTenantId()).isEqualTo(99L);
     }
@@ -88,23 +84,18 @@ class StudentRegisteredListenerTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("tenantSlug is required");
 
-        verifyNoInteractions(examService);
+        verifyNoInteractions(omrSubmissionService);
     }
 
     @Test
     @DisplayName("요청 thread 밖에서 tenantId가 없는 이전 event는 slug로 tenantId를 복원한다")
     void onStudentRegistered_resolvesTenantIdForLegacyReplay() {
         given(tenantService.getTenantBySlug("inst-acme")).willReturn(Optional.of(tenantData(7L, "inst-acme")));
-        given(examService.linkUnregisteredResultsByPhone("01012345678", 100L)).willAnswer(invocation -> {
-            assertThat(TenantContextHolder.getTenant()).isEqualTo("inst-acme");
-            assertThat(TenantContextHolder.getTenantId()).isEqualTo(7L);
-            return 1;
-        });
 
         listener.onStudentRegistered(new StudentRegisteredEvent(100L, "01012345678", "inst-acme", null));
 
         verify(tenantService).getTenantBySlug("inst-acme");
-        verify(examService).linkUnregisteredResultsByPhone("01012345678", 100L);
+        verify(omrSubmissionService).linkSingleUnmatchedByPhone("01012345678", 100L);
     }
 
     @Test
@@ -117,14 +108,14 @@ class StudentRegisteredListenerTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("tenant slug cannot be resolved");
 
-        verifyNoInteractions(examService);
+        verifyNoInteractions(omrSubmissionService);
     }
 
     @Test
-    @DisplayName("backfill 예외는 event publication 재시도가 가능하도록 전파한다")
+    @DisplayName("submission backfill 예외는 event publication 재시도가 가능하도록 전파한다")
     void onStudentRegistered_propagatesBackfillFailure() {
         TenantContextHolder.withinContext("inst-acme", 7L, () -> {
-            given(examService.linkUnregisteredResultsByPhone("01012345678", 100L))
+            given(omrSubmissionService.linkSingleUnmatchedByPhone("01012345678", 100L))
                     .willThrow(new IllegalStateException("optimistic lock"));
 
             assertThatThrownBy(() ->
