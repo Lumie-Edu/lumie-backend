@@ -67,7 +67,7 @@ class SmsTemplateControllerTest {
         mockMvc.perform(get("/v1/sms-templates"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(1))
-                .andExpect(jsonPath("$.items[0].name").value("출석 알림"));
+                .andExpect(jsonPath("$.items[0].name").value("시험 알림"));
     }
 
     @Test
@@ -77,14 +77,14 @@ class SmsTemplateControllerTest {
         given(commandService.createTemplate(any(CreateTemplateRequest.class))).willReturn(response);
 
         CreateTemplateRequest request = new CreateTemplateRequest(
-                "출석 알림", "{학생명}님이 출석했습니다.", TemplateCategory.ATTENDANCE);
+                "시험 알림", "시험 결과가 등록되었습니다.", TemplateCategory.EXAM);
 
         mockMvc.perform(post("/v1/sms-templates")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("출석 알림"));
+                .andExpect(jsonPath("$.name").value("시험 알림"));
     }
 
     @Test
@@ -122,8 +122,8 @@ class SmsTemplateControllerTest {
 
     private SmsTemplateResponse buildTemplateResponse(Long id) {
         return new SmsTemplateResponse(
-                id, "출석 알림", "{학생명}님이 출석했습니다.",
-                TemplateCategory.ATTENDANCE,
+                id, "시험 알림", "시험 결과가 등록되었습니다.",
+                TemplateCategory.EXAM,
                 Instant.now(), Instant.now());
     }
 }

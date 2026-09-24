@@ -98,14 +98,14 @@ class TenantCommandServiceTest {
         UpdateTenantRequest updateRequest = UpdateTenantRequest.builder()
                 .name("Updated Academy")
                 .displayName("업데이트된 학원")
-                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .build();
 
         TenantResponse response = tenantCommandService.updateTenant("test-academy", updateRequest);
 
         assertThat(response.name()).isEqualTo("Updated Academy");
         assertThat(response.displayName()).isEqualTo("업데이트된 학원");
-        assertThat(response.hiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+        assertThat(response.hiddenSidebarItemIds()).containsExactly("classes", "reviews");
     }
 
     @Test
@@ -134,14 +134,14 @@ class TenantCommandServiceTest {
         CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
                 .customId("academy")
                 .phone("02-1234-5678")
-                .hiddenSidebarItemIds(List.of("attendance", "reviews"))
+                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .build();
 
         TenantResponse response = tenantCommandService.completeOnboarding("test-academy", request);
 
         assertThat(response.customId()).isEqualTo("academy");
         assertThat(response.phone()).isEqualTo("02-1234-5678");
-        assertThat(response.hiddenSidebarItemIds()).containsExactly("attendance", "reviews");
+        assertThat(response.hiddenSidebarItemIds()).containsExactly("classes", "reviews");
         assertThat(response.onboardingCompletedAt()).isNotNull();
     }
 

@@ -638,7 +638,7 @@ class SmsCommandServiceTest {
         @DisplayName("정상 생성 시 SmsTemplateResponse를 반환한다")
         void createTemplate_success() {
             CreateTemplateRequest request = new CreateTemplateRequest(
-                    "출석 알림", "{학생명}님이 출석했습니다.", TemplateCategory.ATTENDANCE);
+                    "시험 알림", "시험 결과가 등록되었습니다.", TemplateCategory.EXAM);
 
             given(templateRepository.save(any(SmsTemplate.class)))
                     .willAnswer(inv -> {
@@ -649,8 +649,8 @@ class SmsCommandServiceTest {
 
             SmsTemplateResponse response = commandService.createTemplate(request);
 
-            assertThat(response.name()).isEqualTo("출석 알림");
-            assertThat(response.category()).isEqualTo(TemplateCategory.ATTENDANCE);
+            assertThat(response.name()).isEqualTo("시험 알림");
+            assertThat(response.category()).isEqualTo(TemplateCategory.EXAM);
         }
     }
 

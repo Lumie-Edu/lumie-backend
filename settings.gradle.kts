@@ -14,7 +14,6 @@ include(
     "modules:billing",
     "modules:homepage",
     "modules:student",
-    "modules:attendance",
     "modules:staff",
     "modules:exam",
     "modules:content",

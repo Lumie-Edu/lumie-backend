@@ -27,7 +27,7 @@ public record TenantResponse(
         @ArraySchema(schema = @Schema(allowableValues = {
                 "ai",
                 "students", "employees",
-                "classes", "attendance", "assignments", "lectures",
+                "classes", "assignments", "lectures",
                 "grades", "omr-grading", "reports",
                 "announcements", "sms", "resources", "qna",
                 "textbooks", "spreadsheets", "reviews"

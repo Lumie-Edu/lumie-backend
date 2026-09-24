@@ -63,7 +63,6 @@ Configuration cache is enabled (`org.gradle.configuration-cache=true`) — incre
 | `admin` | Admin-facing management operations (tenant provisioning, system config) |
 | `ai` | AI feature integrations (Spring AI; tutoring, content generation) |
 | `assignment` | Assignment creation, submission, and grading workflows |
-| `attendance` | Attendance tracking per class session |
 | `auth` | Authentication and authorization — JWT issuance, Spring Security config |
 | `billing` | Subscription, payment, and invoice management |
 | `class` | Class and cohort lifecycle management |

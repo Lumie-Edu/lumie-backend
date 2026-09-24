@@ -113,10 +113,6 @@ class IdempotencyHeaderInterceptorTest {
         }
 
         @Test
-        void v1AttendanceSessionsDeletePasses() {
-            assertThat(interceptor.preHandle(req("DELETE", "/v1/attendance/sessions/99", null), response, new Object()))
-                    .isTrue();
-        }
     }
 
     @Nested
