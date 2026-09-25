@@ -214,6 +214,16 @@ class TenantTest {
                 .hasMessageContaining("지원하지 않는 사이드바 메뉴 ID");
     }
 
+    @Test
+    @DisplayName("제거된 스프레드시트 sidebar 항목은 저장할 수 없다")
+    void updateHiddenSidebarItemIdsRejectsRemovedSpreadsheetId() {
+        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
+
+        assertThatThrownBy(() -> tenant.updateHiddenSidebarItemIds(List.of("spreadsheets")))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("지원하지 않는 사이드바 메뉴 ID");
+    }
+
     // --- customId permanence ---
 
     @Test

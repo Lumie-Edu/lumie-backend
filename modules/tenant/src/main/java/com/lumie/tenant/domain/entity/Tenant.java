@@ -79,7 +79,7 @@ public class Tenant extends BaseEntity {
             "classes", "assignments", "lectures",
             "grades", "omr-grading", "reports",
             "announcements", "sms", "resources", "qna",
-            "textbooks", "spreadsheets", "reviews"
+            "textbooks", "reviews"
     );
     private static final Set<String> REMOVED_LEGACY_SIDEBAR_ITEM_IDS = Set.of("schedules");
 

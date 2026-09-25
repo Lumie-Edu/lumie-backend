@@ -30,7 +30,7 @@ public record TenantResponse(
                 "classes", "assignments", "lectures",
                 "grades", "omr-grading", "reports",
                 "announcements", "sms", "resources", "qna",
-                "textbooks", "spreadsheets", "reviews"
+                "textbooks", "reviews"
         }))
         List<String> hiddenSidebarItemIds,
         Instant createdAt,

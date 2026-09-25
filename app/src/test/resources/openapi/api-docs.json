@@ -747,7 +747,7 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
+              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "reviews" ],
               "maxLength" : 80,
               "minLength" : 0,
               "pattern" : "^[a-z0-9][a-z0-9-]*$",
@@ -5543,7 +5543,7 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
+              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "reviews" ],
               "type" : "string"
             },
             "type" : "array"
@@ -6238,7 +6238,7 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "spreadsheets", "reviews" ],
+              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "reviews" ],
               "maxLength" : 80,
               "minLength" : 0,
               "pattern" : "^[a-z0-9][a-z0-9-]*$",
