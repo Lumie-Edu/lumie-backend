@@ -2,7 +2,6 @@ package com.lumie.exam.adapter.in.web;
 
 import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.auth.Role;
-import com.lumie.common.api.JobAcceptedResponse;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -10,15 +9,11 @@ import com.lumie.exam.adapter.out.external.JoossamengAiReportClient;
 import com.lumie.exam.application.dto.request.ReportBatchRequest;
 import com.lumie.exam.application.dto.request.UpdateAiCommentaryRequest;
 import com.lumie.exam.application.dto.response.AiCommentaryResponse;
-import com.lumie.exam.application.dto.response.AiReportCreateResponse;
-import com.lumie.exam.application.dto.response.AiReportJobStatusResponse;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
 @RestController
@@ -39,7 +33,6 @@ import java.nio.charset.StandardCharsets;
 public class JoossamengAiReportController {
 
     private static final String ALLOWED_TENANT = "joossameng";
-    private static final String AI_REPORTS_BATCH_SCOPE = "POST /v1/exams/{examId}/reports/ai-batch";
     private static final String AI_COMMENTARY_GENERATE_SCOPE = "POST /v1/exams/{examId}/ai-commentary/generate";
 
     private final JoossamengAiReportClient client;
@@ -82,55 +75,20 @@ public class JoossamengAiReportController {
         return ResponseEntity.ok(client.updateAiCommentary(examId, request, tenantSlug));
     }
 
-    @PostMapping("/exams/{examId}/reports/ai-batch")
-    @ApiResponse(responseCode = "202", description = "Accepted")
-    public ResponseEntity<JobAcceptedResponse> createAiBatchReport(
+    @PostMapping(value = "/exams/{examId}/reports/ai-batch", produces = "application/zip")
+    public ResponseEntity<byte[]> createAiBatchReport(
             @PathVariable Long examId,
-            @RequestBody ReportBatchRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
+            @Valid @RequestBody ReportBatchRequest request
     ) {
         String tenantSlug = requireJoossamengTenant();
-        if (idempotencyKey != null) {
-            return idempotencyService.executeOnce(
-                    idempotencyKey,
-                    AI_REPORTS_BATCH_SCOPE,
-                    java.util.Map.of("examId", examId, "request", request),
-                    () -> acceptedAiReportJob(examId, client.createBatch(examId, request, tenantSlug).jobId())
-            );
-        }
-        AiReportCreateResponse response = client.createBatch(examId, request, tenantSlug);
-        return acceptedAiReportJob(examId, response.jobId());
-    }
-
-    private ResponseEntity<JobAcceptedResponse> acceptedAiReportJob(Long examId, Long jobId) {
-        String statusUrl = "/v1/exams/" + examId + "/reports/ai-jobs/" + jobId;
-        return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .location(URI.create(statusUrl))
-                .body(new JobAcceptedResponse(jobId, statusUrl));
-    }
-
-    @GetMapping("/exams/{examId}/reports/ai-jobs/{jobId}")
-    public ResponseEntity<AiReportJobStatusResponse> getAiReportJobStatus(
-            @PathVariable Long examId,
-            @PathVariable Long jobId
-    ) {
-        String tenantSlug = requireJoossamengTenant();
-        return ResponseEntity.ok(client.getStatus(jobId, tenantSlug));
-    }
-
-    @GetMapping(value = "/exams/{examId}/reports/ai-jobs/{jobId}/download", produces = "application/zip")
-    public ResponseEntity<byte[]> downloadAiReportZip(
-            @PathVariable Long examId,
-            @PathVariable Long jobId
-    ) {
-        String tenantSlug = requireJoossamengTenant();
-        byte[] zipBytes = client.downloadZip(jobId, tenantSlug);
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        byte[] zipBytes = client.generateBatch(examId, request, tenantSlug);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/zip"));
         headers.set(HttpHeaders.CONTENT_DISPOSITION,
                 ContentDisposition.attachment()
-                        .filename("ai_reports_exam_" + examId + "_job_" + jobId + ".zip", StandardCharsets.UTF_8)
+                        .filename("ai_reports_exam_" + examId + ".zip", StandardCharsets.UTF_8)
                         .build()
                         .toString());
 
