@@ -9,6 +9,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.adapter.out.external.JoossamengAiReportClient;
 import com.lumie.exam.application.dto.request.UpdateAiCommentaryRequest;
+import com.lumie.exam.application.dto.request.ReportBatchRequest;
 import com.lumie.exam.application.dto.response.AiCommentaryResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -188,6 +189,38 @@ class JoossamengAiReportControllerTest {
                         .content("{\"content\":\"Edited commentary\",\"expectedVersion\":1}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("COMMON_011"));
+    }
+
+    @Test
+    void createAiBatchReport_streamsWorkerZipForInstructor() throws Exception {
+        given(client.generateBatch(
+                org.mockito.ArgumentMatchers.eq(55L),
+                org.mockito.ArgumentMatchers.any(ReportBatchRequest.class),
+                org.mockito.ArgumentMatchers.eq("joossameng")
+        )).willReturn(new byte[]{1, 2, 3});
+
+        mockMvc.perform(post("/v1/exams/55/reports/ai-batch")
+                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_ROLE_HEADER, Role.INSTRUCTOR.name())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"studentIds\":[7]}"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .contentType("application/zip"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .bytes(new byte[]{1, 2, 3}));
+    }
+
+    @Test
+    void createAiBatchReport_rejectsStudentRole() throws Exception {
+        mockMvc.perform(post("/v1/exams/55/reports/ai-batch")
+                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_ROLE_HEADER, Role.STUDENT.name())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"studentIds\":[7]}"))
+                .andExpect(status().isForbidden());
+
+        then(client).shouldHaveNoInteractions();
     }
 
     private static final class TestRequestContextFilter extends OncePerRequestFilter {

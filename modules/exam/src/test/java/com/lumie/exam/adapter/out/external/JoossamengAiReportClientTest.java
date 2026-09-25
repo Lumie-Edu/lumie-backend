@@ -2,6 +2,7 @@ package com.lumie.exam.adapter.out.external;
 
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.application.dto.request.UpdateAiCommentaryRequest;
+import com.lumie.exam.application.dto.request.ReportBatchRequest;
 import com.lumie.exam.application.dto.response.AiCommentaryResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -132,6 +133,19 @@ class JoossamengAiReportClientTest {
         ))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Resource modified concurrently");
+        server.verify();
+    }
+
+    @Test
+    void generateBatch_postsStudentsAndReturnsZipBytes() {
+        server.expect(requestTo("http://analysis-svc/api/joossameng/ai-reports/exams/55/batch"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("X-Tenant-Slug", "joossameng"))
+                .andExpect(content().json("{\"studentIds\":[7,8]}"))
+                .andRespond(withSuccess(new byte[]{1, 2, 3}, MediaType.parseMediaType("application/zip")));
+
+        assertThat(client.generateBatch(55L, new ReportBatchRequest(java.util.List.of(7L, 8L)), "joossameng"))
+                .containsExactly(1, 2, 3);
         server.verify();
     }
 }
