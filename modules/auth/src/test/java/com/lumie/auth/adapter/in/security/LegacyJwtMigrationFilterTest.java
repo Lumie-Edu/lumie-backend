@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.when;
 class LegacyJwtMigrationFilterTest {
     private static final String SECRET = "legacy-session-migration-test-secret-must-be-at-least-32-bytes";
     @Mock private StringRedisTemplate redis;
+    @Mock private ValueOperations<String, String> values;
     @Mock private UserLookupPort users;
     @Mock private LoginSessionHelper sessions;
     @Mock private CookieUtils cookieUtils;
@@ -53,6 +55,7 @@ class LegacyJwtMigrationFilterTest {
         AuthSession session = new AuthSession("opaque", 10L, "Owner", "joossameng", 7L, Role.OWNER,
                 "Chrome / macOS", DeviceCategory.PC, Instant.now(), Instant.now().plusSeconds(604800));
         when(redis.hasKey("auth:blacklist:refresh-jti")).thenReturn(false);
+        when(redis.opsForValue()).thenReturn(values);
         when(redis.hasKey("auth:session-revoked:joossameng:legacy-sid")).thenReturn(false);
         when(redis.hasKey("auth:refresh:10:refresh-jti")).thenReturn(true);
         when(users.findById(10L)).thenReturn(Optional.of(user));

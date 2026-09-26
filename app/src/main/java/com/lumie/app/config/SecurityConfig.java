@@ -60,10 +60,10 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
-                .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(legacyJwtMigrationFilter, SessionAuthenticationFilter.class)
+                .addFilterBefore(hostTenantFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(legacyJwtMigrationFilter, HostTenantFilter.class)
+                .addFilterAfter(sessionAuthenticationFilter, LegacyJwtMigrationFilter.class)
                 .addFilterBefore(sameOriginCsrfFilter, SessionAuthenticationFilter.class)
-                .addFilterBefore(hostTenantFilter, SessionAuthenticationFilter.class)
                 .addFilterBefore(internalHmacAuthFilter, SessionAuthenticationFilter.class);
 
         return http.build();
