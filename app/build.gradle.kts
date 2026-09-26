@@ -17,7 +17,6 @@ dependencies {
     implementation(project(":modules:tenant"))
     implementation(project(":modules:auth"))
     implementation(project(":modules:billing"))
-    implementation(project(":modules:homepage"))
     implementation(project(":modules:student"))
     implementation(project(":modules:staff"))
     implementation(project(":modules:exam"))

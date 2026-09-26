@@ -3,33 +3,34 @@ package com.lumie.auth.adapter.in.web;
 import com.lumie.auth.application.dto.request.ChangePasswordRequest;
 import com.lumie.auth.application.dto.request.LoginRequest;
 import com.lumie.auth.application.dto.request.OwnerRegisterRequest;
-import com.lumie.auth.application.dto.request.RefreshTokenRequest;
-import com.lumie.auth.application.dto.request.RegisterRequest;
 import com.lumie.auth.application.dto.request.UpdateAvatarRequest;
 import com.lumie.auth.application.dto.request.UpdateProfileRequest;
 import com.lumie.auth.application.dto.response.AuthResponse;
 import com.lumie.auth.application.dto.response.LoginResponse;
 import com.lumie.auth.application.dto.response.SessionResponse;
-import com.lumie.auth.application.dto.response.TokenResponse;
 import com.lumie.auth.application.dto.response.UserResponse;
 import com.lumie.auth.application.service.AuthQueryService;
 import com.lumie.auth.application.service.AuthRegistrationService;
 import com.lumie.auth.application.service.AuthSessionService;
 import com.lumie.auth.application.service.AvatarService;
 import com.lumie.auth.application.service.UserProfileService;
-import com.lumie.auth.adapter.out.config.CookieConfig;
+import com.lumie.auth.adapter.out.config.SessionConfig;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -44,15 +45,13 @@ public class AuthController {
     private final UserProfileService userProfileService;
     private final AvatarService avatarService;
     private final CookieUtils cookieUtils;
-    private final CookieConfig cookieConfig;
+    private final SessionConfig sessionConfig;
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMe() {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        if (userId == null || tenantSlug == null) {
-            return ResponseEntity.status(401).build();
-        }
+        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(authQueryService.getMe(userId, tenantSlug));
     }
 
@@ -60,9 +59,7 @@ public class AuthController {
     public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        if (userId == null || tenantSlug == null) {
-            return ResponseEntity.status(401).build();
-        }
+        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(userProfileService.updateProfile(userId, tenantSlug, request));
     }
 
@@ -70,9 +67,7 @@ public class AuthController {
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        if (userId == null || tenantSlug == null) {
-            return ResponseEntity.status(401).build();
-        }
+        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
         userProfileService.changePassword(userId, tenantSlug, request);
         return ResponseEntity.noContent().build();
     }
@@ -80,9 +75,7 @@ public class AuthController {
     @PatchMapping("/me/avatar")
     public ResponseEntity<Void> updateAvatar(@Valid @RequestBody UpdateAvatarRequest request) {
         Long userId = UserContextHolder.getUserId();
-        if (userId == null) {
-            return ResponseEntity.status(401).build();
-        }
+        if (userId == null) return ResponseEntity.status(401).build();
         avatarService.updateAvatar(userId, request.avatarSeed());
         return ResponseEntity.noContent().build();
     }
@@ -91,25 +84,17 @@ public class AuthController {
     public ResponseEntity<List<SessionResponse>> getSessions() {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        String currentSid = UserContextHolder.getCurrentSid();
-        if (userId == null || tenantSlug == null) {
-            return ResponseEntity.status(401).build();
-        }
-        return ResponseEntity.ok(authQueryService.getSessions(userId, tenantSlug, currentSid));
+        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(authQueryService.getSessions(userId, tenantSlug, UserContextHolder.getCurrentSid()));
     }
 
-    @DeleteMapping("/me/sessions/{sid}")
-    public ResponseEntity<Void> revokeSession(@PathVariable String sid) {
+    @DeleteMapping("/me/sessions/{sessionId}")
+    public ResponseEntity<Void> revokeSession(@PathVariable String sessionId) {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        String currentSid = UserContextHolder.getCurrentSid();
-        if (userId == null || tenantSlug == null) {
-            return ResponseEntity.status(401).build();
-        }
-        if (sid.equals(currentSid)) {
-            return ResponseEntity.badRequest().build();
-        }
-        authSessionService.revokeSession(userId, tenantSlug, sid);
+        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
+        if (sessionId.equals(UserContextHolder.getCurrentSid())) return ResponseEntity.badRequest().build();
+        authSessionService.revokeSession(userId, tenantSlug, sessionId);
         return ResponseEntity.noContent().build();
     }
 
@@ -117,105 +102,62 @@ public class AuthController {
     public ResponseEntity<Void> revokeOtherSessions() {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        String currentSid = UserContextHolder.getCurrentSid();
-        if (userId == null || tenantSlug == null) {
-            return ResponseEntity.status(401).build();
-        }
-        authSessionService.revokeOtherSessions(userId, tenantSlug, currentSid);
+        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
+        authSessionService.revokeOtherSessions(userId, tenantSlug, UserContextHolder.getCurrentSid());
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/register")
-    @ApiResponse(responseCode = "201", description = "Created")
-    public ResponseEntity<AuthResponse> register(
-            @Valid @RequestBody RegisterRequest request,
-            HttpServletRequest httpRequest) {
-        var metadata = SessionMetadataExtractor.extract(httpRequest);
-        return buildAuthResponse(authRegistrationService.register(request, metadata), 201);
-    }
-
     @PostMapping("/register/owner")
-    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<AuthResponse> registerOwner(
             @Valid @RequestBody OwnerRegisterRequest request, HttpServletRequest httpRequest) {
-        var metadata = SessionMetadataExtractor.extract(httpRequest);
-        LoginResponse response = authRegistrationService.registerOwner(request, metadata);
-        return buildAuthResponse(response, 201);
+        // Owner signup is a Lumie-product entry point. A tenant host must
+        // never provision an unrelated tenant, even if a caller bypasses the
+        // public route and calls the API directly.
+        if (TenantContextHolder.getTenant() != null) {
+            return ResponseEntity.notFound().build();
+        }
+        return buildAuthResponse(authRegistrationService.registerOwner(request, SessionMetadataExtractor.extract(httpRequest)), 201);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(
-            @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        var metadata = SessionMetadataExtractor.extract(httpRequest);
-        LoginResponse response = authSessionService.login(request, metadata);
-        return buildAuthResponse(response, 200);
-    }
-
-    @PostMapping("/refresh")
-    @ApiResponse(
-            responseCode = "200",
-            description = "OK",
-            content = @Content(schema = @Schema(implementation = AuthResponse.class))
-    )
-    @ApiResponse(
-            responseCode = "401",
-            description = "Unauthorized, including AUTH_017 when the session was replaced by another login",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
-    )
-    public ResponseEntity<AuthResponse> refresh(
-            @CookieValue(name = "lumie_refresh_token", required = false) String refreshTokenFromCookie
-    ) {
-        if (refreshTokenFromCookie == null) {
-            return ResponseEntity.status(401).build();
-        }
-
-        TokenResponse response = authSessionService.refresh(
-                RefreshTokenRequest.builder().refreshToken(refreshTokenFromCookie).build()
-        );
-        return buildTokenRefreshResponse(response);
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        return buildAuthResponse(authSessionService.login(request, SessionMetadataExtractor.extract(httpRequest)), 200);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(
-            @CookieValue(name = "lumie_access_token", required = false) String accessTokenFromCookie
-    ) {
-        if (accessTokenFromCookie != null) {
-            authSessionService.logout(accessTokenFromCookie);
-        }
-
-        return buildLogoutResponse();
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        String sessionId = sessionId(request);
+        if (sessionId != null) authSessionService.logout(sessionId);
+        return logoutResponse();
     }
 
     @PostMapping("/logout-all")
-    public ResponseEntity<Void> logoutAll(
-            @CookieValue(name = "lumie_access_token", required = false) String accessTokenFromCookie
-    ) {
-        if (accessTokenFromCookie != null) {
-            authSessionService.logoutAll(accessTokenFromCookie);
-        }
-
-        return buildLogoutResponse();
+    public ResponseEntity<Void> logoutAll(HttpServletRequest request) {
+        String sessionId = sessionId(request);
+        if (sessionId != null) authQueryService.findActiveSession(sessionId).ifPresent(authSessionService::logoutAll);
+        return logoutResponse();
     }
 
     private ResponseEntity<AuthResponse> buildAuthResponse(LoginResponse response, int status) {
         return ResponseEntity.status(status)
-                .header(HttpHeaders.SET_COOKIE, cookieUtils.createAccessTokenCookie(response.accessToken()).toString())
-                .header(HttpHeaders.SET_COOKIE, cookieUtils.createRefreshTokenCookie(response.refreshToken()).toString())
+                .header(HttpHeaders.SET_COOKIE, cookieUtils.createSessionCookie(response.sessionId()).toString())
                 .body(AuthResponse.from(response));
     }
 
-    private ResponseEntity<AuthResponse> buildTokenRefreshResponse(TokenResponse response) {
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookieUtils.createAccessTokenCookie(response.accessToken()).toString())
-                .header(HttpHeaders.SET_COOKIE, cookieUtils.createRefreshTokenCookie(response.refreshToken()).toString())
-                .body(AuthResponse.from(response));
-    }
-
-    private ResponseEntity<Void> buildLogoutResponse() {
+    private ResponseEntity<Void> logoutResponse() {
         return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, cookieUtils.createExpiredAccessTokenCookie().toString())
-                .header(HttpHeaders.SET_COOKIE, cookieUtils.createExpiredRefreshTokenCookie().toString())
+                .header(HttpHeaders.SET_COOKIE, cookieUtils.expireSessionCookie().toString())
                 .build();
     }
 
+    private String sessionId(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) return null;
+        for (Cookie cookie : cookies) {
+            if (sessionConfig.getCookieName().equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
+    }
 }

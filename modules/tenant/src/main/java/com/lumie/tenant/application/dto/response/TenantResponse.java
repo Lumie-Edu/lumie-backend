@@ -21,8 +21,6 @@ public record TenantResponse(
         @Schema(nullable = true) String phone,
         @Schema(nullable = true) String instituteName,
         @Schema(nullable = true) String logoUrl,
-        @Schema(nullable = true) String customId,
-        @Schema(nullable = true) String customDomain,
         @Schema(nullable = true) Instant onboardingCompletedAt,
         @ArraySchema(schema = @Schema(allowableValues = {
                 "ai",
@@ -49,8 +47,6 @@ public record TenantResponse(
                 .phone(tenant.getPhone())
                 .instituteName(tenant.getInstituteName())
                 .logoUrl(hasLogo ? "/api/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
-                .customId(tenant.getCustomId())
-                .customDomain(tenant.getCustomDomain())
                 .onboardingCompletedAt(tenant.getOnboardingCompletedAt())
                 .hiddenSidebarItemIds(tenant.getHiddenSidebarItemIds())
                 .createdAt(tenant.getCreatedAt())

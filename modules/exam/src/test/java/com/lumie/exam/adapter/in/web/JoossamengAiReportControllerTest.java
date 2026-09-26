@@ -78,11 +78,11 @@ class JoossamengAiReportControllerTest {
 
     @Test
     void getAiCommentary_returnsEmptyPayloadWhenWorkerHasNoCommentary() throws Exception {
-        given(client.getAiCommentary(55L, "joossameng"))
+        given(client.getAiCommentary(55L, "inst-joossameng"))
                 .willReturn(AiCommentaryResponse.empty());
 
         mockMvc.perform(get("/v1/exams/55/ai-commentary")
-                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_TENANT_HEADER, "inst-joossameng")
                         .header(TEST_ROLE_HEADER, Role.INSTRUCTOR.name()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").value(nullValue()))
@@ -95,7 +95,7 @@ class JoossamengAiReportControllerTest {
     @Test
     void getAiCommentary_rejectsStudentRole() throws Exception {
         mockMvc.perform(get("/v1/exams/55/ai-commentary")
-                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_TENANT_HEADER, "inst-joossameng")
                         .header(TEST_ROLE_HEADER, Role.STUDENT.name()))
                 .andExpect(status().isForbidden());
 
@@ -105,7 +105,7 @@ class JoossamengAiReportControllerTest {
     @Test
     void generateAiCommentary_returnsWorkerPayload() throws Exception {
         Instant generatedAt = Instant.parse("2026-08-08T02:30:00Z");
-        given(client.generateAiCommentary(55L, "joossameng"))
+        given(client.generateAiCommentary(55L, "inst-joossameng"))
                 .willReturn(new AiCommentaryResponse(
                         "Generated commentary",
                         false,
@@ -115,7 +115,7 @@ class JoossamengAiReportControllerTest {
                 ));
 
         mockMvc.perform(post("/v1/exams/55/ai-commentary/generate")
-                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_TENANT_HEADER, "inst-joossameng")
                         .header(TEST_ROLE_HEADER, Role.INSTRUCTOR.name()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").value("Generated commentary"))
@@ -127,7 +127,7 @@ class JoossamengAiReportControllerTest {
     @Test
     void generateAiCommentary_rejectsStudentRole() throws Exception {
         mockMvc.perform(post("/v1/exams/55/ai-commentary/generate")
-                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_TENANT_HEADER, "inst-joossameng")
                         .header(TEST_ROLE_HEADER, Role.STUDENT.name()))
                 .andExpect(status().isForbidden());
 
@@ -137,7 +137,7 @@ class JoossamengAiReportControllerTest {
     @Test
     void updateAiCommentary_rejectsStudentRole() throws Exception {
         mockMvc.perform(put("/v1/exams/55/ai-commentary")
-                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_TENANT_HEADER, "inst-joossameng")
                         .header(TEST_ROLE_HEADER, Role.STUDENT.name())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"Edited commentary\",\"expectedVersion\":1}"))
@@ -153,7 +153,7 @@ class JoossamengAiReportControllerTest {
         given(client.updateAiCommentary(
                 org.mockito.ArgumentMatchers.eq(55L),
                 org.mockito.ArgumentMatchers.any(UpdateAiCommentaryRequest.class),
-                org.mockito.ArgumentMatchers.eq("joossameng")
+                org.mockito.ArgumentMatchers.eq("inst-joossameng")
         )).willReturn(new AiCommentaryResponse(
                 "Edited commentary",
                 true,
@@ -163,7 +163,7 @@ class JoossamengAiReportControllerTest {
         ));
 
         mockMvc.perform(put("/v1/exams/55/ai-commentary")
-                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_TENANT_HEADER, "inst-joossameng")
                         .header(TEST_ROLE_HEADER, Role.INSTRUCTOR.name())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"Edited commentary\",\"expectedVersion\":1}"))
@@ -179,11 +179,11 @@ class JoossamengAiReportControllerTest {
         given(client.updateAiCommentary(
                 org.mockito.ArgumentMatchers.eq(55L),
                 org.mockito.ArgumentMatchers.any(UpdateAiCommentaryRequest.class),
-                org.mockito.ArgumentMatchers.eq("joossameng")
+                org.mockito.ArgumentMatchers.eq("inst-joossameng")
         )).willThrow(new BusinessException(CommonErrorCode.OPTIMISTIC_LOCK_CONFLICT));
 
         mockMvc.perform(put("/v1/exams/55/ai-commentary")
-                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_TENANT_HEADER, "inst-joossameng")
                         .header(TEST_ROLE_HEADER, Role.INSTRUCTOR.name())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"Edited commentary\",\"expectedVersion\":1}"))
@@ -196,11 +196,11 @@ class JoossamengAiReportControllerTest {
         given(client.generateBatch(
                 org.mockito.ArgumentMatchers.eq(55L),
                 org.mockito.ArgumentMatchers.any(ReportBatchRequest.class),
-                org.mockito.ArgumentMatchers.eq("joossameng")
+                org.mockito.ArgumentMatchers.eq("inst-joossameng")
         )).willReturn(new byte[]{1, 2, 3});
 
         mockMvc.perform(post("/v1/exams/55/reports/ai-batch")
-                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_TENANT_HEADER, "inst-joossameng")
                         .header(TEST_ROLE_HEADER, Role.INSTRUCTOR.name())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"studentIds\":[7]}"))
@@ -214,7 +214,7 @@ class JoossamengAiReportControllerTest {
     @Test
     void createAiBatchReport_rejectsStudentRole() throws Exception {
         mockMvc.perform(post("/v1/exams/55/reports/ai-batch")
-                        .header(TEST_TENANT_HEADER, "joossameng")
+                        .header(TEST_TENANT_HEADER, "inst-joossameng")
                         .header(TEST_ROLE_HEADER, Role.STUDENT.name())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"studentIds\":[7]}"))

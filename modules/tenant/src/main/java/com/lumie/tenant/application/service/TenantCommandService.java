@@ -74,7 +74,6 @@ public class TenantCommandService {
         Tenant tenant = findTenantOrThrow(slug);
         tenant.updateInfo(request.name(), request.displayName());
         tenant.updateContact(request.phone());
-        applyCustomIdUpdate(tenant, request.customId());
         tenant.updateHiddenSidebarItemIds(request.hiddenSidebarItemIds());
         Tenant updatedTenant = tenantPersistencePort.save(tenant);
 
@@ -99,27 +98,12 @@ public class TenantCommandService {
                     "이미 완료된 온보딩입니다.");
         }
         tenant.updateContact(request.phone());
-        applyCustomIdUpdate(tenant, request.customId());
         tenant.updateHiddenSidebarItemIds(request.hiddenSidebarItemIds());
         tenant.completeOnboarding(Instant.now());
         Tenant updatedTenant = tenantPersistencePort.save(tenant);
 
         log.info("Tenant onboarding completed: {}", slug);
         return TenantResponse.from(updatedTenant);
-    }
-
-    private void applyCustomIdUpdate(Tenant tenant, String requested) {
-        if (requested == null) {
-            return;
-        }
-        String normalized = requested.isBlank() ? null : requested.trim().toLowerCase(java.util.Locale.ROOT);
-        if (java.util.Objects.equals(normalized, tenant.getCustomId())) {
-            return;
-        }
-        if (normalized != null && tenantPersistencePort.existsByCustomId(normalized)) {
-            throw new DuplicateResourceException("CustomId", normalized);
-        }
-        tenant.updateCustomId(normalized);
     }
 
     public void deleteTenant(String slug) {

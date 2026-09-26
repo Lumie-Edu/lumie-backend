@@ -4,9 +4,7 @@ import com.lumie.common.auth.Role;
 
 /**
  * Holds the current user context for the request thread.
- * Populated by {@code JwtAuthenticationFilter} from the validated access
- * token (cookie or {@code Authorization: Bearer ...}): user id from the
- * JWT {@code sub} claim, role from the {@code role} claim.
+ * Populated by the authenticated browser session or an internal request.
  */
 public final class UserContextHolder {
 
@@ -34,7 +32,7 @@ public final class UserContextHolder {
         return userId;
     }
 
-    /** Display name from the JWT {@code name} claim. May be {@code null} for tokens issued before name was added. */
+    /** Display name captured when the current server-side session was created. */
     public static void setUserName(String name) {
         CURRENT_USER_NAME.set(name);
     }
@@ -44,7 +42,7 @@ public final class UserContextHolder {
     }
 
     /**
-     * Lenient String-accepting setter for JWT-filter / HTTP-header paths
+     * Lenient String-accepting setter for session-filter / HTTP-header paths
      * that hand off a raw role claim. Normalizes via {@link Role#fromString}
      * (handles legacy aliases ADMIN → INSTRUCTOR, DEVELOPER → MANAGER) so
      * every read path sees a canonical enum.

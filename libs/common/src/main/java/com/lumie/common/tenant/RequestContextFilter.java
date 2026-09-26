@@ -19,18 +19,18 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * Filter that populates tenant and user context from SecurityContext (JWT)
- * or X-headers (legacy/fallback).
+ * Filter that populates user context from SecurityContext and manages
+ * request correlation. Tenant context is bound from the request host before
+ * this filter by the tenant module's HostTenantFilter.
  */
 public class RequestContextFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RequestContextFilter.class);
 
-    public static final String USER_ID_HEADER = "X-User-Id";
-    public static final String TENANT_SLUG_HEADER = "X-Tenant-Slug";
-    public static final String TENANT_ID_HEADER = "X-Tenant-Id";
-    public static final String USER_ROLE_HEADER = "X-User-Role";
     public static final String REQUEST_ID_HEADER = "X-Request-Id";
+    public static final String HOST_TENANT_SLUG_ATTRIBUTE = "lumie.hostTenantSlug";
+    public static final String HOST_TENANT_ID_ATTRIBUTE = "lumie.hostTenantId";
+    public static final String HOST_TENANT_RESOLUTION_ATTRIBUTE = "lumie.hostTenantResolution";
 
     private static final String TRACEPARENT_HEADER = "traceparent";
     private static final int MAX_REQUEST_ID_LENGTH = 128;
@@ -56,8 +56,8 @@ public class RequestContextFilter extends OncePerRequestFilter {
         try {
             setRequestCorrelation(request, response);
 
-            if (!populateFromSecurityContext()) {
-                populateFromHeaders(request);
+            if (!populateFromSecurityContext() && request.getRequestURI().startsWith("/internal/")) {
+                populateFromInternalHeaders(request);
             }
 
             setMdc();
@@ -131,9 +131,9 @@ public class RequestContextFilter extends OncePerRequestFilter {
             return false;
         }
 
-        // JwtAuthenticationFilter already set TenantContextHolder and UserContextHolder
+        // The authentication filter already set TenantContextHolder and UserContextHolder.
         if (TenantContextHolder.getTenant() != null) {
-            log.debug("Context populated from JWT: tenant={}, userId={}",
+            log.debug("Context populated from authenticated session: tenant={}, userId={}",
                     TenantContextHolder.getTenant(), UserContextHolder.getUserId());
             return true;
         }
@@ -141,36 +141,25 @@ public class RequestContextFilter extends OncePerRequestFilter {
         return false;
     }
 
-    private void populateFromHeaders(HttpServletRequest request) {
-        String tenantSlug = request.getHeader(TENANT_SLUG_HEADER);
+    /**
+     * Worker and monolith-internal calls remain HMAC-authenticated and carry
+     * tenant context explicitly. Public browser requests never use these
+     * headers to select a tenant.
+     */
+    private void populateFromInternalHeaders(HttpServletRequest request) {
+        String tenantSlug = request.getHeader("X-Tenant-Slug");
         if (tenantSlug == null || tenantSlug.isBlank()) {
-            log.debug("No tenant context for request: {}", request.getRequestURI());
             return;
         }
-
         TenantContextHolder.setTenant(tenantSlug);
 
-        String tenantId = request.getHeader(TENANT_ID_HEADER);
+        String tenantId = request.getHeader("X-Tenant-Id");
         if (tenantId != null && !tenantId.isBlank()) {
             try {
                 TenantContextHolder.setTenantId(Long.parseLong(tenantId));
-            } catch (NumberFormatException e) {
-                log.warn("Invalid {} header value: {}", TENANT_ID_HEADER, tenantId);
+            } catch (NumberFormatException exception) {
+                log.warn("Invalid X-Tenant-Id header value: {}", tenantId);
             }
-        }
-
-        String userId = request.getHeader(USER_ID_HEADER);
-        if (userId != null && !userId.isBlank()) {
-            try {
-                UserContextHolder.setUserId(Long.parseLong(userId));
-            } catch (NumberFormatException e) {
-                log.warn("Invalid {} header value: {}", USER_ID_HEADER, userId);
-            }
-        }
-
-        String userRole = request.getHeader(USER_ROLE_HEADER);
-        if (userRole != null && !userRole.isBlank()) {
-            UserContextHolder.setUserRole(userRole);
         }
     }
 

@@ -17,10 +17,6 @@ public record UserResponse(
         String tenantSlug,
         Long tenantId,
         @Schema(nullable = true)
-        String tenantCustomId,
-        @Schema(nullable = true)
-        String tenantCustomDomain,
-        @Schema(nullable = true)
         Instant tenantOnboardingCompletedAt,
         String avatarSeed
 ) {

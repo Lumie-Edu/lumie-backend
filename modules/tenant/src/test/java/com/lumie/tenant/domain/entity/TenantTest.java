@@ -2,7 +2,6 @@ package com.lumie.tenant.domain.entity;
 
 import com.lumie.common.exception.BusinessException;
 import com.lumie.tenant.domain.exception.InvalidTenantStateException;
-import com.lumie.tenant.domain.exception.TenantErrorCode;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.api.TenantStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -139,17 +138,6 @@ class TenantTest {
     }
 
     @Test
-    @DisplayName("FREE 플랜도 커스텀 도메인을 설정할 수 있다 (요금제 게이트 제거)")
-    void setCustomDomainOnFreePlan() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
-        assertThat(tenant.getPlan()).isEqualTo(TenantPlan.FREE);
-
-        tenant.setCustomDomain("ABC.com");
-
-        assertThat(tenant.getCustomDomain()).isEqualTo("abc.com");
-    }
-
-    @Test
     @DisplayName("updateLogoObjectKey 호출 시 logoObjectKey 갱신됨")
     void updateLogoObjectKey() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
@@ -224,96 +212,4 @@ class TenantTest {
                 .hasMessageContaining("지원하지 않는 사이드바 메뉴 ID");
     }
 
-    // --- customId permanence ---
-
-    @Test
-    @DisplayName("customId가 null일 때 처음 설정하면 정상 저장됨")
-    void setCustomIdFirstTime() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
-        assertThat(tenant.getCustomId()).isEqualTo(tenant.getSlugValue());
-
-        tenant.updateCustomId("my-academy");
-
-        assertThat(tenant.getCustomId()).isEqualTo("my-academy");
-    }
-
-    @Test
-    @DisplayName("이미 설정된 customId를 다른 값으로 변경하면 BusinessException(CUSTOM_ID_IMMUTABLE) 발생")
-    void changeCustomIdAfterSetThrowsImmutableException() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
-        tenant.updateCustomId("my-academy");
-
-        assertThatThrownBy(() -> tenant.updateCustomId("other-academy"))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(TenantErrorCode.CUSTOM_ID_IMMUTABLE));
-    }
-
-    @Test
-    @DisplayName("이미 설정된 customId와 동일한 값으로 호출하면 예외 없이 no-op")
-    void sameCustomIdIsNoOp() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
-        tenant.updateCustomId("my-academy");
-
-        // Must not throw — idempotent no-op.
-        tenant.updateCustomId("my-academy");
-        tenant.updateCustomId("MY-ACADEMY"); // normalises to same value
-
-        assertThat(tenant.getCustomId()).isEqualTo("my-academy");
-    }
-
-    @Test
-    @DisplayName("이미 설정된 customId를 null/blank로 지우려 하면 BusinessException(CUSTOM_ID_IMMUTABLE) 발생")
-    void clearCustomIdAfterSetThrowsImmutableException() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
-        tenant.updateCustomId("my-academy");
-
-        assertThatThrownBy(() -> tenant.updateCustomId(null))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(TenantErrorCode.CUSTOM_ID_IMMUTABLE));
-
-        assertThatThrownBy(() -> tenant.updateCustomId("   "))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(TenantErrorCode.CUSTOM_ID_IMMUTABLE));
-    }
-
-    // --- customId first-set validation ---
-
-    @Test
-    @DisplayName("customId가 null일 때 포맷 위반 값으로 설정하면 BusinessException(INVALID_CUSTOM_ID) 발생")
-    void setCustomIdFirstTimeWithInvalidFormatThrows() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
-        assertThat(tenant.getCustomId()).isEqualTo(tenant.getSlugValue());
-
-        assertThatThrownBy(() -> tenant.updateCustomId("-bad"))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(TenantErrorCode.INVALID_CUSTOM_ID));
-    }
-
-    @Test
-    @DisplayName("customId가 null일 때 예약어로 설정하면 BusinessException(RESERVED_CUSTOM_ID) 발생")
-    void setCustomIdFirstTimeWithReservedValueThrows() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
-        assertThat(tenant.getCustomId()).isEqualTo(tenant.getSlugValue());
-
-        // "admin" satisfies CUSTOM_ID_PATTERN (format-valid) but is in RESERVED_CUSTOM_IDS
-        assertThatThrownBy(() -> tenant.updateCustomId("admin"))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(TenantErrorCode.RESERVED_CUSTOM_ID));
-    }
-
-    @Test
-    @DisplayName("customId가 null일 때 oauth는 더 이상 예약어가 아니므로 설정할 수 있다")
-    void setCustomIdFirstTimeWithOauthSucceeds() {
-        Tenant tenant = Tenant.create("test-academy", "Test Academy", null);
-        assertThat(tenant.getCustomId()).isEqualTo(tenant.getSlugValue());
-
-        tenant.updateCustomId("oauth");
-
-        assertThat(tenant.getCustomId()).isEqualTo("oauth");
-    }
 }

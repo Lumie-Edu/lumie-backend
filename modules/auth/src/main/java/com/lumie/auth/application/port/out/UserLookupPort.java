@@ -63,15 +63,10 @@ public interface UserLookupPort {
             String avatarSeed
     ) {
         public UserResponse toUserResponse(String tenantSlug) {
-            return toUserResponse(tenantSlug, null, null, null);
+            return toUserResponse(tenantSlug, null);
         }
 
         public UserResponse toUserResponse(String tenantSlug, Instant tenantOnboardingCompletedAt) {
-            return toUserResponse(tenantSlug, null, null, tenantOnboardingCompletedAt);
-        }
-
-        public UserResponse toUserResponse(String tenantSlug, String tenantCustomId, String tenantCustomDomain,
-                                           Instant tenantOnboardingCompletedAt) {
             return UserResponse.builder()
                     .id(id)
                     .userLoginId(userLoginId)
@@ -81,8 +76,6 @@ public interface UserLookupPort {
                     .role(role)
                     .tenantSlug(tenantSlug)
                     .tenantId(tenantId)
-                    .tenantCustomId(tenantCustomId)
-                    .tenantCustomDomain(tenantCustomDomain)
                     .tenantOnboardingCompletedAt(tenantOnboardingCompletedAt)
                     .avatarSeed(avatarSeed)
                     .build();

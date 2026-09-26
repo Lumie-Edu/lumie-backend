@@ -337,11 +337,7 @@
       },
       "AuthResponse" : {
         "properties" : {
-          "accessExpiresIn" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "refreshExpiresIn" : {
+          "sessionExpiresIn" : {
             "format" : "int64",
             "type" : "integer"
           },
@@ -349,7 +345,7 @@
             "$ref" : "#/components/schemas/UserResponse"
           }
         },
-        "required" : [ "accessExpiresIn", "refreshExpiresIn", "user" ],
+        "required" : [ "sessionExpiresIn", "user" ],
         "type" : "object"
       },
       "BatchOperationRequest" : {
@@ -741,10 +737,6 @@
       },
       "CompleteTenantOnboardingRequest" : {
         "properties" : {
-          "customId" : {
-            "pattern" : "^$|^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$",
-            "type" : "string"
-          },
           "hiddenSidebarItemIds" : {
             "items" : {
               "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "reviews" ],
@@ -1906,7 +1898,7 @@
             "type" : "integer"
           },
           "entityType" : {
-            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR", "HOMEPAGE_ASSET" ],
+            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
             "type" : "string"
           },
           "fileSize" : {
@@ -2057,35 +2049,6 @@
           }
         },
         "required" : [ "messages" ],
-        "type" : "object"
-      },
-      "HomepageConfigResponse" : {
-        "properties" : {
-          "id" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "published" : {
-            "type" : "boolean"
-          },
-          "sections" : {
-            "$ref" : "#/components/schemas/JsonNode"
-          },
-          "templateId" : {
-            "enum" : [ "solo-instructor" ],
-            "type" : "string"
-          },
-          "templateVersion" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "updatedAt" : {
-            "format" : "date-time",
-            "nullable" : true,
-            "type" : "string"
-          }
-        },
-        "required" : [ "id", "published", "sections", "templateId", "templateVersion", "updatedAt" ],
         "type" : "object"
       },
       "ImprovementScenario" : {
@@ -2356,10 +2319,6 @@
       },
       "LoginRequest" : {
         "properties" : {
-          "customId" : {
-            "pattern" : "^$|^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$",
-            "type" : "string"
-          },
           "password" : {
             "maxLength" : 128,
             "minLength" : 8,
@@ -3503,7 +3462,7 @@
             "type" : "integer"
           },
           "entityType" : {
-            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR", "HOMEPAGE_ASSET" ],
+            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
             "type" : "string"
           },
           "fileSize" : {
@@ -3575,8 +3534,8 @@
       },
       "PublicTenantResponse" : {
         "properties" : {
-          "customId" : {
-            "nullable" : true,
+          "loginTheme" : {
+            "enum" : [ "default", "ocean" ],
             "type" : "string"
           },
           "logoUrl" : {
@@ -3594,16 +3553,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "customId", "logoUrl", "name", "phone", "slug" ],
-        "type" : "object"
-      },
-      "PublishHomepageRequest" : {
-        "properties" : {
-          "published" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "published" ],
+        "required" : [ "loginTheme", "logoUrl", "name", "phone", "slug" ],
         "type" : "object"
       },
       "QnaBoardResponse" : {
@@ -3987,51 +3937,6 @@
           }
         },
         "required" : [ "authKey", "customerKey" ],
-        "type" : "object"
-      },
-      "RegisterRequest" : {
-        "properties" : {
-          "name" : {
-            "maxLength" : 100,
-            "minLength" : 2,
-            "type" : "string"
-          },
-          "parentPhone" : {
-            "maxLength" : 20,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "password" : {
-            "maxLength" : 128,
-            "minLength" : 8,
-            "pattern" : "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
-            "type" : "string"
-          },
-          "phone" : {
-            "maxLength" : 20,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "studentBirthYear" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "studentHighschool" : {
-            "maxLength" : 100,
-            "minLength" : 1,
-            "type" : "string"
-          },
-          "tenantSlug" : {
-            "type" : "string"
-          },
-          "userLoginId" : {
-            "maxLength" : 50,
-            "minLength" : 4,
-            "pattern" : "^[a-zA-Z0-9_]+$",
-            "type" : "string"
-          }
-        },
-        "required" : [ "name", "password", "studentBirthYear", "studentHighschool", "tenantSlug", "userLoginId" ],
         "type" : "object"
       },
       "RegisterStudentFromOmrSubmissionRequest" : {
@@ -5529,14 +5434,6 @@
             "format" : "date-time",
             "type" : "string"
           },
-          "customDomain" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "customId" : {
-            "nullable" : true,
-            "type" : "string"
-          },
           "displayName" : {
             "nullable" : true,
             "type" : "string"
@@ -5588,7 +5485,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "createdAt", "customDomain", "customId", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "slug", "status", "updatedAt" ],
+        "required" : [ "createdAt", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "slug", "status", "updatedAt" ],
         "type" : "object"
       },
       "TextbookFolderPathResponse" : {
@@ -6064,24 +5961,6 @@
         },
         "type" : "object"
       },
-      "UpdateHomepageConfigRequest" : {
-        "properties" : {
-          "sections" : {
-            "$ref" : "#/components/schemas/JsonNode"
-          },
-          "templateId" : {
-            "enum" : [ "solo-instructor" ],
-            "type" : "string"
-          },
-          "templateVersion" : {
-            "format" : "int32",
-            "minimum" : 1,
-            "type" : "integer"
-          }
-        },
-        "required" : [ "sections", "templateId" ],
-        "type" : "object"
-      },
       "UpdateLectureRequest" : {
         "properties" : {
           "classId" : {
@@ -6227,10 +6106,6 @@
       },
       "UpdateTenantRequest" : {
         "properties" : {
-          "customId" : {
-            "pattern" : "^$|^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$",
-            "type" : "string"
-          },
           "displayName" : {
             "maxLength" : 200,
             "minLength" : 0,
@@ -6295,14 +6170,6 @@
             "enum" : [ "OWNER", "MANAGER", "INSTRUCTOR", "STUDENT" ],
             "type" : "string"
           },
-          "tenantCustomDomain" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "tenantCustomId" : {
-            "nullable" : true,
-            "type" : "string"
-          },
           "tenantId" : {
             "format" : "int64",
             "type" : "integer"
@@ -6319,7 +6186,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "avatarSeed", "email", "id", "name", "phone", "role", "tenantCustomDomain", "tenantCustomId", "tenantId", "tenantOnboardingCompletedAt", "tenantSlug", "userLoginId" ],
+        "required" : [ "avatarSeed", "email", "id", "name", "phone", "role", "tenantId", "tenantOnboardingCompletedAt", "tenantSlug", "userLoginId" ],
         "type" : "object"
       },
       "WatchResponse" : {
@@ -6346,13 +6213,6 @@
         },
         "required" : [ "description", "lectureId", "title", "visibility", "youtubeUrl" ],
         "type" : "object"
-      }
-    },
-    "securitySchemes" : {
-      "bearerAuth" : {
-        "bearerFormat" : "JWT",
-        "scheme" : "bearer",
-        "type" : "http"
       }
     }
   },
@@ -10292,7 +10152,7 @@
           "name" : "entityType",
           "required" : true,
           "schema" : {
-            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR", "HOMEPAGE_ASSET" ],
+            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
             "type" : "string"
           }
         }, {
@@ -10420,34 +10280,6 @@
         "tags" : [ "file-controller" ]
       }
     },
-    "/v1/files/public/{fileId}" : {
-      "get" : {
-        "operationId" : "downloadPublicFile",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "fileId",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "format" : "binary",
-                  "type" : "string"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      }
-    },
     "/v1/files/upload" : {
       "post" : {
         "operationId" : "uploadFile",
@@ -10456,7 +10288,7 @@
           "name" : "entityType",
           "required" : true,
           "schema" : {
-            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR", "HOMEPAGE_ASSET" ],
+            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
             "type" : "string"
           }
         }, {
@@ -10615,104 +10447,6 @@
           }
         },
         "tags" : [ "file-controller" ]
-      }
-    },
-    "/v1/homepage" : {
-      "get" : {
-        "operationId" : "getCurrent",
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HomepageConfigResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "homepage-controller" ]
-      },
-      "put" : {
-        "operationId" : "update",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/UpdateHomepageConfigRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HomepageConfigResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "homepage-controller" ]
-      }
-    },
-    "/v1/homepage/public/by-custom-id/{customId}" : {
-      "get" : {
-        "operationId" : "getPublicByCustomId",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "customId",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HomepageConfigResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "homepage-controller" ]
-      }
-    },
-    "/v1/homepage/publish" : {
-      "post" : {
-        "operationId" : "publish",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/PublishHomepageRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HomepageConfigResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "homepage-controller" ]
       }
     },
     "/v1/lectures" : {
@@ -11034,14 +10768,6 @@
     "/v1/logout" : {
       "post" : {
         "operationId" : "logout",
-        "parameters" : [ {
-          "in" : "cookie",
-          "name" : "lumie_access_token",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
         "responses" : {
           "200" : {
             "description" : "OK"
@@ -11053,14 +10779,6 @@
     "/v1/logout-all" : {
       "post" : {
         "operationId" : "logoutAll",
-        "parameters" : [ {
-          "in" : "cookie",
-          "name" : "lumie_access_token",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
         "responses" : {
           "200" : {
             "description" : "OK"
@@ -11185,12 +10903,12 @@
         "tags" : [ "auth-controller" ]
       }
     },
-    "/v1/me/sessions/{sid}" : {
+    "/v1/me/sessions/{sessionId}" : {
       "delete" : {
         "operationId" : "revokeSession",
         "parameters" : [ {
           "in" : "path",
-          "name" : "sid",
+          "name" : "sessionId",
           "required" : true,
           "schema" : {
             "type" : "string"
@@ -11847,70 +11565,6 @@
         "tags" : [ "result-controller" ]
       }
     },
-    "/v1/refresh" : {
-      "post" : {
-        "operationId" : "refresh",
-        "parameters" : [ {
-          "in" : "cookie",
-          "name" : "lumie_refresh_token",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/AuthResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "401" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetail"
-                }
-              }
-            },
-            "description" : "Unauthorized, including AUTH_017 when the session was replaced by another login"
-          }
-        },
-        "tags" : [ "auth-controller" ]
-      }
-    },
-    "/v1/register" : {
-      "post" : {
-        "operationId" : "register",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RegisterRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/AuthResponse"
-                }
-              }
-            },
-            "description" : "Created"
-          }
-        },
-        "tags" : [ "auth-controller" ]
-      }
-    },
     "/v1/register/owner" : {
       "post" : {
         "operationId" : "registerOwner",
@@ -11925,7 +11579,7 @@
           "required" : true
         },
         "responses" : {
-          "201" : {
+          "200" : {
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -11933,7 +11587,7 @@
                 }
               }
             },
-            "description" : "Created"
+            "description" : "OK"
           }
         },
         "tags" : [ "auth-controller" ]
@@ -14303,43 +13957,9 @@
         "tags" : [ "tenant-controller" ]
       }
     },
-    "/v1/tenants/public/by-custom-id/{customId}" : {
+    "/v1/tenants/public/current-branding" : {
       "get" : {
-        "operationId" : "getPublicTenantByCustomId",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "customId",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PublicTenantResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "tenant-controller" ]
-      }
-    },
-    "/v1/tenants/public/by-domain" : {
-      "get" : {
-        "operationId" : "getPublicTenantByCustomDomain",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "host",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
+        "operationId" : "getCurrentPublicTenantBranding",
         "responses" : {
           "200" : {
             "content" : {
@@ -14782,8 +14402,5 @@
         "tags" : [ "textbook-folder-controller" ]
       }
     }
-  },
-  "security" : [ {
-    "bearerAuth" : [ ]
-  } ]
+  }
 }

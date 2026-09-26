@@ -96,13 +96,8 @@ abstract class FullContextTestBase {
                 "org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration"
         ));
 
-        registry.add("jwt.secret-key",
-                () -> "test-secret-key-that-is-long-enough-for-hmac-sha256-algorithm");
-        registry.add("jwt.access-expiration", () -> "3600");
-        registry.add("jwt.refresh-expiration", () -> "604800");
-        registry.add("jwt.issuer", () -> "lumie-test");
-        registry.add("cookie.domain", () -> "localhost");
-        registry.add("cookie.secure", () -> "false");
+        registry.add("session.expiration", () -> "604800");
+        registry.add("tenant.edge.root-hosts", () -> "lumie-edu.com,localhost");
         registry.add("lumie.internal.hmac-secret", () -> "test-hmac-secret-for-full-context-tests");
         registry.add("lumie.services.grading.url", () -> "http://localhost:8001");
         registry.add("lumie.services.report.url", () -> "http://localhost:8002");

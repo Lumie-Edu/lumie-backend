@@ -5,7 +5,7 @@ import com.lumie.auth.application.dto.request.UpdateProfileRequest;
 import com.lumie.auth.application.dto.response.UserResponse;
 import com.lumie.auth.application.exception.AuthErrors.CurrentPasswordIncorrectException;
 import com.lumie.auth.application.exception.AuthErrors.PasswordUnchangedException;
-import com.lumie.auth.application.port.out.TokenPersistencePort;
+import com.lumie.auth.application.port.out.SessionPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
 import com.lumie.common.exception.ResourceNotFoundException;
@@ -17,8 +17,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * Self-service profile + credential operations for an authenticated user.
- * Password change forcefully invalidates all sessions/refresh tokens to
- * close out compromised devices.
+ * Password change forcefully invalidates all browser sessions.
  */
 @Slf4j
 @Service
@@ -26,7 +25,7 @@ import org.springframework.stereotype.Service;
 public class UserProfileService {
 
     private final UserLookupPort userLookupPort;
-    private final TokenPersistencePort tokenPersistencePort;
+    private final SessionPersistencePort sessionPersistencePort;
     private final PasswordEncoder passwordEncoder;
     private final TenantService tenantService;
 
@@ -42,7 +41,7 @@ public class UserProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
         TenantService.TenantData tenant = tenantService.getTenantBySlug(tenantSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantSlug));
-        return user.toUserResponse(tenantSlug, tenant.customId(), tenant.customDomain(), tenant.onboardingCompletedAt());
+        return user.toUserResponse(tenantSlug, tenant.onboardingCompletedAt());
     }
 
     public void changePassword(Long userId, String tenantSlug, ChangePasswordRequest request) {
@@ -61,9 +60,8 @@ public class UserProfileService {
         String newHash = passwordEncoder.encode(request.newPassword());
         userLookupPort.resetPassword(userId, newHash);
 
-        tokenPersistencePort.deleteAllRefreshTokensForUser(userId);
-        tokenPersistencePort.deleteAllSessionsForUser(tenantSlug, userId);
+        sessionPersistencePort.deleteAllForUser(tenantSlug, userId);
 
-        log.info("Password changed and refresh sessions revoked for user: {}", userId);
+        log.info("Password changed and browser sessions revoked for user: {}", userId);
     }
 }

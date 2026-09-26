@@ -4,8 +4,7 @@ public enum EntityType {
     ANNOUNCEMENT("announcement"),
     QNA("qna"),
     TEXTBOOK("textbook"),
-    OMR("omr"),
-    HOMEPAGE_ASSET("homepage-asset");
+    OMR("omr");
 
     private final String pathSegment;
 

@@ -19,20 +19,6 @@ public final class AuthErrors {
         }
     }
 
-    /** Malformed / blacklisted / expired refresh token — maps to 401. */
-    public static class InvalidTokenException extends BusinessException {
-        public InvalidTokenException(String message) {
-            super(CommonErrorCode.UNAUTHORIZED, message);
-        }
-    }
-
-    /** Existing session was replaced by a new login in the same device category — maps to 401. */
-    public static class SessionReplacedByLoginException extends BusinessException {
-        public SessionReplacedByLoginException() {
-            super(AuthErrorCode.SESSION_REPLACED_BY_LOGIN, "Session replaced by another login");
-        }
-    }
-
     /** Login id already in use during registration — maps to 409. */
     public static class UserLoginIdAlreadyExistsException extends BusinessException {
         public UserLoginIdAlreadyExistsException(String message) {
@@ -51,20 +37,6 @@ public final class AuthErrors {
     public static class LoginIdGenerationFailedException extends BusinessException {
         public LoginIdGenerationFailedException() {
             super(AuthErrorCode.LOGIN_ID_GENERATION_FAILED);
-        }
-    }
-
-    /** Token signing succeeded but the resulting JWT could not be re-parsed — maps to 500. */
-    public static class TokenIssuanceFailedException extends BusinessException {
-        public TokenIssuanceFailedException(String message) {
-            super(AuthErrorCode.TOKEN_ISSUANCE_FAILED, message);
-        }
-    }
-
-    /** Session data could not be serialized to / deserialized from the store — maps to 500. */
-    public static class SessionSerializationFailedException extends BusinessException {
-        public SessionSerializationFailedException(Throwable cause) {
-            super(AuthErrorCode.SESSION_SERIALIZATION_FAILED, cause);
         }
     }
 

@@ -79,7 +79,8 @@ public class InternalHmacAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith(INTERNAL_PATH_PREFIX);
+        String path = request.getRequestURI();
+        return !path.startsWith(INTERNAL_PATH_PREFIX);
     }
 
     @Override

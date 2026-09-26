@@ -4,8 +4,6 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.StringSchema;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
-import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,10 +11,8 @@ import org.springframework.context.annotation.Configuration;
 import java.time.LocalTime;
 
 /**
- * springdoc base spec. Declares the bearer-JWT scheme so generated clients
- * know to attach {@code Authorization: Bearer <access-token>} on protected
- * endpoints. Endpoint-level overrides ({@code @SecurityRequirements} on
- * {@code /v1/login} etc.) opt out individual operations.
+ * springdoc base spec. Browser authentication uses a same-origin HttpOnly
+ * session cookie, so generated clients do not attach bearer credentials.
  */
 @Configuration
 public class OpenApiConfig {
@@ -32,18 +28,11 @@ public class OpenApiConfig {
         SpringDocUtils.getConfig()
                 .replaceWithSchema(LocalTime.class, new StringSchema().example("09:00"));
 
-        final String securitySchemeName = "bearerAuth";
         return new OpenAPI()
                 .info(new Info()
                         .title("Lumie Backend API")
                         .version("v1")
                         .description("REST API for the Lumie K-12 academy SaaS monolith."))
-                .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
-                .components(new Components()
-                        .addSecuritySchemes(securitySchemeName,
-                                new SecurityScheme()
-                                        .type(SecurityScheme.Type.HTTP)
-                                        .scheme("bearer")
-                                        .bearerFormat("JWT")));
+                .components(new Components());
     }
 }

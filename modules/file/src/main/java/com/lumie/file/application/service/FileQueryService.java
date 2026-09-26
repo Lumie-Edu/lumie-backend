@@ -53,24 +53,6 @@ public class FileQueryService {
         );
     }
 
-    /**
-     * Anonymous-accessible download for entity types that are intentionally
-     * public (e.g. assets embedded in a published landing page). The caller
-     * (controller) must guard which entity types are allowed here.
-     */
-    public FileDownloadResult downloadPublicFile(UUID fileId, java.util.Set<EntityType> allowedTypes) {
-        FileMetadataLookupService.DownloadMetadata metadata =
-                fileMetadataLookupService.getPublicDownloadMetadata(fileId, allowedTypes);
-
-        InputStream stream = storagePort.getObject(metadata.objectKey());
-        return new FileDownloadResult(
-                stream,
-                metadata.originalFilename(),
-                metadata.contentType(),
-                metadata.fileSize()
-        );
-    }
-
     public PresignedDownloadResponse generatePresignedDownloadUrl(PresignedDownloadRequest request) {
         FileMetadataLookupService.DownloadMetadata metadata =
                 fileMetadataLookupService.getAuthorizedDownloadMetadata(request.fileId());

@@ -39,7 +39,7 @@ class JoossamengAiReportClientTest {
     void getAiCommentary_forwardsTenantHeaderAndParsesResponse() {
         server.expect(requestTo("http://analysis-svc/api/joossameng/ai-commentary/exams/55"))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(header("X-Tenant-Slug", "joossameng"))
+                .andExpect(header("X-Tenant-Slug", "inst-joossameng"))
                 .andRespond(withSuccess("""
                         {
                           "content": "Generated commentary",
@@ -50,7 +50,7 @@ class JoossamengAiReportClientTest {
                         }
                         """, MediaType.APPLICATION_JSON));
 
-        AiCommentaryResponse response = client.getAiCommentary(55L, "joossameng");
+        AiCommentaryResponse response = client.getAiCommentary(55L, "inst-joossameng");
 
         assertThat(response.content()).isEqualTo("Generated commentary");
         assertThat(response.isEdited()).isFalse();
@@ -64,7 +64,7 @@ class JoossamengAiReportClientTest {
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.NOT_FOUND));
 
-        assertThatThrownBy(() -> client.getAiCommentary(55L, "joossameng"))
+        assertThatThrownBy(() -> client.getAiCommentary(55L, "inst-joossameng"))
                 .isInstanceOf(com.lumie.common.exception.BusinessException.class)
                 .hasMessageContaining("404");
         server.verify();
@@ -74,7 +74,7 @@ class JoossamengAiReportClientTest {
     void generateAiCommentary_postsToExpectedWorkerPath() {
         server.expect(requestTo("http://analysis-svc/api/joossameng/ai-commentary/exams/55/generate"))
                 .andExpect(method(HttpMethod.POST))
-                .andExpect(header("X-Tenant-Slug", "joossameng"))
+                .andExpect(header("X-Tenant-Slug", "inst-joossameng"))
                 .andRespond(withSuccess("""
                         {
                           "content": "Generated commentary",
@@ -85,7 +85,7 @@ class JoossamengAiReportClientTest {
                         }
                         """, MediaType.APPLICATION_JSON));
 
-        AiCommentaryResponse response = client.generateAiCommentary(55L, "joossameng");
+        AiCommentaryResponse response = client.generateAiCommentary(55L, "inst-joossameng");
 
         assertThat(response.content()).isEqualTo("Generated commentary");
         server.verify();
@@ -95,7 +95,7 @@ class JoossamengAiReportClientTest {
     void updateAiCommentary_putsJsonBodyAndHeader() {
         server.expect(requestTo("http://analysis-svc/api/joossameng/ai-commentary/exams/55"))
                 .andExpect(method(HttpMethod.PUT))
-                .andExpect(header("X-Tenant-Slug", "joossameng"))
+                .andExpect(header("X-Tenant-Slug", "inst-joossameng"))
                 .andExpect(content().json("""
                         {"content":"Edited commentary","expectedVersion":1}
                         """))
@@ -112,7 +112,7 @@ class JoossamengAiReportClientTest {
         AiCommentaryResponse response = client.updateAiCommentary(
                 55L,
                 new UpdateAiCommentaryRequest("Edited commentary", 1L),
-                "joossameng"
+                "inst-joossameng"
         );
 
         assertThat(response.isEdited()).isTrue();
@@ -129,7 +129,7 @@ class JoossamengAiReportClientTest {
         assertThatThrownBy(() -> client.updateAiCommentary(
                 55L,
                 new UpdateAiCommentaryRequest("Edited commentary", 1L),
-                "joossameng"
+                "inst-joossameng"
         ))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Resource modified concurrently");
@@ -140,11 +140,11 @@ class JoossamengAiReportClientTest {
     void generateBatch_postsStudentsAndReturnsZipBytes() {
         server.expect(requestTo("http://analysis-svc/api/joossameng/ai-reports/exams/55/batch"))
                 .andExpect(method(HttpMethod.POST))
-                .andExpect(header("X-Tenant-Slug", "joossameng"))
+                .andExpect(header("X-Tenant-Slug", "inst-joossameng"))
                 .andExpect(content().json("{\"studentIds\":[7,8]}"))
                 .andRespond(withSuccess(new byte[]{1, 2, 3}, MediaType.parseMediaType("application/zip")));
 
-        assertThat(client.generateBatch(55L, new ReportBatchRequest(java.util.List.of(7L, 8L)), "joossameng"))
+        assertThat(client.generateBatch(55L, new ReportBatchRequest(java.util.List.of(7L, 8L)), "inst-joossameng"))
                 .containsExactly(1, 2, 3);
         server.verify();
     }

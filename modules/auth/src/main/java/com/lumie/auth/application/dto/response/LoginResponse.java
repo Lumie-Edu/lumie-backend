@@ -1,23 +1,18 @@
 package com.lumie.auth.application.dto.response;
 
-import com.lumie.auth.domain.vo.TokenPair;
-import lombok.Builder;
+import com.lumie.auth.domain.vo.AuthSession;
 
-@Builder
+/** Login result. The opaque ID is written only to the HttpOnly cookie. */
 public record LoginResponse(
-        String accessToken,
-        String refreshToken,
-        long accessExpiresIn,
-        long refreshExpiresIn,
+        String sessionId,
+        long sessionExpiresIn,
         UserResponse user
 ) {
-    public static LoginResponse of(TokenPair tokenPair, UserResponse user) {
-        return LoginResponse.builder()
-                .accessToken(tokenPair.accessToken())
-                .refreshToken(tokenPair.refreshToken())
-                .accessExpiresIn(tokenPair.accessExpiresIn())
-                .refreshExpiresIn(tokenPair.refreshExpiresIn())
-                .user(user)
-                .build();
+    public static LoginResponse of(AuthSession session, UserResponse user) {
+        return new LoginResponse(
+                session.id(),
+                session.expiresAt().getEpochSecond() - session.createdAt().getEpochSecond(),
+                user
+        );
     }
 }

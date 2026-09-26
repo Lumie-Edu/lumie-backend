@@ -9,9 +9,10 @@ import com.lumie.tenant.application.port.out.TenantLogoStoragePort.LogoStream;
 import com.lumie.tenant.application.service.TenantCommandService;
 import com.lumie.tenant.application.service.TenantLogoService;
 import com.lumie.tenant.application.service.TenantQueryService;
+import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.common.tenant.TenantContextHolder;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -23,7 +24,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Locale;
 
 @Validated
 @RestController
@@ -35,16 +35,13 @@ public class TenantController {
     private final TenantQueryService tenantQueryService;
     private final TenantLogoService tenantLogoService;
 
-    @GetMapping("/public/by-custom-id/{customId}")
-    public ResponseEntity<PublicTenantResponse> getPublicTenantByCustomId(@PathVariable String customId) {
-        return ResponseEntity.ok(tenantQueryService.getPublicTenantByCustomId(customId));
-    }
-
-    @GetMapping("/public/by-domain")
-    public ResponseEntity<PublicTenantResponse> getPublicTenantByCustomDomain(
-            @NotBlank @RequestParam String host) {
-        String canonicalHost = host.toLowerCase(Locale.ROOT).trim();
-        return ResponseEntity.ok(tenantQueryService.getPublicTenantByCustomDomain(canonicalHost));
+    @GetMapping("/public/current-branding")
+    public ResponseEntity<PublicTenantResponse> getCurrentPublicTenantBranding() {
+        String tenantSlug = TenantContextHolder.getTenant();
+        if (tenantSlug == null) {
+            throw new ResourceNotFoundException("Tenant", "request host");
+        }
+        return ResponseEntity.ok(tenantQueryService.getCurrentPublicTenant(tenantSlug));
     }
 
     @PostMapping

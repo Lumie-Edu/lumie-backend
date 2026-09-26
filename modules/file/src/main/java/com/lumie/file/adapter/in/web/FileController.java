@@ -99,25 +99,6 @@ public class FileController {
         return ResponseEntity.ok(response);
     }
 
-    private static final java.util.Set<EntityType> PUBLIC_ALLOWED_TYPES =
-            java.util.Set.of(EntityType.HOMEPAGE_ASSET);
-
-    @GetMapping("/public/{fileId}")
-    public ResponseEntity<InputStreamResource> downloadPublicFile(@PathVariable UUID fileId) {
-        FileDownloadResult result = fileQueryService.downloadPublicFile(fileId, PUBLIC_ALLOWED_TYPES);
-
-        ContentDisposition contentDisposition = ContentDisposition.inline()
-                .filename(result.filename())
-                .build();
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(result.contentType()))
-                .contentLength(result.fileSize())
-                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
-                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300")
-                .body(new InputStreamResource(result.inputStream()));
-    }
-
     @PostMapping("/presigned-upload")
     public ResponseEntity<PresignedUploadResponse> generatePresignedUploadUrl(
             @Valid @RequestBody PresignedUploadRequest request) {

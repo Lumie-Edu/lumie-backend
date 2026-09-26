@@ -5,6 +5,7 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.tenant.api.TenantStatus;
 import com.lumie.tenant.application.dto.request.CompleteTenantOnboardingRequest;
 import com.lumie.tenant.application.dto.request.CreateTenantRequest;
@@ -66,8 +67,6 @@ class TenantControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Wrap the controller in a Spring AOP proxy so that @Validated method-level
-        // constraints (@NotBlank on @RequestParam) fire as ConstraintViolationException.
         TenantController rawController = new TenantController(
                 tenantCommandService, tenantQueryService, tenantLogoService);
 
@@ -215,7 +214,6 @@ class TenantControllerTest {
     @DisplayName("POST /v1/tenants/{slug}/complete-onboarding - 온보딩 완료")
     void completeOnboardingSuccess() throws Exception {
         CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
-                .customId("academy")
                 .phone("02-1234-5678")
                 .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .build();
@@ -225,7 +223,6 @@ class TenantControllerTest {
                 .slug("test-academy")
                 .name("Test Academy")
                 .status(TenantStatus.ACTIVE)
-                .customId("academy")
                 .phone("02-1234-5678")
                 .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .onboardingCompletedAt(completedAt)
@@ -239,7 +236,6 @@ class TenantControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.customId").value("academy"))
                 .andExpect(jsonPath("$.phone").value("02-1234-5678"))
                 .andExpect(jsonPath("$.hiddenSidebarItemIds[0]").value("classes"))
                 .andExpect(jsonPath("$.onboardingCompletedAt").exists());
@@ -260,7 +256,7 @@ class TenantControllerTest {
         mockMvc.perform(post("/v1/tenants/test-academy/complete-onboarding")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"customId":"academy"}
+                                {}
                                 """))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("TENANT_019"));
@@ -275,7 +271,7 @@ class TenantControllerTest {
         mockMvc.perform(post("/v1/tenants/test-academy/complete-onboarding")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"customId":"academy"}
+                                {}
                                 """))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("COMMON_006"));
@@ -291,7 +287,7 @@ class TenantControllerTest {
             mockMvc.perform(post("/v1/tenants/test-academy/complete-onboarding")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"customId":"academy"}
+                                    {}
                                     """))
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.code").value("COMMON_006"));
@@ -319,85 +315,33 @@ class TenantControllerTest {
     }
 
     @Test
-    @DisplayName("GET /v1/tenants/public/by-domain?host=... - 활성 테넌트 반환 (공개 필드만)")
-    void getPublicTenantByCustomDomainSuccess() throws Exception {
+    @DisplayName("GET /v1/tenants/public/current-branding - host tenant 로그인 브랜딩 반환")
+    void getCurrentPublicTenantBrandingSuccess() throws Exception {
         PublicTenantResponse response = PublicTenantResponse.builder()
                 .slug("test-academy")
                 .name("Test Academy")
                 .phone("02-1234-5678")
-                .customId("test-academy")
                 .logoUrl(null)
+                .loginTheme("default")
                 .build();
 
-        when(tenantQueryService.getPublicTenantByCustomDomain("academy.example.com"))
+        TenantContextHolder.setTenant("test-academy");
+        when(tenantQueryService.getCurrentPublicTenant("test-academy"))
                 .thenReturn(response);
 
-        mockMvc.perform(get("/v1/tenants/public/by-domain")
-                        .param("host", "academy.example.com"))
+        mockMvc.perform(get("/v1/tenants/public/current-branding"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.slug").value("test-academy"))
                 .andExpect(jsonPath("$.name").value("Test Academy"))
-                .andExpect(jsonPath("$.phone").value("02-1234-5678"));
+                .andExpect(jsonPath("$.phone").value("02-1234-5678"))
+                .andExpect(jsonPath("$.loginTheme").value("default"));
+        TenantContextHolder.clear();
     }
 
     @Test
-    @DisplayName("GET /v1/tenants/public/by-domain?host=... - 일치하는 테넌트 없음 → 404")
-    void getPublicTenantByCustomDomainNotFound() throws Exception {
-        when(tenantQueryService.getPublicTenantByCustomDomain("unknown.example.com"))
-                .thenThrow(new ResourceNotFoundException("Tenant", "unknown.example.com"));
-
-        mockMvc.perform(get("/v1/tenants/public/by-domain")
-                        .param("host", "unknown.example.com"))
+    @DisplayName("GET /v1/tenants/public/current-branding - host tenant 없음 → 404")
+    void getCurrentPublicTenantBrandingNotFound() throws Exception {
+        mockMvc.perform(get("/v1/tenants/public/current-branding"))
                 .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("GET /v1/tenants/public/by-domain - host 파라미터 누락 → 400")
-    void getPublicTenantByCustomDomainMissingParam() throws Exception {
-        mockMvc.perform(get("/v1/tenants/public/by-domain"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("GET /v1/tenants/public/by-domain?host=  ABC.com  - 컨트롤러가 소문자+트림 후 서비스 호출")
-    void getPublicTenantByCustomDomainNormalizesHostBeforeService() throws Exception {
-        PublicTenantResponse response = PublicTenantResponse.builder()
-                .slug("test-academy")
-                .name("Test Academy")
-                .phone("02-1234-5678")
-                .customId("test-academy")
-                .logoUrl(null)
-                .build();
-
-        // The controller normalizes "  ABC.com  " → "abc.com" before calling the service.
-        when(tenantQueryService.getPublicTenantByCustomDomain("abc.com")).thenReturn(response);
-
-        mockMvc.perform(get("/v1/tenants/public/by-domain")
-                        .param("host", "  ABC.com  "))
-                .andExpect(status().isOk());
-
-        ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
-        verify(tenantQueryService).getPublicTenantByCustomDomain(hostCaptor.capture());
-        assertThat(hostCaptor.getValue()).isEqualTo("abc.com");
-    }
-
-    @Test
-    @DisplayName("GET /v1/tenants/public/by-domain?host= (빈 문자열) → 400 (@NotBlank violation)")
-    void blankHostReturns400() throws Exception {
-        // @NotBlank on the @RequestParam rejects an empty string.
-        // ConstraintViolationException is mapped to 400 by GlobalExceptionHandler.
-        mockMvc.perform(get("/v1/tenants/public/by-domain")
-                        .param("host", ""))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("GET /v1/tenants/public/by-domain?host=%20%20 (공백만) → 400 (@NotBlank violation)")
-    void whitespaceOnlyHostReturns400() throws Exception {
-        // @NotBlank treats whitespace-only strings as blank.
-        // After normalization "  ".trim() == "" but @NotBlank fires before any domain logic.
-        mockMvc.perform(get("/v1/tenants/public/by-domain")
-                        .param("host", "  "))
-                .andExpect(status().isBadRequest());
     }
 }

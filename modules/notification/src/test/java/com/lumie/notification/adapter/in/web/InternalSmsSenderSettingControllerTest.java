@@ -70,8 +70,6 @@ class InternalSmsSenderSettingControllerTest {
                 com.lumie.tenant.api.TenantStatus.ACTIVE,
                 null,
                 null,
-                null,
-                null,
                 null
         )));
         given(senderSettingService.updateApproval(any(UpdateSmsSenderSettingApprovalRequest.class)))

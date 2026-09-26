@@ -13,7 +13,7 @@ import org.springframework.core.Ordered;
  *
  * <p>Automatically registers:
  * <ul>
- *   <li>{@link RequestContextFilter} - extracts tenant/user context from headers</li>
+ *   <li>{@link RequestContextFilter} - adds correlation and authenticated user context</li>
  * </ul>
  *
  * <p>RLS-based tenancy (post-2026-05-12): per-tx tenant binding is handled
