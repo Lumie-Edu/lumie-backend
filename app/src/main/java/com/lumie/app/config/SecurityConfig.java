@@ -3,6 +3,7 @@ package com.lumie.app.config;
 import com.lumie.app.config.internal.InternalHmacAuthFilter;
 import com.lumie.auth.adapter.in.security.SessionAuthenticationFilter;
 import com.lumie.auth.adapter.in.security.SameOriginCsrfFilter;
+import com.lumie.auth.adapter.in.security.LegacyJwtMigrationFilter;
 import com.lumie.tenant.adapter.in.web.HostTenantFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -26,6 +27,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
 
     private final SessionAuthenticationFilter sessionAuthenticationFilter;
+    private final LegacyJwtMigrationFilter legacyJwtMigrationFilter;
     private final SameOriginCsrfFilter sameOriginCsrfFilter;
     private final HostTenantFilter hostTenantFilter;
     private final InternalHmacAuthFilter internalHmacAuthFilter;
@@ -42,6 +44,7 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC, jakarta.servlet.DispatcherType.FORWARD, jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers("/v1/register/owner").permitAll()
                         .requestMatchers("/v1/login").permitAll()
+                        .requestMatchers("/v1/auth/migrate-legacy-session").permitAll()
                         .requestMatchers("/tenant-root").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
@@ -58,6 +61,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
                 .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(legacyJwtMigrationFilter, SessionAuthenticationFilter.class)
                 .addFilterBefore(sameOriginCsrfFilter, SessionAuthenticationFilter.class)
                 .addFilterBefore(hostTenantFilter, SessionAuthenticationFilter.class)
                 .addFilterBefore(internalHmacAuthFilter, SessionAuthenticationFilter.class);
