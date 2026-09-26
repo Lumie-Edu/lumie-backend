@@ -344,4 +344,23 @@ class TenantControllerTest {
         mockMvc.perform(get("/v1/tenants/public/current-branding"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @DisplayName("GET /v1/tenants/public/current-branding?host - SSR 공개 브랜딩을 host로 조회")
+    void getCurrentPublicTenantBrandingForExplicitHost() throws Exception {
+        PublicTenantResponse response = PublicTenantResponse.builder()
+                .slug("inst-joossameng")
+                .name("주혜연T")
+                .phone(null)
+                .logoUrl("https://assets.example.com/joossameng.png")
+                .loginTheme("ocean")
+                .build();
+        when(tenantQueryService.getPublicTenantForHost("joossameng.com")).thenReturn(response);
+
+        mockMvc.perform(get("/v1/tenants/public/current-branding")
+                        .queryParam("host", "joossameng.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slug").value("inst-joossameng"))
+                .andExpect(jsonPath("$.loginTheme").value("ocean"));
+    }
 }

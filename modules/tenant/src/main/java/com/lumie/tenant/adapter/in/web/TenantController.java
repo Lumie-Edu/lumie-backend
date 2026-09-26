@@ -36,7 +36,11 @@ public class TenantController {
     private final TenantLogoService tenantLogoService;
 
     @GetMapping("/public/current-branding")
-    public ResponseEntity<PublicTenantResponse> getCurrentPublicTenantBranding() {
+    public ResponseEntity<PublicTenantResponse> getCurrentPublicTenantBranding(
+            @RequestParam(required = false) String host) {
+        if (host != null && !host.isBlank()) {
+            return ResponseEntity.ok(tenantQueryService.getPublicTenantForHost(host));
+        }
         String tenantSlug = TenantContextHolder.getTenant();
         if (tenantSlug == null) {
             throw new ResourceNotFoundException("Tenant", "request host");

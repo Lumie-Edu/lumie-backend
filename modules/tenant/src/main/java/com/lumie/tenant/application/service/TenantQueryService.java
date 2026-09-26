@@ -58,4 +58,18 @@ public class TenantQueryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", slug));
     }
 
+    /**
+     * Resolves public login branding for a supplied request host. This is
+     * intentionally separate from authenticated tenant resolution: a host can
+     * choose only publicly visible branding and grants no tenant authority.
+     */
+    public PublicTenantResponse getPublicTenantForHost(String host) {
+        return hostTenantResolver.resolve(host)
+                .filter(HostTenantResolver.ResolvedTenant::isActive)
+                .map(resolved -> PublicTenantResponse.from(
+                        resolved.tenant(),
+                        hostTenantResolver.loginThemeFor(resolved.tenant().getSlugValue())))
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", "request host"));
+    }
+
 }
