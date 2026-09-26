@@ -12,7 +12,6 @@ include(
     "modules:tenant",
     "modules:auth",
     "modules:billing",
-    "modules:homepage",
     "modules:student",
     "modules:staff",
     "modules:exam",

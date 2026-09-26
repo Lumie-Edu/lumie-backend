@@ -32,6 +32,17 @@ COMMON_ENV = {
     # MinIO
     'MINIO_BUCKET_NAME': 'lumie-dev',
     'MINIO_EXTERNAL_ENDPOINT': 'https://dev.lumie-infra.com',
+    # Local host-native tenant routing mirrors production custom-domain
+    # resolution without requiring an external DNS record.
+    'TENANT_EDGE_BASE_DOMAIN': 'lumie-edu.com',
+    # The local Next rewrite targets the development ingress. It is the
+    # canonical Lumie host in development, never a tenant alias.
+    'TENANT_EDGE_ROOT_HOSTS': 'lumie-edu.com,localhost,dev.lumie-infra.com',
+    # Keep the development edge as the canonical Lumie host. Custom-brand
+    # testing is opt-in through its explicit local hostname, never the
+    # default localhost development entry point.
+    'TENANT_EDGE_CUSTOM_DOMAIN_MAP': 'joossameng.localhost=inst-joossameng',
+    'TENANT_EDGE_LOGIN_THEME_MAP': 'inst-joossameng=ocean',
 }
 
 def generate_env_yaml():
@@ -125,20 +136,16 @@ spec:
             secretKeyRef:
               name: lumie-user-credentials
               key: password
-        - name: JWT_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: lumie-dev-jwt-secrets
-              key: secret
-        - name: JWT_ACCESS_EXPIRATION
-          value: "3600"
-        - name: JWT_REFRESH_EXPIRATION
-          value: "604800"
         - name: LUMIE_INTERNAL_HMAC_SECRET
           valueFrom:
             secretKeyRef:
               name: lumie-dev-internal-secrets
               key: LUMIE_INTERNAL_HMAC_SECRET
+        - name: LEGACY_JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lumie-dev-jwt-secrets
+              key: JWT_SECRET_KEY
         - name: MINIO_ACCESS_KEY
           valueFrom:
             secretKeyRef:

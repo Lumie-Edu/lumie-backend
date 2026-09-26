@@ -1,7 +1,10 @@
 package com.lumie.app.config;
 
 import com.lumie.app.config.internal.InternalHmacAuthFilter;
-import com.lumie.auth.adapter.in.security.JwtAuthenticationFilter;
+import com.lumie.auth.adapter.in.security.SessionAuthenticationFilter;
+import com.lumie.auth.adapter.in.security.SameOriginCsrfFilter;
+import com.lumie.auth.adapter.in.security.LegacyJwtMigrationFilter;
+import com.lumie.tenant.adapter.in.web.HostTenantFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +26,10 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final SessionAuthenticationFilter sessionAuthenticationFilter;
+    private final LegacyJwtMigrationFilter legacyJwtMigrationFilter;
+    private final SameOriginCsrfFilter sameOriginCsrfFilter;
+    private final HostTenantFilter hostTenantFilter;
     private final InternalHmacAuthFilter internalHmacAuthFilter;
     private final CorsConfigurationSource corsConfigurationSource;
 
@@ -36,10 +42,10 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC, jakarta.servlet.DispatcherType.FORWARD, jakarta.servlet.DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/v1/register").permitAll()
                         .requestMatchers("/v1/register/owner").permitAll()
                         .requestMatchers("/v1/login").permitAll()
-                        .requestMatchers("/v1/refresh").permitAll()
+                        .requestMatchers("/v1/auth/migrate-legacy-session").permitAll()
+                        .requestMatchers("/tenant-root").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/internal/**").hasRole("INTERNAL")
@@ -47,8 +53,6 @@ public class SecurityConfig {
                         .requestMatchers("/v1/sms/solapi/webhook").permitAll()
                         .requestMatchers("/v1/tenants/public/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/tenants/*/logo").permitAll()
-                        .requestMatchers("/v1/homepage/public/**").permitAll()
-                        .requestMatchers("/v1/files/public/**").permitAll()
                         .requestMatchers("/v1/sms/**", "/v1/sms-templates/**")
                         .hasAnyRole("OWNER", "MANAGER", "INSTRUCTOR")
                         .anyRequest().authenticated()
@@ -56,8 +60,11 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(internalHmacAuthFilter, JwtAuthenticationFilter.class);
+                .addFilterBefore(hostTenantFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(legacyJwtMigrationFilter, HostTenantFilter.class)
+                .addFilterAfter(sessionAuthenticationFilter, LegacyJwtMigrationFilter.class)
+                .addFilterBefore(sameOriginCsrfFilter, SessionAuthenticationFilter.class)
+                .addFilterBefore(internalHmacAuthFilter, SessionAuthenticationFilter.class);
 
         return http.build();
     }

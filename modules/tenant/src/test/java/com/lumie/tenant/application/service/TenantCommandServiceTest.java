@@ -128,18 +128,15 @@ class TenantCommandServiceTest {
         UserContextHolder.setUserRole(Role.OWNER);
         Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null);
         when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(existingTenant));
-        when(tenantPersistencePort.existsByCustomId("academy")).thenReturn(false);
         when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
-                .customId("academy")
                 .phone("02-1234-5678")
                 .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .build();
 
         TenantResponse response = tenantCommandService.completeOnboarding("test-academy", request);
 
-        assertThat(response.customId()).isEqualTo("academy");
         assertThat(response.phone()).isEqualTo("02-1234-5678");
         assertThat(response.hiddenSidebarItemIds()).containsExactly("classes", "reviews");
         assertThat(response.onboardingCompletedAt()).isNotNull();

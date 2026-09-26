@@ -17,13 +17,5 @@ public interface TenantJpaRepository extends JpaRepository<Tenant, Long> {
     @Query("SELECT COUNT(t) > 0 FROM Tenant t WHERE t.slug.value = :slug")
     boolean existsBySlug(@Param("slug") String slug);
 
-    Optional<Tenant> findByCustomId(String customId);
-
-    boolean existsByCustomId(String customId);
-
-    Optional<Tenant> findByCustomDomain(String customDomain);
-
-    boolean existsByCustomDomain(String customDomain);
-
     List<Tenant> findAllByStatus(TenantStatus status);
 }

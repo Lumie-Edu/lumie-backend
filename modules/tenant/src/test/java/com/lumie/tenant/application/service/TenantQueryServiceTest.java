@@ -26,6 +26,9 @@ class TenantQueryServiceTest {
     @Mock
     private TenantPersistencePort tenantPersistencePort;
 
+    @Mock
+    private HostTenantResolver hostTenantResolver;
+
     @InjectMocks
     private TenantQueryService tenantQueryService;
 
@@ -112,43 +115,41 @@ class TenantQueryServiceTest {
     }
 
     @Test
-    @DisplayName("커스텀 도메인으로 공개 테넌트 조회 성공 - 활성 테넌트")
-    void getPublicTenantByCustomDomainSuccess() {
+    @DisplayName("현재 host의 공개 로그인 브랜딩 조회 성공 - 활성 테넌트")
+    void getCurrentPublicTenantSuccess() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", "테스트 학원");
         tenant.startProvisioning();
         tenant.activate();
         tenant.updateContact("02-1234-5678");
-        tenant.setCustomDomain("academy.example.com");
-        when(tenantPersistencePort.findByCustomDomain("academy.example.com"))
-                .thenReturn(Optional.of(tenant));
+        when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(tenant));
+        when(hostTenantResolver.loginThemeFor("test-academy")).thenReturn("ocean");
 
-        PublicTenantResponse response = tenantQueryService.getPublicTenantByCustomDomain("academy.example.com");
+        PublicTenantResponse response = tenantQueryService.getCurrentPublicTenant("test-academy");
 
         assertThat(response.slug()).isEqualTo("test-academy");
         assertThat(response.name()).isEqualTo("Test Academy");
         assertThat(response.phone()).isEqualTo("02-1234-5678");
+        assertThat(response.loginTheme()).isEqualTo("ocean");
     }
 
     @Test
-    @DisplayName("커스텀 도메인 조회 - 일치하는 테넌트 없음")
-    void getPublicTenantByCustomDomainNotFound() {
-        when(tenantPersistencePort.findByCustomDomain("unknown.example.com"))
+    @DisplayName("공개 로그인 브랜딩 조회 - 일치하는 테넌트 없음")
+    void getCurrentPublicTenantNotFound() {
+        when(tenantPersistencePort.findBySlug("unknown"))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> tenantQueryService.getPublicTenantByCustomDomain("unknown.example.com"))
+        assertThatThrownBy(() -> tenantQueryService.getCurrentPublicTenant("unknown"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("커스텀 도메인 조회 - 비활성 테넌트는 404")
-    void getPublicTenantByCustomDomainInactiveTenant() {
+    @DisplayName("공개 로그인 브랜딩 조회 - 비활성 테넌트는 404")
+    void getCurrentPublicTenantInactiveTenant() {
         Tenant tenant = Tenant.create("suspended-academy", "Suspended Academy", null);
-        // status remains PENDING (not active)
-        tenant.setCustomDomain("suspended.example.com");
-        when(tenantPersistencePort.findByCustomDomain("suspended.example.com"))
+        when(tenantPersistencePort.findBySlug("suspended-academy"))
                 .thenReturn(Optional.of(tenant));
 
-        assertThatThrownBy(() -> tenantQueryService.getPublicTenantByCustomDomain("suspended.example.com"))
+        assertThatThrownBy(() -> tenantQueryService.getCurrentPublicTenant("suspended-academy"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 }

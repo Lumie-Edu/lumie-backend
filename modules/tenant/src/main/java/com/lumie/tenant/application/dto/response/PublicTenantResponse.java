@@ -9,18 +9,18 @@ public record PublicTenantResponse(
         String slug,
         String name,
         @Schema(nullable = true) String phone,
-        @Schema(nullable = true) String customId,
-        @Schema(nullable = true) String logoUrl
+        @Schema(nullable = true) String logoUrl,
+        @Schema(allowableValues = {"default", "ocean"}) String loginTheme
 ) {
-    public static PublicTenantResponse from(Tenant tenant) {
+    public static PublicTenantResponse from(Tenant tenant, String loginTheme) {
         boolean hasLogo = tenant.getLogoObjectKey() != null
                 && !tenant.getLogoObjectKey().isBlank();
         return PublicTenantResponse.builder()
                 .slug(tenant.getSlugValue())
                 .name(tenant.getName())
                 .phone(tenant.getPhone())
-                .customId(tenant.getCustomId())
                 .logoUrl(hasLogo ? "/api/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
+                .loginTheme(loginTheme)
                 .build();
     }
 }

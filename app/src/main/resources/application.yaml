@@ -143,22 +143,12 @@ app:
         read-only: true
         connection-init-sql: "SET app.pool_id = 'readonly'"
 
-# JWT (auth module)
-jwt:
-  secret-key: ${JWT_SECRET_KEY:?JWT_SECRET_KEY env var required (Vault → VSO → K8s Secret)}
-  access-expiration: ${JWT_ACCESS_EXPIRATION:3600}
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800}
-  issuer: lumie-auth-svc
-
-# Cookie (auth module)
-cookie:
-  domain: ${COOKIE_DOMAIN:}
-  secure: ${COOKIE_SECURE:true}
-  http-only: true
-  same-site: Lax
-  path: /
-  access-token-name: lumie_access_token
-  refresh-token-name: lumie_refresh_token
+# Opaque browser session (auth module)
+session:
+  expiration: ${SESSION_EXPIRATION:604800}
+  cookie-name: __Host-lumie_session
+  cookie-secure: true
+  cookie-same-site: Lax
 
 # Paddle (billing module)
 paddle:
@@ -222,9 +212,6 @@ lumie:
       - path-pattern: /v1/login
         capacity: 10
         window: 1m
-      - path-pattern: /v1/register
-        capacity: 5
-        window: 1h
       - path-pattern: /v1/register/owner
         capacity: 5
         window: 1h

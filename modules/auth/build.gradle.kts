@@ -18,7 +18,7 @@ dependencies {
     // Redis
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
-    // JWT (jjwt 0.12.5)
+    // Verification-only compatibility bridge for pre-session browser cookies.
     implementation(libs.jjwt.api)
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)

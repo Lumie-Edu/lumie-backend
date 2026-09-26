@@ -55,21 +55,6 @@ public class TenantServiceAdapter implements TenantService {
     }
 
     @Override
-    public Optional<TenantData> getTenantByCustomId(String customId) {
-        return tenantPersistencePort.findByCustomId(customId)
-                .filter(Tenant::isActive)
-                .map(t -> new TenantData(
-                        t.getId(), t.getSlugValue(), t.getName(),
-                        t.getStatus(),
-                        t.getCustomId(),
-                        t.getCustomDomain(),
-                        t.getOnboardingCompletedAt(),
-                        t.getCreatedAt() != null ? t.getCreatedAt().toString() : "",
-                        t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : ""
-                ));
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public List<String> listActiveTenantSlugs() {
         return tenantPersistencePort.findAllByStatus(TenantStatus.ACTIVE).stream()
@@ -83,7 +68,7 @@ public class TenantServiceAdapter implements TenantService {
         return tenantPersistencePort.findAllByStatus(TenantStatus.ACTIVE).stream()
                 .map(t -> new TenantData(
                         t.getId(), t.getSlugValue(), t.getName(),
-                        t.getStatus(), t.getCustomId(), t.getCustomDomain(), t.getOnboardingCompletedAt(),
+                        t.getStatus(), t.getOnboardingCompletedAt(),
                         t.getCreatedAt() != null ? t.getCreatedAt().toString() : "",
                         t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : ""
                 ))
@@ -149,8 +134,6 @@ public class TenantServiceAdapter implements TenantService {
         return new TenantData(
                 tenant.id(), tenant.slug(), tenant.name(),
                 tenant.status(),
-                tenant.customId(),
-                tenant.customDomain(),
                 tenant.onboardingCompletedAt(),
                 tenant.createdAt().toString(), tenant.updatedAt().toString()
         );

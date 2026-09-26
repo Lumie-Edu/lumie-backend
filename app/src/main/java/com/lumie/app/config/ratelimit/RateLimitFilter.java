@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
  * point: per-pod IP-bucket already bounds a single attacker.
  *
  * <p>Runs at the highest precedence so an exhausted bucket short-circuits
- * before JWT/HMAC/Tenant filters do their work.
+ * before authentication, HMAC, and tenant filters do their work.
  */
 @Slf4j
 @Component

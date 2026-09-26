@@ -51,8 +51,6 @@ class SmsWebhookServiceTest {
                         "inst-test",
                         "Test",
                         TenantStatus.ACTIVE,
-                        "test",
-                        null,
                         null,
                         null,
                         null
@@ -102,8 +100,6 @@ class SmsWebhookServiceTest {
                         "inst-test",
                         "Test",
                         TenantStatus.ACTIVE,
-                        "test",
-                        null,
                         null,
                         null,
                         null

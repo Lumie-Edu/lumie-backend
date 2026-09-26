@@ -2,7 +2,7 @@ package com.lumie.auth.adapter.in.internal;
 
 import com.lumie.auth.adapter.out.persistence.UserJpaRepository;
 import com.lumie.auth.application.exception.AuthErrors;
-import com.lumie.auth.application.service.AuthQueryService;
+import com.lumie.auth.application.port.out.SessionPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.common.auth.Role;
 import com.lumie.auth.api.AuthService;
@@ -15,7 +15,6 @@ import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,10 +26,10 @@ public class AuthServiceAdapter implements AuthService {
     private static final int MAX_LOGIN_ID_ATTEMPTS = 10;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final AuthQueryService authQueryService;
     private final UserLookupPort userLookupPort;
     private final UserJpaRepository userJpaRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SessionPersistencePort sessionPersistencePort;
 
     @Override
     public Map<Long, String> getAvatarSeeds(Collection<Long> userIds) {
@@ -42,43 +41,6 @@ public class AuthServiceAdapter implements AuthService {
                         UserJpaRepository.UserAvatarRow::getId,
                         UserJpaRepository.UserAvatarRow::getAvatarSeed,
                         (a, b) -> a));
-    }
-
-    @Override
-    public TokenValidationResult validateToken(String token) {
-        Optional<com.lumie.auth.domain.vo.TokenClaims> claimsOpt = authQueryService.validate(token);
-
-        if (claimsOpt.isPresent()) {
-            var claims = claimsOpt.get();
-            return new TokenValidationResult(true, "Token is valid",
-                    new TokenClaims(
-                            claims.sub(), claims.tenantSlug(), claims.tenantId(),
-                            claims.role().name(),
-                            claims.iat().getEpochSecond(), claims.exp().getEpochSecond(),
-                            claims.jti()
-                    ));
-        }
-        return new TokenValidationResult(false, "Token is invalid or expired", null);
-    }
-
-    @Override
-    public Optional<UserData> getUserInfo(String token) {
-        Optional<com.lumie.auth.domain.vo.TokenClaims> claimsOpt = authQueryService.validate(token);
-        if (claimsOpt.isEmpty()) {
-            return Optional.empty();
-        }
-
-        var claims = claimsOpt.get();
-        var userOpt = userLookupPort.findById(claims.getUserId());
-        if (userOpt.isEmpty()) {
-            return Optional.empty();
-        }
-
-        var user = userOpt.get();
-        return Optional.of(new UserData(
-                user.id(), user.userLoginId(), user.name(),
-                user.role().name(), claims.tenantSlug(), claims.tenantId()
-        ));
     }
 
     @Override
@@ -128,6 +90,7 @@ public class AuthServiceAdapter implements AuthService {
     public DeleteUserResult deleteUser(Long userId) {
         boolean deleted = userLookupPort.deleteUser(userId);
         if (deleted) {
+            revokeTenantSessions(userId);
             return new DeleteUserResult(true, "User deleted successfully");
         }
         return new DeleteUserResult(false, "User not found: " + userId);
@@ -138,6 +101,7 @@ public class AuthServiceAdapter implements AuthService {
         String newPasswordHash = passwordEncoder.encode(DEFAULT_PASSWORD);
         boolean updated = userLookupPort.resetPassword(userId, newPasswordHash);
         if (updated) {
+            revokeTenantSessions(userId);
             return new ResetPasswordResult(true, "Password reset successfully");
         }
         return new ResetPasswordResult(false, "User not found: " + userId);
@@ -147,5 +111,12 @@ public class AuthServiceAdapter implements AuthService {
     public ChangeLoginIdResult changeLoginId(Long userId, String newLoginId) {
         var result = userLookupPort.changeLoginId(userId, newLoginId);
         return new ChangeLoginIdResult(result.success(), result.message(), result.newLoginId());
+    }
+
+    private void revokeTenantSessions(Long userId) {
+        String tenantSlug = com.lumie.common.tenant.TenantContextHolder.getTenant();
+        if (tenantSlug != null) {
+            sessionPersistencePort.deleteAllForUser(tenantSlug, userId);
+        }
     }
 }

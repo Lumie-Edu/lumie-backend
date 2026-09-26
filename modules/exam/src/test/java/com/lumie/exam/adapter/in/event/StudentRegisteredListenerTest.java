@@ -132,8 +132,6 @@ class StudentRegisteredListenerTest {
                 "테스트 학원",
                 TenantStatus.ACTIVE,
                 null,
-                null,
-                null,
                 "2026-01-01T00:00:00Z",
                 "2026-01-01T00:00:00Z"
         );

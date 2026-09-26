@@ -35,10 +35,10 @@ logstash-logback-encoder   = { module = "net.logstash.logback:logstash-logback-e
 # Object storage
 minio                      = { module = "io.minio:minio",                                                  version.ref = "minio" }
 
-# JWT
+# Legacy JWT verification only; removed with the 2026 compatibility bridge.
 jjwt-api                   = { module = "io.jsonwebtoken:jjwt-api",                                        version.ref = "jjwt" }
 jjwt-impl                  = { module = "io.jsonwebtoken:jjwt-impl",                                       version.ref = "jjwt" }
-jjwt-jackson               = { module = "io.jsonwebtoken:jjwt-jackson",                                    version.ref = "jjwt" }
+jjwt-jackson               = { module = "io.jsonwebtoken:jjwt-jackson",                                   version.ref = "jjwt" }
 
 # Excel import
 apache-poi-ooxml            = { module = "org.apache.poi:poi-ooxml",                                       version.ref = "apache-poi" }

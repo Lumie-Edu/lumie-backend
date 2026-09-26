@@ -8,10 +8,9 @@
 
 -- Demo tenant. plan_id must be a valid TenantPlan enum constant
 -- (FREE | BASIC | PRO | MAX) — it is read back as the entity enum.
-INSERT INTO tenants (slug, custom_id, name, display_name, status, plan_id, institute_name)
-VALUES ('demo', 'demo', 'Demo Academy', '데모 학원', 'ACTIVE', 'FREE', '데모학원')
+INSERT INTO tenants (slug, name, display_name, status, plan_id, institute_name)
+VALUES ('inst-demo', 'Demo Academy', '데모 학원', 'ACTIVE', 'FREE', '데모학원')
 ON CONFLICT (slug) DO UPDATE SET
-  custom_id = EXCLUDED.custom_id,
   display_name = EXCLUDED.display_name,
   plan_id = EXCLUDED.plan_id,
   institute_name = EXCLUDED.institute_name;
@@ -28,7 +27,7 @@ DECLARE
   t_id   bigint;
   pw     text := '$2y$10$v.IkS0w0PAb/xPMHk/rVzONyW7roCm49CxQOUZ5vqNjQEqN0VfDSW';
 BEGIN
-  SELECT id INTO t_id FROM tenants WHERE slug = 'demo';
+  SELECT id INTO t_id FROM tenants WHERE slug = 'inst-demo';
   IF t_id IS NULL THEN
     RAISE EXCEPTION 'demo tenant not found — tenants upsert must run first';
   END IF;
@@ -47,6 +46,23 @@ BEGIN
   DELETE FROM students               WHERE tenant_id = t_id;
   DELETE FROM staff                  WHERE tenant_id = t_id;
   DELETE FROM users                  WHERE tenant_id = t_id;
+
+  -- user_login_id is globally unique. A prior seed may have created these
+  -- synthetic identities under a stale demo tenant, so clean the fixed demo
+  -- IDs across tenants before inserting the current demo cohort.
+  DELETE FROM students
+  WHERE user_login_id IN (
+    'demo_stu_01', 'demo_stu_02', 'demo_stu_03', 'demo_stu_04',
+    'demo_stu_05', 'demo_stu_06', 'demo_stu_07', 'demo_stu_08'
+  );
+  DELETE FROM staff
+  WHERE user_login_id IN ('demo_owner', 'demo_mgr', 'demo_inst');
+  DELETE FROM users
+  WHERE user_login_id IN (
+    'demo_owner', 'demo_mgr', 'demo_inst',
+    'demo_stu_01', 'demo_stu_02', 'demo_stu_03', 'demo_stu_04',
+    'demo_stu_05', 'demo_stu_06', 'demo_stu_07', 'demo_stu_08'
+  );
 
   -- Users: 1 owner + 1 manager + 1 instructor + 8 students.
   INSERT INTO users (user_login_id, password_hash, name, phone, email, role, status, tenant_id) VALUES

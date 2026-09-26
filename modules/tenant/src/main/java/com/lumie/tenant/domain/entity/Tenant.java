@@ -60,12 +60,6 @@ public class Tenant extends BaseEntity {
     @Column(name = "logo_object_key", length = 255)
     private String logoObjectKey;
 
-    @Column(name = "custom_id", length = 50)
-    private String customId;
-
-    @Column(name = "custom_domain", length = 253)
-    private String customDomain;
-
     @Column(name = "onboarding_completed_at")
     private Instant onboardingCompletedAt;
 
@@ -83,37 +77,15 @@ public class Tenant extends BaseEntity {
     );
     private static final Set<String> REMOVED_LEGACY_SIDEBAR_ITEM_IDS = Set.of("schedules");
 
-    private static final java.util.regex.Pattern CUSTOM_ID_PATTERN =
-            java.util.regex.Pattern.compile("^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$");
-
-    // Keep in sync with frontend `RESERVED_CUSTOM_IDS` in
-    // src/entities/tenant/model/schema.ts and `RESERVED_TOP_SEGMENTS`
-    // in middleware.ts. Path-based tenant landing means anything
-    // claimed by a real top-level route must be reserved.
-    private static final java.util.Set<String> RESERVED_CUSTOM_IDS = java.util.Set.of(
-            // App routes
-            "admin", "api", "auth", "dashboard",
-            "login", "register", "signup", "logout",
-            // Marketing routes
-            "about", "blog", "cases", "changelog", "features",
-            "help", "pricing", "security",
-            // Static assets / framework
-            "_next", "favicon.ico", "favicon", "images", "fonts",
-            "public", "static", "robots", "sitemap",
-            // Defensive reserves
-            "account", "settings", "refresh", "home", "app"
-    );
-
     @Builder
     private Tenant(TenantSlug slug, String name, String displayName, TenantPlan plan,
-                   String instituteName, String customId) {
+                   String instituteName) {
         this.slug = slug;
         this.name = name;
         this.displayName = displayName;
         this.status = TenantStatus.PENDING;
         this.plan = plan != null ? plan : TenantPlan.FREE;
         this.instituteName = instituteName;
-        this.customId = customId;
     }
 
     public static Tenant create(String slug, String name, String displayName) {
@@ -123,7 +95,6 @@ public class Tenant extends BaseEntity {
     public static Tenant create(String slug, String name, String displayName, TenantPlan plan) {
         return Tenant.builder()
                 .slug(TenantSlug.of(slug))
-                .customId(slug.replaceFirst("^inst-", ""))
                 .name(name)
                 .displayName(displayName)
                 .plan(plan)
@@ -138,7 +109,6 @@ public class Tenant extends BaseEntity {
         String autoSlug = "inst-" + java.util.UUID.randomUUID().toString().substring(0, 8);
         return Tenant.builder()
                 .slug(TenantSlug.of(autoSlug))
-                .customId(autoSlug.replaceFirst("^inst-", ""))
                 .name(instituteName)
                 .displayName(instituteName)
                 .instituteName(instituteName)
@@ -148,45 +118,6 @@ public class Tenant extends BaseEntity {
 
     public void updateLogoObjectKey(String objectKey) {
         this.logoObjectKey = objectKey;
-    }
-
-    public void updateCustomId(String customId) {
-        boolean isDefault = this.customId == null || this.customId.equals(this.slug.getValue()) || this.customId.equals(this.slug.getValue().replaceFirst("^inst-", ""));
-        boolean alreadySet = !isDefault;
-
-        if (alreadySet) {
-            // Once set by user, the only permitted call is an idempotent no-op with the same value.
-            // Clearing, blanking, or changing to a different value are all forbidden.
-            String incoming = (customId == null || customId.isBlank())
-                    ? null
-                    : customId.toLowerCase(java.util.Locale.ROOT).trim();
-            if (!this.customId.equals(incoming)) {
-                throw new BusinessException(TenantErrorCode.CUSTOM_ID_IMMUTABLE,
-                        "학원 ID는 한번 설정되면 변경할 수 없습니다.");
-            }
-            // Same value — idempotent no-op.
-            return;
-        }
-
-        // First-set path:
-        if (customId == null || customId.isBlank()) {
-            this.customId = this.slug.getValue().replaceFirst("^inst-", "");
-            return;
-        }
-        String normalized = customId.toLowerCase(java.util.Locale.ROOT).trim();
-        if (!CUSTOM_ID_PATTERN.matcher(normalized).matches()) {
-            throw new BusinessException(TenantErrorCode.INVALID_CUSTOM_ID,
-                    "customId는 3-30자의 소문자 영숫자와 하이픈만 사용할 수 있고, 첫 글자와 끝 글자는 영숫자여야 합니다.");
-        }
-        if (RESERVED_CUSTOM_IDS.contains(normalized)) {
-            throw new BusinessException(TenantErrorCode.RESERVED_CUSTOM_ID,
-                    "사용할 수 없는 학원 ID입니다: " + normalized);
-        }
-        this.customId = normalized;
-    }
-
-    public static boolean isReservedCustomId(String customId) {
-        return customId != null && RESERVED_CUSTOM_IDS.contains(customId.toLowerCase(java.util.Locale.ROOT).trim());
     }
 
     public void startProvisioning() {
@@ -285,11 +216,4 @@ public class Tenant extends BaseEntity {
         }
     }
 
-    public void setCustomDomain(String domain) {
-        if (domain == null || domain.isBlank()) {
-            this.customDomain = null;
-            return;
-        }
-        this.customDomain = domain.toLowerCase(java.util.Locale.ROOT).trim();
-    }
 }

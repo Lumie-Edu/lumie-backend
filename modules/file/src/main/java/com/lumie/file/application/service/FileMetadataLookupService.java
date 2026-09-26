@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -29,15 +28,6 @@ public class FileMetadataLookupService {
     public DownloadMetadata getAuthorizedDownloadMetadata(UUID fileId) {
         FileMetadata fileMetadata = findCompletedFile(fileId);
         authorizeFileAccess(fileMetadata);
-        return DownloadMetadata.from(fileMetadata);
-    }
-
-    @Transactional(readOnly = true)
-    public DownloadMetadata getPublicDownloadMetadata(UUID fileId, Set<EntityType> allowedTypes) {
-        FileMetadata fileMetadata = findCompletedFile(fileId);
-        if (!allowedTypes.contains(fileMetadata.getEntityType())) {
-            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND);
-        }
         return DownloadMetadata.from(fileMetadata);
     }
 

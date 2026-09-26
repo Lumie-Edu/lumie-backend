@@ -1,56 +1,32 @@
 package com.lumie.auth.adapter.in.web;
 
-import com.lumie.auth.adapter.out.config.CookieConfig;
-import com.lumie.auth.adapter.out.config.JwtConfig;
+import com.lumie.auth.adapter.out.config.SessionConfig;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
+/** Issues only host-only opaque session cookies. */
 @Component
 @RequiredArgsConstructor
 public class CookieUtils {
 
-    private final CookieConfig cookieConfig;
-    private final JwtConfig jwtConfig;
+    private final SessionConfig sessionConfig;
 
-    public ResponseCookie createAccessTokenCookie(String token) {
-        return buildCookie(cookieConfig.getAccessTokenName(), token, jwtConfig.getAccessExpiration());
+    public ResponseCookie createSessionCookie(String sessionId) {
+        return cookie(sessionId, sessionConfig.getExpiration());
     }
 
-    public ResponseCookie createRefreshTokenCookie(String token) {
-        return buildCookie(cookieConfig.getRefreshTokenName(), token, jwtConfig.getRefreshExpiration());
+    public ResponseCookie expireSessionCookie() {
+        return cookie("", 0);
     }
 
-    public ResponseCookie createExpiredAccessTokenCookie() {
-        return buildCookie(cookieConfig.getAccessTokenName(), "", 0);
-    }
-
-    public ResponseCookie createExpiredRefreshTokenCookie() {
-        return buildCookie(cookieConfig.getRefreshTokenName(), "", 0);
-    }
-
-    private ResponseCookie buildCookie(String name, String value, long maxAgeSeconds) {
-        return buildCookie(name, value, maxAgeSeconds, cookieConfig.getPath(), cookieConfig.getSameSite());
-    }
-
-    private ResponseCookie buildCookie(
-            String name,
-            String value,
-            long maxAgeSeconds,
-            String path,
-            String sameSite
-    ) {
-        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value)
-                .httpOnly(cookieConfig.isHttpOnly())
-                .secure(cookieConfig.isSecure())
-                .path(path)
+    private ResponseCookie cookie(String value, long maxAgeSeconds) {
+        return ResponseCookie.from(sessionConfig.getCookieName(), value)
+                .httpOnly(true)
+                .secure(sessionConfig.isCookieSecure())
+                .sameSite(sessionConfig.getCookieSameSite())
+                .path("/")
                 .maxAge(maxAgeSeconds)
-                .sameSite(sameSite);
-
-        if (cookieConfig.getDomain() != null && !cookieConfig.getDomain().isEmpty()) {
-            builder.domain(cookieConfig.getDomain());
-        }
-
-        return builder.build();
+                .build();
     }
 }

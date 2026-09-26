@@ -1,6 +1,5 @@
 package com.lumie.tenant.application.service;
 
-import com.lumie.common.cache.CacheConfig;
 import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.application.dto.response.PublicTenantResponse;
 import com.lumie.tenant.application.dto.response.TenantResponse;
@@ -8,7 +7,6 @@ import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +20,7 @@ import java.util.Optional;
 public class TenantQueryService {
 
     private final TenantPersistencePort tenantPersistencePort;
+    private final HostTenantResolver hostTenantResolver;
 
     public TenantResponse getTenantById(Long id) {
         return tenantPersistencePort.findById(id)
@@ -52,25 +51,11 @@ public class TenantQueryService {
                 .map(Tenant::getId);
     }
 
-    public PublicTenantResponse getPublicTenantByCustomId(String customId) {
-        return tenantPersistencePort.findByCustomId(customId)
+    public PublicTenantResponse getCurrentPublicTenant(String slug) {
+        return tenantPersistencePort.findBySlug(slug)
                 .filter(Tenant::isActive)
-                .map(PublicTenantResponse::from)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", customId));
+                .map(tenant -> PublicTenantResponse.from(tenant, hostTenantResolver.loginThemeFor(tenant.getSlugValue())))
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", slug));
     }
 
-    /**
-     * Looks up a public tenant by its custom domain.
-     *
-     * <p>Expects a canonical host: lowercased and trimmed. Normalization is the
-     * caller's responsibility (performed at the controller boundary) so that the
-     * {@code @Cacheable} key is always in canonical form.
-     */
-    @Cacheable(value = CacheConfig.CACHE_TENANTS_BY_DOMAIN, key = "#host")
-    public PublicTenantResponse getPublicTenantByCustomDomain(String host) {
-        return tenantPersistencePort.findByCustomDomain(host)
-                .filter(Tenant::isActive)
-                .map(PublicTenantResponse::from)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", host));
-    }
 }
