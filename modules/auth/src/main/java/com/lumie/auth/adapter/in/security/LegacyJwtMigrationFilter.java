@@ -71,14 +71,14 @@ public class LegacyJwtMigrationFilter extends OncePerRequestFilter {
                     || !Boolean.TRUE.equals(redis.hasKey("auth:refresh:" + userId + ":" + claims.getId()))) {
                 response.setStatus(204); return;
             }
+            var user = TenantContextHolder.withinContext(slug, tenantId,
+                    () -> users.findById(userId).orElse(null));
+            if (user == null || !user.enabled() || !tenantId.equals(user.tenantId())) { response.setStatus(204); return; }
             // Redis DELETE is atomic: only one concurrent request can consume
             // the legacy refresh credential and mint an opaque session.
             if (!Boolean.TRUE.equals(redis.delete("auth:refresh:" + userId + ":" + claims.getId()))) {
                 response.setStatus(204); return;
             }
-            var user = TenantContextHolder.withinContext(slug, tenantId,
-                    () -> users.findById(userId).orElse(null));
-            if (user == null || !user.enabled() || !tenantId.equals(user.tenantId())) { response.setStatus(204); return; }
             AuthSession session = sessions.create(user, slug, tenantId, SessionMetadataExtractor.extract(request));
             response.addHeader(HttpHeaders.SET_COOKIE, cookieUtils.createSessionCookie(session.id()).toString());
             response.addHeader(HttpHeaders.SET_COOKIE, expire(REFRESH_COOKIE));
