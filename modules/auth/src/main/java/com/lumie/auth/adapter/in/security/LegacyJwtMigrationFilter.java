@@ -28,7 +28,6 @@ import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.time.Duration;
 
 /** Temporary, verification-only bridge for valid legacy refresh JWT cookies. */
 @Component
@@ -72,15 +71,15 @@ public class LegacyJwtMigrationFilter extends OncePerRequestFilter {
                     || !Boolean.TRUE.equals(redis.hasKey("auth:refresh:" + userId + ":" + claims.getId()))) {
                 response.setStatus(204); return;
             }
+            // Redis DELETE is atomic: only one concurrent request can consume
+            // the legacy refresh credential and mint an opaque session.
+            if (!Boolean.TRUE.equals(redis.delete("auth:refresh:" + userId + ":" + claims.getId()))) {
+                response.setStatus(204); return;
+            }
             var user = TenantContextHolder.withinContext(slug, tenantId,
                     () -> users.findById(userId).orElse(null));
             if (user == null || !user.enabled() || !tenantId.equals(user.tenantId())) { response.setStatus(204); return; }
             AuthSession session = sessions.create(user, slug, tenantId, SessionMetadataExtractor.extract(request));
-            // Consume the legacy refresh credential before issuing the new
-            // session so it cannot be replayed after migration or logout.
-            redis.delete("auth:refresh:" + userId + ":" + claims.getId());
-            long ttl = Math.max(1, claims.getExpiration().toInstant().getEpochSecond() - Instant.now().getEpochSecond());
-            redis.opsForValue().set("auth:blacklist:" + claims.getId(), "1", Duration.ofSeconds(ttl));
             response.addHeader(HttpHeaders.SET_COOKIE, cookieUtils.createSessionCookie(session.id()).toString());
             response.addHeader(HttpHeaders.SET_COOKIE, expire(REFRESH_COOKIE));
             response.addHeader(HttpHeaders.SET_COOKIE, expire(ACCESS_COOKIE));
