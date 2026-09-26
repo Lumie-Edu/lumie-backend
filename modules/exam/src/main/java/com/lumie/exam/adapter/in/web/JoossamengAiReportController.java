@@ -32,7 +32,7 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 public class JoossamengAiReportController {
 
-    private static final String ALLOWED_TENANT = "inst-joossameng";
+    private static final String ALLOWED_TENANT = "joossameng";
     private static final String AI_COMMENTARY_GENERATE_SCOPE = "POST /v1/exams/{examId}/ai-commentary/generate";
 
     private final JoossamengAiReportClient client;
