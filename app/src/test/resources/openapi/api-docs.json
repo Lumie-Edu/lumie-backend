@@ -13960,6 +13960,14 @@
     "/v1/tenants/public/current-branding" : {
       "get" : {
         "operationId" : "getCurrentPublicTenantBranding",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "host",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {
