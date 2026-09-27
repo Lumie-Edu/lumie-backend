@@ -41,8 +41,8 @@ COMMON_ENV = {
     # Keep the development edge as the canonical Lumie host. Custom-brand
     # testing is opt-in through its explicit local hostname, never the
     # default localhost development entry point.
-    'TENANT_EDGE_CUSTOM_DOMAIN_MAP': 'joossameng.localhost=inst-joossameng',
-    'TENANT_EDGE_LOGIN_THEME_MAP': 'inst-joossameng=ocean',
+    'TENANT_EDGE_CUSTOM_DOMAIN_MAP': 'joossameng.localhost=joossameng',
+    'TENANT_EDGE_LOGIN_THEME_MAP': 'joossameng=ocean',
 }
 
 def generate_env_yaml():
