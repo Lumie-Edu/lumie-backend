@@ -108,7 +108,6 @@ class AnnouncementCommandServiceTest {
                 false,
                 false,
                 null,
-                null,
                 List.of(10L, 20L)
         );
         given(announcementRepository.findById(1L)).willReturn(Optional.of(announcement));

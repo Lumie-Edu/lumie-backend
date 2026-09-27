@@ -8,8 +8,7 @@ public record UpdateAnnouncementRequest(
         String announcementContent,
         Boolean isItAssetAnnouncement,
         Boolean isItImportantAnnouncement,
-        List<UUID> fileIdsToDelete,
-        List<UUID> textbookFileIds,
+        List<UUID> attachmentFileIds,
         List<Long> classIds
 ) {
 }

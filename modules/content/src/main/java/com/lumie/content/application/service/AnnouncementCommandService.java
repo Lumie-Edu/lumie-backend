@@ -47,7 +47,7 @@ public class AnnouncementCommandService {
 
         Announcement saved = announcementRepository.save(announcement);
         List<Long> classIds = replaceClassTargets(saved.getId(), request.classIds());
-        fileService.replaceFileLinks("announcement", saved.getId(), request.textbookFileIds());
+        fileService.attachPreparedFiles("announcement", saved.getId(), request.attachmentFileIds());
         log.info("Announcement created with id: {}", saved.getId());
 
         return AnnouncementResponse.from(saved, authorNameOrFallback(saved.getAuthorId()), classIds);
@@ -67,10 +67,7 @@ public class AnnouncementCommandService {
                 request.isItImportantAnnouncement()
         );
 
-        if (request.fileIdsToDelete() != null && !request.fileIdsToDelete().isEmpty()) {
-            fileService.deleteFilesByIds(request.fileIdsToDelete());
-        }
-        fileService.replaceFileLinks("announcement", id, request.textbookFileIds());
+        fileService.reconcileDirectFiles("announcement", id, request.attachmentFileIds());
 
         List<Long> classIds = request.classIds() == null
                 ? classTargetRepository.findByAnnouncementId(id).stream()

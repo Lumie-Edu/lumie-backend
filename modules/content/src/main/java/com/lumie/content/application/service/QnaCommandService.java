@@ -37,6 +37,7 @@ public class QnaCommandService {
         );
 
         QnaBoard saved = qnaBoardRepository.save(qnaBoard);
+        fileService.attachPreparedFiles("qna", saved.getId(), request.attachmentFileIds());
         log.info("Q&A created with id: {}", saved.getId());
 
         return QnaBoardResponse.from(saved, null);
@@ -51,9 +52,7 @@ public class QnaCommandService {
 
         qnaBoard.update(request.qnaTitle(), request.qnaContent());
 
-        if (request.fileIdsToDelete() != null && !request.fileIdsToDelete().isEmpty()) {
-            fileService.deleteFilesByIds(request.fileIdsToDelete());
-        }
+        fileService.reconcileDirectFiles("qna", id, request.attachmentFileIds());
 
         QnaBoard updated = qnaBoardRepository.save(qnaBoard);
         log.info("Q&A updated: {}", updated.getId());

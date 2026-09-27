@@ -1,6 +1,7 @@
 package com.lumie.file.adapter.in.internal;
 
 import com.lumie.file.application.port.out.StoragePort;
+import com.lumie.file.application.service.TemporaryUploadService;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileLink;
@@ -28,6 +29,24 @@ public class FileServiceAdapter implements FileService {
     private final FileMetadataRepository fileMetadataRepository;
     private final FileLinkRepository fileLinkRepository;
     private final StoragePort storagePort;
+    private final TemporaryUploadService temporaryUploadService;
+
+    @Override
+    public void prepareTemporaryAttachments(String entityType, List<UUID> fileIds) {
+        temporaryUploadService.prepareForAttachment(parseEntityType(entityType), fileIds);
+    }
+
+    @Override
+    public void attachPreparedFiles(String entityType, Long entityId, List<UUID> fileIds) {
+        temporaryUploadService.attachPrepared(parseEntityType(entityType), entityId, fileIds);
+    }
+
+    @Override
+    public void promoteTemporaryFiles(String entityType, Long entityId, List<UUID> fileIds) {
+        EntityType type = parseEntityType(entityType);
+        temporaryUploadService.prepareForAttachment(type, fileIds);
+        temporaryUploadService.attachPrepared(type, entityId, fileIds);
+    }
 
     @Override
     public void deleteFilesByEntity(String entityType, Long entityId) {
@@ -71,6 +90,35 @@ public class FileServiceAdapter implements FileService {
 
         log.info("Marked {} file(s) for MinIO deletion by ID", objectKeys.size());
         scheduleMinioCleanup(objectKeys);
+    }
+
+    @Override
+    public void deleteFilesByEntityAndIds(String entityType, Long entityId, List<UUID> fileIds) {
+        if (fileIds == null || fileIds.isEmpty()) return;
+        EntityType type = parseEntityType(entityType);
+        List<String> objectKeys = new ArrayList<>();
+        for (UUID fileId : fileIds.stream().distinct().toList()) {
+            fileMetadataRepository.findById(fileId)
+                    .filter(file -> file.getEntityType() == type && entityId.equals(file.getEntityId()))
+                    .ifPresent(file -> {
+                        objectKeys.add(file.getObjectKey());
+                        fileMetadataRepository.delete(file);
+                    });
+        }
+        if (!objectKeys.isEmpty()) scheduleMinioCleanup(objectKeys);
+    }
+
+    @Override
+    public void reconcileDirectFiles(String entityType, Long entityId, List<UUID> finalFileIds) {
+        if (finalFileIds == null) return;
+        EntityType type = parseEntityType(entityType);
+        List<UUID> requested = finalFileIds.stream().distinct().toList();
+        List<FileMetadata> existing = fileMetadataRepository.findByEntityTypeAndEntityId(type, entityId);
+        List<UUID> existingIds = existing.stream().map(FileMetadata::getId).toList();
+        List<UUID> removals = existingIds.stream().filter(id -> !requested.contains(id)).toList();
+        deleteFilesByEntityAndIds(entityType, entityId, removals);
+        List<UUID> additions = requested.stream().filter(id -> !existingIds.contains(id)).toList();
+        temporaryUploadService.attachPrepared(type, entityId, additions);
     }
 
     @Override

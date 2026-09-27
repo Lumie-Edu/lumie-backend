@@ -9,6 +9,24 @@ import java.util.UUID;
 public interface FileService {
 
     /**
+     * Copies completed, caller-owned temporary attachments to their durable
+     * object keys. This must be called before the content transaction begins.
+     */
+    void prepareTemporaryAttachments(String entityType, List<UUID> fileIds);
+
+    /**
+     * Links previously prepared attachments in the caller's content
+     * transaction. Only the user that created a temporary upload may attach it.
+     */
+    void attachPreparedFiles(String entityType, Long entityId, List<UUID> fileIds);
+
+    /**
+     * Compatibility command for a domain write flow: prepares temporary files
+     * and attaches them to the newly saved entity.
+     */
+    void promoteTemporaryFiles(String entityType, Long entityId, List<UUID> fileIds);
+
+    /**
      * Deletes all files (MinIO objects + metadata) associated with the given entity.
      * DB deletion runs within the caller's transaction; MinIO deletion runs after commit.
      *
@@ -24,6 +42,12 @@ public interface FileService {
      * @param fileIds list of file metadata UUIDs to delete
      */
     void deleteFilesByIds(List<UUID> fileIds);
+
+    /** Deletes only files directly owned by the specified entity. */
+    void deleteFilesByEntityAndIds(String entityType, Long entityId, List<UUID> fileIds);
+
+    /** Reconciles the direct files owned by an entity to the requested final list. Null means unchanged. */
+    void reconcileDirectFiles(String entityType, Long entityId, List<UUID> finalFileIds);
 
     /**
      * Replaces reusable file links for the given entity. The source files stay

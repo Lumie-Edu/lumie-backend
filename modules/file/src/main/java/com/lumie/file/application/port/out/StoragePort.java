@@ -15,4 +15,12 @@ public interface StoragePort {
     void deleteObject(String objectKey);
 
     boolean objectExists(String objectKey);
+
+    void copyObject(String sourceKey, String destinationKey, String expectedSourceEtag);
+
+    long objectSize(String objectKey);
+
+    String objectEtag(String objectKey);
+
+    String objectContentType(String objectKey);
 }

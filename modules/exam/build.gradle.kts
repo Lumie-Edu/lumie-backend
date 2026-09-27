@@ -19,9 +19,6 @@ dependencies {
     // Redis — callback deduplication via SETNX
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
-    // MinIO SDK
-    implementation(libs.minio)
-
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")
 

@@ -7,8 +7,12 @@ import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.application.dto.response.PresignedDownloadResponse;
 import com.lumie.file.application.dto.response.PresignedUploadResponse;
+import com.lumie.file.application.dto.response.TemporaryUploadResponse;
+import com.lumie.file.application.dto.response.TemporaryUploadStatusResponse;
 import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
+import com.lumie.file.application.service.TemporaryUploadService;
+import com.lumie.file.application.dto.request.CreateTemporaryUploadRequest;
 import com.lumie.common.exception.BusinessRuleViolationException;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.file.domain.vo.EntityType;
@@ -32,6 +36,7 @@ public class FileController {
 
     private final FileCommandService fileCommandService;
     private final FileQueryService fileQueryService;
+    private final TemporaryUploadService temporaryUploadService;
     private final IdempotencyService idempotencyService;
 
     private static final long PROXY_UPLOAD_MAX_BYTES = 1024 * 1024; // 1 MiB
@@ -104,6 +109,28 @@ public class FileController {
             @Valid @RequestBody PresignedUploadRequest request) {
         PresignedUploadResponse response = fileCommandService.generatePresignedUploadUrl(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/uploads")
+    public ResponseEntity<TemporaryUploadResponse> createTemporaryUpload(
+            @Valid @RequestBody CreateTemporaryUploadRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(temporaryUploadService.create(request));
+    }
+
+    @PostMapping("/uploads/{fileId}/complete")
+    public ResponseEntity<TemporaryUploadStatusResponse> completeTemporaryUpload(@PathVariable UUID fileId) {
+        return ResponseEntity.ok(temporaryUploadService.complete(fileId));
+    }
+
+    @GetMapping("/uploads/{fileId}")
+    public ResponseEntity<TemporaryUploadStatusResponse> getTemporaryUpload(@PathVariable UUID fileId) {
+        return ResponseEntity.ok(temporaryUploadService.status(fileId));
+    }
+
+    @DeleteMapping("/uploads/{fileId}")
+    public ResponseEntity<Void> cancelTemporaryUpload(@PathVariable UUID fileId) {
+        temporaryUploadService.cancel(fileId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/presigned-download")

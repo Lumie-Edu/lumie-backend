@@ -891,6 +891,13 @@
           "announcementTitle" : {
             "type" : "string"
           },
+          "attachmentFileIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "authorId" : {
             "format" : "int64",
             "type" : "integer"
@@ -907,13 +914,6 @@
           },
           "isItImportantAnnouncement" : {
             "type" : "boolean"
-          },
-          "textbookFileIds" : {
-            "items" : {
-              "format" : "uuid",
-              "type" : "string"
-            },
-            "type" : "array"
           }
         },
         "required" : [ "announcementContent", "announcementTitle", "authorId" ],
@@ -1221,6 +1221,13 @@
       },
       "CreateQnaRequest" : {
         "properties" : {
+          "attachmentFileIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "qnaContent" : {
             "type" : "string"
           },
@@ -1337,6 +1344,26 @@
         "required" : [ "content", "name" ],
         "type" : "object"
       },
+      "CreateTemporaryUploadRequest" : {
+        "properties" : {
+          "contentType" : {
+            "type" : "string"
+          },
+          "entityType" : {
+            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
+            "type" : "string"
+          },
+          "fileSize" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "filename" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contentType", "entityType", "fileSize", "filename" ],
+        "type" : "object"
+      },
       "CreateTenantRequest" : {
         "properties" : {
           "displayName" : {
@@ -1437,6 +1464,19 @@
           }
         },
         "required" : [ "gradeDistribution", "overallAverageScore", "topIncorrectQuestions", "totalExams", "totalResults", "typeAccuracyList" ],
+        "type" : "object"
+      },
+      "DownloadGrant" : {
+        "properties" : {
+          "downloadUrl" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "downloadUrl", "expiresAt" ],
         "type" : "object"
       },
       "DropoutSummaryResponse" : {
@@ -4073,6 +4113,27 @@
         "required" : [ "failCount", "jobId", "processedReports", "status", "successCount", "totalReports", "zipFileKey" ],
         "type" : "object"
       },
+      "ReportUploadRequest" : {
+        "properties" : {
+          "contentLength" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "contentType" : {
+            "type" : "string"
+          },
+          "examId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "studentId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "contentLength", "contentType", "examId", "studentId" ],
+        "type" : "object"
+      },
       "ReviewPopupSettingResponse" : {
         "properties" : {
           "createdAt" : {
@@ -5428,6 +5489,44 @@
         "required" : [ "billingKeyId", "cancelledAt", "createdAt", "expiresAt", "id", "limits", "nextChargeAt", "pendingPlanId", "planId", "planName", "scheduledChangeAt", "startedAt", "status", "suspensionReason", "tenantId", "tenantSlug", "updatedAt" ],
         "type" : "object"
       },
+      "TemporaryUploadResponse" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "fileId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "uploadUrl" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "expiresAt", "fileId", "uploadUrl" ],
+        "type" : "object"
+      },
+      "TemporaryUploadStatusResponse" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "fileId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "lifecycleStatus" : {
+            "enum" : [ "TEMPORARY", "READY_TO_ATTACH", "ACTIVE", "DELETING" ],
+            "type" : "string"
+          },
+          "uploadCompleted" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "expiresAt", "fileId", "lifecycleStatus", "uploadCompleted" ],
+        "type" : "object"
+      },
       "TenantResponse" : {
         "properties" : {
           "createdAt" : {
@@ -5751,17 +5850,17 @@
           "announcementTitle" : {
             "type" : "string"
           },
+          "attachmentFileIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "classIds" : {
             "items" : {
               "format" : "int64",
               "type" : "integer"
-            },
-            "type" : "array"
-          },
-          "fileIdsToDelete" : {
-            "items" : {
-              "format" : "uuid",
-              "type" : "string"
             },
             "type" : "array"
           },
@@ -5770,13 +5869,6 @@
           },
           "isItImportantAnnouncement" : {
             "type" : "boolean"
-          },
-          "textbookFileIds" : {
-            "items" : {
-              "format" : "uuid",
-              "type" : "string"
-            },
-            "type" : "array"
           }
         },
         "type" : "object"
@@ -6025,7 +6117,7 @@
       },
       "UpdateQnaRequest" : {
         "properties" : {
-          "fileIdsToDelete" : {
+          "attachmentFileIds" : {
             "items" : {
               "format" : "uuid",
               "type" : "string"
@@ -6134,6 +6226,28 @@
             "type" : "string"
           }
         },
+        "type" : "object"
+      },
+      "UploadGrant" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "fileKey" : {
+            "type" : "string"
+          },
+          "requiredHeaders" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "uploadUrl" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "expiresAt", "fileKey", "requiredHeaders", "uploadUrl" ],
         "type" : "object"
       },
       "UpsertSmsSenderSettingRequest" : {
@@ -6446,6 +6560,86 @@
           }
         },
         "tags" : [ "internal-chatbot-controller" ]
+      }
+    },
+    "/internal/files/worker/omr-jobs/{jobId}/items/{imageIndex}/download-url" : {
+      "get" : {
+        "operationId" : "omrDownload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "imageIndex",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DownloadGrant"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-worker-file-controller" ]
+      }
+    },
+    "/internal/files/worker/report-jobs/{jobId}/items/{reportIndex}/upload-url" : {
+      "post" : {
+        "operationId" : "reportUpload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "reportIndex",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportUploadRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadGrant"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-worker-file-controller" ]
       }
     },
     "/internal/omr/exams/{id}/full" : {
@@ -10337,6 +10531,106 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/FileMetadataResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "file-controller" ]
+      }
+    },
+    "/v1/files/uploads" : {
+      "post" : {
+        "operationId" : "createTemporaryUpload",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateTemporaryUploadRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemporaryUploadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "file-controller" ]
+      }
+    },
+    "/v1/files/uploads/{fileId}" : {
+      "delete" : {
+        "operationId" : "cancelTemporaryUpload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "fileId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "file-controller" ]
+      },
+      "get" : {
+        "operationId" : "getTemporaryUpload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "fileId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemporaryUploadStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "file-controller" ]
+      }
+    },
+    "/v1/files/uploads/{fileId}/complete" : {
+      "post" : {
+        "operationId" : "completeTemporaryUpload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "fileId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemporaryUploadStatusResponse"
                 }
               }
             },

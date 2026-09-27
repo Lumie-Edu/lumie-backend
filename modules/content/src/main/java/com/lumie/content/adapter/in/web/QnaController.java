@@ -9,6 +9,7 @@ import com.lumie.content.application.dto.response.QnaDetailResponse;
 import com.lumie.content.application.dto.response.QnaUnansweredOverdueResponse;
 import com.lumie.content.application.service.QnaCommandService;
 import com.lumie.content.application.service.QnaQueryService;
+import com.lumie.file.api.FileService;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
@@ -27,6 +28,7 @@ public class QnaController {
 
     private final QnaCommandService commandService;
     private final QnaQueryService queryService;
+    private final FileService fileService;
 
     @GetMapping
     @AllowedSortFields({"createdAt"})
@@ -65,6 +67,7 @@ public class QnaController {
 
     @PostMapping
     public ResponseEntity<QnaBoardResponse> createQna(@Valid @RequestBody CreateQnaRequest request) {
+        fileService.prepareTemporaryAttachments("qna", request.attachmentFileIds());
         QnaBoardResponse response = commandService.createQna(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -73,6 +76,7 @@ public class QnaController {
     public ResponseEntity<QnaBoardResponse> updateQna(
             @PathVariable Long id,
             @Valid @RequestBody UpdateQnaRequest request) {
+        fileService.prepareTemporaryAttachments("qna", request.attachmentFileIds());
         return ResponseEntity.ok(commandService.updateQna(id, request));
     }
 
