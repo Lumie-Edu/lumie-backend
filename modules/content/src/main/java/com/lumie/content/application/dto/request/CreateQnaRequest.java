@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 import java.util.UUID;
+import com.lumie.file.api.TemporaryAttachment;
 
 public record CreateQnaRequest(
         @NotNull(message = "User ID is required")
@@ -16,6 +17,6 @@ public record CreateQnaRequest(
         @NotBlank(message = "Content is required")
         String qnaContent,
 
-        List<UUID> attachmentFileIds
+        List<TemporaryAttachment> temporaryAttachments
 ) {
 }

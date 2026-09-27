@@ -891,13 +891,6 @@
           "announcementTitle" : {
             "type" : "string"
           },
-          "attachmentFileIds" : {
-            "items" : {
-              "format" : "uuid",
-              "type" : "string"
-            },
-            "type" : "array"
-          },
           "authorId" : {
             "format" : "int64",
             "type" : "integer"
@@ -914,6 +907,12 @@
           },
           "isItImportantAnnouncement" : {
             "type" : "boolean"
+          },
+          "temporaryAttachments" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TemporaryAttachment"
+            },
+            "type" : "array"
           }
         },
         "required" : [ "announcementContent", "announcementTitle", "authorId" ],
@@ -1221,13 +1220,6 @@
       },
       "CreateQnaRequest" : {
         "properties" : {
-          "attachmentFileIds" : {
-            "items" : {
-              "format" : "uuid",
-              "type" : "string"
-            },
-            "type" : "array"
-          },
           "qnaContent" : {
             "type" : "string"
           },
@@ -1237,6 +1229,12 @@
           "qnaUserId" : {
             "format" : "int64",
             "type" : "integer"
+          },
+          "temporaryAttachments" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TemporaryAttachment"
+            },
+            "type" : "array"
           }
         },
         "required" : [ "qnaContent", "qnaTitle", "qnaUserId" ],
@@ -5489,42 +5487,34 @@
         "required" : [ "billingKeyId", "cancelledAt", "createdAt", "expiresAt", "id", "limits", "nextChargeAt", "pendingPlanId", "planId", "planName", "scheduledChangeAt", "startedAt", "status", "suspensionReason", "tenantId", "tenantSlug", "updatedAt" ],
         "type" : "object"
       },
-      "TemporaryUploadResponse" : {
+      "TemporaryAttachment" : {
         "properties" : {
-          "expiresAt" : {
-            "format" : "date-time",
+          "contentType" : {
             "type" : "string"
           },
-          "fileId" : {
-            "format" : "uuid",
+          "fileSize" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "filename" : {
+            "type" : "string"
+          },
+          "objectKey" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "TemporaryObjectUploadResponse" : {
+        "properties" : {
+          "objectKey" : {
             "type" : "string"
           },
           "uploadUrl" : {
             "type" : "string"
           }
         },
-        "required" : [ "expiresAt", "fileId", "uploadUrl" ],
-        "type" : "object"
-      },
-      "TemporaryUploadStatusResponse" : {
-        "properties" : {
-          "expiresAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "fileId" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "lifecycleStatus" : {
-            "enum" : [ "TEMPORARY", "READY_TO_ATTACH", "ACTIVE", "DELETING" ],
-            "type" : "string"
-          },
-          "uploadCompleted" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "expiresAt", "fileId", "lifecycleStatus", "uploadCompleted" ],
+        "required" : [ "objectKey", "uploadUrl" ],
         "type" : "object"
       },
       "TenantResponse" : {
@@ -5869,6 +5859,12 @@
           },
           "isItImportantAnnouncement" : {
             "type" : "boolean"
+          },
+          "temporaryAttachments" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TemporaryAttachment"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"
@@ -6129,6 +6125,12 @@
           },
           "qnaTitle" : {
             "type" : "string"
+          },
+          "temporaryAttachments" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TemporaryAttachment"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"
@@ -10558,79 +10560,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/TemporaryUploadResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      }
-    },
-    "/v1/files/uploads/{fileId}" : {
-      "delete" : {
-        "operationId" : "cancelTemporaryUpload",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "fileId",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      },
-      "get" : {
-        "operationId" : "getTemporaryUpload",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "fileId",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TemporaryUploadStatusResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      }
-    },
-    "/v1/files/uploads/{fileId}/complete" : {
-      "post" : {
-        "operationId" : "completeTemporaryUpload",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "fileId",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TemporaryUploadStatusResponse"
+                  "$ref" : "#/components/schemas/TemporaryObjectUploadResponse"
                 }
               }
             },

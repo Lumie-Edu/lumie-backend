@@ -47,7 +47,7 @@ public class AnnouncementCommandService {
 
         Announcement saved = announcementRepository.save(announcement);
         List<Long> classIds = replaceClassTargets(saved.getId(), request.classIds());
-        fileService.attachPreparedFiles("announcement", saved.getId(), request.attachmentFileIds());
+        fileService.publishTemporaryFiles("announcement", saved.getId(), request.temporaryAttachments());
         log.info("Announcement created with id: {}", saved.getId());
 
         return AnnouncementResponse.from(saved, authorNameOrFallback(saved.getAuthorId()), classIds);
@@ -67,7 +67,7 @@ public class AnnouncementCommandService {
                 request.isItImportantAnnouncement()
         );
 
-        fileService.reconcileDirectFiles("announcement", id, request.attachmentFileIds());
+        fileService.reconcileDirectFiles("announcement", id, request.attachmentFileIds(), request.temporaryAttachments());
 
         List<Long> classIds = request.classIds() == null
                 ? classTargetRepository.findByAnnouncementId(id).stream()

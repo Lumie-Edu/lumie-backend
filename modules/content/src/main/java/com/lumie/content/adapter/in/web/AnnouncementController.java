@@ -54,7 +54,6 @@ public class AnnouncementController {
     @PostMapping
     public ResponseEntity<AnnouncementResponse> createAnnouncement(
             @Valid @RequestBody CreateAnnouncementRequest request) {
-        fileService.prepareTemporaryAttachments("announcement", request.attachmentFileIds());
         AnnouncementResponse response = commandService.createAnnouncement(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -63,7 +62,6 @@ public class AnnouncementController {
     public ResponseEntity<AnnouncementResponse> updateAnnouncement(
             @PathVariable Long id,
             @Valid @RequestBody UpdateAnnouncementRequest request) {
-        fileService.prepareTemporaryAttachments("announcement", request.attachmentFileIds());
         return ResponseEntity.ok(commandService.updateAnnouncement(id, request));
     }
 

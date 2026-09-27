@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.time.Instant;
 import java.util.UUID;
 
 public interface FileMetadataRepository extends JpaRepository<FileMetadata, UUID> {
@@ -36,6 +35,4 @@ public interface FileMetadataRepository extends JpaRepository<FileMetadata, UUID
 
     boolean existsByFolderId(UUID folderId);
 
-    List<FileMetadata> findByLifecycleStatusInAndExpiresAtBefore(
-            List<com.lumie.file.domain.vo.FileLifecycleStatus> statuses, Instant expiresAt);
 }

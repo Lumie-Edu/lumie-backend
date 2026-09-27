@@ -37,7 +37,7 @@ public class QnaCommandService {
         );
 
         QnaBoard saved = qnaBoardRepository.save(qnaBoard);
-        fileService.attachPreparedFiles("qna", saved.getId(), request.attachmentFileIds());
+        fileService.publishTemporaryFiles("qna", saved.getId(), request.temporaryAttachments());
         log.info("Q&A created with id: {}", saved.getId());
 
         return QnaBoardResponse.from(saved, null);
@@ -52,7 +52,7 @@ public class QnaCommandService {
 
         qnaBoard.update(request.qnaTitle(), request.qnaContent());
 
-        fileService.reconcileDirectFiles("qna", id, request.attachmentFileIds());
+        fileService.reconcileDirectFiles("qna", id, request.attachmentFileIds(), request.temporaryAttachments());
 
         QnaBoard updated = qnaBoardRepository.save(qnaBoard);
         log.info("Q&A updated: {}", updated.getId());

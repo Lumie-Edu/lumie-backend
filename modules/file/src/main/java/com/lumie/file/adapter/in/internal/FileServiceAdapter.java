@@ -1,7 +1,8 @@
 package com.lumie.file.adapter.in.internal;
 
 import com.lumie.file.application.port.out.StoragePort;
-import com.lumie.file.application.service.TemporaryUploadService;
+import com.lumie.file.application.service.TemporaryObjectUploadService;
+import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileLink;
@@ -26,26 +27,25 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileServiceAdapter implements FileService {
 
+    private static final int MAX_ATTACHMENTS = 5;
+
     private final FileMetadataRepository fileMetadataRepository;
     private final FileLinkRepository fileLinkRepository;
     private final StoragePort storagePort;
-    private final TemporaryUploadService temporaryUploadService;
-
     @Override
-    public void prepareTemporaryAttachments(String entityType, List<UUID> fileIds) {
-        temporaryUploadService.prepareForAttachment(parseEntityType(entityType), fileIds);
-    }
-
-    @Override
-    public void attachPreparedFiles(String entityType, Long entityId, List<UUID> fileIds) {
-        temporaryUploadService.attachPrepared(parseEntityType(entityType), entityId, fileIds);
-    }
-
-    @Override
-    public void promoteTemporaryFiles(String entityType, Long entityId, List<UUID> fileIds) {
+    public void publishTemporaryFiles(String entityType, Long entityId, List<TemporaryAttachment> attachments) {
+        if (attachments == null) return;
         EntityType type = parseEntityType(entityType);
-        temporaryUploadService.prepareForAttachment(type, fileIds);
-        temporaryUploadService.attachPrepared(type, entityId, fileIds);
+        validateNewAttachments(attachments);
+        for (TemporaryAttachment attachment : attachments) {
+            validateTemporaryObject(attachment);
+            UUID id = UUID.randomUUID();
+            String durable = com.lumie.file.domain.vo.FilePath.of(type, id, attachment.filename()).toObjectKey();
+            storagePort.copyObject(attachment.objectKey(), durable, storagePort.objectEtag(attachment.objectKey()));
+            FileMetadata file = FileMetadata.create(type, entityId, attachment.filename(), attachment.contentType(), attachment.fileSize(), durable, null);
+            file.markUploadCompleted();
+            fileMetadataRepository.save(file);
+        }
     }
 
     @Override
@@ -109,16 +109,23 @@ public class FileServiceAdapter implements FileService {
     }
 
     @Override
-    public void reconcileDirectFiles(String entityType, Long entityId, List<UUID> finalFileIds) {
-        if (finalFileIds == null) return;
+    public void reconcileDirectFiles(String entityType, Long entityId, List<UUID> finalFileIds, List<TemporaryAttachment> newAttachments) {
+        if (finalFileIds == null && newAttachments == null) return;
         EntityType type = parseEntityType(entityType);
-        List<UUID> requested = finalFileIds.stream().distinct().toList();
+        List<UUID> requested = finalFileIds == null ? List.of() : finalFileIds.stream().distinct().toList();
         List<FileMetadata> existing = fileMetadataRepository.findByEntityTypeAndEntityId(type, entityId);
         List<UUID> existingIds = existing.stream().map(FileMetadata::getId).toList();
+        if (!existingIds.containsAll(requested)) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "Retained attachments must belong to this post");
+        }
+        validateNewAttachments(newAttachments);
+        int newAttachmentCount = newAttachments == null ? 0 : newAttachments.size();
+        if (requested.size() + newAttachmentCount > MAX_ATTACHMENTS) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "A post can have at most five attachments");
+        }
         List<UUID> removals = existingIds.stream().filter(id -> !requested.contains(id)).toList();
         deleteFilesByEntityAndIds(entityType, entityId, removals);
-        List<UUID> additions = requested.stream().filter(id -> !existingIds.contains(id)).toList();
-        temporaryUploadService.attachPrepared(type, entityId, additions);
+        publishTemporaryFiles(entityType, entityId, newAttachments);
     }
 
     @Override
@@ -155,6 +162,32 @@ public class FileServiceAdapter implements FileService {
                 .filter(e -> e.getPathSegment().equals(entityType))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown entity type: " + entityType));
+    }
+
+    private void validateNewAttachments(List<TemporaryAttachment> attachments) {
+        if (attachments == null) return;
+        if (attachments.size() > MAX_ATTACHMENTS
+                || attachments.stream().map(TemporaryAttachment::objectKey).distinct().count() != attachments.size()) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "Invalid attachment list");
+        }
+        for (TemporaryAttachment attachment : attachments) {
+            if (attachment == null || attachment.fileSize() <= 0 || attachment.fileSize() > TemporaryObjectUploadService.MAX_BYTES
+                    || attachment.contentType() == null || attachment.contentType().isBlank()
+                    || !TemporaryObjectUploadService.isAllowedFilename(attachment.filename())) {
+                throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
+            }
+        }
+    }
+
+    private void validateTemporaryObject(TemporaryAttachment attachment) {
+        String tenantId = com.lumie.common.tenant.TenantContextHolder.toStorageTenantId(
+                com.lumie.common.tenant.TenantContextHolder.getRequiredTenant());
+        String prefix = "tmp/" + tenantId + "/uploads/";
+        if (attachment.objectKey() == null || !attachment.objectKey().startsWith(prefix)
+                || !storagePort.objectExists(attachment.objectKey())
+                || storagePort.objectSize(attachment.objectKey()) != attachment.fileSize()) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
+        }
     }
 
     /**

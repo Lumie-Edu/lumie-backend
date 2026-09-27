@@ -12,19 +12,7 @@ public interface FileService {
      * Copies completed, caller-owned temporary attachments to their durable
      * object keys. This must be called before the content transaction begins.
      */
-    void prepareTemporaryAttachments(String entityType, List<UUID> fileIds);
-
-    /**
-     * Links previously prepared attachments in the caller's content
-     * transaction. Only the user that created a temporary upload may attach it.
-     */
-    void attachPreparedFiles(String entityType, Long entityId, List<UUID> fileIds);
-
-    /**
-     * Compatibility command for a domain write flow: prepares temporary files
-     * and attaches them to the newly saved entity.
-     */
-    void promoteTemporaryFiles(String entityType, Long entityId, List<UUID> fileIds);
+    void publishTemporaryFiles(String entityType, Long entityId, List<TemporaryAttachment> attachments);
 
     /**
      * Deletes all files (MinIO objects + metadata) associated with the given entity.
@@ -47,7 +35,8 @@ public interface FileService {
     void deleteFilesByEntityAndIds(String entityType, Long entityId, List<UUID> fileIds);
 
     /** Reconciles the direct files owned by an entity to the requested final list. Null means unchanged. */
-    void reconcileDirectFiles(String entityType, Long entityId, List<UUID> finalFileIds);
+    void reconcileDirectFiles(String entityType, Long entityId, List<UUID> retainedFileIds,
+                              List<TemporaryAttachment> newAttachments);
 
     /**
      * Replaces reusable file links for the given entity. The source files stay

@@ -67,7 +67,6 @@ public class QnaController {
 
     @PostMapping
     public ResponseEntity<QnaBoardResponse> createQna(@Valid @RequestBody CreateQnaRequest request) {
-        fileService.prepareTemporaryAttachments("qna", request.attachmentFileIds());
         QnaBoardResponse response = commandService.createQna(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -76,7 +75,6 @@ public class QnaController {
     public ResponseEntity<QnaBoardResponse> updateQna(
             @PathVariable Long id,
             @Valid @RequestBody UpdateQnaRequest request) {
-        fileService.prepareTemporaryAttachments("qna", request.attachmentFileIds());
         return ResponseEntity.ok(commandService.updateQna(id, request));
     }
 
