@@ -2,7 +2,6 @@ package com.lumie.file.adapter.in.internal;
 
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.application.service.TemporaryObjectUploadService;
-import com.lumie.file.application.service.TemporaryUploadTokenService;
 import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.api.PreparedTemporaryFile;
 import com.lumie.file.domain.exception.FileErrorCode;
@@ -36,7 +35,6 @@ public class FileServiceAdapter implements FileService {
     private final FileMetadataRepository fileMetadataRepository;
     private final FileLinkRepository fileLinkRepository;
     private final StoragePort storagePort;
-    private final TemporaryUploadTokenService temporaryUploadTokenService;
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -47,7 +45,6 @@ public class FileServiceAdapter implements FileService {
         List<PreparedTemporaryFile> prepared = new ArrayList<>();
         try {
             for (TemporaryAttachment attachment : attachments) {
-                temporaryUploadTokenService.verify(type, attachment);
                 validateTemporaryObject(attachment);
                 UUID id = UUID.randomUUID();
                 String durable = com.lumie.file.domain.vo.FilePath.of(type, id, attachment.filename()).toObjectKey();

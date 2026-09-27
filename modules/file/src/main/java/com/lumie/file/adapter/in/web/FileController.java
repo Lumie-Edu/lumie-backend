@@ -9,6 +9,7 @@ import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.application.dto.request.CreateTemporaryUploadRequest;
 import com.lumie.file.application.dto.request.RegisterTextbookFilesRequest;
 import com.lumie.file.domain.vo.EntityType;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
@@ -53,12 +54,14 @@ public class FileController {
     }
 
     @PostMapping("/uploads")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<TemporaryObjectUploadResponse> createTemporaryUpload(
             @Valid @RequestBody CreateTemporaryUploadRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(temporaryObjectUploadService.create(request));
     }
 
     @PostMapping("/textbooks")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<List<FileMetadataResponse>> registerTextbookFiles(
             @Valid @RequestBody RegisterTextbookFilesRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(fileCommandService.registerTextbookFiles(request));

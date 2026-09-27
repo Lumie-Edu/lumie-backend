@@ -289,7 +289,7 @@ public class ReportJobService {
     }
 
     private static String buildReportFileKey(String tenantId, Long examId, Long studentId) {
-        return "tmp/" + tenantId + "/reports/" + examId + "/" + studentId + ReportFileFormat.PDF_EXTENSION;
+        return com.lumie.file.api.FileObjectKeyFactory.temporaryReport(tenantId, examId, studentId);
     }
 
     private static String buildLegacyReportFileKey(String tenantId, Long examId, Long studentId) {
