@@ -7,19 +7,14 @@ import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
 import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.application.dto.request.CreateTemporaryUploadRequest;
-import com.lumie.common.exception.BusinessRuleViolationException;
-import com.lumie.common.idempotency.IdempotencyService;
+import com.lumie.file.application.dto.request.RegisterTextbookFilesRequest;
 import com.lumie.file.domain.vo.EntityType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,47 +26,6 @@ public class FileController {
     private final FileCommandService fileCommandService;
     private final FileQueryService fileQueryService;
     private final TemporaryObjectUploadService temporaryObjectUploadService;
-    private final IdempotencyService idempotencyService;
-
-    private static final long PROXY_UPLOAD_MAX_BYTES = 1024 * 1024; // 1 MiB
-    private static final String UPLOAD_SCOPE = "POST /v1/files/upload";
-
-    @PostMapping("/upload")
-    public ResponseEntity<FileMetadataResponse> uploadFile(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("entityType") EntityType entityType,
-            @RequestParam(value = "entityId", required = false) Long entityId,
-            @RequestParam(value = "folderId", required = false) UUID folderId,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
-        if (file.getSize() > PROXY_UPLOAD_MAX_BYTES) {
-            throw new BusinessRuleViolationException(
-                "Direct proxy uploads are limited to 1 MiB");
-        }
-        if (idempotencyKey != null) {
-            byte[] bytes = file.getBytes();
-            UploadFingerprint fingerprint = new UploadFingerprint(
-                    entityType.name(),
-                    entityId != null ? entityId.toString() : "",
-                    folderId != null ? folderId.toString() : "",
-                    file.getOriginalFilename() != null ? file.getOriginalFilename() : "",
-                    file.getContentType() != null ? file.getContentType() : "",
-                    bytes.length,
-                    sha256Hex(bytes)
-            );
-            return idempotencyService.executeOnce(
-                    idempotencyKey,
-                    UPLOAD_SCOPE,
-                    fingerprint,
-                    () -> {
-                        FileMetadataResponse response = fileCommandService.uploadFile(entityType, entityId, folderId, file);
-                        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-                    }
-            );
-        }
-        FileMetadataResponse response = fileCommandService.uploadFile(entityType, entityId, folderId, file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
     @GetMapping("/{fileId}/download")
     public ResponseEntity<InputStreamResource> downloadFile(@PathVariable UUID fileId) {
         FileDownloadResult result = fileQueryService.downloadFile(fileId);
@@ -104,6 +58,12 @@ public class FileController {
         return ResponseEntity.status(HttpStatus.CREATED).body(temporaryObjectUploadService.create(request));
     }
 
+    @PostMapping("/textbooks")
+    public ResponseEntity<List<FileMetadataResponse>> registerTextbookFiles(
+            @Valid @RequestBody RegisterTextbookFilesRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(fileCommandService.registerTextbookFiles(request));
+    }
+
     @GetMapping("/{fileId}")
     public ResponseEntity<FileMetadataResponse> getFileMetadata(@PathVariable UUID fileId) {
         FileMetadataResponse response = fileQueryService.getFileMetadata(fileId);
@@ -133,34 +93,4 @@ public class FileController {
         return ResponseEntity.ok(response);
     }
 
-    private static String sha256Hex(byte[] bytes) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
-            StringBuilder sb = new StringBuilder(digest.length * 2);
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            // SHA-256 is mandated by the Java spec — unreachable.
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
-    }
-
-    /**
-     * Internal fingerprint payload for {@link IdempotencyService#executeOnce}.
-     * Stable JSON serialization keys the dedup decision on file identity
-     * (entity context + filename + size + content-bytes SHA-256), so two
-     * uploads with the same {@code Idempotency-Key} but different content
-     * trigger a 409 IdempotencyConflictException at the service boundary.
-     */
-    private record UploadFingerprint(
-            String entityType,
-            String entityId,
-            String folderId,
-            String filename,
-            String contentType,
-            long fileSize,
-            String fileSha256
-    ) {}
 }

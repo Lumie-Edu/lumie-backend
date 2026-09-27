@@ -3938,6 +3938,21 @@
         "required" : [ "name" ],
         "type" : "object"
       },
+      "RegisterTextbookFilesRequest" : {
+        "properties" : {
+          "attachments" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TemporaryAttachment"
+            },
+            "type" : "array"
+          },
+          "folderId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "RenameTextbookFolderRequest" : {
         "properties" : {
           "name" : {
@@ -10310,63 +10325,28 @@
         "tags" : [ "file-controller" ]
       }
     },
-    "/v1/files/upload" : {
+    "/v1/files/textbooks" : {
       "post" : {
-        "operationId" : "uploadFile",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "entityType",
-          "required" : true,
-          "schema" : {
-            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "entityId",
-          "required" : false,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "folderId",
-          "required" : false,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        }, {
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
+        "operationId" : "registerTextbookFiles",
         "requestBody" : {
           "content" : {
             "application/json" : {
               "schema" : {
-                "properties" : {
-                  "file" : {
-                    "format" : "binary",
-                    "type" : "string"
-                  }
-                },
-                "required" : [ "file" ],
-                "type" : "object"
+                "$ref" : "#/components/schemas/RegisterTextbookFilesRequest"
               }
             }
-          }
+          },
+          "required" : true
         },
         "responses" : {
           "200" : {
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/FileMetadataResponse"
+                  "items" : {
+                    "$ref" : "#/components/schemas/FileMetadataResponse"
+                  },
+                  "type" : "array"
                 }
               }
             },
