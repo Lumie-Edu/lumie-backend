@@ -5432,6 +5432,9 @@
           },
           "objectKey" : {
             "type" : "string"
+          },
+          "uploadToken" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -5441,11 +5444,14 @@
           "objectKey" : {
             "type" : "string"
           },
+          "uploadToken" : {
+            "type" : "string"
+          },
           "uploadUrl" : {
             "type" : "string"
           }
         },
-        "required" : [ "objectKey", "uploadUrl" ],
+        "required" : [ "objectKey", "uploadToken", "uploadUrl" ],
         "type" : "object"
       },
       "TenantResponse" : {

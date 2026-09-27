@@ -51,6 +51,7 @@ public class AnnouncementCommandService {
         Announcement saved = announcementRepository.save(announcement);
         List<Long> classIds = replaceClassTargets(saved.getId(), request.classIds());
         fileService.attachPreparedFiles("announcement", saved.getId(), preparedFiles);
+        announcementRepository.flush();
         log.info("Announcement created with id: {}", saved.getId());
 
         return AnnouncementResponse.from(saved, authorNameOrFallback(saved.getAuthorId()), classIds);
@@ -84,6 +85,7 @@ public class AnnouncementCommandService {
                         .toList()
                 : replaceClassTargets(id, request.classIds());
         Announcement updated = announcementRepository.save(announcement);
+        announcementRepository.flush();
         log.info("Announcement updated: {}", updated.getId());
 
         return AnnouncementResponse.from(updated, authorNameOrFallback(updated.getAuthorId()), classIds);

@@ -43,6 +43,7 @@ public class QnaCommandService {
 
         QnaBoard saved = qnaBoardRepository.save(qnaBoard);
         fileService.attachPreparedFiles("qna", saved.getId(), preparedFiles);
+        qnaBoardRepository.flush();
         log.info("Q&A created with id: {}", saved.getId());
 
         return QnaBoardResponse.from(saved, null);
@@ -66,6 +67,7 @@ public class QnaCommandService {
         fileService.reconcilePreparedDirectFiles("qna", id, request.attachmentFileIds(), preparedFiles);
 
         QnaBoard updated = qnaBoardRepository.save(qnaBoard);
+        qnaBoardRepository.flush();
         log.info("Q&A updated: {}", updated.getId());
 
         return QnaBoardResponse.from(updated, null);
