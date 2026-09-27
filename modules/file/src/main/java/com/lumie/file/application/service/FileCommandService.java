@@ -39,10 +39,10 @@ public class FileCommandService {
         }
         List<PreparedTemporaryFile> prepared = fileService.prepareTemporaryFiles("textbook", request.attachments());
         try {
-            fileService.attachPreparedFiles("textbook", null, prepared, request.folderId());
+            List<UUID> fileIds = fileService.attachPreparedFiles("textbook", null, prepared, request.folderId());
             fileMetadataRepository.flush();
-            return prepared.stream()
-                    .map(file -> fileMetadataRepository.findById(file.fileId())
+            return fileIds.stream()
+                    .map(fileId -> fileMetadataRepository.findById(fileId)
                             .map(FileMetadataResponse::from)
                             .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND)))
                     .toList();

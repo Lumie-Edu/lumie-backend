@@ -12,9 +12,9 @@ public interface FileService {
     List<PreparedTemporaryFile> prepareTemporaryFiles(String entityType, List<TemporaryAttachment> attachments);
 
     /** Persists metadata for objects prepared before the current DB transaction. */
-    void attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files);
+    List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files);
 
-    void attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files, UUID folderId);
+    List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files, UUID folderId);
 
     /** Best-effort compensation for prepared objects when the DB transaction fails. */
     void discardPreparedFiles(List<PreparedTemporaryFile> files);

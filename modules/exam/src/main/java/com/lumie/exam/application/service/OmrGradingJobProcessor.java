@@ -2,7 +2,6 @@ package com.lumie.exam.application.service;
 
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.OmrStoragePort;
-import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.vo.JobStatus;
@@ -59,7 +58,7 @@ public class OmrGradingJobProcessor {
             // Phase 2 (no tx): copy image in MinIO. A failed copy keeps the source image for recovery.
             String permanentKey;
             try {
-                permanentKey = copyImage(request, prep.permanentKey());
+                permanentKey = copyImage(prep.sourceImageKey(), prep.permanentKey());
             } catch (Exception e) {
                 log.warn("Failed to copy OMR image to permanent path: {}", prep.permanentKey(), e);
                 return tx.recordFail(request.jobId(), request.imageIndex(), "IMAGE_PERSISTENCE_FAILED");
@@ -72,13 +71,8 @@ public class OmrGradingJobProcessor {
         return tx.recordFail(request.jobId(), request.imageIndex(), reason);
     }
 
-    private String copyImage(OmrGradingCallbackRequest request, String permanentKey) {
-        OmrGradingJob job = jobRepository.findById(request.jobId())
-                .orElseThrow(() -> new BusinessException(com.lumie.exam.domain.exception.ExamErrorCode.INVALID_EXAM_DATA));
-        if (request.imageIndex() < 0 || request.imageIndex() >= job.getImageKeys().size()) {
-            throw new BusinessException(com.lumie.exam.domain.exception.ExamErrorCode.INVALID_EXAM_DATA);
-        }
-        byte[] imageData = storagePort.getObject(job.getImageKeys().get(request.imageIndex()));
+    private String copyImage(String sourceImageKey, String permanentKey) {
+        byte[] imageData = storagePort.getObject(sourceImageKey);
         storagePort.putObject(permanentKey, imageData, "image/png");
         return permanentKey;
     }
@@ -110,7 +104,7 @@ public class OmrGradingJobProcessor {
     @RequiredArgsConstructor
     static class Tx {
 
-        record SuccessPrep(String permanentKey) {}
+        record SuccessPrep(String sourceImageKey, String permanentKey) {}
 
         private final OmrGradingJobRepository jobRepository;
         private final OmrSubmissionService submissionService;
@@ -138,7 +132,7 @@ public class OmrGradingJobProcessor {
             var submission = submissionService.getSubmission(request.jobId(), request.imageIndex());
             String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
             String permanentKey = tenantId + "/omr/submissions/" + submission.getId() + ".png";
-            return new SuccessPrep(permanentKey);
+            return new SuccessPrep(submission.getSourceImageKey(), permanentKey);
         }
 
         @Transactional

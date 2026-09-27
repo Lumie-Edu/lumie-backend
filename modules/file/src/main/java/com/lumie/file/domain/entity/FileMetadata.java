@@ -90,6 +90,7 @@ public class FileMetadata extends TenantScopedEntity {
                                              String objectKey, UUID folderId) {
         FileMetadata metadata = create(entityType, entityId, originalFilename, contentType, fileSize, objectKey, folderId);
         metadata.id = id;
+        metadata.version = 0L;
         return metadata;
     }
 

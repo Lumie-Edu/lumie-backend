@@ -51,9 +51,7 @@ class OmrGradingJobProcessorTest {
         given(submission.getId()).willReturn(55L);
         given(jobRepository.existsByIdAndStatusIn(1L, List.of(JobStatus.PENDING, JobStatus.PROCESSING))).willReturn(true);
         given(submissionService.getSubmission(1L, 0)).willReturn(submission);
-        var job = org.mockito.Mockito.mock(com.lumie.exam.domain.entity.OmrGradingJob.class);
-        given(job.getImageKeys()).willReturn(List.of("tmp/abc123/omr/batch/sheet.png"));
-        given(jobRepository.findById(1L)).willReturn(java.util.Optional.of(job));
+        given(submission.getSourceImageKey()).willReturn("tmp/abc123/omr/batch/sheet.png");
         given(submissionService.completeIfPending(1L, 0, request, "abc123/omr/submissions/55.png")).willReturn(true);
         given(storagePort.getObject(any())).willReturn(new byte[] {1});
         given(storagePort.putObject(any(), any(), any())).willReturn("abc123/omr/submissions/55.png");
@@ -71,12 +69,10 @@ class OmrGradingJobProcessorTest {
         OmrGradingCallbackRequest request = successCallback();
         OmrGradingJobProcessor.Tx tx = org.mockito.Mockito.mock(OmrGradingJobProcessor.Tx.class);
         OmrGradingJobProcessor duplicateProcessor = new OmrGradingJobProcessor(storagePort, jobRepository, tx);
-        OmrGradingJobProcessor.Tx.SuccessPrep prep = new OmrGradingJobProcessor.Tx.SuccessPrep("abc123/omr/submissions/55.png");
+        OmrGradingJobProcessor.Tx.SuccessPrep prep = new OmrGradingJobProcessor.Tx.SuccessPrep(
+                "tmp/abc123/omr/batch/sheet.png", "abc123/omr/submissions/55.png");
         given(tx.isOpenJob(1L)).willReturn(true);
         given(tx.prepareSuccess(request)).willReturn(prep);
-        var job = org.mockito.Mockito.mock(com.lumie.exam.domain.entity.OmrGradingJob.class);
-        given(job.getImageKeys()).willReturn(List.of("tmp/abc123/omr/batch/sheet.png"));
-        given(jobRepository.findById(1L)).willReturn(java.util.Optional.of(job));
         given(storagePort.getObject(any())).willReturn(new byte[] {1});
         given(storagePort.putObject(any(), any(), any())).willReturn("abc123/omr/submissions/55.png");
         given(tx.saveSuccess(request, prep, "abc123/omr/submissions/55.png")).willReturn(false);

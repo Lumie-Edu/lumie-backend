@@ -59,20 +59,22 @@ public class FileServiceAdapter implements FileService {
     }
 
     @Override
-    public void attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files) {
-        attachPreparedFiles(entityType, entityId, files, null);
+    public List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files) {
+        return attachPreparedFiles(entityType, entityId, files, null);
     }
 
     @Override
-    public void attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files, UUID folderId) {
-        if (files == null || files.isEmpty()) return;
+    public List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files, UUID folderId) {
+        if (files == null || files.isEmpty()) return List.of();
         EntityType type = parseEntityType(entityType);
+        List<UUID> ids = new ArrayList<>();
         for (PreparedTemporaryFile prepared : files) {
-            FileMetadata file = FileMetadata.createWithId(prepared.fileId(), type, entityId,
+            FileMetadata file = FileMetadata.create(type, entityId,
                     prepared.filename(), prepared.contentType(), prepared.fileSize(), prepared.durableObjectKey(), folderId);
             file.markUploadCompleted();
-            fileMetadataRepository.save(file);
+            ids.add(fileMetadataRepository.save(file).getId());
         }
+        return ids;
     }
 
     @Override
