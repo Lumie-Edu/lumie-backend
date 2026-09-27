@@ -27,6 +27,7 @@ import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.repository.OmrSubmissionRepository;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
@@ -127,7 +128,7 @@ public class ResultCommandService {
         List<OmrPresignResponse.PresignedUpload> uploads = request.fileNames().stream()
                 .map(fileName -> {
                     String sanitized = sanitizeFileName(fileName);
-                    String objectKey = "tmp/" + tenantId + "/omr/" + batchKey + "/" + sanitized;
+                    String objectKey = FileObjectKeyFactory.temporaryOmr(tenantId, batchKey, sanitized);
                     String uploadUrl = storagePort.getPresignedPutUrl(objectKey, 900);
                     return new OmrPresignResponse.PresignedUpload(fileName, objectKey, uploadUrl);
                 })
@@ -172,7 +173,7 @@ public class ResultCommandService {
         for (int i = 0; i < imageKeys.size(); i++) {
             eventPublisher.publishEvent(new OmrGradingRequestedEvent(
                     savedJob.getId(), examId, tenantSlug,
-                    imageKeys.get(i), i, imageKeys.size()));
+                    i, imageKeys.size()));
         }
         log.info("Async OMR grading job queued: jobId={}, images={}",
                 savedJob.getId(), imageKeys.size());

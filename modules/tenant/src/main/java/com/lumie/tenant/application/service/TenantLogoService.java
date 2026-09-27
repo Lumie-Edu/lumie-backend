@@ -2,6 +2,8 @@ package com.lumie.tenant.application.service;
 
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.tenant.application.port.out.TenantLogoStoragePort;
 import com.lumie.tenant.application.port.out.TenantLogoStoragePort.LogoStream;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
@@ -86,7 +88,6 @@ public class TenantLogoService {
     }
 
     private String buildObjectKey(String slug) {
-        String tenantId = slug.startsWith("inst-") ? slug.substring(5) : slug;
-        return tenantId + "/branding/logo";
+        return FileObjectKeyFactory.tenantLogo(TenantContextHolder.toStorageTenantId(slug));
     }
 }

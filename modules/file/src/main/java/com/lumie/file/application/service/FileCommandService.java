@@ -1,9 +1,6 @@
 package com.lumie.file.application.service;
 
-import com.lumie.file.application.dto.request.PresignedUploadRequest;
-import com.lumie.file.application.dto.request.RegisterUploadRequest;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
-import com.lumie.file.application.dto.response.PresignedUploadResponse;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
@@ -28,8 +25,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileCommandService {
 
-    private static final int UPLOAD_URL_EXPIRY_SECONDS = 3600; // 1 hour
-
     private final FileMetadataRepository fileMetadataRepository;
     private final FileLinkRepository fileLinkRepository;
     private final TextbookFolderRepository textbookFolderRepository;
@@ -41,40 +36,6 @@ public class FileCommandService {
         if (fileId == null || userId == null) return;
 
         fileDownloadRepository.upsertDownload(TenantContextHolder.getRequiredTenantId(), fileId, userId);
-    }
-
-    @Transactional
-    public PresignedUploadResponse generatePresignedUploadUrl(PresignedUploadRequest request) {
-        UUID fileId = UUID.randomUUID();
-
-        FilePath filePath = FilePath.of(
-                request.entityType(),
-                fileId,
-                request.filename()
-        );
-
-        String objectKey = filePath.toObjectKey();
-
-        FileMetadata fileMetadata = FileMetadata.create(
-                request.entityType(),
-                request.entityId(),
-                request.filename(),
-                request.contentType(),
-                request.fileSize(),
-                objectKey,
-                null
-        );
-
-        FileMetadata saved = fileMetadataRepository.save(fileMetadata);
-        log.info("Created file metadata: {}", saved.getId());
-
-        String uploadUrl = storagePort.generatePresignedUploadUrl(
-                objectKey,
-                request.contentType(),
-                UPLOAD_URL_EXPIRY_SECONDS
-        );
-
-        return PresignedUploadResponse.of(saved.getId(), uploadUrl, UPLOAD_URL_EXPIRY_SECONDS);
     }
 
     @Transactional
@@ -106,22 +67,6 @@ public class FileCommandService {
         log.info("Uploaded file: {}", saved.getId());
 
         return FileMetadataResponse.from(saved);
-    }
-
-    @Transactional
-    public FileMetadataResponse registerUploadCompleted(RegisterUploadRequest request) {
-        FileMetadata fileMetadata = fileMetadataRepository.findById(request.fileId())
-                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-
-        if (!storagePort.objectExists(fileMetadata.getObjectKey())) {
-            log.warn("Upload not found in storage for file: {}", request.fileId());
-            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND, "File not uploaded to storage");
-        }
-
-        fileMetadata.markUploadCompleted();
-        log.info("Marked file upload as completed: {}", request.fileId());
-
-        return FileMetadataResponse.from(fileMetadata);
     }
 
     @Transactional

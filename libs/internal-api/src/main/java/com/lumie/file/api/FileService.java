@@ -8,11 +8,18 @@ import java.util.UUID;
  */
 public interface FileService {
 
-    /**
-     * Copies completed, caller-owned temporary attachments to their durable
-     * object keys. This must be called before the content transaction begins.
-     */
-    void publishTemporaryFiles(String entityType, Long entityId, List<TemporaryAttachment> attachments);
+    /** Validates and copies tmp objects outside the caller's DB transaction. */
+    List<PreparedTemporaryFile> prepareTemporaryFiles(String entityType, List<TemporaryAttachment> attachments);
+
+    /** Persists metadata for objects prepared before the current DB transaction. */
+    void attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files);
+
+    /** Best-effort compensation for prepared objects when the DB transaction fails. */
+    void discardPreparedFiles(List<PreparedTemporaryFile> files);
+
+    /** Reconciles retained direct attachments and attaches already-prepared replacements. */
+    void reconcilePreparedDirectFiles(String entityType, Long entityId, List<UUID> retainedFileIds,
+                                      List<PreparedTemporaryFile> preparedFiles);
 
     /**
      * Deletes all files (MinIO objects + metadata) associated with the given entity.
@@ -33,10 +40,6 @@ public interface FileService {
 
     /** Deletes only files directly owned by the specified entity. */
     void deleteFilesByEntityAndIds(String entityType, Long entityId, List<UUID> fileIds);
-
-    /** Reconciles the direct files owned by an entity to the requested final list. Null means unchanged. */
-    void reconcileDirectFiles(String entityType, Long entityId, List<UUID> retainedFileIds,
-                              List<TemporaryAttachment> newAttachments);
 
     /**
      * Replaces reusable file links for the given entity. The source files stay

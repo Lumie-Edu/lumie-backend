@@ -2,6 +2,7 @@ package com.lumie.exam.application.service;
 
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.OmrStoragePort;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.vo.JobStatus;
@@ -67,11 +68,17 @@ public class OmrGradingJobProcessor {
             // Phase 3 (write tx): persist raw submission, then conditionally project it.
             return tx.saveSuccess(request, prep, permanentKey);
         }
-        return tx.recordFail(request.jobId(), request.imageIndex(), request.error());
+        String reason = request.error() == null ? "OMR_GRADING_FAILED" : request.error().substring(0, Math.min(100, request.error().length()));
+        return tx.recordFail(request.jobId(), request.imageIndex(), reason);
     }
 
     private String copyImage(OmrGradingCallbackRequest request, String permanentKey) {
-        byte[] imageData = storagePort.getObject(request.imageKey());
+        OmrGradingJob job = jobRepository.findById(request.jobId())
+                .orElseThrow(() -> new BusinessException(com.lumie.exam.domain.exception.ExamErrorCode.INVALID_EXAM_DATA));
+        if (request.imageIndex() < 0 || request.imageIndex() >= job.getImageKeys().size()) {
+            throw new BusinessException(com.lumie.exam.domain.exception.ExamErrorCode.INVALID_EXAM_DATA);
+        }
+        byte[] imageData = storagePort.getObject(job.getImageKeys().get(request.imageIndex()));
         storagePort.putObject(permanentKey, imageData, "image/png");
         return permanentKey;
     }

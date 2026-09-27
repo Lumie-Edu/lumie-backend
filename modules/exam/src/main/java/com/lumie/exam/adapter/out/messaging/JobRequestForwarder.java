@@ -37,7 +37,7 @@ public class JobRequestForwarder {
     public void onOmrGradingRequested(OmrGradingRequestedEvent event) {
         OmrGradingImageMessage message = new OmrGradingImageMessage(
                 event.jobId(), event.examId(), event.tenantSlug(),
-                event.imageKey(), event.imageIndex(), event.totalImages(), 1);
+                event.imageIndex(), event.totalImages(), 2);
         try {
             rabbitTemplate.convertAndSend(
                     RabbitMqConstants.LUMIE_COMMANDS_EXCHANGE,

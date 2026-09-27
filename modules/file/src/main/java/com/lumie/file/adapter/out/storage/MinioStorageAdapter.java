@@ -49,8 +49,17 @@ public class MinioStorageAdapter implements StoragePort {
 
     @Override
     public String generatePresignedDownloadUrl(String objectKey, int expiresInSeconds) {
+        return generatePresignedDownloadUrl(presignMinioClient, objectKey, expiresInSeconds);
+    }
+
+    @Override
+    public String generateInternalPresignedDownloadUrl(String objectKey, int expiresInSeconds) {
+        return generatePresignedDownloadUrl(minioClient, objectKey, expiresInSeconds);
+    }
+
+    private String generatePresignedDownloadUrl(MinioClient client, String objectKey, int expiresInSeconds) {
         try {
-            String url = presignMinioClient.getPresignedObjectUrl(
+            String url = client.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucketName)
@@ -62,6 +71,25 @@ public class MinioStorageAdapter implements StoragePort {
             return url;
         } catch (Exception e) {
             log.error("Failed to generate presigned download URL for: {}", objectKey, e);
+            throw new BusinessException(FileErrorCode.PRESIGNED_URL_GENERATION_FAILED);
+        }
+    }
+
+    @Override
+    public String generateInternalPresignedUploadUrl(String objectKey, String contentType, int expiresInSeconds) {
+        try {
+            String url = minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.PUT)
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .expiry(expiresInSeconds, TimeUnit.SECONDS)
+                            .build()
+            );
+            log.debug("Generated internal presigned upload URL for: {}", objectKey);
+            return url;
+        } catch (Exception e) {
+            log.error("Failed to generate internal presigned upload URL for: {}", objectKey, e);
             throw new BusinessException(FileErrorCode.PRESIGNED_URL_GENERATION_FAILED);
         }
     }

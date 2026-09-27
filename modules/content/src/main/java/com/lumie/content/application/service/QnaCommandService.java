@@ -12,10 +12,13 @@ import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.repository.QnaBoardRepository;
 import com.lumie.content.domain.repository.QnaCommentRepository;
 import com.lumie.file.api.FileService;
+import com.lumie.file.api.PreparedTemporaryFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +32,9 @@ public class QnaCommandService {
     @Transactional
     public QnaBoardResponse createQna(CreateQnaRequest request) {
         log.info("Creating Q&A: {}", request.qnaTitle());
+        List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("qna", request.temporaryAttachments());
 
+        try {
         QnaBoard qnaBoard = QnaBoard.create(
                 request.qnaUserId(),
                 request.qnaTitle(),
@@ -37,27 +42,37 @@ public class QnaCommandService {
         );
 
         QnaBoard saved = qnaBoardRepository.save(qnaBoard);
-        fileService.publishTemporaryFiles("qna", saved.getId(), request.temporaryAttachments());
+        fileService.attachPreparedFiles("qna", saved.getId(), preparedFiles);
         log.info("Q&A created with id: {}", saved.getId());
 
         return QnaBoardResponse.from(saved, null);
+        } catch (RuntimeException exception) {
+            fileService.discardPreparedFiles(preparedFiles);
+            throw exception;
+        }
     }
 
     @Transactional
     public QnaBoardResponse updateQna(Long id, UpdateQnaRequest request) {
         log.info("Updating Q&A: {}", id);
+        List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("qna", request.temporaryAttachments());
 
+        try {
         QnaBoard qnaBoard = qnaBoardRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
 
         qnaBoard.update(request.qnaTitle(), request.qnaContent());
 
-        fileService.reconcileDirectFiles("qna", id, request.attachmentFileIds(), request.temporaryAttachments());
+        fileService.reconcilePreparedDirectFiles("qna", id, request.attachmentFileIds(), preparedFiles);
 
         QnaBoard updated = qnaBoardRepository.save(qnaBoard);
         log.info("Q&A updated: {}", updated.getId());
 
         return QnaBoardResponse.from(updated, null);
+        } catch (RuntimeException exception) {
+            fileService.discardPreparedFiles(preparedFiles);
+            throw exception;
+        }
     }
 
     @Transactional
@@ -119,4 +134,5 @@ public class QnaCommandService {
 
         log.info("Comment deleted: {}", commentId);
     }
+
 }

@@ -3,6 +3,7 @@ package com.lumie.file.adapter.in.internal;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.api.TemporaryAttachment;
+import com.lumie.file.api.PreparedTemporaryFile;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileLink;
@@ -14,6 +15,8 @@ import com.lumie.file.api.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -32,20 +35,70 @@ public class FileServiceAdapter implements FileService {
     private final FileMetadataRepository fileMetadataRepository;
     private final FileLinkRepository fileLinkRepository;
     private final StoragePort storagePort;
+
     @Override
-    public void publishTemporaryFiles(String entityType, Long entityId, List<TemporaryAttachment> attachments) {
-        if (attachments == null) return;
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public List<PreparedTemporaryFile> prepareTemporaryFiles(String entityType, List<TemporaryAttachment> attachments) {
+        if (attachments == null || attachments.isEmpty()) return List.of();
         EntityType type = parseEntityType(entityType);
         validateNewAttachments(attachments);
-        for (TemporaryAttachment attachment : attachments) {
-            validateTemporaryObject(attachment);
-            UUID id = UUID.randomUUID();
-            String durable = com.lumie.file.domain.vo.FilePath.of(type, id, attachment.filename()).toObjectKey();
-            storagePort.copyObject(attachment.objectKey(), durable, storagePort.objectEtag(attachment.objectKey()));
-            FileMetadata file = FileMetadata.create(type, entityId, attachment.filename(), attachment.contentType(), attachment.fileSize(), durable, null);
+        List<PreparedTemporaryFile> prepared = new ArrayList<>();
+        try {
+            for (TemporaryAttachment attachment : attachments) {
+                validateTemporaryObject(attachment);
+                UUID id = UUID.randomUUID();
+                String durable = com.lumie.file.domain.vo.FilePath.of(type, id, attachment.filename()).toObjectKey();
+                storagePort.copyObject(attachment.objectKey(), durable, storagePort.objectEtag(attachment.objectKey()));
+                prepared.add(new PreparedTemporaryFile(id, attachment.filename(), attachment.contentType(), attachment.fileSize(), durable));
+            }
+            return List.copyOf(prepared);
+        } catch (RuntimeException exception) {
+            discardPreparedFiles(prepared);
+            throw exception;
+        }
+    }
+
+    @Override
+    public void attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files) {
+        if (files == null || files.isEmpty()) return;
+        EntityType type = parseEntityType(entityType);
+        for (PreparedTemporaryFile prepared : files) {
+            FileMetadata file = FileMetadata.createWithId(prepared.fileId(), type, entityId,
+                    prepared.filename(), prepared.contentType(), prepared.fileSize(), prepared.durableObjectKey(), null);
             file.markUploadCompleted();
             fileMetadataRepository.save(file);
         }
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void discardPreparedFiles(List<PreparedTemporaryFile> files) {
+        if (files == null) return;
+        for (PreparedTemporaryFile prepared : files) {
+            try {
+                storagePort.deleteObject(prepared.durableObjectKey());
+            } catch (RuntimeException exception) {
+                log.warn("Failed to compensate prepared object: {}", prepared.durableObjectKey(), exception);
+            }
+        }
+    }
+    @Override
+    public void reconcilePreparedDirectFiles(String entityType, Long entityId, List<UUID> retainedFileIds,
+                                              List<PreparedTemporaryFile> preparedFiles) {
+        if (retainedFileIds == null && (preparedFiles == null || preparedFiles.isEmpty())) return;
+        EntityType type = parseEntityType(entityType);
+        List<UUID> requested = retainedFileIds == null ? List.of() : retainedFileIds.stream().distinct().toList();
+        List<FileMetadata> existing = fileMetadataRepository.findByEntityTypeAndEntityId(type, entityId);
+        List<UUID> existingIds = existing.stream().map(FileMetadata::getId).toList();
+        if (!existingIds.containsAll(requested)) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "Retained attachments must belong to this post");
+        }
+        int preparedCount = preparedFiles == null ? 0 : preparedFiles.size();
+        if (requested.size() + preparedCount > MAX_ATTACHMENTS) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "A post can have at most five attachments");
+        }
+        deleteFilesByEntityAndIds(entityType, entityId, existingIds.stream().filter(id -> !requested.contains(id)).toList());
+        attachPreparedFiles(entityType, entityId, preparedFiles);
     }
 
     @Override
@@ -106,26 +159,6 @@ public class FileServiceAdapter implements FileService {
                     });
         }
         if (!objectKeys.isEmpty()) scheduleMinioCleanup(objectKeys);
-    }
-
-    @Override
-    public void reconcileDirectFiles(String entityType, Long entityId, List<UUID> finalFileIds, List<TemporaryAttachment> newAttachments) {
-        if (finalFileIds == null && newAttachments == null) return;
-        EntityType type = parseEntityType(entityType);
-        List<UUID> requested = finalFileIds == null ? List.of() : finalFileIds.stream().distinct().toList();
-        List<FileMetadata> existing = fileMetadataRepository.findByEntityTypeAndEntityId(type, entityId);
-        List<UUID> existingIds = existing.stream().map(FileMetadata::getId).toList();
-        if (!existingIds.containsAll(requested)) {
-            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "Retained attachments must belong to this post");
-        }
-        validateNewAttachments(newAttachments);
-        int newAttachmentCount = newAttachments == null ? 0 : newAttachments.size();
-        if (requested.size() + newAttachmentCount > MAX_ATTACHMENTS) {
-            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "A post can have at most five attachments");
-        }
-        List<UUID> removals = existingIds.stream().filter(id -> !requested.contains(id)).toList();
-        deleteFilesByEntityAndIds(entityType, entityId, removals);
-        publishTemporaryFiles(entityType, entityId, newAttachments);
     }
 
     @Override

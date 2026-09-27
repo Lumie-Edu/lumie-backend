@@ -85,6 +85,14 @@ public class FileMetadata extends TenantScopedEntity {
                 .build();
     }
 
+    public static FileMetadata createWithId(UUID id, EntityType entityType, Long entityId,
+                                             String originalFilename, String contentType, Long fileSize,
+                                             String objectKey, UUID folderId) {
+        FileMetadata metadata = create(entityType, entityId, originalFilename, contentType, fileSize, objectKey, folderId);
+        metadata.id = id;
+        return metadata;
+    }
+
     public void markUploadCompleted() {
         this.uploadCompleted = true;
     }

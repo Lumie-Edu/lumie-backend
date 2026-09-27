@@ -2,10 +2,8 @@ package com.lumie.file.application.service;
 
 import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.file.application.dto.request.PresignedDownloadRequest;
 import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
-import com.lumie.file.application.dto.response.PresignedDownloadResponse;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
@@ -28,7 +26,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileQueryService {
 
-    private static final int DOWNLOAD_URL_EXPIRY_SECONDS = 3600; // 1 hour
     private static final String DELETED_STUDENT_NAME = "삭제된 학생";
 
     private final FileMetadataRepository fileMetadataRepository;
@@ -50,26 +47,6 @@ public class FileQueryService {
                 metadata.originalFilename(),
                 metadata.contentType(),
                 metadata.fileSize()
-        );
-    }
-
-    public PresignedDownloadResponse generatePresignedDownloadUrl(PresignedDownloadRequest request) {
-        FileMetadataLookupService.DownloadMetadata metadata =
-                fileMetadataLookupService.getAuthorizedDownloadMetadata(request.fileId());
-
-        String downloadUrl = storagePort.generatePresignedDownloadUrl(
-                metadata.objectKey(),
-                DOWNLOAD_URL_EXPIRY_SECONDS
-        );
-
-        log.debug("Generated download URL for file: {}", request.fileId());
-
-        return PresignedDownloadResponse.of(
-                metadata.id(),
-                downloadUrl,
-                metadata.originalFilename(),
-                metadata.contentType(),
-                DOWNLOAD_URL_EXPIRY_SECONDS
         );
     }
 

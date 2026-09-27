@@ -3442,39 +3442,6 @@
         "required" : [ "active", "description", "displayOrder", "features", "id", "limits", "monthlyPrice", "name", "yearlyPrice" ],
         "type" : "object"
       },
-      "PresignedDownloadRequest" : {
-        "properties" : {
-          "fileId" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        },
-        "required" : [ "fileId" ],
-        "type" : "object"
-      },
-      "PresignedDownloadResponse" : {
-        "properties" : {
-          "contentType" : {
-            "type" : "string"
-          },
-          "downloadUrl" : {
-            "type" : "string"
-          },
-          "expiresInSeconds" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "fileId" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "filename" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "contentType", "downloadUrl", "expiresInSeconds", "fileId", "filename" ],
-        "type" : "object"
-      },
       "PresignedUpload" : {
         "properties" : {
           "fileName" : {
@@ -3488,47 +3455,6 @@
           }
         },
         "required" : [ "fileName", "objectKey", "uploadUrl" ],
-        "type" : "object"
-      },
-      "PresignedUploadRequest" : {
-        "properties" : {
-          "contentType" : {
-            "type" : "string"
-          },
-          "entityId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "entityType" : {
-            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
-            "type" : "string"
-          },
-          "fileSize" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "filename" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "contentType", "entityType", "fileSize", "filename" ],
-        "type" : "object"
-      },
-      "PresignedUploadResponse" : {
-        "properties" : {
-          "expiresInSeconds" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "fileId" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "uploadUrl" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "expiresInSeconds", "fileId", "uploadUrl" ],
         "type" : "object"
       },
       "PreviewOmrSubmissionReconciliationRequest" : {
@@ -4010,16 +3936,6 @@
           }
         },
         "required" : [ "name" ],
-        "type" : "object"
-      },
-      "RegisterUploadRequest" : {
-        "properties" : {
-          "fileId" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        },
-        "required" : [ "fileId" ],
         "type" : "object"
       },
       "RenameTextbookFolderRequest" : {
@@ -10385,88 +10301,6 @@
                     "$ref" : "#/components/schemas/FileMetadataResponse"
                   },
                   "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      },
-      "post" : {
-        "operationId" : "registerUploadCompleted",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RegisterUploadRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/FileMetadataResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      }
-    },
-    "/v1/files/presigned-download" : {
-      "post" : {
-        "operationId" : "generatePresignedDownloadUrl",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/PresignedDownloadRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PresignedDownloadResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      }
-    },
-    "/v1/files/presigned-upload" : {
-      "post" : {
-        "operationId" : "generatePresignedUploadUrl",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/PresignedUploadRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PresignedUploadResponse"
                 }
               }
             },

@@ -10,5 +10,7 @@ public interface FileObjectService {
     void delete(List<String> objectKeys);
     String presignedDownloadUrl(String objectKey, int expiresInSeconds);
     String presignedUploadUrl(String objectKey, String contentType, int expiresInSeconds);
+    String presignedInternalDownloadUrl(String objectKey, int expiresInSeconds);
+    String presignedInternalUploadUrl(String objectKey, String contentType, int expiresInSeconds);
     record ObjectStream(InputStream stream, String contentType, long size) {}
 }

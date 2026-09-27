@@ -17,4 +17,6 @@ public class FileObjectServiceAdapter implements FileObjectService {
     @Override public void delete(List<String> keys) { keys.forEach(storagePort::deleteObject); }
     @Override public String presignedDownloadUrl(String key, int seconds) { return storagePort.generatePresignedDownloadUrl(key, seconds); }
     @Override public String presignedUploadUrl(String key, String type, int seconds) { return storagePort.generatePresignedUploadUrl(key, type, seconds); }
+    @Override public String presignedInternalDownloadUrl(String key, int seconds) { return storagePort.generateInternalPresignedDownloadUrl(key, seconds); }
+    @Override public String presignedInternalUploadUrl(String key, String type, int seconds) { return storagePort.generateInternalPresignedUploadUrl(key, type, seconds); }
 }

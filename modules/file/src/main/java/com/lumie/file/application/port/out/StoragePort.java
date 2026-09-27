@@ -8,6 +8,10 @@ public interface StoragePort {
 
     String generatePresignedDownloadUrl(String objectKey, int expiresInSeconds);
 
+    String generateInternalPresignedUploadUrl(String objectKey, String contentType, int expiresInSeconds);
+
+    String generateInternalPresignedDownloadUrl(String objectKey, int expiresInSeconds);
+
     void uploadObject(String objectKey, InputStream stream, long size, String contentType);
 
     InputStream getObject(String objectKey);

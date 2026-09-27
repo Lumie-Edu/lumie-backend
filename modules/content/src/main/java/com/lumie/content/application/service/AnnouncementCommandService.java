@@ -12,6 +12,7 @@ import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
 import com.lumie.content.domain.repository.AnnouncementRepository;
 import com.lumie.file.api.FileService;
+import com.lumie.file.api.PreparedTemporaryFile;
 import com.lumie.staff.api.StaffService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,9 @@ public class AnnouncementCommandService {
     @Transactional
     public AnnouncementResponse createAnnouncement(CreateAnnouncementRequest request) {
         log.info("Creating announcement: {}", request.announcementTitle());
+        List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("announcement", request.temporaryAttachments());
 
+        try {
         Announcement announcement = Announcement.create(
                 request.authorId(),
                 request.announcementTitle(),
@@ -47,16 +50,22 @@ public class AnnouncementCommandService {
 
         Announcement saved = announcementRepository.save(announcement);
         List<Long> classIds = replaceClassTargets(saved.getId(), request.classIds());
-        fileService.publishTemporaryFiles("announcement", saved.getId(), request.temporaryAttachments());
+        fileService.attachPreparedFiles("announcement", saved.getId(), preparedFiles);
         log.info("Announcement created with id: {}", saved.getId());
 
         return AnnouncementResponse.from(saved, authorNameOrFallback(saved.getAuthorId()), classIds);
+        } catch (RuntimeException exception) {
+            fileService.discardPreparedFiles(preparedFiles);
+            throw exception;
+        }
     }
 
     @Transactional
     public AnnouncementResponse updateAnnouncement(Long id, UpdateAnnouncementRequest request) {
         log.info("Updating announcement: {}", id);
+        List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("announcement", request.temporaryAttachments());
 
+        try {
         Announcement announcement = announcementRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND));
 
@@ -67,7 +76,7 @@ public class AnnouncementCommandService {
                 request.isItImportantAnnouncement()
         );
 
-        fileService.reconcileDirectFiles("announcement", id, request.attachmentFileIds(), request.temporaryAttachments());
+        fileService.reconcilePreparedDirectFiles("announcement", id, request.attachmentFileIds(), preparedFiles);
 
         List<Long> classIds = request.classIds() == null
                 ? classTargetRepository.findByAnnouncementId(id).stream()
@@ -78,6 +87,10 @@ public class AnnouncementCommandService {
         log.info("Announcement updated: {}", updated.getId());
 
         return AnnouncementResponse.from(updated, authorNameOrFallback(updated.getAuthorId()), classIds);
+        } catch (RuntimeException exception) {
+            fileService.discardPreparedFiles(preparedFiles);
+            throw exception;
+        }
     }
 
     @Transactional
@@ -139,4 +152,5 @@ public class AnnouncementCommandService {
                 .map(StaffService.StaffData::name)
                 .orElse(DELETED_STAFF_NAME);
     }
+
 }

@@ -1,12 +1,7 @@
 package com.lumie.file.adapter.in.web;
 
-import com.lumie.file.application.dto.request.PresignedDownloadRequest;
-import com.lumie.file.application.dto.request.PresignedUploadRequest;
-import com.lumie.file.application.dto.request.RegisterUploadRequest;
 import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
-import com.lumie.file.application.dto.response.PresignedDownloadResponse;
-import com.lumie.file.application.dto.response.PresignedUploadResponse;
 import com.lumie.file.application.dto.response.TemporaryObjectUploadResponse;
 import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
@@ -50,7 +45,7 @@ public class FileController {
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
         if (file.getSize() > PROXY_UPLOAD_MAX_BYTES) {
             throw new BusinessRuleViolationException(
-                "Files larger than 1 MiB must use the presigned-upload flow (POST /v1/files/presigned-upload)");
+                "Direct proxy uploads are limited to 1 MiB");
         }
         if (idempotencyKey != null) {
             byte[] bytes = file.getBytes();
@@ -103,31 +98,10 @@ public class FileController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/presigned-upload")
-    public ResponseEntity<PresignedUploadResponse> generatePresignedUploadUrl(
-            @Valid @RequestBody PresignedUploadRequest request) {
-        PresignedUploadResponse response = fileCommandService.generatePresignedUploadUrl(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
     @PostMapping("/uploads")
     public ResponseEntity<TemporaryObjectUploadResponse> createTemporaryUpload(
             @Valid @RequestBody CreateTemporaryUploadRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(temporaryObjectUploadService.create(request));
-    }
-
-    @PostMapping("/presigned-download")
-    public ResponseEntity<PresignedDownloadResponse> generatePresignedDownloadUrl(
-            @Valid @RequestBody PresignedDownloadRequest request) {
-        PresignedDownloadResponse response = fileQueryService.generatePresignedDownloadUrl(request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping
-    public ResponseEntity<FileMetadataResponse> registerUploadCompleted(
-            @Valid @RequestBody RegisterUploadRequest request) {
-        FileMetadataResponse response = fileCommandService.registerUploadCompleted(request);
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{fileId}")

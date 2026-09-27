@@ -15,7 +15,6 @@ public record OmrGradingRequestedEvent(
         Long jobId,
         Long examId,
         String tenantSlug,
-        String imageKey,
         int imageIndex,
         int totalImages
 ) implements DomainEvent {
