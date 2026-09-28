@@ -72,7 +72,8 @@ public class ExamExportService {
         Boolean isActive,
         Sort sort
     ) {
-        Exam exam = getManagementExam(examId);
+        Exam exam = examRepository.findById(examId)
+            .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
         List<ExamResult> results = resultRepository.findByExamId(examId);
 
         return CsvExport.from(buildRowsForSingleExam(
@@ -83,18 +84,6 @@ public class ExamExportService {
             isActive,
             normalizeSort(sort)
         ));
-    }
-
-    private Exam getManagementExam(Long examId) {
-        Exam exam = examRepository.findById(examId)
-            .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
-        if (exam.getSource() != ExamSource.EXAM_MANAGEMENT) {
-            throw new BusinessException(
-                ExamErrorCode.INVALID_EXAM_DATA,
-                "Only EXAM_MANAGEMENT exams can be exported as CSV"
-            );
-        }
-        return exam;
     }
 
     private static Sort normalizeSort(Sort sort) {

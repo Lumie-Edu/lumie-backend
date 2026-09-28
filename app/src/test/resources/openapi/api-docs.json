@@ -264,6 +264,67 @@
         "required" : [ "attachments", "classId", "createdAt", "dueDate", "evaluationMode", "examName", "id", "linkedExamId", "maxScore", "showCorrectAnswers", "showGrade", "showPassFail", "showQuestionResults", "showScore", "status", "submissionMode", "targetClassIds", "targetStudentIds", "updatedAt" ],
         "type" : "object"
       },
+      "AssignmentStudentGradeResponse" : {
+        "properties" : {
+          "examCategory" : {
+            "type" : "string"
+          },
+          "grade" : {
+            "format" : "int32",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "isPassed" : {
+            "nullable" : true,
+            "type" : "boolean"
+          },
+          "isRegistered" : {
+            "type" : "boolean"
+          },
+          "percentile" : {
+            "format" : "double",
+            "nullable" : true,
+            "type" : "number"
+          },
+          "phoneNumber" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "rank" : {
+            "format" : "int32",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "resultId" : {
+            "format" : "int64",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "score" : {
+            "format" : "int32",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "studentId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "studentName" : {
+            "type" : "string"
+          },
+          "submissionStatus" : {
+            "enum" : [ "PENDING", "SUBMITTED", "GRADED", "RETURNED" ],
+            "type" : "string"
+          },
+          "submittedAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          }
+        },
+        "required" : [ "examCategory", "grade", "isPassed", "isRegistered", "percentile", "phoneNumber", "rank", "resultId", "score", "studentId", "studentName", "submissionStatus", "submittedAt" ],
+        "type" : "object"
+      },
       "AssignmentSubmissionResultResponse" : {
         "properties" : {
           "questionResults" : {
@@ -986,10 +1047,6 @@
           "exam" : {
             "$ref" : "#/components/schemas/CreateAssignmentExamRequest"
           },
-          "linkedExamId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
           "maxScore" : {
             "format" : "int32",
             "type" : "integer"
@@ -1030,7 +1087,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "dueDate" ],
+        "required" : [ "dueDate", "exam" ],
         "type" : "object"
       },
       "CreateClassRequest" : {
@@ -2841,6 +2898,37 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/AssignmentResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "perPage" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
+        "type" : "object"
+      },
+      "PageResponseAssignmentStudentGradeResponse" : {
+        "properties" : {
+          "hasNext" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AssignmentStudentGradeResponse"
             },
             "type" : "array"
           },
@@ -5817,10 +5905,6 @@
           "evaluationMode" : {
             "type" : "string"
           },
-          "linkedExamId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
           "maxScore" : {
             "format" : "int32",
             "type" : "integer"
@@ -7740,6 +7824,93 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AssignmentSubmissionResultResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "assignment-controller" ]
+      }
+    },
+    "/v1/assignments/{id}/student-grades" : {
+      "get" : {
+        "operationId" : "getStudentGrades",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "classId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hasActiveEnrollment",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "isActive",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "submitted",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "description" : "Zero-based page index (0..N)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The size of the page to be returned",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseAssignmentStudentGradeResponse"
                 }
               }
             },

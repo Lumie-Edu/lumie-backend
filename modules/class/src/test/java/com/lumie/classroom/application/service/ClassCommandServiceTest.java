@@ -7,6 +7,7 @@ import com.lumie.classroom.application.dto.EnrollStudentsRequest;
 import com.lumie.classroom.application.dto.SchedulePatternRequest;
 import com.lumie.classroom.application.dto.UpdateClassRequest;
 import com.lumie.classroom.application.dto.UpdateEnrollmentRequest;
+import com.lumie.classroom.api.ClassEnrollmentCreatedEvent;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.entity.ClassEntity;
@@ -35,6 +36,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith({MockitoExtension.class, TenantContextExtension.class})
 @DisplayName("ClassCommandService 테스트")
@@ -43,6 +45,7 @@ class ClassCommandServiceTest {
     @Mock private ClassRepository classRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private StaffService staffService;
+    @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private ClassCommandService commandService;
 
     @Nested
@@ -296,6 +299,8 @@ class ClassCommandServiceTest {
             List<ClassEnrollmentResponse> responses = commandService.enrollStudents(1L, request);
 
             assertThat(responses).hasSize(2);
+            verify(eventPublisher).publishEvent(new ClassEnrollmentCreatedEvent(
+                    1L, "test-tenant", 1L, List.of(100L, 200L)));
         }
 
         @Test

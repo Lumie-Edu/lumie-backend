@@ -3,6 +3,7 @@ package com.lumie.assignment.application.service;
 import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.dto.response.AssignmentQuestionResultResponse;
 import com.lumie.assignment.application.dto.response.AssignmentSubmissionStatusResponse;
+import com.lumie.assignment.application.dto.response.AssignmentStudentGradeResponse;
 import com.lumie.assignment.application.dto.response.ExamAssignmentResponse;
 import com.lumie.assignment.application.dto.response.StudentAssignmentDetailResponse;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
@@ -11,14 +12,15 @@ import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.entity.AssignmentTarget;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
+import com.lumie.assignment.domain.repository.AssignmentRecipientRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
 import com.lumie.assignment.domain.repository.AssignmentTargetRepository;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentTargetType;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
-import com.lumie.assignment.domain.vo.SubmissionMode;
 import com.lumie.classroom.api.ClassService;
+import com.lumie.assignment.domain.vo.SubmissionMode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
@@ -27,7 +29,9 @@ import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +52,7 @@ public class AssignmentQueryService {
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
     private final AssignmentTargetRepository targetRepository;
+    private final AssignmentRecipientRepository recipientRepository;
     private final ClassService classService;
     private final StudentService studentService;
     private final ExamService examService;
@@ -87,8 +92,9 @@ public class AssignmentQueryService {
 
     public Page<SubmissionResponse> getSubmissions(Long assignmentId, Pageable pageable) {
         lifecycleService.closeOverdueAssignment(assignmentId);
+        var results = currentResults(assignmentId);
         return submissionRepository.findByAssignmentId(assignmentId, pageable)
-            .map(SubmissionResponse::from);
+            .map(submission -> SubmissionResponse.from(submission, results.get(submission.getExamResultId())));
     }
 
     public List<AssignmentSubmissionStatusResponse> getSubmissionStatuses(Long assignmentId) {
@@ -98,16 +104,7 @@ public class AssignmentQueryService {
                         "Assignment not found with id: %d".formatted(assignmentId)));
 
         String slug = TenantContextHolder.getRequiredTenant();
-        List<AssignmentTarget> targets = targetRepository.findByAssignmentId(assignmentId);
-        Set<Long> studentIds = new LinkedHashSet<>();
-        targets.stream()
-                .filter(target -> target.getTargetType() == AssignmentTargetType.STUDENT)
-                .map(AssignmentTarget::getTargetId)
-                .forEach(studentIds::add);
-        targets.stream()
-                .filter(target -> target.getTargetType() == AssignmentTargetType.CLASS)
-                .map(AssignmentTarget::getTargetId)
-                .forEach(classId -> studentIds.addAll(classService.getEnrolledStudentIds(slug, classId)));
+        Set<Long> studentIds = new LinkedHashSet<>(recipientRepository.findStudentIdsByAssignmentId(assignmentId));
 
         Map<Long, AssignmentSubmission> submissionsByStudent = submissionRepository.findAllByAssignmentId(assignmentId)
                 .stream()
@@ -126,6 +123,7 @@ public class AssignmentQueryService {
                                 StudentService.StudentData::studentName,
                                 (left, right) -> left));
 
+        var results = currentResults(assignmentId);
         return studentIds.stream()
                 .map(studentId -> {
                     AssignmentSubmission submission = submissionsByStudent.get(studentId);
@@ -133,23 +131,93 @@ public class AssignmentQueryService {
                             studentId,
                             studentNamesById.get(studentId),
                             submission != null ? submission.getStatus() : SubmissionStatus.PENDING,
-                            submission != null ? SubmissionResponse.from(submission) : null);
+                            submission != null ? SubmissionResponse.from(submission, results.get(submission.getExamResultId())) : null);
                 })
                 .toList();
     }
 
+    public Page<AssignmentStudentGradeResponse> getStudentGrades(
+            Long assignmentId, Long classId, Boolean hasActiveEnrollment, Boolean isActive,
+            Boolean submitted, Pageable pageable) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND));
+        String slug = TenantContextHolder.getRequiredTenant();
+        List<Long> recipientIds = recipientRepository.findStudentIdsByAssignmentId(assignmentId);
+        if (recipientIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        var students = studentService.getStudentsByIds(slug, recipientIds).students().stream()
+                .collect(Collectors.toMap(StudentService.StudentData::id, student -> student));
+        var enrolledClasses = classService.getEnrolledClassesForStudents(slug, recipientIds);
+        Set<Long> activeEnrollmentIds = enrolledClasses.stream()
+                .map(ClassService.EnrolledClassData::studentId)
+                .collect(Collectors.toSet());
+        Set<Long> classRecipientIds = classId == null ? Set.of() : enrolledClasses.stream()
+                .filter(enrollment -> enrollment.classId().equals(classId))
+                .map(ClassService.EnrolledClassData::studentId)
+                .collect(Collectors.toSet());
+        var gradesByStudent = examService.getStudentGradesForAssignment(slug, assignment.getLinkedExamId()).stream()
+                .filter(grade -> grade.studentId() != null)
+                .collect(Collectors.toMap(ExamService.StudentGradeData::studentId, grade -> grade, (left, right) -> left));
+        List<AssignmentStudentGradeResponse> rows = recipientIds.stream()
+                .filter(studentId -> classId == null || classRecipientIds.contains(studentId))
+                .filter(studentId -> hasActiveEnrollment == null || activeEnrollmentIds.contains(studentId) == hasActiveEnrollment)
+                .filter(studentId -> isActive == null || (students.get(studentId) != null && students.get(studentId).isActive() == isActive))
+                .map(studentId -> toAssignmentStudentGrade(students.get(studentId), gradesByStudent.get(studentId)))
+                .filter(row -> submitted == null || (row.submissionStatus() != SubmissionStatus.PENDING) == submitted)
+                .sorted(assignmentGradeComparator(pageable.getSort()))
+                .toList();
+        if (pageable.isUnpaged()) {
+            return new PageImpl<>(rows, Pageable.unpaged(), rows.size());
+        }
+        int start = Math.min((int) pageable.getOffset(), rows.size());
+        int end = Math.min(start + pageable.getPageSize(), rows.size());
+        return new PageImpl<>(rows.subList(start, end), pageable, rows.size());
+    }
+
+    private AssignmentStudentGradeResponse toAssignmentStudentGrade(
+            StudentService.StudentData student, ExamService.StudentGradeData grade) {
+        if (student == null) {
+            throw new BusinessException(AssignmentErrorCode.STUDENT_NOT_FOUND);
+        }
+        if (grade == null) {
+            return new AssignmentStudentGradeResponse(student.id(), student.studentPhone(), true, student.studentName(),
+                    null, null, null, null, null, null, null, null, SubmissionStatus.PENDING);
+        }
+        return new AssignmentStudentGradeResponse(grade.studentId(), grade.phoneNumber(), grade.isRegistered(),
+                grade.studentName(), grade.score(), grade.rank(), grade.percentile(), grade.grade(),
+                grade.examCategory(), grade.isPassed(), Instant.parse(grade.submittedAt()), grade.resultId(),
+                SubmissionStatus.GRADED);
+    }
+
+    private Comparator<AssignmentStudentGradeResponse> assignmentGradeComparator(Sort sort) {
+        Sort.Order order = sort.stream().findFirst().orElse(Sort.Order.asc("rank"));
+        Comparator<AssignmentStudentGradeResponse> comparator = switch (order.getProperty()) {
+            case "totalScore" -> Comparator.comparing(AssignmentStudentGradeResponse::score,
+                    Comparator.nullsLast(Comparator.naturalOrder()));
+            case "submittedAt" -> Comparator.comparing(AssignmentStudentGradeResponse::submittedAt,
+                    Comparator.nullsLast(Comparator.naturalOrder()));
+            default -> Comparator.comparing(AssignmentStudentGradeResponse::rank,
+                    Comparator.nullsLast(Comparator.naturalOrder()));
+        };
+        if (order.isDescending()) {
+            comparator = comparator.reversed();
+        }
+        return Comparator.comparing((AssignmentStudentGradeResponse row) -> row.submissionStatus() == SubmissionStatus.PENDING)
+                .thenComparing(comparator)
+                .thenComparing(AssignmentStudentGradeResponse::studentName, Comparator.nullsLast(String::compareTo));
+    }
+
     public Page<SubmissionResponse> getStudentSubmissions(Long assignmentId, Long studentId, Pageable pageable) {
         lifecycleService.closeOverdueAssignment(assignmentId);
+        var results = currentResults(assignmentId);
         return submissionRepository.findByAssignmentIdAndStudentId(assignmentId, studentId, pageable)
-            .map(SubmissionResponse::from);
+            .map(submission -> SubmissionResponse.from(submission, results.get(submission.getExamResultId())));
     }
 
     public List<AssignmentResponse> getCurrentStudentAssignments() {
         Long studentId = currentStudentId();
-        List<Long> classIds = currentStudentClassIds(studentId);
-        List<Long> visibleAssignmentIds = targetRepository.findVisibleAssignmentIds(
-                studentId,
-                classIds.isEmpty() ? List.of(-1L) : classIds);
+        List<Long> visibleAssignmentIds = recipientRepository.findAssignmentIdsByStudentId(studentId);
         if (visibleAssignmentIds.isEmpty()) {
             return List.of();
         }
@@ -175,7 +243,7 @@ public class AssignmentQueryService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
                         "Assignment not found with id: %d".formatted(assignmentId)));
-        if (!isTargetedToStudent(assignmentId, studentId)) {
+        if (!recipientRepository.existsByAssignmentIdAndStudentId(assignmentId, studentId)) {
             throw new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_VISIBLE);
         }
 
@@ -196,16 +264,6 @@ public class AssignmentQueryService {
                 exam,
                 existingQuestionResults(assignment, submission)
         );
-    }
-
-    private boolean isTargetedToStudent(Long assignmentId, Long studentId) {
-        if (targetRepository.existsByAssignmentIdAndTargetTypeAndTargetId(
-                assignmentId, AssignmentTargetType.STUDENT, studentId)) {
-            return true;
-        }
-        return currentStudentClassIds(studentId).stream()
-                .anyMatch(classId -> targetRepository.existsByAssignmentIdAndTargetTypeAndTargetId(
-                        assignmentId, AssignmentTargetType.CLASS, classId));
     }
 
     private AssignmentResponse toAssignmentResponse(Assignment assignment, List<AssignmentTarget> targets) {
@@ -296,14 +354,6 @@ public class AssignmentQueryService {
                 .orElseThrow(() -> new BusinessException(AssignmentErrorCode.STUDENT_NOT_FOUND));
     }
 
-    private List<Long> currentStudentClassIds(Long studentId) {
-        return classService.getEnrolledClassesForStudents(TenantContextHolder.getRequiredTenant(), List.of(studentId))
-                .stream()
-                .map(ClassService.EnrolledClassData::classId)
-                .distinct()
-                .toList();
-    }
-
     private Map<Long, List<AssignmentTarget>> targetsByAssignment(List<Assignment> assignments) {
         List<Long> assignmentIds = assignments.stream()
                 .map(Assignment::getId)
@@ -316,17 +366,19 @@ public class AssignmentQueryService {
     }
 
     private SubmissionResponse studentSubmissionResponse(Assignment assignment, AssignmentSubmission submission) {
+        var current = SubmissionResponse.from(submission,
+                currentResults(assignment.getId()).get(submission.getExamResultId()));
         return new SubmissionResponse(
                 submission.getId(),
                 submission.getAssignmentId(),
                 submission.getStudentId(),
                 submission.getContent(),
                 submission.getAttachments(),
-                submission.getAnswers(),
+                current.answers(),
                 submission.getExamResultId(),
-                assignment.isShowScore() ? submission.getScore() : null,
-                assignment.isShowPassFail() ? submission.getPassed() : null,
-                assignment.isShowGrade() ? submission.getGradeValue() : null,
+                assignment.isShowScore() ? current.score() : null,
+                assignment.isShowPassFail() ? current.passed() : null,
+                assignment.isShowGrade() ? current.gradeValue() : null,
                 submission.getFeedback(),
                 submission.getSubmittedAt(),
                 submission.getGradedAt(),
@@ -347,6 +399,12 @@ public class AssignmentQueryService {
                 exam.totalPossibleScore(),
                 exam.passScore()
         );
+    }
+
+    private Map<Long, ExamService.AssignmentResultData> currentResults(Long assignmentId) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND));
+        return examService.getResultsForAssignment(TenantContextHolder.getRequiredTenant(), assignment.getLinkedExamId());
     }
 
     private List<AssignmentQuestionResultResponse> existingQuestionResults(

@@ -6,6 +6,7 @@ import com.lumie.classroom.application.dto.CreateClassRequest;
 import com.lumie.classroom.application.dto.EnrollStudentsRequest;
 import com.lumie.classroom.application.dto.UpdateClassRequest;
 import com.lumie.classroom.application.dto.UpdateEnrollmentRequest;
+import com.lumie.classroom.api.ClassEnrollmentCreatedEvent;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.staff.api.StaffService;
@@ -19,6 +20,7 @@ import com.lumie.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -34,6 +36,7 @@ public class ClassCommandService {
     private final ClassRepository classRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
     private final StaffService staffService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ClassResponse createClass(CreateClassRequest request) {
         if (request.teacherId() != null) {
@@ -118,6 +121,10 @@ public class ClassCommandService {
             .toList();
 
         List<ClassEnrollment> saved = enrollmentRepository.saveAll(enrollments);
+
+        eventPublisher.publishEvent(new ClassEnrollmentCreatedEvent(
+                TenantContextHolder.getTenantId(), TenantContextHolder.getRequiredTenant(), classId,
+                saved.stream().map(ClassEnrollment::getStudentId).toList()));
 
         log.info("Enrolled {} students in class: {}", saved.size(), classId);
         return saved.stream()

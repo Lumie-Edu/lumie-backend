@@ -74,7 +74,12 @@ class AssignmentControllerTest {
         given(commandService.createAssignment(any(CreateAssignmentRequest.class))).willReturn(response);
 
         CreateAssignmentRequest request = new CreateAssignmentRequest(
-                1L, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC), 100, null);
+                1L, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC), 100, null,
+                null, "EXAM_MANUAL", "EXAM_AUTO",
+                new com.lumie.assignment.application.dto.request.CreateAssignmentExamRequest(
+                        "시험", "GRADED", "ABSOLUTE", "NINE_GRADE", 1,
+                        java.util.Map.of("1", "2"), java.util.Map.of("1", 100), null, null),
+                List.of(1L), List.of(), null, null, null, null, null);
 
         mockMvc.perform(post("/v1/assignments")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -96,6 +101,17 @@ class AssignmentControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Validation error"));
+    }
+
+    @Test
+    void createAssignment_existingExamWithoutNewExamIsRejected() throws Exception {
+        mockMvc.perform(post("/v1/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"classId":1,"dueDate":"2027-01-01T00:00:00Z","linkedExamId":99}
+                                """))
+                .andExpect(status().isBadRequest());
+        org.mockito.Mockito.verifyNoInteractions(commandService);
     }
 
     @Test

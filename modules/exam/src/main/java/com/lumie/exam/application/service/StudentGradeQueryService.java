@@ -12,7 +12,6 @@ import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
-import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -116,9 +115,9 @@ public class StudentGradeQueryService {
                     double percentile = statisticsCalculator.calculatePercentile(result.getTotalScore(), allScores);
 
                     Integer grade = result.getGrade();
-                    if (exam.getCategory() == ExamCategory.GRADED &&
-                        exam.getGradingType() == GradingType.RELATIVE) {
-                        grade = gradeCalculator.calculateRelativeGrade(result.getTotalScore(), allScores, gradeScale);
+                    if (exam.getCategory() == ExamCategory.GRADED) {
+                        grade = gradeCalculator.calculateGradeForScore(result.getTotalScore(), allScores,
+                                exam.getGradingType(), gradeScale);
                     }
 
                     boolean isRegistered = isRegisteredStudent(studentMap, result);

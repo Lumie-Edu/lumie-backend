@@ -5,6 +5,7 @@ import com.lumie.assignment.application.dto.request.SubmitAssignmentRequest;
 import com.lumie.assignment.application.dto.request.UpdateAssignmentRequest;
 import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.dto.response.AssignmentSubmissionResultResponse;
+import com.lumie.assignment.application.dto.response.AssignmentStudentGradeResponse;
 import com.lumie.assignment.application.dto.response.StudentAssignmentDetailResponse;
 import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.application.service.AssignmentQueryService;
@@ -67,6 +68,20 @@ public class AssignmentController {
     @GetMapping("/{id}/me")
     public ResponseEntity<StudentAssignmentDetailResponse> getMyAssignment(@PathVariable Long id) {
         return ResponseEntity.ok(queryService.getCurrentStudentAssignment(id));
+    }
+
+    @GetMapping("/{id}/student-grades")
+    @AllowedSortFields({"rank", "totalScore", "submittedAt"})
+    public ResponseEntity<PageResponse<AssignmentStudentGradeResponse>> getStudentGrades(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Boolean hasActiveEnrollment,
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) Boolean submitted,
+            @PageableDefault(size = 20, sort = "rank") Pageable pageable) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        return ResponseEntity.ok(PageResponse.from(queryService.getStudentGrades(
+                id, classId, hasActiveEnrollment, isActive, submitted, pageable)));
     }
 
     @PutMapping("/{id}/me/submission")

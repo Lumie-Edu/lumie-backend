@@ -16,8 +16,7 @@ public record CreateAssignmentRequest(
     String status,
     String submissionMode,
     String evaluationMode,
-    @Valid CreateAssignmentExamRequest exam,
-    Long linkedExamId,
+    @NotNull @Valid CreateAssignmentExamRequest exam,
     List<Long> targetClassIds,
     List<Long> targetStudentIds,
     Boolean showScore,
@@ -28,6 +27,6 @@ public record CreateAssignmentRequest(
 ) {
     public CreateAssignmentRequest(Long classId, Instant dueDate, Integer maxScore, List<Long> attachments) {
         this(classId, dueDate, maxScore, attachments,
-                null, null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null);
     }
 }

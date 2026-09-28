@@ -139,8 +139,8 @@ class ExamExportServiceTest {
     }
 
     @Test
-    @DisplayName("prepareCsvForExam: 시험 관리 출처가 아니면 거부한다")
-    void prepareCsvForExam_rejectsNonManagementExam() {
+    @DisplayName("prepareCsvForExam: 과제용 시험도 CSV로 내보낸다")
+    void prepareCsvForExam_acceptsAssignmentExam() {
         Exam exam = Exam.createForAssignment(
             "과제 시험",
             ExamCategory.GRADED,
@@ -153,18 +153,15 @@ class ExamExportServiceTest {
             null
         );
         given(examRepository.findById(9L)).willReturn(Optional.of(exam));
-
-        assertThatThrownBy(() -> service.prepareCsvForExam(
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        service.prepareCsvForExam(
             9L,
             null,
             null,
             null,
             Sort.unsorted()
-        ))
-            .isInstanceOf(BusinessException.class)
-            .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA));
-
-        then(studentGradeQueryService).shouldHaveNoInteractions();
+        ).writeTo(out);
+        assertThat(csv(out)).contains("학생명");
     }
 
     @Test

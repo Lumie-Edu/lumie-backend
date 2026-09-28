@@ -161,6 +161,14 @@ public class AssignmentSubmission extends TenantScopedEntity {
         this.status = SubmissionStatus.RETURNED;
     }
 
+    public void synchronizeExamResult(Map<String, String> answers, Integer score,
+                                      Boolean passed, Integer grade) {
+        this.answers = answers;
+        this.score = score;
+        this.passed = passed;
+        this.gradeValue = grade == null ? null : String.valueOf(grade);
+    }
+
     @Converter
     static class LongListConverter implements AttributeConverter<List<Long>, String> {
 
