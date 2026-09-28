@@ -1,12 +1,9 @@
 package com.lumie.tenant.adapter.out.storage;
 
-import com.lumie.common.exception.BusinessException;
 import com.lumie.tenant.application.port.out.TenantLogoStoragePort;
-import com.lumie.tenant.domain.exception.TenantErrorCode;
 import com.lumie.file.api.FileObjectService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;

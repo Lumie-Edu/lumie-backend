@@ -12,7 +12,6 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.TextbookFolderRepository;
-import com.lumie.file.domain.vo.EntityType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
