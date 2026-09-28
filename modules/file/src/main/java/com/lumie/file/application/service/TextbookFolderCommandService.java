@@ -9,7 +9,6 @@ import com.lumie.file.domain.entity.TextbookFolder;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
-import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.TextbookFolderRepository;
 import com.lumie.file.domain.vo.EntityType;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +26,6 @@ public class TextbookFolderCommandService {
 
     private final TextbookFolderRepository textbookFolderRepository;
     private final FileMetadataRepository fileMetadataRepository;
-    private final FileLinkRepository fileLinkRepository;
     private final StoragePort storagePort;
 
     @Transactional
@@ -72,23 +70,8 @@ public class TextbookFolderCommandService {
             throw new BusinessException(FileErrorCode.FOLDER_NOT_FOUND);
         }
 
-        assertFolderTreeHasNoLinkedFiles(folderId);
         deleteFolderRecursive(folderId);
         log.info("Deleted textbook folder (cascade): {}", folderId);
-    }
-
-    private void assertFolderTreeHasNoLinkedFiles(UUID folderId) {
-        List<TextbookFolder> children = textbookFolderRepository.findByParentId(folderId);
-        for (TextbookFolder child : children) {
-            assertFolderTreeHasNoLinkedFiles(child.getId());
-        }
-
-        List<FileMetadata> files = fileMetadataRepository.findByEntityTypeAndFolderId(EntityType.TEXTBOOK, folderId);
-        for (FileMetadata file : files) {
-            if (fileLinkRepository.existsByFile_Id(file.getId())) {
-                throw new BusinessException(FileErrorCode.FILE_IN_USE);
-            }
-        }
     }
 
     private void deleteFolderRecursive(UUID folderId) {

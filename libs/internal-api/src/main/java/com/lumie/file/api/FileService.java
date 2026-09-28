@@ -43,21 +43,4 @@ public interface FileService {
     /** Deletes only files directly owned by the specified entity. */
     void deleteFilesByEntityAndIds(String entityType, Long entityId, List<UUID> fileIds);
 
-    /**
-     * Replaces reusable file links for the given entity. The source files stay
-     * owned by their original entity type and are not copied or deleted.
-     *
-     * @param entityType target entity type string (e.g. "announcement")
-     * @param entityId   target entity id
-     * @param fileIds    file metadata UUIDs to link
-     */
-    void replaceFileLinks(String entityType, Long entityId, List<UUID> fileIds);
-
-    /**
-     * Deletes reusable file links for the given entity without deleting source files.
-     *
-     * @param entityType target entity type string (e.g. "announcement")
-     * @param entityId   target entity id
-     */
-    void deleteFileLinksByEntity(String entityType, Long entityId);
 }

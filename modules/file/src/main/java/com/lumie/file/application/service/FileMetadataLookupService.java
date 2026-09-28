@@ -7,7 +7,6 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.api.ContentService;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +20,6 @@ import java.util.UUID;
 public class FileMetadataLookupService {
 
     private final FileMetadataRepository fileMetadataRepository;
-    private final FileLinkRepository fileLinkRepository;
     private final ContentService contentService;
 
     @Transactional(readOnly = true)
@@ -59,13 +57,6 @@ public class FileMetadataLookupService {
         if (fileMetadata.getEntityType() == EntityType.QNA
                 && fileMetadata.getEntityId() != null
                 && contentService.canUserViewQna(fileMetadata.getEntityId(), role.name(), UserContextHolder.getUserId())) {
-            return;
-        }
-
-        boolean linkedAnnouncementVisible = fileLinkRepository.findByFile_Id(fileMetadata.getId()).stream()
-                .filter(link -> link.getEntityType() == EntityType.ANNOUNCEMENT)
-                .anyMatch(link -> contentService.canUserViewAnnouncement(link.getEntityId(), role.name(), UserContextHolder.getUserId()));
-        if (linkedAnnouncementVisible) {
             return;
         }
 

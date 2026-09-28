@@ -103,7 +103,6 @@ public class AnnouncementCommandService {
             throw new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND);
         }
 
-        fileService.deleteFileLinksByEntity("announcement", id);
         fileService.deleteFilesByEntity("announcement", id);
         classTargetRepository.deleteByAnnouncementId(id);
         announcementRepository.deleteById(id);
