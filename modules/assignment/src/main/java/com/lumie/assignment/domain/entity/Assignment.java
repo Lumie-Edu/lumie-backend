@@ -60,7 +60,7 @@ public class Assignment extends TenantScopedEntity {
     @Column(name = "evaluation_mode", nullable = false, length = 30)
     private EvaluationMode evaluationMode;
 
-    @Column(name = "linked_exam_id")
+    @Column(name = "linked_exam_id", updatable = false)
     private Long linkedExamId;
 
     @Column(name = "show_score", nullable = false)
@@ -140,13 +140,12 @@ public class Assignment extends TenantScopedEntity {
     }
 
     public void updateWorkflow(Long classId, SubmissionMode submissionMode, EvaluationMode evaluationMode,
-                               Long linkedExamId, Boolean showScore, Boolean showPassFail,
+                               Boolean showScore, Boolean showPassFail,
                                Boolean showGrade, Boolean showQuestionResults, Boolean showCorrectAnswers,
                                AssignmentStatus status) {
         this.classId = classId;
         this.submissionMode = submissionMode;
         this.evaluationMode = evaluationMode;
-        this.linkedExamId = linkedExamId;
         this.showScore = Boolean.TRUE.equals(showScore);
         this.showPassFail = Boolean.TRUE.equals(showPassFail);
         this.showGrade = Boolean.TRUE.equals(showGrade);

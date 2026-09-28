@@ -319,9 +319,8 @@ public class ExamSummaryStatisticsService {
 
         Map<Integer, Long> gradeCounts = results.stream()
                 .map(r -> {
-                    if (exam.getCategory() == ExamCategory.GRADED &&
-                        exam.getGradingType() == GradingType.RELATIVE) {
-                        return gradeCalculator.calculateRelativeGrade(r.getTotalScore(), allScores, gradeScale);
+                    if (exam.getCategory() == ExamCategory.GRADED) {
+                        return gradeCalculator.calculateGradeForScore(r.getTotalScore(), allScores, gradingType, gradeScale);
                     }
                     return r.getGrade();
                 })

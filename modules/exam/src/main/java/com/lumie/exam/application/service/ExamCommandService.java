@@ -7,6 +7,7 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
+import com.lumie.exam.domain.repository.ExamResultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class ExamCommandService {
 
     private final ExamRepository examRepository;
+    private final ExamResultRepository resultRepository;
+    private final GradeCalculator gradeCalculator;
 
     @Transactional
     public ExamResponse createExam(CreateExamRequest request) {
@@ -87,6 +90,11 @@ public class ExamCommandService {
         );
 
         Exam updatedExam = examRepository.save(exam);
+        if (request.gradingType() != null || request.gradeScale() != null || request.category() != null
+                || request.passScore() != null) {
+            resultRepository.findByExamId(examId).forEach(result ->
+                    gradeCalculator.calculateAndAssignGradeIfAbsolute(updatedExam, result));
+        }
 
         log.info("Exam updated: {}", updatedExam.getId());
         return ExamResponse.from(updatedExam);

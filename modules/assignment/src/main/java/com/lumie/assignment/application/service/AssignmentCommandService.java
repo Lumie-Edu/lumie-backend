@@ -48,6 +48,7 @@ public class AssignmentCommandService {
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
     private final AssignmentTargetRepository targetRepository;
+    private final AssignmentRecipientService recipientService;
     private final ClassService classService;
     private final StudentService studentService;
     private final ExamService examService;
@@ -67,7 +68,7 @@ public class AssignmentCommandService {
         List<Long> targetStudentIds = normalizeIds(request.targetStudentIds());
         validateTargets(slug, targetClassIds, targetStudentIds);
 
-        Long linkedExamId = resolveLinkedExamId(slug, submissionMode, request);
+        Long linkedExamId = createLinkedExam(slug, request);
         requireExamManualWorkflow(submissionMode, evaluationMode, linkedExamId);
 
         Assignment entity = Assignment.create(
@@ -89,6 +90,7 @@ public class AssignmentCommandService {
 
         Assignment saved = assignmentRepository.save(entity);
         List<AssignmentTarget> targets = replaceTargets(saved.getId(), targetClassIds, targetStudentIds);
+        recipientService.snapshotRecipients(slug, saved.getId(), targetClassIds, targetStudentIds);
 
         log.info("Assignment created: {} targets(classes={}, students={})",
                 saved.getId(), targetClassIds.size(), targetStudentIds.size());
@@ -118,7 +120,7 @@ public class AssignmentCommandService {
         EvaluationMode evaluationMode = request.evaluationMode() != null
                 ? normalizeEvaluationMode(submissionMode, request.evaluationMode())
                 : normalizeEvaluationMode(submissionMode, entity.getEvaluationMode().name());
-        Long linkedExamId = request.linkedExamId() != null ? request.linkedExamId() : entity.getLinkedExamId();
+        Long linkedExamId = entity.getLinkedExamId();
         if (submissionMode == SubmissionMode.EXAM_MANUAL) {
             validateLinkedExam(slug, linkedExamId);
         }
@@ -127,14 +129,17 @@ public class AssignmentCommandService {
         var dueDate = request.dueDate() != null ? request.dueDate() : entity.getDueDate();
         Integer maxScore = request.maxScore() != null ? request.maxScore() : entity.getMaxScore();
         var attachments = request.attachments() != null ? request.attachments() : entity.getAttachments();
+        Instant now = Instant.now();
         AssignmentStatus status = request.status() != null ? parseAssignmentStatus(request.status()) : entity.getStatus();
+        if (request.dueDate() != null && request.dueDate().isAfter(now)) {
+            status = AssignmentStatus.ACTIVE;
+        }
 
         entity.updateInfo(dueDate, maxScore, attachments);
         entity.updateWorkflow(
                 legacyClassId(slug, targetClassIds, targetStudentIds),
                 submissionMode,
                 evaluationMode,
-                linkedExamId,
                 true,
                 true,
                 false,
@@ -142,12 +147,15 @@ public class AssignmentCommandService {
                 request.showCorrectAnswers() != null ? request.showCorrectAnswers() : entity.isShowCorrectAnswers(),
                 status
         );
-        entity.closeIfOverdue(Instant.now());
+        entity.closeIfOverdue(now);
 
         Assignment saved = assignmentRepository.save(entity);
         List<AssignmentTarget> targets = targetUpdateRequested
                 ? replaceTargets(saved.getId(), targetClassIds, targetStudentIds)
                 : existingTargets;
+        if (targetUpdateRequested) {
+            recipientService.snapshotRecipients(slug, saved.getId(), targetClassIds, targetStudentIds);
+        }
 
         log.info("Assignment updated: {}", saved.getId());
         return AssignmentResponse.from(saved, targets, examName(slug, saved.getLinkedExamId()));
@@ -339,33 +347,25 @@ public class AssignmentCommandService {
                 .orElse(null);
     }
 
-    private Long resolveLinkedExamId(String slug, SubmissionMode submissionMode, CreateAssignmentRequest request) {
-        if (request.exam() != null) {
-            return examService.createExamForAssignment(slug, new ExamService.CreateExamData(
-                    request.exam().name(),
-                    request.exam().category(),
-                    request.exam().gradingType(),
-                    request.exam().gradeScale(),
-                    request.exam().totalQuestions(),
-                    request.exam().correctAnswers(),
-                    request.exam().questionScores(),
-                    request.exam().questionTypes(),
-                    request.exam().passScore()
-            ));
+    private Long createLinkedExam(String slug, CreateAssignmentRequest request) {
+        if (request.exam() == null) {
+            throw new BusinessException(AssignmentErrorCode.EXAM_NOT_FOUND, "New exam data is required");
         }
-        validateLinkedExam(slug, request.linkedExamId());
-        return request.linkedExamId();
+        return examService.createExamForAssignment(slug, new ExamService.CreateExamData(
+                request.exam().name(),
+                request.exam().category(),
+                request.exam().gradingType(),
+                request.exam().gradeScale(),
+                request.exam().totalQuestions(),
+                request.exam().correctAnswers(),
+                request.exam().questionScores(),
+                request.exam().questionTypes(),
+                request.exam().passScore()
+        ));
     }
 
     private boolean isTargetedToStudent(Long assignmentId, Long studentId) {
-        if (targetRepository.existsByAssignmentIdAndTargetTypeAndTargetId(
-                assignmentId, AssignmentTargetType.STUDENT, studentId)) {
-            return true;
-        }
-        String slug = TenantContextHolder.getRequiredTenant();
-        return classService.getEnrolledClassesForStudents(slug, List.of(studentId)).stream()
-                .anyMatch(enrolled -> targetRepository.existsByAssignmentIdAndTargetTypeAndTargetId(
-                        assignmentId, AssignmentTargetType.CLASS, enrolled.classId()));
+        return recipientService.isRecipient(assignmentId, studentId);
     }
 
     private Long currentStudentId() {

@@ -45,6 +45,18 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>,
 
     List<Assignment> findByIdIn(Collection<Long> ids);
 
+    @Query("""
+            select distinct assignment
+            from Assignment assignment
+            join AssignmentTarget target on target.assignmentId = assignment.id
+            where assignment.status = com.lumie.assignment.domain.vo.AssignmentStatus.ACTIVE
+              and assignment.dueDate > :now
+              and assignment.submissionMode = com.lumie.assignment.domain.vo.SubmissionMode.EXAM_MANUAL
+              and target.targetType = com.lumie.assignment.domain.vo.AssignmentTargetType.CLASS
+              and target.targetId = :classId
+            """)
+    List<Assignment> findActiveByTargetClassId(@Param("classId") Long classId, @Param("now") Instant now);
+
     default int closeOverdueActiveAssignments(Instant now) {
         return closeOverdueActiveAssignments(AssignmentStatus.ACTIVE, AssignmentStatus.CLOSED, now);
     }

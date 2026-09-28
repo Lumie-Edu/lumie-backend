@@ -17,6 +17,17 @@ public interface ExamService {
 
     List<QuestionGradeData> getQuestionResultsForAssignment(String tenantSlug, Long examResultId);
 
+    Map<Long, AssignmentResultData> getResultsForAssignment(String tenantSlug, Long examId);
+
+    List<StudentGradeData> getStudentGradesForAssignment(String tenantSlug, Long examId);
+
+    record AssignmentResultData(Long studentId, Map<String, String> answers,
+                                Integer score, Boolean passed, Integer grade) {}
+
+    record StudentGradeData(Long resultId, Long studentId, String phoneNumber, boolean isRegistered,
+                            String studentName, int score, int rank, double percentile, Integer grade,
+                            String examCategory, boolean isPassed, String submittedAt) {}
+
     record ExamAssignmentData(
             Long id,
             String name,

@@ -2,6 +2,8 @@ package com.lumie.exam.application.service;
 
 import com.lumie.exam.application.event.OmrGradingRequestedEvent;
 import com.lumie.exam.api.ExamService;
+import com.lumie.exam.api.ExamResultChangedEvent;
+import com.lumie.exam.api.ExamResultDeletingEvent;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.request.OmrPresignRequest;
 import com.lumie.exam.application.dto.request.UpdateResultPhoneRequest;
@@ -41,6 +43,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -199,6 +202,13 @@ public class ResultCommandService {
                 .filter(qr -> qr.getId().equals(updated.getId()))
                 .findFirst()
                 .orElse(updated);
+        Map<String, String> answers = new LinkedHashMap<>();
+        saved.getQuestionResults().forEach(question -> answers.put(
+                String.valueOf(question.getQuestionNumber()), question.getSelectedChoice()));
+        eventPublisher.publishEvent(new ExamResultChangedEvent(
+                TenantContextHolder.getTenantId(), saved.getExam().getId(), saved.getId(),
+                answers, saved.getTotalScore(), saved.getExam().isPassFail() ? saved.isPassed() : null,
+                toManualGradeResult(saved, saved.getExam(), saved.getStudentId()).grade()));
         return QuestionResultResponse.from(refreshed, saved.getExam());
     }
 
@@ -233,6 +243,9 @@ public class ResultCommandService {
         if (!result.getExam().getId().equals(examId)) {
             throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
         }
+
+        eventPublisher.publishEvent(new ExamResultDeletingEvent(
+                TenantContextHolder.getTenantId(), examId, resultId));
 
         if (result.getOmrImageKey() != null) {
             try {

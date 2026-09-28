@@ -5,14 +5,13 @@ import com.lumie.assignment.application.dto.response.AssignmentSubmissionStatusR
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
-import com.lumie.assignment.domain.entity.AssignmentTarget;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
+import com.lumie.assignment.domain.repository.AssignmentRecipientRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
 import com.lumie.assignment.domain.repository.AssignmentTargetRepository;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
-import com.lumie.assignment.domain.vo.AssignmentTargetType;
 import com.lumie.assignment.domain.vo.EvaluationMode;
 import com.lumie.assignment.domain.vo.SubmissionMode;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
@@ -51,6 +50,7 @@ class AssignmentQueryServiceTest {
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private AssignmentSubmissionRepository submissionRepository;
     @Mock private AssignmentTargetRepository targetRepository;
+    @Mock private AssignmentRecipientRepository recipientRepository;
     @Mock private ClassService classService;
     @Mock private StudentService studentService;
     @Mock private ExamService examService;
@@ -143,8 +143,10 @@ class AssignmentQueryServiceTest {
     @Test
     @DisplayName("getSubmissions 성공 시 제출 목록을 반환한다")
     void getSubmissions_success() throws Exception {
+        given(assignmentRepository.findById(1L)).willReturn(Optional.of(buildAssignment(1L)));
+        stubCurrentResults();
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-        submission.submit("답안", null);
+        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10, false, "9");
         setField(submission, "id", 10L);
 
         Pageable pageable = PageRequest.of(0, 20);
@@ -156,19 +158,22 @@ class AssignmentQueryServiceTest {
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).studentId()).isEqualTo(42L);
+        assertThat(response.getContent().get(0).score()).isEqualTo(100);
+        assertThat(response.getContent().get(0).answers()).containsEntry("1", "2");
+        assertThat(response.getContent().get(0).gradeValue()).isEqualTo("1");
     }
 
     @Test
     @DisplayName("getSubmissionStatuses는 대상 학생 이름을 함께 반환한다")
     void getSubmissionStatuses_includesStudentName() throws Exception {
+        stubCurrentResults();
         Assignment entity = buildAssignment(1L);
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-        submission.submit("답안", null);
+        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10, false, "9");
         setField(submission, "id", 10L);
 
         given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
-        given(targetRepository.findByAssignmentId(1L))
-                .willReturn(List.of(AssignmentTarget.create(1L, AssignmentTargetType.STUDENT, 42L)));
+        given(recipientRepository.findStudentIdsByAssignmentId(1L)).willReturn(List.of(42L));
         given(submissionRepository.findAllByAssignmentId(1L)).willReturn(List.of(submission));
         given(studentService.getStudentsByIds("test-tenant", List.of(42L)))
                 .willReturn(new StudentService.StudentListData(
@@ -183,14 +188,16 @@ class AssignmentQueryServiceTest {
         assertThat(response).hasSize(1);
         assertThat(response.get(0).studentId()).isEqualTo(42L);
         assertThat(response.get(0).studentName()).isEqualTo("김루미");
-        assertThat(response.get(0).status()).isEqualTo(SubmissionStatus.SUBMITTED);
+        assertThat(response.get(0).status()).isEqualTo(SubmissionStatus.GRADED);
     }
 
     @Test
     @DisplayName("getStudentSubmissions 성공 시 해당 학생의 제출 목록을 반환한다")
     void getStudentSubmissions_success() throws Exception {
+        given(assignmentRepository.findById(1L)).willReturn(Optional.of(buildAssignment(1L)));
+        stubCurrentResults();
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-        submission.submit("답안", null);
+        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10, false, "9");
         setField(submission, "id", 10L);
 
         Pageable pageable = PageRequest.of(0, 20);
@@ -201,6 +208,12 @@ class AssignmentQueryServiceTest {
         Page<SubmissionResponse> response = queryService.getStudentSubmissions(1L, 42L, pageable);
 
         assertThat(response.getContent()).hasSize(1);
+    }
+
+    private void stubCurrentResults() {
+        given(examService.getResultsForAssignment(eq("test-tenant"), any()))
+                .willReturn(java.util.Map.of(90L, new ExamService.AssignmentResultData(
+                        42L, java.util.Map.of("1", "2"), 100, true, 1)));
     }
 
     @Test
@@ -217,9 +230,7 @@ class AssignmentQueryServiceTest {
                         1,
                         0,
                         1));
-        given(classService.getEnrolledClassesForStudents("test-tenant", List.of(42L)))
-                .willReturn(List.of(new ClassService.EnrolledClassData(1L, "수학반", 42L)));
-        given(targetRepository.findVisibleAssignmentIds(42L, List.of(1L))).willReturn(List.of(1L, 2L));
+        given(recipientRepository.findAssignmentIdsByStudentId(42L)).willReturn(List.of(1L, 2L));
         given(assignmentRepository.findByIdIn(List.of(1L, 2L))).willReturn(List.of(activeAssignment, closedAssignment));
         given(examService.getExamForAssignment(any(), eq(10L))).willReturn(Optional.of(examData()));
 

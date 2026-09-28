@@ -4,10 +4,13 @@ import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
 import com.lumie.exam.application.service.ExamCommandService;
+import com.lumie.exam.application.service.GradeCalculator;
+import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.application.service.ResultCommandService;
+import com.lumie.exam.application.service.StudentGradeQueryService;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
@@ -16,9 +19,12 @@ import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,6 +40,43 @@ public class ExamServiceAdapter implements ExamService {
     private final ExamRepository examRepository;
     private final ResultCommandService resultCommandService;
     private final ExamCommandService examCommandService;
+    private final GradeCalculator gradeCalculator;
+    private final StudentGradeQueryService studentGradeQueryService;
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, AssignmentResultData> getResultsForAssignment(String tenantSlug, Long examId) {
+        return withinTenant(tenantSlug, () -> {
+            var results = examResultRepository.findByExamId(examId);
+            var scores = results.stream().map(ExamResult::getTotalScore).toList();
+            Map<Long, AssignmentResultData> data = new HashMap<>();
+            for (var result : results) {
+                Exam exam = result.getExam();
+                Map<String, String> answers = new LinkedHashMap<>();
+                result.getQuestionResults().forEach(question -> answers.put(
+                        String.valueOf(question.getQuestionNumber()), question.getSelectedChoice()));
+                Integer grade = exam.getCategory() == ExamCategory.GRADED
+                        ? gradeCalculator.calculateGradeForScore(result.getTotalScore(), scores,
+                            exam.getGradingType(), exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE)
+                        : result.getGrade();
+                data.put(result.getId(), new AssignmentResultData(result.getStudentId(), answers,
+                        result.getTotalScore(), exam.isPassFail() ? result.isPassed() : null, grade));
+            }
+            return data;
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentGradeData> getStudentGradesForAssignment(String tenantSlug, Long examId) {
+        return withinTenant(tenantSlug, () -> studentGradeQueryService.getStudentGrades(examId, Pageable.unpaged())
+                .getContent().stream()
+                .map(grade -> new StudentGradeData(
+                        grade.resultId(), grade.studentId(), grade.phoneNumber(), grade.isRegistered(),
+                        grade.studentName(), grade.score(), grade.rank(), grade.percentile(), grade.grade(),
+                        grade.examCategory().name(), grade.isPassed(), grade.submittedAt().toString()))
+                .toList());
+    }
 
     @Override
     @Transactional

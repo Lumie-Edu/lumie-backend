@@ -10,7 +10,6 @@ public record UpdateAssignmentRequest(
     String status,
     String submissionMode,
     String evaluationMode,
-    Long linkedExamId,
     List<Long> targetClassIds,
     List<Long> targetStudentIds,
     Boolean showScore,
@@ -21,6 +20,6 @@ public record UpdateAssignmentRequest(
 ) {
     public UpdateAssignmentRequest(Instant dueDate, Integer maxScore, List<Long> attachments, String status) {
         this(dueDate, maxScore, attachments, status,
-                null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
     }
 }

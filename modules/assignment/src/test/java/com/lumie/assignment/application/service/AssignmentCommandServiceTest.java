@@ -53,6 +53,7 @@ class AssignmentCommandServiceTest {
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private AssignmentSubmissionRepository submissionRepository;
     @Mock private AssignmentTargetRepository targetRepository;
+    @Mock private AssignmentRecipientService recipientService;
     @Mock private ClassService classService;
     @Mock private StudentService studentService;
     @Mock private ExamService examService;
@@ -75,7 +76,6 @@ class AssignmentCommandServiceTest {
                     "EXAM_MANUAL",
                     "EXAM_AUTO",
                     examRequest(),
-                    null,
                     List.of(1L),
                     List.of(),
                     null,
@@ -100,6 +100,7 @@ class AssignmentCommandServiceTest {
 
             assertThat(response.status()).isEqualTo(AssignmentStatus.ACTIVE);
             assertThat(response.linkedExamId()).isEqualTo(77L);
+            verify(recipientService).snapshotRecipients("test-tenant", 1L, List.of(1L), List.of());
         }
 
         @Test
@@ -124,7 +125,6 @@ class AssignmentCommandServiceTest {
                             Map.of("1", "객관식", "2", "객관식"),
                             60
                     ),
-                    999L,
                     List.of(1L),
                     List.of(),
                     null,
@@ -170,7 +170,6 @@ class AssignmentCommandServiceTest {
                     "EXAM_MANUAL",
                     "EXAM_AUTO",
                     examRequest(),
-                    null,
                     List.of(1L),
                     List.of(),
                     null,
@@ -267,6 +266,26 @@ class AssignmentCommandServiceTest {
             assertThat(response.targetClassIds()).containsExactly(1L);
             verify(targetRepository, never()).deleteByAssignmentId(1L);
             verify(targetRepository, never()).saveAll(any());
+        }
+
+        @Test
+        @DisplayName("종료된 과제의 마감일을 미래로 연장하면 자동 재개된다")
+        void updateAssignment_futureDueDate_reactivatesClosedAssignment() throws Exception {
+            Assignment entity = buildAssignment(1L);
+            entity.close();
+            UpdateAssignmentRequest request = new UpdateAssignmentRequest(
+                    Instant.now().plusSeconds(3_600), null, null, null);
+
+            given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
+            given(assignmentRepository.save(any(Assignment.class))).willAnswer(inv -> inv.getArgument(0));
+            given(targetRepository.findByAssignmentId(1L)).willReturn(List.of(classTarget(1L)));
+            given(classService.getClass(any(), eq(1L))).willReturn(Optional.of(new ClassService.ClassData(
+                    1L, "수학반", null, null, null, null, null, null, null)));
+            given(examService.getExamForAssignment(any(), eq(10L))).willReturn(Optional.of(examData()));
+
+            AssignmentResponse response = commandService.updateAssignment(1L, request);
+
+            assertThat(response.status()).isEqualTo(AssignmentStatus.ACTIVE);
         }
 
         @Test
@@ -374,8 +393,7 @@ class AssignmentCommandServiceTest {
                             1,
                             0,
                             1));
-            given(targetRepository.existsByAssignmentIdAndTargetTypeAndTargetId(
-                    1L, AssignmentTargetType.STUDENT, 42L)).willReturn(true);
+            given(recipientService.isRecipient(1L, 42L)).willReturn(true);
             given(submissionRepository.findFirstByAssignmentIdAndStudentId(1L, 42L))
                     .willReturn(Optional.empty());
             given(examService.gradeManualAnswers(any(), eq(10L), eq(42L), eq(Map.of("1", "2", "2", "3"))))
@@ -414,8 +432,7 @@ class AssignmentCommandServiceTest {
                             1,
                             0,
                             1));
-            given(targetRepository.existsByAssignmentIdAndTargetTypeAndTargetId(
-                    1L, AssignmentTargetType.STUDENT, 42L)).willReturn(true);
+            given(recipientService.isRecipient(1L, 42L)).willReturn(true);
             given(submissionRepository.findFirstByAssignmentIdAndStudentId(1L, 42L))
                     .willReturn(Optional.of(existing));
 

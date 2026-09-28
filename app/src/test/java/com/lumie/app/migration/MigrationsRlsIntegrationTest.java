@@ -14,10 +14,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration coverage for the two things the audit flagged as untested
@@ -262,6 +264,133 @@ class MigrationsRlsIntegrationTest {
         }
     }
 
+    @Test
+    void assignmentsRequireOneDedicatedExamPerTenant() throws Exception {
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement();
+             ResultSet nullability = st.executeQuery(
+                     "SELECT is_nullable "
+                     + "FROM information_schema.columns "
+                     + "WHERE table_schema = 'public' "
+                     + "AND table_name = 'assignments' "
+                     + "AND column_name = 'linked_exam_id'")) {
+            assertThat(nullability.next())
+                    .as("assignments.linked_exam_id exists")
+                    .isTrue();
+            assertThat(nullability.getString("is_nullable"))
+                    .as("every assignment must reference an exam")
+                    .isEqualTo("NO");
+
+            try (ResultSet constraint = st.executeQuery(
+                    "SELECT pg_get_constraintdef(c.oid) AS definition "
+                    + "FROM pg_constraint c "
+                    + "WHERE c.conrelid = 'assignments'::regclass "
+                    + "AND c.conname = 'assignments_tenant_linked_exam_key' "
+                    + "AND c.contype = 'u'")) {
+                assertThat(constraint.next())
+                        .as("one exam cannot back multiple assignments for the same tenant")
+                        .isTrue();
+                assertThat(constraint.getString("definition"))
+                        .isEqualTo("UNIQUE (tenant_id, linked_exam_id)");
+            }
+        }
+    }
+
+    @Test
+    void assignmentExamConstraintsRejectInvalidLinksAndAllowIndependentExams() throws Exception {
+        long tenantA = 910_001L;
+        long tenantB = 910_002L;
+        long classA = 920_001L;
+        long classB = 920_002L;
+        long independentExam = 930_001L;
+        long assignmentExam = 930_002L;
+        long otherTenantExam = 930_003L;
+
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement()) {
+            insertClass(st, classA, tenantA);
+            insertClass(st, classB, tenantB);
+            insertExam(st, independentExam, tenantA, "independent-exam");
+            insertExam(st, assignmentExam, tenantA, "assignment-exam");
+            insertExam(st, otherTenantExam, tenantB, "other-tenant-exam");
+
+            try (ResultSet assignments = st.executeQuery(
+                    "SELECT count(*) FROM assignments "
+                    + "WHERE tenant_id = " + tenantA + " "
+                    + "AND linked_exam_id = " + independentExam)) {
+                assignments.next();
+                assertThat(assignments.getInt(1))
+                        .as("an exam may exist independently of an assignment")
+                        .isZero();
+            }
+
+            assertThatThrownBy(() -> insertAssignment(st, classA, tenantA, null))
+                    .as("an assignment without an exam is rejected")
+                    .isInstanceOf(SQLException.class)
+                    .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                            .isEqualTo("23502"));
+
+            insertAssignment(st, classA, tenantA, assignmentExam);
+            assertThatThrownBy(() -> insertAssignment(st, classA, tenantA, assignmentExam))
+                    .as("the same exam cannot back two assignments for one tenant")
+                    .isInstanceOf(SQLException.class)
+                    .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                            .isEqualTo("23505"));
+
+            assertThatThrownBy(() -> insertAssignment(st, classA, tenantA, otherTenantExam))
+                    .as("an assignment cannot reference another tenant's exam")
+                    .isInstanceOf(SQLException.class)
+                    .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                            .isEqualTo("23503"));
+        }
+    }
+
+    @Test
+    void assignmentRecipientSnapshotsHaveTenantSafeOwnershipAndRls() throws Exception {
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement();
+             ResultSet columns = st.executeQuery(
+                     "SELECT column_name, is_nullable "
+                     + "FROM information_schema.columns "
+                     + "WHERE table_schema = 'public' "
+                     + "AND table_name = 'assignment_recipients'")) {
+            var requiredColumns = new java.util.HashMap<String, String>();
+            while (columns.next()) {
+                requiredColumns.put(columns.getString("column_name"), columns.getString("is_nullable"));
+            }
+            assertThat(requiredColumns)
+                    .containsEntry("assignment_id", "NO")
+                    .containsEntry("student_id", "NO")
+                    .containsEntry("tenant_id", "NO")
+                    .containsEntry("version", "NO")
+                    .containsEntry("created_at", "NO")
+                    .containsEntry("updated_at", "NO");
+
+            try (ResultSet constraints = st.executeQuery(
+                    "SELECT conname, pg_get_constraintdef(oid) AS definition "
+                    + "FROM pg_constraint "
+                    + "WHERE conrelid = 'assignment_recipients'::regclass")) {
+                var definitions = new java.util.HashMap<String, String>();
+                while (constraints.next()) {
+                    definitions.put(constraints.getString("conname"), constraints.getString("definition"));
+                }
+                assertThat(definitions)
+                        .containsEntry("assignment_recipients_assignment_student_key",
+                                "UNIQUE (assignment_id, student_id)")
+                        .containsEntry("assignment_recipients_assignment_tenant_fkey",
+                                "FOREIGN KEY (assignment_id, tenant_id) REFERENCES assignments(id, tenant_id) ON DELETE CASCADE");
+            }
+
+            try (ResultSet rls = st.executeQuery(
+                    "SELECT relrowsecurity, relforcerowsecurity "
+                    + "FROM pg_class WHERE oid = 'assignment_recipients'::regclass")) {
+                assertThat(rls.next()).isTrue();
+                assertThat(rls.getBoolean("relrowsecurity")).isTrue();
+                assertThat(rls.getBoolean("relforcerowsecurity")).isTrue();
+            }
+        }
+    }
+
     /**
      * Cross-tenant isolation via an admin-inserted row.
      *
@@ -353,6 +482,28 @@ class MigrationsRlsIntegrationTest {
             rs.next();
             return rs.getInt(1);
         }
+    }
+
+    private static void insertClass(Statement statement, long classId, long tenantId) throws Exception {
+        statement.executeUpdate(
+                "INSERT INTO classes (id, name, tenant_id) VALUES ("
+                + classId + ", 'assignment-constraint-class-" + classId + "', " + tenantId + ")");
+    }
+
+    private static void insertExam(Statement statement, long examId, long tenantId, String name)
+            throws Exception {
+        statement.executeUpdate(
+                "INSERT INTO exams (id, name, total_questions, correct_answers, question_scores, tenant_id) "
+                + "VALUES (" + examId + ", '" + name + "', 1, '[1]'::jsonb, '[1]'::jsonb, "
+                + tenantId + ")");
+    }
+
+    private static void insertAssignment(Statement statement, long classId, long tenantId, Long examId)
+            throws Exception {
+        statement.executeUpdate(
+                "INSERT INTO assignments (class_id, due_date, tenant_id, linked_exam_id) "
+                + "VALUES (" + classId + ", now() + interval '1 day', " + tenantId + ", "
+                + (examId == null ? "null" : examId) + ")");
     }
 
     private static Connection adminConnection() throws Exception {
