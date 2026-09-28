@@ -38,7 +38,7 @@ class OmrGradingJobProcessorTest {
 
     private OmrGradingCallbackRequest successCallback() {
         return new OmrGradingCallbackRequest(
-                1L, 10L, "inst-abc123", "tmp/abc123/omr/batch/sheet.png", 0, 1,
+                1L, 10L, "inst-abc123", 0, 1,
                 true, null, "01012345678", 100, 1,
                 List.of(new OmrGradingCallbackRequest.QuestionResultItem(1, "1", "1", 100, 100, "SHORT")));
     }
@@ -51,6 +51,7 @@ class OmrGradingJobProcessorTest {
         given(submission.getId()).willReturn(55L);
         given(jobRepository.existsByIdAndStatusIn(1L, List.of(JobStatus.PENDING, JobStatus.PROCESSING))).willReturn(true);
         given(submissionService.getSubmission(1L, 0)).willReturn(submission);
+        given(submission.getSourceImageKey()).willReturn("tmp/abc123/omr/batch/sheet.png");
         given(submissionService.completeIfPending(1L, 0, request, "abc123/omr/submissions/55.png")).willReturn(true);
         given(storagePort.getObject(any())).willReturn(new byte[] {1});
         given(storagePort.putObject(any(), any(), any())).willReturn("abc123/omr/submissions/55.png");
@@ -68,7 +69,8 @@ class OmrGradingJobProcessorTest {
         OmrGradingCallbackRequest request = successCallback();
         OmrGradingJobProcessor.Tx tx = org.mockito.Mockito.mock(OmrGradingJobProcessor.Tx.class);
         OmrGradingJobProcessor duplicateProcessor = new OmrGradingJobProcessor(storagePort, jobRepository, tx);
-        OmrGradingJobProcessor.Tx.SuccessPrep prep = new OmrGradingJobProcessor.Tx.SuccessPrep("abc123/omr/submissions/55.png");
+        OmrGradingJobProcessor.Tx.SuccessPrep prep = new OmrGradingJobProcessor.Tx.SuccessPrep(
+                "tmp/abc123/omr/batch/sheet.png", "abc123/omr/submissions/55.png");
         given(tx.isOpenJob(1L)).willReturn(true);
         given(tx.prepareSuccess(request)).willReturn(prep);
         given(storagePort.getObject(any())).willReturn(new byte[] {1});
@@ -86,7 +88,7 @@ class OmrGradingJobProcessorTest {
     @DisplayName("실패 callback은 PENDING 제출본을 FAILED로 전이시키고 실패 카운터를 증가시킨다")
     void processGradingCallback_failureTransitionsPendingSubmissionOnce() {
         OmrGradingCallbackRequest request = new OmrGradingCallbackRequest(
-                1L, 10L, "inst-abc123", "tmp/abc123/omr/batch/sheet.png", 0, 1,
+                1L, 10L, "inst-abc123", 0, 1,
                 false, "OMR 채점 실패", null, 0, 0, null);
         given(jobRepository.existsByIdAndStatusIn(1L, List.of(JobStatus.PENDING, JobStatus.PROCESSING))).willReturn(true);
         given(submissionService.failIfPending(1L, 0, "OMR 채점 실패")).willReturn(true);

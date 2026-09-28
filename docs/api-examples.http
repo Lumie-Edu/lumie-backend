@@ -84,16 +84,3 @@ Content-Type: application/json
   "name": "입금 안내",
   "content": "[루미] 수강료 납부 안내입니다."
 }
-
-### Files — Upload (multipart)
-POST {{host}}/v1/files/upload
-Authorization: Bearer {{token}}
-X-Tenant-Slug: {{tenant}}
-Content-Type: multipart/form-data; boundary=boundary
-
---boundary
-Content-Disposition: form-data; name="file"; filename="homework.pdf"
-Content-Type: application/pdf
-
-< ./homework.pdf
---boundary--

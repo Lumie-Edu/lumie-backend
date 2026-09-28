@@ -6,7 +6,6 @@ public record OmrGradingCallbackRequest(
         Long jobId,
         Long examId,
         String tenantSlug,
-        String imageKey,
         int imageIndex,
         int totalImages,
         boolean success,

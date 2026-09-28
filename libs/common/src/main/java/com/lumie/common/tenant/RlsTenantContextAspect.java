@@ -47,8 +47,10 @@ public class RlsTenantContextAspect {
     @Around("@annotation(org.springframework.transaction.annotation.Transactional) "
             + "|| @within(org.springframework.transaction.annotation.Transactional)")
     public Object bindTenantToTransaction(ProceedingJoinPoint pjp) throws Throwable {
-        Long tenantId = TenantContextHolder.getTenantId();
-        transactionBinder.bindTenantToCurrentTransaction(tenantId);
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            Long tenantId = TenantContextHolder.getTenantId();
+            transactionBinder.bindTenantToCurrentTransaction(tenantId);
+        }
         return pjp.proceed();
     }
 }

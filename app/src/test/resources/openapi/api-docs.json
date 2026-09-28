@@ -908,10 +908,9 @@
           "isItImportantAnnouncement" : {
             "type" : "boolean"
           },
-          "textbookFileIds" : {
+          "temporaryAttachments" : {
             "items" : {
-              "format" : "uuid",
-              "type" : "string"
+              "$ref" : "#/components/schemas/TemporaryAttachment"
             },
             "type" : "array"
           }
@@ -1230,6 +1229,12 @@
           "qnaUserId" : {
             "format" : "int64",
             "type" : "integer"
+          },
+          "temporaryAttachments" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TemporaryAttachment"
+            },
+            "type" : "array"
           }
         },
         "required" : [ "qnaContent", "qnaTitle", "qnaUserId" ],
@@ -1337,6 +1342,26 @@
         "required" : [ "content", "name" ],
         "type" : "object"
       },
+      "CreateTemporaryUploadRequest" : {
+        "properties" : {
+          "contentType" : {
+            "type" : "string"
+          },
+          "entityType" : {
+            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
+            "type" : "string"
+          },
+          "fileSize" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "filename" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contentType", "entityType", "fileSize", "filename" ],
+        "type" : "object"
+      },
       "CreateTenantRequest" : {
         "properties" : {
           "displayName" : {
@@ -1437,6 +1462,19 @@
           }
         },
         "required" : [ "gradeDistribution", "overallAverageScore", "topIncorrectQuestions", "totalExams", "totalResults", "typeAccuracyList" ],
+        "type" : "object"
+      },
+      "DownloadGrant" : {
+        "properties" : {
+          "downloadUrl" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "downloadUrl", "expiresAt" ],
         "type" : "object"
       },
       "DropoutSummaryResponse" : {
@@ -3404,39 +3442,6 @@
         "required" : [ "active", "description", "displayOrder", "features", "id", "limits", "monthlyPrice", "name", "yearlyPrice" ],
         "type" : "object"
       },
-      "PresignedDownloadRequest" : {
-        "properties" : {
-          "fileId" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        },
-        "required" : [ "fileId" ],
-        "type" : "object"
-      },
-      "PresignedDownloadResponse" : {
-        "properties" : {
-          "contentType" : {
-            "type" : "string"
-          },
-          "downloadUrl" : {
-            "type" : "string"
-          },
-          "expiresInSeconds" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "fileId" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "filename" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "contentType", "downloadUrl", "expiresInSeconds", "fileId", "filename" ],
-        "type" : "object"
-      },
       "PresignedUpload" : {
         "properties" : {
           "fileName" : {
@@ -3450,47 +3455,6 @@
           }
         },
         "required" : [ "fileName", "objectKey", "uploadUrl" ],
-        "type" : "object"
-      },
-      "PresignedUploadRequest" : {
-        "properties" : {
-          "contentType" : {
-            "type" : "string"
-          },
-          "entityId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "entityType" : {
-            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
-            "type" : "string"
-          },
-          "fileSize" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "filename" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "contentType", "entityType", "fileSize", "filename" ],
-        "type" : "object"
-      },
-      "PresignedUploadResponse" : {
-        "properties" : {
-          "expiresInSeconds" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "fileId" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "uploadUrl" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "expiresInSeconds", "fileId", "uploadUrl" ],
         "type" : "object"
       },
       "PreviewOmrSubmissionReconciliationRequest" : {
@@ -3974,14 +3938,19 @@
         "required" : [ "name" ],
         "type" : "object"
       },
-      "RegisterUploadRequest" : {
+      "RegisterTextbookFilesRequest" : {
         "properties" : {
-          "fileId" : {
+          "attachments" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TemporaryAttachment"
+            },
+            "type" : "array"
+          },
+          "folderId" : {
             "format" : "uuid",
             "type" : "string"
           }
         },
-        "required" : [ "fileId" ],
         "type" : "object"
       },
       "RenameTextbookFolderRequest" : {
@@ -4071,6 +4040,27 @@
           }
         },
         "required" : [ "failCount", "jobId", "processedReports", "status", "successCount", "totalReports", "zipFileKey" ],
+        "type" : "object"
+      },
+      "ReportUploadRequest" : {
+        "properties" : {
+          "contentLength" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "contentType" : {
+            "type" : "string"
+          },
+          "examId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "studentId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "contentLength", "contentType", "examId", "studentId" ],
         "type" : "object"
       },
       "ReviewPopupSettingResponse" : {
@@ -5428,6 +5418,37 @@
         "required" : [ "billingKeyId", "cancelledAt", "createdAt", "expiresAt", "id", "limits", "nextChargeAt", "pendingPlanId", "planId", "planName", "scheduledChangeAt", "startedAt", "status", "suspensionReason", "tenantId", "tenantSlug", "updatedAt" ],
         "type" : "object"
       },
+      "TemporaryAttachment" : {
+        "properties" : {
+          "contentType" : {
+            "type" : "string"
+          },
+          "fileSize" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "filename" : {
+            "type" : "string"
+          },
+          "objectKey" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contentType", "filename", "objectKey" ],
+        "type" : "object"
+      },
+      "TemporaryObjectUploadResponse" : {
+        "properties" : {
+          "objectKey" : {
+            "type" : "string"
+          },
+          "uploadUrl" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "objectKey", "uploadUrl" ],
+        "type" : "object"
+      },
       "TenantResponse" : {
         "properties" : {
           "createdAt" : {
@@ -5751,17 +5772,17 @@
           "announcementTitle" : {
             "type" : "string"
           },
+          "attachmentFileIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "classIds" : {
             "items" : {
               "format" : "int64",
               "type" : "integer"
-            },
-            "type" : "array"
-          },
-          "fileIdsToDelete" : {
-            "items" : {
-              "format" : "uuid",
-              "type" : "string"
             },
             "type" : "array"
           },
@@ -5771,10 +5792,9 @@
           "isItImportantAnnouncement" : {
             "type" : "boolean"
           },
-          "textbookFileIds" : {
+          "temporaryAttachments" : {
             "items" : {
-              "format" : "uuid",
-              "type" : "string"
+              "$ref" : "#/components/schemas/TemporaryAttachment"
             },
             "type" : "array"
           }
@@ -6025,7 +6045,7 @@
       },
       "UpdateQnaRequest" : {
         "properties" : {
-          "fileIdsToDelete" : {
+          "attachmentFileIds" : {
             "items" : {
               "format" : "uuid",
               "type" : "string"
@@ -6037,6 +6057,12 @@
           },
           "qnaTitle" : {
             "type" : "string"
+          },
+          "temporaryAttachments" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TemporaryAttachment"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"
@@ -6134,6 +6160,28 @@
             "type" : "string"
           }
         },
+        "type" : "object"
+      },
+      "UploadGrant" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "fileKey" : {
+            "type" : "string"
+          },
+          "requiredHeaders" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "uploadUrl" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "expiresAt", "fileKey", "requiredHeaders", "uploadUrl" ],
         "type" : "object"
       },
       "UpsertSmsSenderSettingRequest" : {
@@ -6446,6 +6494,86 @@
           }
         },
         "tags" : [ "internal-chatbot-controller" ]
+      }
+    },
+    "/internal/files/worker/omr-jobs/{jobId}/items/{imageIndex}/download-url" : {
+      "get" : {
+        "operationId" : "omrDownload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "imageIndex",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DownloadGrant"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-worker-file-controller" ]
+      }
+    },
+    "/internal/files/worker/report-jobs/{jobId}/items/{reportIndex}/upload-url" : {
+      "post" : {
+        "operationId" : "reportUpload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "path",
+          "name" : "reportIndex",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportUploadRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadGrant"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-worker-file-controller" ]
       }
     },
     "/internal/omr/exams/{id}/full" : {
@@ -10196,151 +10324,62 @@
           }
         },
         "tags" : [ "file-controller" ]
-      },
+      }
+    },
+    "/v1/files/textbooks" : {
       "post" : {
-        "operationId" : "registerUploadCompleted",
+        "operationId" : "registerTextbookFiles",
         "requestBody" : {
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/RegisterUploadRequest"
+                "$ref" : "#/components/schemas/RegisterTextbookFilesRequest"
               }
             }
           },
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/FileMetadataResponse"
+                  "items" : {
+                    "$ref" : "#/components/schemas/FileMetadataResponse"
+                  },
+                  "type" : "array"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "file-controller" ]
       }
     },
-    "/v1/files/presigned-download" : {
+    "/v1/files/uploads" : {
       "post" : {
-        "operationId" : "generatePresignedDownloadUrl",
+        "operationId" : "createTemporaryUpload",
         "requestBody" : {
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/PresignedDownloadRequest"
+                "$ref" : "#/components/schemas/CreateTemporaryUploadRequest"
               }
             }
           },
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/PresignedDownloadResponse"
+                  "$ref" : "#/components/schemas/TemporaryObjectUploadResponse"
                 }
               }
             },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      }
-    },
-    "/v1/files/presigned-upload" : {
-      "post" : {
-        "operationId" : "generatePresignedUploadUrl",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/PresignedUploadRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PresignedUploadResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      }
-    },
-    "/v1/files/upload" : {
-      "post" : {
-        "operationId" : "uploadFile",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "entityType",
-          "required" : true,
-          "schema" : {
-            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "entityId",
-          "required" : false,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "folderId",
-          "required" : false,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        }, {
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "properties" : {
-                  "file" : {
-                    "format" : "binary",
-                    "type" : "string"
-                  }
-                },
-                "required" : [ "file" ],
-                "type" : "object"
-              }
-            }
-          }
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/FileMetadataResponse"
-                }
-              }
-            },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "file-controller" ]

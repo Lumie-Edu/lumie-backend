@@ -5,6 +5,7 @@ import com.lumie.content.application.dto.request.UpdateAnnouncementRequest;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.application.service.AnnouncementCommandService;
 import com.lumie.content.application.service.AnnouncementQueryService;
+import com.lumie.file.api.FileService;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
@@ -25,6 +26,7 @@ public class AnnouncementController {
 
     private final AnnouncementCommandService commandService;
     private final AnnouncementQueryService queryService;
+    private final FileService fileService;
 
     @GetMapping
     @AllowedSortFields({"createdAt", "announcementTitle"})

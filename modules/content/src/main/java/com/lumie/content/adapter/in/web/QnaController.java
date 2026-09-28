@@ -9,6 +9,7 @@ import com.lumie.content.application.dto.response.QnaDetailResponse;
 import com.lumie.content.application.dto.response.QnaUnansweredOverdueResponse;
 import com.lumie.content.application.service.QnaCommandService;
 import com.lumie.content.application.service.QnaQueryService;
+import com.lumie.file.api.FileService;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import jakarta.validation.Valid;
@@ -27,6 +28,7 @@ public class QnaController {
 
     private final QnaCommandService commandService;
     private final QnaQueryService queryService;
+    private final FileService fileService;
 
     @GetMapping
     @AllowedSortFields({"createdAt"})

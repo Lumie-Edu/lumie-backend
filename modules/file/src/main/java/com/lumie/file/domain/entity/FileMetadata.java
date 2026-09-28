@@ -52,6 +52,7 @@ public class FileMetadata extends TenantScopedEntity {
     @Column(name = "folder_id")
     private UUID folderId;
 
+
     @Builder
     private FileMetadata(EntityType entityType, Long entityId,
                          String originalFilename, String storedFilename, String contentType,
@@ -84,13 +85,19 @@ public class FileMetadata extends TenantScopedEntity {
                 .build();
     }
 
+    public static FileMetadata createWithId(UUID id, EntityType entityType, Long entityId,
+                                             String originalFilename, String contentType, Long fileSize,
+                                             String objectKey, UUID folderId) {
+        FileMetadata metadata = create(entityType, entityId, originalFilename, contentType, fileSize, objectKey, folderId);
+        metadata.id = id;
+        metadata.version = 0L;
+        return metadata;
+    }
+
     public void markUploadCompleted() {
         this.uploadCompleted = true;
     }
 
-    public void linkToEntity(Long entityId) {
-        this.entityId = entityId;
-    }
 
     private static String generateStoredFilename(String originalFilename) {
         int lastDotIndex = originalFilename.lastIndexOf('.');

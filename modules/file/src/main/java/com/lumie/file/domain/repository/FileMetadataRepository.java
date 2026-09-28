@@ -34,4 +34,5 @@ public interface FileMetadataRepository extends JpaRepository<FileMetadata, UUID
     List<FileMetadata> findByEntityType(@Param("entityType") EntityType entityType);
 
     boolean existsByFolderId(UUID folderId);
+
 }

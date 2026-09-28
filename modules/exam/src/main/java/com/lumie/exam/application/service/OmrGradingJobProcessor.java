@@ -58,7 +58,7 @@ public class OmrGradingJobProcessor {
             // Phase 2 (no tx): copy image in MinIO. A failed copy keeps the source image for recovery.
             String permanentKey;
             try {
-                permanentKey = copyImage(request, prep.permanentKey());
+                permanentKey = copyImage(prep.sourceImageKey(), prep.permanentKey());
             } catch (Exception e) {
                 log.warn("Failed to copy OMR image to permanent path: {}", prep.permanentKey(), e);
                 return tx.recordFail(request.jobId(), request.imageIndex(), "IMAGE_PERSISTENCE_FAILED");
@@ -67,11 +67,12 @@ public class OmrGradingJobProcessor {
             // Phase 3 (write tx): persist raw submission, then conditionally project it.
             return tx.saveSuccess(request, prep, permanentKey);
         }
-        return tx.recordFail(request.jobId(), request.imageIndex(), request.error());
+        String reason = request.error() == null ? "OMR_GRADING_FAILED" : request.error().substring(0, Math.min(100, request.error().length()));
+        return tx.recordFail(request.jobId(), request.imageIndex(), reason);
     }
 
-    private String copyImage(OmrGradingCallbackRequest request, String permanentKey) {
-        byte[] imageData = storagePort.getObject(request.imageKey());
+    private String copyImage(String sourceImageKey, String permanentKey) {
+        byte[] imageData = storagePort.getObject(sourceImageKey);
         storagePort.putObject(permanentKey, imageData, "image/png");
         return permanentKey;
     }
@@ -103,7 +104,7 @@ public class OmrGradingJobProcessor {
     @RequiredArgsConstructor
     static class Tx {
 
-        record SuccessPrep(String permanentKey) {}
+        record SuccessPrep(String sourceImageKey, String permanentKey) {}
 
         private final OmrGradingJobRepository jobRepository;
         private final OmrSubmissionService submissionService;
@@ -131,7 +132,7 @@ public class OmrGradingJobProcessor {
             var submission = submissionService.getSubmission(request.jobId(), request.imageIndex());
             String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
             String permanentKey = tenantId + "/omr/submissions/" + submission.getId() + ".png";
-            return new SuccessPrep(permanentKey);
+            return new SuccessPrep(submission.getSourceImageKey(), permanentKey);
         }
 
         @Transactional
