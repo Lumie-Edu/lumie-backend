@@ -7,7 +7,6 @@ import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileDownload;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.repository.FileDownloadRepository;
-import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.student.api.StudentService;
@@ -32,7 +31,6 @@ import static org.mockito.BDDMockito.given;
 class FileQueryServiceTest {
 
     @Mock private FileMetadataRepository fileMetadataRepository;
-    @Mock private FileLinkRepository fileLinkRepository;
     @Mock private FileDownloadRepository fileDownloadRepository;
     @Mock private StudentService studentService;
     @Mock private FileMetadataLookupService fileMetadataLookupService;

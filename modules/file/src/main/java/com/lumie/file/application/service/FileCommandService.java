@@ -10,7 +10,6 @@ import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.file.domain.repository.FileMetadataRepository;
-import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.TextbookFolderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,6 @@ import java.util.List;
 public class FileCommandService {
 
     private final FileMetadataRepository fileMetadataRepository;
-    private final FileLinkRepository fileLinkRepository;
     private final TextbookFolderRepository textbookFolderRepository;
     private final com.lumie.file.domain.repository.FileDownloadRepository fileDownloadRepository;
     private final StoragePort storagePort;
@@ -62,10 +60,6 @@ public class FileCommandService {
     public void deleteFile(UUID fileId) {
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-
-        if (fileLinkRepository.existsByFile_Id(fileId)) {
-            throw new BusinessException(FileErrorCode.FILE_IN_USE);
-        }
 
         storagePort.deleteObject(fileMetadata.getObjectKey());
         fileMetadataRepository.deleteById(fileId);

@@ -9,7 +9,6 @@ import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,6 @@ public class FileQueryService {
     private static final String DELETED_STUDENT_NAME = "삭제된 학생";
 
     private final FileMetadataRepository fileMetadataRepository;
-    private final FileLinkRepository fileLinkRepository;
     private final com.lumie.file.domain.repository.FileDownloadRepository fileDownloadRepository;
     private final com.lumie.student.api.StudentService studentService;
     private final FileMetadataLookupService fileMetadataLookupService;
@@ -60,14 +58,7 @@ public class FileQueryService {
 
     @Transactional(readOnly = true)
     public List<FileMetadataResponse> getFilesByEntity(EntityType entityType, Long entityId) {
-        List<FileMetadata> files = fileMetadataRepository.findByEntityTypeAndEntityId(entityType, entityId);
-        List<FileMetadata> linkedFiles = fileLinkRepository.findByEntityTypeAndEntityId(entityType, entityId)
-                .stream()
-                .map(link -> link.getFile())
-                .toList();
-
-        return java.util.stream.Stream.concat(files.stream(), linkedFiles.stream())
-                .distinct()
+        return fileMetadataRepository.findByEntityTypeAndEntityId(entityType, entityId).stream()
                 .map(FileMetadataResponse::from)
                 .toList();
     }

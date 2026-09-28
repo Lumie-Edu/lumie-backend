@@ -6,9 +6,7 @@ import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.api.PreparedTemporaryFile;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
-import com.lumie.file.domain.entity.FileLink;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.file.domain.repository.FileLinkRepository;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.api.FileService;
@@ -33,7 +31,6 @@ public class FileServiceAdapter implements FileService {
     private static final int MAX_ATTACHMENTS = 5;
 
     private final FileMetadataRepository fileMetadataRepository;
-    private final FileLinkRepository fileLinkRepository;
     private final StoragePort storagePort;
 
     @Override
@@ -166,35 +163,6 @@ public class FileServiceAdapter implements FileService {
                     });
         }
         if (!objectKeys.isEmpty()) scheduleMinioCleanup(objectKeys);
-    }
-
-    @Override
-    public void replaceFileLinks(String entityType, Long entityId, List<UUID> fileIds) {
-        if (fileIds == null) {
-            return;
-        }
-
-        EntityType type = parseEntityType(entityType);
-        fileLinkRepository.deleteByEntityTypeAndEntityId(type, entityId);
-        fileLinkRepository.flush();
-
-        if (fileIds.isEmpty()) {
-            return;
-        }
-
-        for (UUID fileId : fileIds.stream().distinct().toList()) {
-            FileMetadata file = fileMetadataRepository.findById(fileId)
-                    .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-            if (file.getEntityType() != EntityType.TEXTBOOK || !file.isUploadCompleted()) {
-                throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "Only completed textbook files can be linked");
-            }
-            fileLinkRepository.save(FileLink.create(file, type, entityId));
-        }
-    }
-
-    @Override
-    public void deleteFileLinksByEntity(String entityType, Long entityId) {
-        fileLinkRepository.deleteByEntityTypeAndEntityId(parseEntityType(entityType), entityId);
     }
 
     private static EntityType parseEntityType(String entityType) {
