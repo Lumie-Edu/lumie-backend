@@ -105,6 +105,39 @@ class StaffCommandServiceTest {
         verify(authService, never()).createUser(any(), any(), any(), anyLong());
     }
 
+    @Test
+    void registerStaffStoresContactEmailOnCanonicalUser() {
+        var request = new StaffRequest(Role.INSTRUCTOR.name(), "강사님", "010-1234-5678",
+                "teacher@example.com", null);
+        given(billingService.checkQuota(TENANT, MetricType.ADMINS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.ADMINS, "ok"));
+        given(authService.createUser("강사님", "010-1234-5678", Role.INSTRUCTOR.name(), 1L))
+                .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "staff_100"));
+        given(staffRepository.save(any(Staff.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(authService.updateIdentity(100L, null, null, "teacher@example.com"))
+                .willReturn(true);
+
+        service.registerStaff(request);
+
+        verify(authService).updateIdentity(100L, null, null, "teacher@example.com");
+    }
+
+    @Test
+    void updateStaffWritesCanonicalUserIdentityAndEmail() {
+        Staff staff = Staff.create(100L, "staff_100", "기존 이름", "01011112222", "old@example.com", null);
+        ReflectionTestUtils.setField(staff, "id", 10L);
+        ReflectionTestUtils.setField(staff, "role", Role.INSTRUCTOR.name());
+        given(staffRepository.findById(10L)).willReturn(Optional.of(staff));
+        given(staffRepository.save(staff)).willReturn(staff);
+        given(authService.updateIdentity(100L, "새 이름", "01033334444", "new@example.com"))
+                .willReturn(true);
+
+        service.updateStaff(10L, new com.lumie.staff.application.dto.request.StaffUpdateRequest(
+                "새 이름", "010-3333-4444", "new@example.com", null));
+
+        verify(authService).updateIdentity(100L, "새 이름", "01033334444", "new@example.com");
+    }
+
     private static Staff inactiveStaff(Long id, Long userId) {
         Staff staff = Staff.create(userId, "staff@example.com", "강사", "01012345678", null, null);
         staff.deactivate();

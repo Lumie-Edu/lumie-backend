@@ -1,11 +1,9 @@
 package com.lumie.file.application.service;
 
-import com.lumie.common.auth.Role;
-import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.application.port.out.StoragePort;
-import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
@@ -83,7 +81,7 @@ public class FileQueryService {
 
     @Transactional(readOnly = true)
     public List<com.lumie.file.application.dto.response.FileDownloaderResponse> getFileDownloaders(UUID fileId) {
-        requireStaffUser();
+        AuthorizationGuard.requireStaff();
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
@@ -110,11 +108,6 @@ public class FileQueryService {
                 .toList();
     }
 
-    private void requireStaffUser() {
-        Role role = UserContextHolder.getUserRole();
-        if (role == null || role == Role.STUDENT) {
-            throw new BusinessException(CommonErrorCode.FORBIDDEN);
-        }
-    }
+
 
 }

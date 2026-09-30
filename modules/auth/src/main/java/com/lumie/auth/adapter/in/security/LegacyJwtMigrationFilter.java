@@ -1,6 +1,8 @@
 package com.lumie.auth.adapter.in.security;
 
 import com.lumie.auth.adapter.in.web.CookieUtils;
+import com.lumie.common.exception.ProblemResponseWriter;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.auth.adapter.in.web.SessionMetadataExtractor;
 import com.lumie.auth.adapter.out.config.SessionConfig;
 import com.lumie.auth.application.port.out.UserLookupPort;
@@ -41,6 +43,8 @@ public class LegacyJwtMigrationFilter extends OncePerRequestFilter {
     private final LoginSessionHelper sessions;
     private final CookieUtils cookieUtils;
     private final SessionConfig sessionConfig;
+    private final SameOriginPolicy sameOriginPolicy;
+    private final ProblemResponseWriter problems;
 
     @Value("${legacy-jwt.secret-key:}") private String secret;
     @Value("${legacy-jwt.sunset-at:2026-12-31T14:59:59Z}") private Instant sunsetAt;
@@ -52,9 +56,9 @@ public class LegacyJwtMigrationFilter extends OncePerRequestFilter {
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                                FilterChain chain) throws IOException, ServletException {
         if (!"POST".equals(request.getMethod()) || secret.isBlank() || !Instant.now().isBefore(sunsetAt)) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND); return;
+            problems.write(request, response, HttpServletResponse.SC_NOT_FOUND, CommonErrorCode.RESOURCE_NOT_FOUND.getCode(), "Not found"); return;
         }
-        if (!sameOrigin(request)) { response.sendError(HttpServletResponse.SC_FORBIDDEN); return; }
+        if (!sameOriginPolicy.isAllowed(request)) { problems.write(request, response, HttpServletResponse.SC_FORBIDDEN, CommonErrorCode.FORBIDDEN.getCode(), "Cross-origin request rejected"); return; }
         String token = cookie(request, REFRESH_COOKIE);
         if (token == null) { response.setStatus(HttpServletResponse.SC_NO_CONTENT); return; }
         try {
@@ -92,5 +96,4 @@ public class LegacyJwtMigrationFilter extends OncePerRequestFilter {
     private SecretKey key() { return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)); }
     private String cookie(HttpServletRequest request, String name) { if (request.getCookies() == null) return null; for (Cookie c : request.getCookies()) if (name.equals(c.getName())) return c.getValue(); return null; }
     private String expire(String name) { return ResponseCookie.from(name, "").httpOnly(true).secure(sessionConfig.isCookieSecure()).sameSite(sessionConfig.getCookieSameSite()).path("/").maxAge(0).build().toString(); }
-    private boolean sameOrigin(HttpServletRequest request) { String origin = request.getHeader(HttpHeaders.ORIGIN); if (origin == null) return false; String host = request.getHeader(HttpHeaders.HOST); String scheme = request.getHeader("X-Forwarded-Proto"); if (scheme == null) scheme = request.getScheme(); return origin.equalsIgnoreCase(scheme + "://" + host) || sessionConfig.getCsrfAllowedOrigins().contains(origin); }
 }

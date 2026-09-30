@@ -17,19 +17,13 @@ import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
 import com.lumie.exam.domain.vo.ExamCategory;
-import com.lumie.exam.domain.vo.GradeScale;
-import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -193,7 +187,8 @@ public class ReportBatchDataQueryService {
         return ReportBatchDataResponse.Item.success(
                 studentId,
                 new ReportBatchDataResponse.StudentInfo(student.id(), student.studentName(), student.studentPhone()),
-                ExamResultResponse.from(result, student.studentName()),
+                ExamResultResponse.from(result, student.studentName(),
+                        gradeCalculator.resolveStoredOrRelativeGrade(exam, result, rankContext.allScores())),
                 studentRank,
                 stability,
                 questionResults
@@ -204,7 +199,7 @@ public class ReportBatchDataQueryService {
         List<Integer> allScores = examResults.stream()
                 .map(ExamResult::getTotalScore)
                 .toList();
-        Map<String, List<Double>> typeAccuracies = calculateTypeAccuracies(exam, examResults);
+        Map<String, List<Double>> typeAccuracies = ExamStatisticsProjection.calculateTypeAccuracies(exam, examResults);
         return new RankContext(allScores, typeAccuracies, examResults.size());
     }
 
@@ -212,11 +207,7 @@ public class ReportBatchDataQueryService {
         int rank = statisticsCalculator.calculateRank(result.getTotalScore(), context.allScores());
         double percentile = statisticsCalculator.calculatePercentile(result.getTotalScore(), context.allScores());
 
-        Integer grade = result.getGrade();
-        if (exam.getCategory() == ExamCategory.GRADED && exam.getGradingType() == GradingType.RELATIVE) {
-            GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
-            grade = gradeCalculator.calculateRelativeGrade(result.getTotalScore(), context.allScores(), gradeScale);
-        }
+        Integer grade = gradeCalculator.resolveStoredOrRelativeGrade(exam, result, context.allScores());
 
         return new StudentRankResponse(
                 result.getStudentId(),
@@ -227,75 +218,15 @@ public class ReportBatchDataQueryService {
                 context.totalParticipants(),
                 Math.round(percentile * 10) / 10.0,
                 grade,
-                calculateTypePercentiles(exam, result, context.typeAccuracies())
+                ExamStatisticsProjection.calculateTypePercentiles(exam, result, context.typeAccuracies())
         );
     }
 
-    private Map<String, List<Double>> calculateTypeAccuracies(Exam exam, List<ExamResult> examResults) {
-        if (exam.getQuestionTypes() == null) {
-            return Map.of();
-        }
-        Map<String, List<Double>> typeAccuracies = new HashMap<>();
-        for (ExamResult result : examResults) {
-            Map<String, int[]> resultTypeStats = calculateTypeStats(exam, result.getQuestionResults());
-            for (Map.Entry<String, int[]> entry : resultTypeStats.entrySet()) {
-                int correct = entry.getValue()[0];
-                int total = entry.getValue()[1];
-                double accuracy = total > 0 ? (double) correct / total * 100 : 0;
-                typeAccuracies.computeIfAbsent(entry.getKey(), ignored -> new ArrayList<>()).add(accuracy);
-            }
-        }
-        return typeAccuracies;
-    }
 
-    private List<StudentRankResponse.TypePercentile> calculateTypePercentiles(
-            Exam exam,
-            ExamResult result,
-            Map<String, List<Double>> typeAccuracies
-    ) {
-        if (exam.getQuestionTypes() == null) {
-            return Collections.emptyList();
-        }
 
-        Map<String, int[]> studentTypeStats = calculateTypeStats(exam, result.getQuestionResults());
-        return studentTypeStats.entrySet().stream()
-                .map(entry -> {
-                    String type = entry.getKey();
-                    int correct = entry.getValue()[0];
-                    int total = entry.getValue()[1];
-                    double accuracy = total > 0 ? (double) correct / total * 100 : 0;
-                    List<Double> allAccuracies = typeAccuracies.getOrDefault(type, Collections.emptyList());
-                    long lowerCount = allAccuracies.stream().filter(a -> a < accuracy).count();
-                    double percentile = allAccuracies.isEmpty()
-                            ? 0
-                            : (double) lowerCount / allAccuracies.size() * 100;
 
-                    return new StudentRankResponse.TypePercentile(
-                            type,
-                            correct,
-                            total,
-                            Math.round(accuracy * 10) / 10.0,
-                            Math.round(percentile * 10) / 10.0
-                    );
-                })
-                .toList();
-    }
 
-    private Map<String, int[]> calculateTypeStats(Exam exam, Collection<QuestionResult> questionResults) {
-        Map<String, int[]> typeStats = new HashMap<>();
-        for (QuestionResult qr : questionResults) {
-            String type = exam.getQuestionType(qr.getQuestionNumber());
-            if (type == null) {
-                continue;
-            }
-            typeStats.computeIfAbsent(type, ignored -> new int[]{0, 0});
-            typeStats.get(type)[1]++;
-            if (qr.isCorrect()) {
-                typeStats.get(type)[0]++;
-            }
-        }
-        return typeStats;
-    }
+
 
     private Map<Long, StabilityIndexResponse> calculateStabilityIndexes(List<Long> studentIds) {
         if (studentIds.isEmpty()) {
@@ -308,44 +239,11 @@ public class ReportBatchDataQueryService {
                 .stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        entry -> calculateStabilityIndex(entry.getKey(), entry.getValue())
+                        entry -> ExamStatisticsProjection.calculateStabilityIndex(entry.getKey(), entry.getValue(), statisticsCalculator)
                 ));
     }
 
-    private StabilityIndexResponse calculateStabilityIndex(Long studentId, List<ExamResult> results) {
-        if (results.isEmpty()) {
-            return new StabilityIndexResponse(studentId, 0, 0.0, 0.0, 0.0, "N/A", List.of());
-        }
 
-        List<Integer> scores = results.stream()
-                .map(ExamResult::getTotalScore)
-                .toList();
-        double average = statisticsCalculator.calculateMean(scores);
-        double stdDev = statisticsCalculator.calculateStandardDeviation(scores);
-        double cv = statisticsCalculator.calculateCoefficientOfVariation(scores);
-
-        List<StabilityIndexResponse.ScoreHistory> history = results.stream()
-                .sorted(Comparator.comparing(ExamResult::getCreatedAt))
-                .map(r -> new StabilityIndexResponse.ScoreHistory(
-                        r.getExam().getId(),
-                        r.getExam().getName(),
-                        r.getTotalScore(),
-                        r.getExam().calculateTotalPossibleScore(),
-                        r.getGrade() != null ? r.getGrade() : 0,
-                        r.getCreatedAt()
-                ))
-                .toList();
-
-        return new StabilityIndexResponse(
-                studentId,
-                results.size(),
-                Math.round(average * 10) / 10.0,
-                Math.round(stdDev * 10) / 10.0,
-                Math.round(cv * 10) / 10.0,
-                statisticsCalculator.determineStabilityLevel(cv),
-                history
-        );
-    }
 
     private record RankContext(
             List<Integer> allScores,

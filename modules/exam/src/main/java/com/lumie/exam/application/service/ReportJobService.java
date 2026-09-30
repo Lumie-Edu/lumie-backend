@@ -1,5 +1,6 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.exam.application.event.ReportBatchGenerationRequestedEvent;
 import com.lumie.exam.application.dto.request.ReportCallbackRequest;
 import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
@@ -255,7 +256,7 @@ public class ReportJobService {
             }
         }
 
-        String zipKey = "tmp/" + tenantId + "/reports/" + manifest.examId() + "/batch_" + jobId + ".zip";
+        String zipKey = FileObjectKeyFactory.reportArchive(tenantId, manifest.examId(), jobId);
         storagePort.putObject(zipKey, baos.toByteArray(), "application/zip");
         tx.setZipFileKey(jobId, zipKey);
 
@@ -293,7 +294,7 @@ public class ReportJobService {
     }
 
     private static String buildLegacyReportFileKey(String tenantId, Long examId, Long studentId) {
-        return "tmp/" + tenantId + "/reports/" + examId + "/" + studentId + ReportFileFormat.LEGACY_JPG_EXTENSION;
+        return FileObjectKeyFactory.legacyReport(tenantId, examId, studentId);
     }
 
     private static String buildReportFilename(String studentName, String examName) {

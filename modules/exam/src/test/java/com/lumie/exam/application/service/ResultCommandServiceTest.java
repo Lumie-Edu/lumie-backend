@@ -3,7 +3,9 @@ package com.lumie.exam.application.service;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.UpdateResultPhoneRequest;
+import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
+import com.lumie.exam.application.event.OmrGradingRequestedEvent;
 import com.lumie.exam.test.ExamFixtures;
 import com.lumie.exam.application.port.out.OmrServicePort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
@@ -11,13 +13,17 @@ import com.lumie.billing.api.BillingService;
 import com.lumie.student.api.StudentService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
+import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
+import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.quota.MetricType;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.exam.domain.repository.OmrSubmissionRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -53,6 +59,10 @@ class ResultCommandServiceTest {
     private ExamResultRepository resultRepository;
     @Mock
     private OmrGradingJobRepository jobRepository;
+    @Mock
+    private OmrSubmissionRepository submissionRepository;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
     @Spy
     private GradeCalculator gradeCalculator;
     @Mock
@@ -139,6 +149,31 @@ class ResultCommandServiceTest {
     }
 
     @Test
+    void directOmrResponseUsesTheFullRelativeExamCohort() {
+        Long examId = 1L;
+        Long studentId = 100L;
+        Exam exam = buildExam();
+        org.springframework.test.util.ReflectionTestUtils.setField(exam, "id", examId);
+        org.springframework.test.util.ReflectionTestUtils.setField(exam, "gradingType", GradingType.RELATIVE);
+        ExamResult savedResult = ExamResult.create(exam, studentId, 50);
+        ExamResult higherResult = ExamResult.create(exam, 101L, 90);
+        given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(studentService.validateStudent(any(), eq(studentId)))
+                .willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
+        given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
+        given(billingService.checkQuota(any(), eq(MetricType.OMR_MONTHLY)))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 1000L, MetricType.OMR_MONTHLY, "ok"));
+        given(omrService.gradeOmrImage(any(), any(), any(), any(), any())).willReturn(buildOmrResult(50));
+        given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
+        given(resultRepository.save(any(ExamResult.class))).willReturn(savedResult);
+        given(resultRepository.findByExamId(examId)).willReturn(List.of(savedResult, higherResult));
+
+        ExamResultResponse response = resultCommandService.processOmrGrading(examId, studentId, new byte[]{1});
+
+        assertThat(response.grade()).isEqualTo(5);
+    }
+
+    @Test
     @DisplayName("기존 결과가 있으면 기존 엔티티를 업데이트하여 저장한다")
     void processOmrGrading_existingResult_updatesInPlace() {
         // given
@@ -214,13 +249,47 @@ class ResultCommandServiceTest {
         given(studentService.validateStudent(any(), eq(100L))).willReturn(new StudentService.ValidateStudentResult(true, "ok", 100L));
         given(studentService.getStudent(any(), eq(100L))).willReturn(Optional.of(aStudent(100L)));
         given(billingService.checkQuota(any(), eq(MetricType.OMR_MONTHLY))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, MetricType.OMR_MONTHLY, "ok"));
+        IllegalStateException transportFailure = new IllegalStateException("OMR service unavailable");
         given(omrService.gradeOmrImage(any(), any(), any(), any(), any()))
-                .willThrow(new RuntimeException("OMR service unavailable"));
+                .willThrow(transportFailure);
 
         assertThatThrownBy(() -> resultCommandService.processOmrGrading(1L, 100L, new byte[]{1}))
-                .isInstanceOf(BusinessException.class)
-                .extracting("errorCode")
-                .isEqualTo(ExamErrorCode.OMR_GRADING_FAILED);
+                .isInstanceOfSatisfying(BusinessException.class, failure -> {
+                    assertThat(failure.getErrorCode()).isEqualTo(ExamErrorCode.OMR_GRADING_FAILED);
+                    assertThat(failure.getCause()).isSameAs(transportFailure);
+                });
+    }
+
+    @Test
+    void confirmBatchOmrGrading_rejectsKeysOutsideSubmittedBatch() {
+        given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
+
+        assertThatThrownBy(() -> resultCommandService.confirmBatchOmrGrading(1L,
+                new OmrBatchConfirmRequest("a1b2c3d4", List.of(
+                        "tmp/test-academy/omr/a1b2c3d4/one.jpg",
+                        "tmp/test-academy/omr/deadbeef/two.jpg"))))
+                .isInstanceOfSatisfying(BusinessException.class, failure ->
+                        assertThat(failure.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA));
+
+        verifyNoInteractions(jobRepository, submissionRepository, eventPublisher);
+    }
+
+    @Test
+    void confirmBatchOmrGrading_acceptsKeysWithinSubmittedBatch() {
+        given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
+        given(jobRepository.save(any(OmrGradingJob.class))).willAnswer(invocation -> {
+            OmrGradingJob job = invocation.getArgument(0);
+            org.springframework.test.util.ReflectionTestUtils.setField(job, "id", 42L);
+            return job;
+        });
+        String key = "tmp/test-academy/omr/a1b2c3d4/one.jpg";
+
+        var response = resultCommandService.confirmBatchOmrGrading(1L,
+                new OmrBatchConfirmRequest("a1b2c3d4", List.of(key)));
+
+        assertThat(response.jobId()).isEqualTo(42L);
+        verify(submissionRepository).saveAll(any());
+        verify(eventPublisher).publishEvent(any(OmrGradingRequestedEvent.class));
     }
 
     @Test
@@ -468,8 +537,6 @@ class ResultCommandServiceTest {
         given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
         given(resultRepository.save(any(ExamResult.class))).willReturn(savedResult);
-        given(gradeCalculator.calculateGradeForScore(eq(80), eq(List.of()),
-                eq(exam.getGradingType()), eq(exam.getGradeScale()))).willReturn(2);
 
         ExamService.ManualGradeResult result = resultCommandService.gradeManualAnswers(
                 examId,
@@ -496,6 +563,27 @@ class ResultCommandServiceTest {
         assertThat(result.questionResults().get(4).selectedChoice()).isNull();
         assertThat(result.questionResults().get(4).correct()).isFalse();
         assertThat(result.questionResults().get(4).earnedScore()).isZero();
+    }
+
+    @Test
+    void gradeManualAnswers_returnsPersistedAbsoluteGrade() {
+        Long examId = 1L;
+        Long studentId = 100L;
+        Exam exam = buildExam();
+        ExamResult savedResult = ExamResult.create(exam, studentId, 80);
+        savedResult.assignGrade(7);
+        given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(studentService.validateStudent(any(), eq(studentId)))
+                .willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
+        given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
+        given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
+        given(resultRepository.save(any(ExamResult.class))).willReturn(savedResult);
+
+        ExamService.ManualGradeResult response = resultCommandService.gradeManualAnswers(
+                examId, studentId, Map.of("1", "1"));
+
+        assertThat(response.grade()).isEqualTo(7);
+        verify(resultRepository, never()).findByExamId(examId);
     }
 
     @Test

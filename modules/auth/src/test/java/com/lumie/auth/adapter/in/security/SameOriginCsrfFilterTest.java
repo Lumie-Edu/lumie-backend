@@ -19,7 +19,7 @@ class SameOriginCsrfFilterTest {
         request.addHeader("Origin", "http://localhost:3000");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        new SameOriginCsrfFilter(new SessionConfig()).doFilter(request, response, new MockFilterChain());
+        new SameOriginCsrfFilter(new SessionConfig(), new SameOriginPolicy(new SessionConfig()), new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper())).doFilter(request, response, new MockFilterChain());
 
         assertThat(response.getStatus()).isEqualTo(403);
     }
@@ -35,10 +35,24 @@ class SameOriginCsrfFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
-        new SameOriginCsrfFilter(config).doFilter(request, response, chain);
+        new SameOriginCsrfFilter(config, new SameOriginPolicy(config), new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper())).doFilter(request, response, chain);
 
         assertThat(response.getStatus()).isEqualTo(200);
         assertThat(chain.getRequest()).isSameAs(request);
+    }
+
+    @Test
+    void sharedPolicyRejectsBlankOriginAndUsesFallbackHostAndScheme() {
+        var policy = new SameOriginPolicy(new SessionConfig());
+        var request = new MockHttpServletRequest();
+        request.setServerName("example.com");
+        request.setScheme("https");
+        request.addHeader("Origin", "https://example.com");
+        request.addHeader("X-Forwarded-Proto", "");
+        assertThat(policy.isAllowed(request)).isTrue();
+        request.removeHeader("Origin");
+        request.addHeader("Origin", " ");
+        assertThat(policy.isAllowed(request)).isFalse();
     }
 
     private MockHttpServletRequest sessionRequest() {

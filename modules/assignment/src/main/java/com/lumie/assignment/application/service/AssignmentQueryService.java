@@ -1,5 +1,7 @@
 package com.lumie.assignment.application.service;
 
+import com.lumie.common.api.InMemoryPage;
+import com.lumie.common.auth.CurrentStudentResolver;
 import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.dto.response.AssignmentQuestionResultResponse;
 import com.lumie.assignment.application.dto.response.AssignmentSubmissionStatusResponse;
@@ -23,13 +25,11 @@ import com.lumie.classroom.api.ClassService;
 import com.lumie.assignment.domain.vo.SubmissionMode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.api.ExamService;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -167,12 +167,7 @@ public class AssignmentQueryService {
                 .filter(row -> submitted == null || (row.submissionStatus() != SubmissionStatus.PENDING) == submitted)
                 .sorted(assignmentGradeComparator(pageable.getSort()))
                 .toList();
-        if (pageable.isUnpaged()) {
-            return new PageImpl<>(rows, Pageable.unpaged(), rows.size());
-        }
-        int start = Math.min((int) pageable.getOffset(), rows.size());
-        int end = Math.min(start + pageable.getPageSize(), rows.size());
-        return new PageImpl<>(rows.subList(start, end), pageable, rows.size());
+        return InMemoryPage.of(rows, pageable);
     }
 
     private AssignmentStudentGradeResponse toAssignmentStudentGrade(
@@ -346,12 +341,7 @@ public class AssignmentQueryService {
     }
 
     private Long currentStudentId() {
-        String slug = TenantContextHolder.getRequiredTenant();
-        Long userId = UserContextHolder.getRequiredUserId();
-        return studentService.getStudentsByUserIds(slug, List.of(userId)).students().stream()
-                .findFirst()
-                .map(StudentService.StudentData::id)
-                .orElseThrow(() -> new BusinessException(AssignmentErrorCode.STUDENT_NOT_FOUND));
+        return CurrentStudentResolver.requireStudentId(studentService, AssignmentErrorCode.STUDENT_NOT_FOUND);
     }
 
     private Map<Long, List<AssignmentTarget>> targetsByAssignment(List<Assignment> assignments) {

@@ -1,4 +1,4 @@
-package com.lumie.exam.adapter.out.config;
+package com.lumie.app.config;
 
 import com.lumie.common.logging.ExternalCallLoggingInterceptor;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;

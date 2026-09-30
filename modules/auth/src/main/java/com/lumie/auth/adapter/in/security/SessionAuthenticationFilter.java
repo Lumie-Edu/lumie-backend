@@ -1,6 +1,8 @@
 package com.lumie.auth.adapter.in.security;
 
 import com.lumie.auth.application.service.AuthQueryService;
+import com.lumie.common.exception.ProblemResponseWriter;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.auth.adapter.out.config.SessionConfig;
 import com.lumie.auth.domain.vo.AuthSession;
 import com.lumie.common.tenant.RequestContextFilter;
@@ -28,6 +30,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
     private final AuthQueryService authQueryService;
     private final SessionConfig sessionConfig;
+    private final ProblemResponseWriter problems;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -38,7 +41,8 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             if (session != null) {
                 Object hostTenant = request.getAttribute(RequestContextFilter.HOST_TENANT_SLUG_ATTRIBUTE);
                 if (hostTenant instanceof String hostTenantSlug && !hostTenantSlug.equals(session.tenantSlug())) {
-                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Tenant context mismatch");
+                    problems.write(request, response, HttpServletResponse.SC_FORBIDDEN,
+                            CommonErrorCode.FORBIDDEN.getCode(), "Tenant context mismatch");
                     return;
                 }
                 authenticate(session);

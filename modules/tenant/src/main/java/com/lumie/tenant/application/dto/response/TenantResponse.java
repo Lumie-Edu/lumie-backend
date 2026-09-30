@@ -3,7 +3,6 @@ package com.lumie.tenant.application.dto.response;
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.api.TenantStatus;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -22,14 +21,6 @@ public record TenantResponse(
         @Schema(nullable = true) String instituteName,
         @Schema(nullable = true) String logoUrl,
         @Schema(nullable = true) Instant onboardingCompletedAt,
-        @ArraySchema(schema = @Schema(allowableValues = {
-                "ai",
-                "students", "employees",
-                "classes", "assignments", "lectures",
-                "grades", "omr-grading", "reports",
-                "announcements", "sms", "resources", "qna",
-                "textbooks", "reviews"
-        }))
         List<String> hiddenSidebarItemIds,
         Instant createdAt,
         Instant updatedAt

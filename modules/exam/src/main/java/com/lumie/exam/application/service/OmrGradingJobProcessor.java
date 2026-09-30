@@ -1,5 +1,6 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.OmrGradingJob;
@@ -131,7 +132,7 @@ public class OmrGradingJobProcessor {
         public SuccessPrep prepareSuccess(OmrGradingCallbackRequest request) {
             var submission = submissionService.getSubmission(request.jobId(), request.imageIndex());
             String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
-            String permanentKey = tenantId + "/omr/submissions/" + submission.getId() + ".png";
+            String permanentKey = FileObjectKeyFactory.omrSubmission(tenantId, submission.getId());
             return new SuccessPrep(submission.getSourceImageKey(), permanentKey);
         }
 

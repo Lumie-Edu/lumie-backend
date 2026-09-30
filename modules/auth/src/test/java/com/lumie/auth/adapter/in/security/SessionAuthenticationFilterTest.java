@@ -45,7 +45,7 @@ class SessionAuthenticationFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         AtomicBoolean chainCalled = new AtomicBoolean();
 
-        new SessionAuthenticationFilter(authQueryService, sessionConfig()).doFilter(request, response,
+        new SessionAuthenticationFilter(authQueryService, sessionConfig(), new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper())).doFilter(request, response,
                 (ignoredRequest, ignoredResponse) -> chainCalled.set(true));
 
         assertThat(response.getStatus()).isEqualTo(403);
@@ -58,7 +58,7 @@ class SessionAuthenticationFilterTest {
         MockHttpServletRequest request = request();
         request.setAttribute(RequestContextFilter.HOST_TENANT_SLUG_ATTRIBUTE, "inst-academy");
 
-        new SessionAuthenticationFilter(authQueryService, sessionConfig()).doFilter(request, new MockHttpServletResponse(),
+        new SessionAuthenticationFilter(authQueryService, sessionConfig(), new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper())).doFilter(request, new MockHttpServletResponse(),
                 (ignoredRequest, ignoredResponse) -> { });
 
         assertThat(UserContextHolder.getUserId()).isEqualTo(20L);

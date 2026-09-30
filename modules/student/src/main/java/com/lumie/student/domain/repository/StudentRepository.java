@@ -26,7 +26,7 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
 
     Optional<Student> findByUserLoginId(String userLoginId);
 
-    Optional<Student> findByPhone(String phone);
+    Optional<Student> findByCanonicalPhone(String phone);
 
     Page<Student> findByIsActive(Boolean isActive, Pageable pageable);
 
@@ -78,10 +78,10 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
 
     boolean existsByUserLoginId(String userLoginId);
 
-    boolean existsByPhone(String phone);
+    boolean existsByCanonicalPhone(String phone);
 
-    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE s.phone = :phone AND s.id != :excludeId")
-    boolean existsByPhoneExcluding(@Param("phone") String phone, @Param("excludeId") Long excludeId);
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE s.canonicalPhone = :phone AND s.id != :excludeId")
+    boolean existsByCanonicalPhoneExcluding(@Param("phone") String phone, @Param("excludeId") Long excludeId);
 
     /**
      * Searches active/inactive students by free-text keyword across name, school,
@@ -102,9 +102,9 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
             if (search != null && !search.isBlank()) {
                 String pattern = "%" + search.toLowerCase(Locale.ROOT) + "%";
                 predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("name")), pattern),
+                        cb.like(cb.lower(root.get("canonicalName")), pattern),
                         cb.like(cb.lower(root.get("studentHighschool")), pattern),
-                        cb.like(root.get("phone"), "%" + search + "%"),
+                        cb.like(root.get("canonicalPhone"), "%" + search + "%"),
                         cb.like(root.get("parentPhone"), "%" + search + "%"),
                         cb.like(cb.toString(root.get("studentBirthYear")), "%" + search + "%")
                 ));

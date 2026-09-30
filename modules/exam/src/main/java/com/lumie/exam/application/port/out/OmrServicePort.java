@@ -13,7 +13,7 @@ public interface OmrServicePort {
 
     record OmrGradingResult(
             int totalScore,
-            int grade,
+            Integer grade,
             String phoneNumber,
             List<OmrQuestionResult> results
     ) {

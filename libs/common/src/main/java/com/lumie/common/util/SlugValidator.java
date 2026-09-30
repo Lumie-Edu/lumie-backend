@@ -6,7 +6,8 @@ import java.util.regex.Pattern;
 
 public final class SlugValidator {
 
-    private static final Pattern SLUG_PATTERN = Pattern.compile("^[a-z][a-z0-9-]{2,29}$");
+    public static final String FORMAT = "^[a-z][a-z0-9-]{2,29}$";
+    private static final Pattern SLUG_PATTERN = Pattern.compile(FORMAT);
 
     private static final Set<String> RESERVED_SLUGS = Set.of(
             "admin", "api", "www", "app", "static", "assets",

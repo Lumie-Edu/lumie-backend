@@ -1,6 +1,8 @@
 package com.lumie.tenant.adapter.in.web;
 
 import com.lumie.common.tenant.RequestContextFilter;
+import com.lumie.common.exception.ProblemResponseWriter;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.tenant.application.service.HostTenantResolver;
 import jakarta.servlet.FilterChain;
@@ -23,6 +25,7 @@ import java.util.Optional;
 public class HostTenantFilter extends OncePerRequestFilter {
 
     private final HostTenantResolver resolver;
+    private final ProblemResponseWriter problems;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -47,13 +50,15 @@ public class HostTenantFilter extends OncePerRequestFilter {
         try {
             resolved = resolver.resolve(host);
         } catch (DataAccessException | IllegalStateException exception) {
-            response.sendError(HttpStatus.SERVICE_UNAVAILABLE.value());
+            problems.write(request, response, HttpStatus.SERVICE_UNAVAILABLE.value(),
+                    CommonErrorCode.INTERNAL_ERROR.getCode(), "Tenant lookup temporarily unavailable");
             return;
         }
 
         if (resolved.isEmpty()) {
             if (!resolver.isRootHost(host)) {
-                response.sendError(HttpStatus.NOT_FOUND.value());
+                problems.write(request, response, HttpStatus.NOT_FOUND.value(),
+                        CommonErrorCode.RESOURCE_NOT_FOUND.getCode(), "Tenant not found");
                 return;
             }
             filterChain.doFilter(request, response);
@@ -62,7 +67,8 @@ public class HostTenantFilter extends OncePerRequestFilter {
 
         HostTenantResolver.ResolvedTenant tenant = resolved.get();
         if (!tenant.isActive()) {
-            response.sendError(HttpStatus.FORBIDDEN.value());
+            problems.write(request, response, HttpStatus.FORBIDDEN.value(),
+                    CommonErrorCode.FORBIDDEN.getCode(), "Tenant unavailable");
             return;
         }
 

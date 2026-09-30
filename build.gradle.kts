@@ -20,7 +20,7 @@ plugins {
 // doesn't exist. Capture the values here, reference them below.
 val javaLanguageVersion = libs.versions.java.get()
 val springBootBomVersion = libs.versions.spring.boot.get()
-val flywayVersion = "11.20.3"
+val flywayVersion = libs.versions.flyway.get()
 val errorproneCoreDep = libs.errorprone.core
 val lombokDep = libs.lombok
 val springdocDep = libs.springdoc.openapi.webmvc

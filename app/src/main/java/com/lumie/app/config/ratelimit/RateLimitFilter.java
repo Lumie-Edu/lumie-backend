@@ -1,5 +1,6 @@
 package com.lumie.app.config.ratelimit;
 
+import com.lumie.common.exception.ProblemResponseWriter;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
@@ -40,10 +41,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
     private final RateLimitProperties properties;
+    private final ProblemResponseWriter problems;
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
-    public RateLimitFilter(RateLimitProperties properties) {
+    public RateLimitFilter(RateLimitProperties properties, ProblemResponseWriter problems) {
         this.properties = properties;
+        this.problems = problems;
     }
 
     @Override
@@ -77,10 +80,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.setHeader("Retry-After", String.valueOf(retryAfterSeconds));
         response.setHeader("X-RateLimit-Limit", String.valueOf(rule.capacity()));
         response.setHeader("X-RateLimit-Remaining", "0");
-        response.setContentType("application/json");
-        response.getWriter().write(
-                "{\"errorCode\":\"RATE_LIMITED\",\"message\":\"Too many requests\"," +
-                "\"retryAfterSeconds\":" + retryAfterSeconds + "}");
+        problems.write(request, response, HttpStatus.TOO_MANY_REQUESTS.value(),
+                "RATE_LIMITED", "Too many requests");
     }
 
     private RateLimitProperties.Rule matchRule(HttpServletRequest request) {

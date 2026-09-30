@@ -1,17 +1,32 @@
 package com.lumie.tenant.adapter.in.web;
 
 import com.lumie.common.tenant.RequestContextFilter;
+import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.tenant.application.service.HostTenantResolver;
 import com.lumie.tenant.domain.entity.Tenant;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class TenantRootControllerTest {
 
     private final TenantRootController controller = new TenantRootController();
+
+    @Test
+    void unresolvedTenantRootUsesProblemDetail() throws Exception {
+        MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build()
+                .perform(get("/tenant-root"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("COMMON_003"));
+    }
 
     @Test
     void redirectsBasicHostRootToLogin() {

@@ -5,6 +5,7 @@ import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.domain.entity.Announcement;
+import com.lumie.content.domain.entity.AnnouncementClassTarget;
 import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
 import com.lumie.content.domain.repository.AnnouncementReadRepository;
 import com.lumie.content.domain.repository.AnnouncementRepository;
@@ -78,6 +79,23 @@ class AnnouncementQueryServiceTest {
         List<String> readers = queryService.getAnnouncementReaders(1L);
 
         assertThat(readers).containsExactly("삭제된 학생");
+    }
+
+    @Test
+    void visibilityLookupUsesTheRequestedStudentRatherThanTheCurrentActor() {
+        given(announcementRepository.existsById(9L)).willReturn(true);
+        given(classTargetRepository.findByAnnouncementId(9L))
+                .willReturn(List.of(AnnouncementClassTarget.create(9L, 7L)));
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(200L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(42L, 200L, "학생", "01012345678", true, null, null)),
+                        1, 0, 1));
+        given(classService.getClassesByStudent("test-tenant", 42L, 0, 1000))
+                .willReturn(new ClassService.ClassListData(
+                        List.of(new ClassService.ClassData(7L, "수업", 1L, null, List.of(), null, null, null, null)),
+                        1, 0, 1));
+
+        assertThat(queryService.canUserViewAnnouncement(9L, "STUDENT", 200L)).isTrue();
     }
 
     private static Announcement announcement(Long id, Long authorId) {

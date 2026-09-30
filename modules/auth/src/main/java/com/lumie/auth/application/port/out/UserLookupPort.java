@@ -5,6 +5,8 @@ import com.lumie.common.auth.Role;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * RLS-scoped user lookup port.
@@ -28,6 +30,8 @@ public interface UserLookupPort {
 
     Optional<UserData> findById(Long userId);
 
+    Map<Long, String> getAvatarSeeds(Collection<Long> userIds);
+
     /**
      * Create a new user in the current tenant's RLS-scoped {@code users}
      * rows. The caller must bind the target {@code tenantId} in
@@ -49,6 +53,8 @@ public interface UserLookupPort {
     boolean updateAvatarSeed(Long userId, String avatarSeed);
 
     boolean updateProfile(Long userId, String name, String phone, String email);
+
+    boolean updateIdentity(Long userId, String name, String phone, String email);
 
     record UserData(
             Long id,

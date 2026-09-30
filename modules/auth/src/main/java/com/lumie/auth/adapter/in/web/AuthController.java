@@ -20,6 +20,8 @@ import com.lumie.common.tenant.UserContextHolder;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -51,7 +53,7 @@ public class AuthController {
     public ResponseEntity<UserResponse> getMe() {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
+        if (userId == null || tenantSlug == null) throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         return ResponseEntity.ok(authQueryService.getMe(userId, tenantSlug));
     }
 
@@ -59,7 +61,7 @@ public class AuthController {
     public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
+        if (userId == null || tenantSlug == null) throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         return ResponseEntity.ok(userProfileService.updateProfile(userId, tenantSlug, request));
     }
 
@@ -67,7 +69,7 @@ public class AuthController {
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
+        if (userId == null || tenantSlug == null) throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         userProfileService.changePassword(userId, tenantSlug, request);
         return ResponseEntity.noContent().build();
     }
@@ -75,7 +77,7 @@ public class AuthController {
     @PatchMapping("/me/avatar")
     public ResponseEntity<Void> updateAvatar(@Valid @RequestBody UpdateAvatarRequest request) {
         Long userId = UserContextHolder.getUserId();
-        if (userId == null) return ResponseEntity.status(401).build();
+        if (userId == null) throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         avatarService.updateAvatar(userId, request.avatarSeed());
         return ResponseEntity.noContent().build();
     }
@@ -84,7 +86,7 @@ public class AuthController {
     public ResponseEntity<List<SessionResponse>> getSessions() {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
+        if (userId == null || tenantSlug == null) throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         return ResponseEntity.ok(authQueryService.getSessions(userId, tenantSlug, UserContextHolder.getCurrentSid()));
     }
 
@@ -92,8 +94,8 @@ public class AuthController {
     public ResponseEntity<Void> revokeSession(@PathVariable String sessionId) {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
-        if (sessionId.equals(UserContextHolder.getCurrentSid())) return ResponseEntity.badRequest().build();
+        if (userId == null || tenantSlug == null) throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+        if (sessionId.equals(UserContextHolder.getCurrentSid())) throw new BusinessException(CommonErrorCode.INVALID_INPUT);
         authSessionService.revokeSession(userId, tenantSlug, sessionId);
         return ResponseEntity.noContent().build();
     }
@@ -102,7 +104,7 @@ public class AuthController {
     public ResponseEntity<Void> revokeOtherSessions() {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
-        if (userId == null || tenantSlug == null) return ResponseEntity.status(401).build();
+        if (userId == null || tenantSlug == null) throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         authSessionService.revokeOtherSessions(userId, tenantSlug, UserContextHolder.getCurrentSid());
         return ResponseEntity.noContent().build();
     }
@@ -114,7 +116,7 @@ public class AuthController {
         // never provision an unrelated tenant, even if a caller bypasses the
         // public route and calls the API directly.
         if (TenantContextHolder.getTenant() != null) {
-            return ResponseEntity.notFound().build();
+            throw new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND);
         }
         return buildAuthResponse(authRegistrationService.registerOwner(request, SessionMetadataExtractor.extract(httpRequest)), 201);
     }

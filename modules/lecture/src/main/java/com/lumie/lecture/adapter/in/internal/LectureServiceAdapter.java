@@ -1,5 +1,6 @@
 package com.lumie.lecture.adapter.in.internal;
 
+import com.lumie.lecture.domain.vo.LectureTargets;
 import com.lumie.lecture.api.LectureService;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.entity.LectureClassTarget;
@@ -46,7 +47,7 @@ public class LectureServiceAdapter implements LectureService {
                 lectures.getContent().stream()
                         .map(lecture -> toData(
                                 lecture,
-                                primaryFirst(
+                                LectureTargets.primaryFirst(
                                         classIdsByLecture.getOrDefault(lecture.getId(), List.of()),
                                         lecture.getClassId()
                                 )
@@ -80,7 +81,7 @@ public class LectureServiceAdapter implements LectureService {
         List<Long> classIds = targetRepository.findByLectureIdOrderByClassIdAsc(lecture.getId()).stream()
                 .map(LectureClassTarget::getClassId)
                 .toList();
-        return primaryFirst(classIds, lecture.getClassId());
+        return LectureTargets.primaryFirst(classIds, lecture.getClassId());
     }
 
     private Map<Long, List<Long>> loadClassIds(List<Lecture> lectures) {
@@ -94,17 +95,5 @@ public class LectureServiceAdapter implements LectureService {
         return grouped;
     }
 
-    private static List<Long> primaryFirst(List<Long> classIds, Long primaryClassId) {
-        if (classIds.isEmpty()) {
-            return primaryClassId == null ? List.of() : List.of(primaryClassId);
-        }
-        if (primaryClassId == null || !classIds.contains(primaryClassId)) {
-            return classIds;
-        }
-        return java.util.stream.Stream.concat(
-                        java.util.stream.Stream.of(primaryClassId),
-                        classIds.stream().filter(id -> !id.equals(primaryClassId))
-                )
-                .toList();
-    }
+
 }

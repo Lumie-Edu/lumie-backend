@@ -135,6 +135,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
           JOIN exams e ON e.id = r.exam_id
          WHERE r.grade IS NOT NULL
            AND r.grade > 0
+           AND e.category = 'GRADED'
            AND e.source = 'EXAM_MANAGEMENT'
          GROUP BY e.grade_scale, r.grade
         """, nativeQuery = true)

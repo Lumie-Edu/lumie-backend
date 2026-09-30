@@ -89,7 +89,7 @@ public class OmrSubmission extends TenantScopedEntity {
         return new OmrSubmission(exam, jobId, imageIndex, sourceImageKey, batchAcceptedAt);
     }
 
-    public void complete(String phoneNumber, int score, int grade, String permanentImageKey,
+    public void complete(String phoneNumber, int score, Integer grade, String permanentImageKey,
                          List<OmrSubmissionQuestion> gradedQuestions) {
         this.gradingStatus = OmrGradingStatus.SUCCEEDED;
         this.ocrPhoneNumber = phoneNumber;

@@ -1,5 +1,7 @@
 package com.lumie.lecture.application.service;
 
+import com.lumie.common.auth.CurrentStudentResolver;
+import com.lumie.lecture.domain.vo.LectureTargets;
 import com.lumie.lecture.application.dto.response.LectureResponse;
 import com.lumie.lecture.application.dto.response.WatchResponse;
 import com.lumie.classroom.api.ClassService;
@@ -12,7 +14,6 @@ import com.lumie.lecture.domain.repository.LectureRepository;
 import com.lumie.lecture.domain.vo.LectureSearchCriteria;
 import com.lumie.lecture.domain.vo.LectureVisibility;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +50,7 @@ public class LectureQueryService {
         Map<Long, List<Long>> classIdsByLecture = loadClassIds(lectures.getContent());
         return lectures.map(lecture -> LectureResponse.from(
                 lecture,
-                primaryFirst(
+                LectureTargets.primaryFirst(
                         classIdsByLecture.getOrDefault(lecture.getId(), List.of()),
                         lecture.getClassId()
                 )
@@ -111,12 +112,7 @@ public class LectureQueryService {
     }
 
     private Long currentStudentId() {
-        String tenantSlug = TenantContextHolder.getRequiredTenant();
-        Long userId = UserContextHolder.getRequiredUserId();
-        return studentService.getStudentsByUserIds(tenantSlug, List.of(userId)).students().stream()
-                .findFirst()
-                .map(StudentService.StudentData::id)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
+        return CurrentStudentResolver.requireStudentId(studentService, CommonErrorCode.FORBIDDEN);
     }
 
     private Map<Long, List<Long>> loadClassIds(List<Lecture> lectures) {
@@ -136,20 +132,8 @@ public class LectureQueryService {
         List<Long> classIds = targetRepository.findByLectureIdOrderByClassIdAsc(lecture.getId()).stream()
                 .map(target -> target.getClassId())
                 .toList();
-        return primaryFirst(classIds, lecture.getClassId());
+        return LectureTargets.primaryFirst(classIds, lecture.getClassId());
     }
 
-    private static List<Long> primaryFirst(List<Long> classIds, Long primaryClassId) {
-        if (classIds.isEmpty()) {
-            return primaryClassId == null ? List.of() : List.of(primaryClassId);
-        }
-        if (primaryClassId == null || !classIds.contains(primaryClassId)) {
-            return classIds;
-        }
-        return java.util.stream.Stream.concat(
-                        java.util.stream.Stream.of(primaryClassId),
-                        classIds.stream().filter(id -> !id.equals(primaryClassId))
-                )
-                .toList();
-    }
+
 }

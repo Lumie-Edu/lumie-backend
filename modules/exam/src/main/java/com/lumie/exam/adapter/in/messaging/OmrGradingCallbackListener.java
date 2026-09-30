@@ -9,6 +9,7 @@ import com.lumie.tenant.api.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import com.lumie.messaging.config.RabbitMqConstants;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -39,7 +40,7 @@ public class OmrGradingCallbackListener {
     private final OmrGradingJobProcessor processor;
     private final TenantService tenantService;
 
-    @RabbitListener(queues = "grading.omr-callback")
+    @RabbitListener(queues = RabbitMqConstants.GRADING_OMR_CALLBACK_QUEUE)
     public void handle(OmrGradingCallbackRequest request) {
         long startNanos = System.nanoTime();
         if (request.tenantSlug() == null || request.tenantSlug().isBlank()) {
@@ -51,7 +52,7 @@ public class OmrGradingCallbackListener {
                     field("jobId", request.jobId()),
                     field("entityType", "exam"),
                     field("entityId", request.examId()),
-                    field("queue", "grading.omr-callback"),
+                    field("queue", RabbitMqConstants.GRADING_OMR_CALLBACK_QUEUE),
                     field("latencyMs", elapsedMillis(startNanos)),
                     field("outcome", "failed"),
                     field("errorCode", ExamErrorCode.MISSING_TENANT_SLUG.name()));
@@ -73,7 +74,7 @@ public class OmrGradingCallbackListener {
                     field("tenantSlug", request.tenantSlug()),
                     field("entityType", "exam"),
                     field("entityId", request.examId()),
-                    field("queue", "grading.omr-callback"),
+                    field("queue", RabbitMqConstants.GRADING_OMR_CALLBACK_QUEUE),
                     field("latencyMs", elapsedMillis(startNanos)),
                     field("outcome", "failed"),
                     field("errorCode", ExamErrorCode.MISSING_TENANT_SLUG.name()));
@@ -95,7 +96,7 @@ public class OmrGradingCallbackListener {
                         field("tenantSlug", request.tenantSlug()),
                         field("entityType", "exam"),
                         field("entityId", request.examId()),
-                        field("queue", "grading.omr-callback"),
+                        field("queue", RabbitMqConstants.GRADING_OMR_CALLBACK_QUEUE),
                         field("latencyMs", elapsedMillis(startNanos)),
                         field("outcome", "success"));
             } catch (RuntimeException e) {
@@ -109,7 +110,7 @@ public class OmrGradingCallbackListener {
                         field("tenantSlug", request.tenantSlug()),
                         field("entityType", "exam"),
                         field("entityId", request.examId()),
-                        field("queue", "grading.omr-callback"),
+                        field("queue", RabbitMqConstants.GRADING_OMR_CALLBACK_QUEUE),
                         field("latencyMs", elapsedMillis(startNanos)),
                         field("outcome", "failed"),
                         field("exceptionClass", e.getClass().getSimpleName()),

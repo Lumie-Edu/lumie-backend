@@ -1,8 +1,9 @@
 package com.lumie.content.application.service;
 
+import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.auth.CurrentStudentResolver;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.auth.Role;
-import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
@@ -105,7 +106,7 @@ public class AnnouncementQueryService {
     public List<String> getAnnouncementReaders(Long id) {
         log.debug("Getting readers for announcement: {}", id);
 
-        requireStaffUser();
+        AuthorizationGuard.requireStaff();
         Announcement announcement = announcementRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND));
 
@@ -201,13 +202,10 @@ public class AnnouncementQueryService {
 
     private List<Long> currentStudentClassIds(Long userId) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
-        StudentService.StudentData student = studentService.getStudentsByUserIds(tenantSlug, List.of(userId))
-                .students()
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new BusinessException(ContentErrorCode.STUDENT_NOT_FOUND));
+        Long studentId = CurrentStudentResolver.requireStudentId(
+                studentService, tenantSlug, userId, ContentErrorCode.STUDENT_NOT_FOUND);
 
-        return classService.getClassesByStudent(tenantSlug, student.id(), 0, 1000)
+        return classService.getClassesByStudent(tenantSlug, studentId, 0, 1000)
                 .classes()
                 .stream()
                 .map(ClassService.ClassData::id)
@@ -218,12 +216,7 @@ public class AnnouncementQueryService {
         return UserContextHolder.getUserRole() == Role.STUDENT;
     }
 
-    private void requireStaffUser() {
-        Role role = UserContextHolder.getUserRole();
-        if (role == null || role == Role.STUDENT) {
-            throw new BusinessException(CommonErrorCode.FORBIDDEN);
-        }
-    }
+
 
     private Map<Long, List<Long>> resolveClassTargets(List<Announcement> announcements) {
         List<Long> announcementIds = announcements.stream()

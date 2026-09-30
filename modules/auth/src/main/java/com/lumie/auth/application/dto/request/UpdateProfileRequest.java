@@ -1,15 +1,19 @@
 package com.lumie.auth.application.dto.request;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import io.swagger.v3.oas.annotations.media.Schema;
+import com.lumie.common.validation.PersonName;
+import com.lumie.common.validation.PersonNamePolicy;
+import com.lumie.common.validation.MobilePhone;
 import jakarta.validation.constraints.Size;
 
 public record UpdateProfileRequest(
-        @NotBlank(message = "Name is required")
-        @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
+        @PersonName
+        @Schema(minLength = PersonNamePolicy.MIN_LENGTH, maxLength = PersonNamePolicy.MAX_LENGTH,
+                requiredMode = Schema.RequiredMode.REQUIRED)
         String name,
 
-        @Size(max = 20, message = "Phone must be at most 20 characters")
+        @MobilePhone
         String phone,
 
         @Email(message = "Email format is invalid")

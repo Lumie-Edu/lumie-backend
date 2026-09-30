@@ -1,9 +1,7 @@
 package com.lumie.exam.application.service;
 
-import com.lumie.common.auth.Role;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.common.exception.CommonErrorCode;
-import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.application.dto.request.CreateExamQuestionTypeRequest;
 import com.lumie.exam.application.dto.response.ExamQuestionTypeResponse;
 import com.lumie.exam.application.port.out.ExamQuestionTypePort;
@@ -47,7 +45,7 @@ public class ExamQuestionTypeService {
 
     @Transactional
     public ExamQuestionTypeResponse createQuestionType(CreateExamQuestionTypeRequest request) {
-        requireStaffUser();
+        AuthorizationGuard.requireStaff();
 
         String name = request.name().trim();
         if (examQuestionTypePort.existsByName(name)) {
@@ -72,7 +70,7 @@ public class ExamQuestionTypeService {
 
     @Transactional
     public void deleteQuestionType(Long questionTypeId) {
-        requireStaffUser();
+        AuthorizationGuard.requireStaff();
 
         if (!examQuestionTypePort.deleteById(questionTypeId)) {
             throw new BusinessException(ExamErrorCode.QUESTION_TYPE_NOT_FOUND);
@@ -95,12 +93,7 @@ public class ExamQuestionTypeService {
         log.info("Seeded {} default exam question types", defaults.size());
     }
 
-    private void requireStaffUser() {
-        Role role = UserContextHolder.getUserRole();
-        if (role == null || role == Role.STUDENT) {
-            throw new BusinessException(CommonErrorCode.FORBIDDEN);
-        }
-    }
+
 
     private boolean isUniqueViolation(DataIntegrityViolationException exception) {
         Throwable cause = exception.getMostSpecificCause();

@@ -16,6 +16,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,7 +38,7 @@ public class FileController {
         }
 
         ContentDisposition contentDisposition = ContentDisposition.attachment()
-                .filename(result.filename())
+                .filename(result.filename(), StandardCharsets.UTF_8)
                 .build();
 
         return ResponseEntity.ok()

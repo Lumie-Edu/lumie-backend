@@ -1,5 +1,6 @@
 package com.lumie.student.adapter.in.web;
 
+import com.lumie.common.util.ReportingTime;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import com.lumie.common.auth.AuthorizationGuard;
@@ -36,7 +37,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 @RestController
@@ -132,19 +132,19 @@ public class StudentController {
     }
 
     @PostMapping("/batch/deactivate")
-    public ResponseEntity<BatchOperationResult> batchDeactivate(@RequestBody BatchOperationRequest request) {
+    public ResponseEntity<BatchOperationResult> batchDeactivate(@Valid @RequestBody BatchOperationRequest request) {
         BatchOperationResult result = studentCommandService.batchDeactivate(request.ids());
         return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result);
     }
 
     @PostMapping("/batch/reactivate")
-    public ResponseEntity<BatchOperationResult> batchReactivate(@RequestBody BatchOperationRequest request) {
+    public ResponseEntity<BatchOperationResult> batchReactivate(@Valid @RequestBody BatchOperationRequest request) {
         BatchOperationResult result = studentCommandService.batchReactivate(request.ids());
         return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result);
     }
 
     @PostMapping("/batch/delete")
-    public ResponseEntity<BatchOperationResult> batchDelete(@RequestBody BatchOperationRequest request) {
+    public ResponseEntity<BatchOperationResult> batchDelete(@Valid @RequestBody BatchOperationRequest request) {
         BatchOperationResult result = studentCommandService.batchDelete(request.ids());
         return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result);
     }
@@ -188,7 +188,7 @@ public class StudentController {
         AuthorizationGuard.requireOwner();
         String filename = "%s_students_%s.csv".formatted(
             TenantContextHolder.getRequiredTenant(),
-            LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE)
+            LocalDate.now(ReportingTime.ZONE).format(DateTimeFormatter.BASIC_ISO_DATE)
         );
 
         return ResponseEntity.ok()

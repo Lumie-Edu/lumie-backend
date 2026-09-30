@@ -290,6 +290,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return wrapAsProblemJson(body);
     }
 
+    @Override
+    protected ResponseEntity<Object> createResponseEntity(Object body, HttpHeaders headers,
+                                                          HttpStatusCode status, WebRequest request) {
+        if (body instanceof ProblemDetail problem) {
+            if (problem.getProperties() == null || !problem.getProperties().containsKey("code")) {
+                CommonErrorCode code = status.is5xxServerError()
+                        ? CommonErrorCode.INTERNAL_ERROR : CommonErrorCode.INVALID_INPUT;
+                decorate(problem, code.getCode(), request);
+            }
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.putAll(headers);
+            responseHeaders.setContentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON);
+            return super.createResponseEntity(body, responseHeaders, status, request);
+        }
+        return super.createResponseEntity(body, headers, status, request);
+    }
+
     // ----- helpers -----------------------------------------------------------
 
     private ProblemDetail buildProblemDetail(BusinessException ex, HttpServletRequest request) {

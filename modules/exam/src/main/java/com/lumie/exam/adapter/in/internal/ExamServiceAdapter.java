@@ -55,10 +55,7 @@ public class ExamServiceAdapter implements ExamService {
                 Map<String, String> answers = new LinkedHashMap<>();
                 result.getQuestionResults().forEach(question -> answers.put(
                         String.valueOf(question.getQuestionNumber()), question.getSelectedChoice()));
-                Integer grade = exam.getCategory() == ExamCategory.GRADED
-                        ? gradeCalculator.calculateGradeForScore(result.getTotalScore(), scores,
-                            exam.getGradingType(), exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE)
-                        : result.getGrade();
+                Integer grade = gradeCalculator.resolveStoredOrRelativeGrade(exam, result, scores);
                 data.put(result.getId(), new AssignmentResultData(result.getStudentId(), answers,
                         result.getTotalScore(), exam.isPassFail() ? result.isPassed() : null, grade));
             }

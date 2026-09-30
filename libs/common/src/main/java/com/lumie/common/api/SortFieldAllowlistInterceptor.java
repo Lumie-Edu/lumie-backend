@@ -14,7 +14,7 @@ import java.util.Set;
  * Pre-handler guard that enforces {@link AllowedSortFields} on annotated controller methods.
  *
  * <p>Reads each {@code ?sort=field[,direction]} query parameter, extracts the property
- * name (text before the first comma), and rejects the request with a
+ * names (including comma-separated properties), and rejects the request with a
  * {@link BusinessException}{@code (CommonErrorCode.INVALID_INPUT)} (mapped to
  * {@code 400 Bad Request} by {@code GlobalExceptionHandler}) if any property is outside
  * the annotation's allowlist.
@@ -42,14 +42,23 @@ public class SortFieldAllowlistInterceptor implements HandlerInterceptor {
         Set<String> allowed = Set.of(annotation.value());
         for (String raw : sortParams) {
             if (raw == null || raw.isBlank()) continue;
-            // Spring accepts `?sort=field,direction` and also `?sort=field1&sort=field2`.
-            // Split on comma; first token is the property, optional trailing token is asc/desc.
-            String property = raw.split(",", 2)[0].trim();
-            if (property.isEmpty()) continue;
-            if (!allowed.contains(property)) {
-                throw new BusinessException(
-                        CommonErrorCode.INVALID_INPUT,
-                        "Sort property '" + property + "' is not allowed. Allowed: " + allowed);
+            String[] tokens = raw.split(",", -1);
+            int propertyCount = tokens.length;
+            if (propertyCount > 0 && "ignorecase".equalsIgnoreCase(tokens[propertyCount - 1].trim())) {
+                propertyCount--;
+            }
+            if (propertyCount > 0 && org.springframework.data.domain.Sort.Direction
+                    .fromOptionalString(tokens[propertyCount - 1].trim()).isPresent()) {
+                propertyCount--;
+            }
+            for (int i = 0; i < propertyCount; i++) {
+                String property = tokens[i].trim();
+                if (property.isEmpty()) continue;
+                if (!allowed.contains(property)) {
+                    throw new BusinessException(
+                            CommonErrorCode.INVALID_INPUT,
+                            "Sort property '" + property + "' is not allowed. Allowed: " + allowed);
+                }
             }
         }
         return true;

@@ -54,7 +54,7 @@ public class ReportServiceClient implements ReportServicePort {
             throw e;
         } catch (Exception e) {
             log.error("Report generation failed for student {} exam {}", studentId, examId, e);
-            throw new BusinessException(ExamErrorCode.REPORT_GENERATION_FAILED, e.getMessage());
+            throw new BusinessException(ExamErrorCode.REPORT_GENERATION_FAILED, e);
         }
     }
 }

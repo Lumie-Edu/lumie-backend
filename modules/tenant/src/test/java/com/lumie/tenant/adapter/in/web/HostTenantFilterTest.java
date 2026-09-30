@@ -38,7 +38,7 @@ class HostTenantFilterTest {
         MockHttpServletRequest request = request("academy.lumie-edu.com");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        new HostTenantFilter(resolver).doFilter(request, response, (ignoredRequest, ignoredResponse) -> {
+        new HostTenantFilter(resolver, new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper())).doFilter(request, response, (ignoredRequest, ignoredResponse) -> {
             assertThat(request.getAttribute(RequestContextFilter.HOST_TENANT_SLUG_ATTRIBUTE))
                     .isEqualTo("inst-academy");
             assertThat(com.lumie.common.tenant.TenantContextHolder.getTenant()).isEqualTo("inst-academy");
@@ -60,7 +60,7 @@ class HostTenantFilterTest {
         when(resolver.resolve("failure.lumie-edu.com"))
                 .thenThrow(new DataAccessResourceFailureException("database unavailable"));
         MockHttpServletResponse failureResponse = new MockHttpServletResponse();
-        new HostTenantFilter(resolver).doFilter(request("failure.lumie-edu.com"), failureResponse,
+        new HostTenantFilter(resolver, new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper())).doFilter(request("failure.lumie-edu.com"), failureResponse,
                 (ignoredRequest, ignoredResponse) -> { });
         assertThat(failureResponse.getStatus()).isEqualTo(503);
     }
@@ -68,7 +68,7 @@ class HostTenantFilterTest {
     private MockHttpServletResponse runWith(String host, Optional<HostTenantResolver.ResolvedTenant> resolved) throws Exception {
         when(resolver.resolve(host)).thenReturn(resolved);
         MockHttpServletResponse response = new MockHttpServletResponse();
-        new HostTenantFilter(resolver).doFilter(request(host), response, (ignoredRequest, ignoredResponse) -> { });
+        new HostTenantFilter(resolver, new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper())).doFilter(request(host), response, (ignoredRequest, ignoredResponse) -> { });
         return response;
     }
 

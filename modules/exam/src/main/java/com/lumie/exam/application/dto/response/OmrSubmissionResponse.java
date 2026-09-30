@@ -41,7 +41,7 @@ public record OmrSubmissionResponse(
                 submission.getMatchedStudentId(),
                 studentName,
                 submission.getTotalScore(),
-                submission.getGrade(),
+                submission.getExam().isPassFail() ? null : submission.getGrade(),
                 submission.getGradingStatus(),
                 submission.getReconciliationStatus(),
                 submission.getReconciliationReason(),

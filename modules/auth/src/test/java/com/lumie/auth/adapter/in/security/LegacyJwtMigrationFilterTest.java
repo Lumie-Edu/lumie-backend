@@ -82,7 +82,7 @@ class LegacyJwtMigrationFilterTest {
     }
 
     private LegacyJwtMigrationFilter filter() {
-        LegacyJwtMigrationFilter filter = new LegacyJwtMigrationFilter(redis, users, sessions, cookieUtils, new SessionConfig());
+        LegacyJwtMigrationFilter filter = new LegacyJwtMigrationFilter(redis, users, sessions, cookieUtils, new SessionConfig(), new SameOriginPolicy(new SessionConfig()), new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper()));
         ReflectionTestUtils.setField(filter, "secret", SECRET);
         ReflectionTestUtils.setField(filter, "sunsetAt", Instant.now().plusSeconds(60));
         return filter;

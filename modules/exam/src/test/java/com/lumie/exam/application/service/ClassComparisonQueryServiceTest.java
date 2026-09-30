@@ -28,7 +28,7 @@ class ClassComparisonQueryServiceTest {
 
     @Mock private ExamRepository examRepository;
     @Mock private ExamResultRepository resultRepository;
-    @Mock private GradeCalculator gradeCalculator;
+    @org.mockito.Spy private GradeCalculator gradeCalculator = new GradeCalculator();
     @Mock private ClassService classService;
     @Mock private ExamResultCohortResolver cohortResolver;
 
@@ -37,6 +37,22 @@ class ClassComparisonQueryServiceTest {
     @InjectMocks private ClassComparisonQueryService service;
 
     private static final Long EXAM_ID = 1L;
+
+    @Test
+    void classDistributionUsesStoredAbsoluteGrade() {
+        Exam exam = ExamFixtures.aGradedExam();
+        ExamResult result = ExamFixtures.anExamResult(exam, 100L, 60);
+        result.assignGrade(7);
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(List.of(result));
+        given(classService.getEnrolledClassesForStudents(any(), any()))
+                .willReturn(List.of(new ClassService.EnrolledClassData(10L, "A반", 100L)));
+
+        ClassComparisonResponse response = service.getClassComparison(EXAM_ID);
+
+        assertThat(response.classes().getFirst().gradeDistribution())
+                .extracting(ClassComparisonResponse.GradeBucket::grade).containsExactly(7);
+    }
 
 
     @Test

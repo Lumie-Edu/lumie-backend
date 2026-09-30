@@ -67,7 +67,8 @@ public class OmrSubmissionService {
                 .map(q -> OmrSubmissionQuestion.create(q.questionNumber(), q.studentAnswer(), q.correctAnswer(),
                         q.score(), q.earnedScore(), q.questionType()))
                 .toList();
-        submission.complete(normalizeCallbackPhone(request.phoneNumber()), request.totalScore(), request.grade(),
+        submission.complete(normalizeCallbackPhone(request.phoneNumber()), request.totalScore(),
+                submission.getExam().isPassFail() ? null : request.grade(),
                 permanentImageKey, questions);
 
         if (submission.getEffectivePhoneNumber() == null) {

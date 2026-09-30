@@ -318,12 +318,7 @@ public class ExamSummaryStatisticsService {
         GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
 
         Map<Integer, Long> gradeCounts = results.stream()
-                .map(r -> {
-                    if (exam.getCategory() == ExamCategory.GRADED) {
-                        return gradeCalculator.calculateGradeForScore(r.getTotalScore(), allScores, gradingType, gradeScale);
-                    }
-                    return r.getGrade();
-                })
+                .map(r -> gradeCalculator.resolveStoredOrRelativeGrade(exam, r, allScores))
                 .filter(grade -> grade != null && grade > 0)
                 .collect(Collectors.groupingBy(grade -> grade, Collectors.counting()));
 

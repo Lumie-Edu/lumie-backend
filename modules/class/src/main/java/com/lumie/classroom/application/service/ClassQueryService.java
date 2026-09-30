@@ -1,12 +1,12 @@
 package com.lumie.classroom.application.service;
 
+import com.lumie.common.auth.CurrentStudentResolver;
 import com.lumie.classroom.application.dto.ClassEnrollmentResponse;
 import com.lumie.classroom.application.dto.ClassResponse;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.exception.ClassErrorCode;
 import com.lumie.common.exception.BusinessException;
@@ -175,11 +175,6 @@ public class ClassQueryService {
     }
 
     private Long currentStudentId() {
-        String tenantSlug = TenantContextHolder.getRequiredTenant();
-        Long userId = UserContextHolder.getRequiredUserId();
-        return studentService.getStudentsByUserIds(tenantSlug, List.of(userId)).students().stream()
-            .findFirst()
-            .map(StudentService.StudentData::id)
-            .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
+        return CurrentStudentResolver.requireStudentId(studentService, CommonErrorCode.FORBIDDEN);
     }
 }

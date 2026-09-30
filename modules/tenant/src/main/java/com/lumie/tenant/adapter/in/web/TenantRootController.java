@@ -1,6 +1,7 @@
 package com.lumie.tenant.adapter.in.web;
 
 import com.lumie.common.tenant.RequestContextFilter;
+import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.tenant.application.service.HostTenantResolver;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,7 +23,7 @@ public class TenantRootController {
     public ResponseEntity<Void> redirectToTenantLogin(HttpServletRequest request) {
         Object value = request.getAttribute(RequestContextFilter.HOST_TENANT_RESOLUTION_ATTRIBUTE);
         if (!(value instanceof HostTenantResolver.ResolvedTenant tenant)) {
-            return ResponseEntity.notFound().build();
+            throw new ResourceNotFoundException("Tenant", "request host");
         }
 
         if (tenant.customDomain() != null) {

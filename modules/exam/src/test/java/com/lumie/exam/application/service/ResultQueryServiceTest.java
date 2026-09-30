@@ -5,6 +5,9 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.Exam;
+import com.lumie.exam.domain.entity.ExamResult;
+import com.lumie.exam.domain.vo.GradingType;
+import com.lumie.exam.test.ExamFixtures;
 import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.ExamResultRepository;
@@ -17,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -40,6 +44,9 @@ class ResultQueryServiceTest {
     @Mock
     private StudentService studentService;
 
+    @Spy
+    private GradeCalculator gradeCalculator = new GradeCalculator();
+
     @InjectMocks
     private ResultQueryService resultQueryService;
 
@@ -53,6 +60,34 @@ class ResultQueryServiceTest {
     void clearContext() {
         TenantContextHolder.clear();
         UserContextHolder.clear();
+    }
+
+    @Test
+    void examResultsKeepTheStoredAbsoluteGrade() {
+        Exam exam = ExamFixtures.aGradedExam();
+        org.springframework.test.util.ReflectionTestUtils.setField(exam, "id", 5L);
+        ExamResult result = ExamResult.createForUnregistered(exam, "01011112222", 65);
+        result.assignGrade(7);
+        given(resultRepository.findByExamId(5L)).willReturn(List.of(result));
+
+        assertThat(resultQueryService.getExamResults(5L).get(0).grade()).isEqualTo(7);
+    }
+
+    @Test
+    void studentResultsUseTheWholeRelativeExamCohort() {
+        Exam exam = ExamFixtures.aGradedExam();
+        org.springframework.test.util.ReflectionTestUtils.setField(exam, "id", 5L);
+        org.springframework.test.util.ReflectionTestUtils.setField(exam, "gradingType", GradingType.RELATIVE);
+        ExamResult low = ExamResult.create(exam, 1L, 50);
+        ExamResult high = ExamResult.create(exam, 2L, 90);
+        given(resultRepository.findByStudentId(1L)).willReturn(List.of(low));
+        given(resultRepository.findByExamIdIn(java.util.Set.of(5L))).willReturn(List.of(low, high));
+        given(studentService.getStudentsByIds("test-academy", List.of(1L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(1L, 77L, "학생", "01011112222", true, null, null)),
+                        1, 0, 1));
+
+        assertThat(resultQueryService.getStudentResults(1L).get(0).grade()).isEqualTo(5);
     }
 
     @Test

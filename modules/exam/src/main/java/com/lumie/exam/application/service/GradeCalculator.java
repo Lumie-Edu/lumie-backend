@@ -26,17 +26,11 @@ public class GradeCalculator {
     private static final int[] FIVE_GRADE_ABSOLUTE_SCORE_THRESHOLDS = {90, 80, 60, 40, 0};
 
     /**
-     * 절대평가일 때만 등급 계산하여 저장 (저장용)
-     * 상대평가는 조회 시 계산하므로 저장하지 않음
+     * 등급제 절대평가만 등급을 저장한다. 상대평가는 조회 시 계산하고
+     * P/NP는 커트라인으로 합불을 판정하므로 등급을 저장하지 않는다.
      */
     public void calculateAndAssignGradeIfAbsolute(Exam exam, ExamResult result) {
-        if (exam.getCategory() == ExamCategory.PASS_FAIL) {
-            // 합불제
-            Integer passScore = exam.getPassScore();
-            if (passScore != null) {
-                result.assignGrade(result.getTotalScore() >= passScore ? 0 : -1);
-            }
-        } else if (exam.getCategory() == ExamCategory.GRADED &&
+        if (exam.getCategory() == ExamCategory.GRADED &&
                    exam.getGradingType() == GradingType.ABSOLUTE) {
             // 절대평가
             GradeScale scale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
@@ -66,71 +60,6 @@ public class GradeCalculator {
 
         double percentile = (double) higherCount / allScores.size() * 100;
         return getGradeFromPercentile(percentile, gradeScale);
-    }
-
-    /**
-     * 전체 결과에 등급 일괄 계산 (배치용)
-     */
-    public void calculateAndAssignGrades(Exam exam, List<ExamResult> results) {
-        if (results == null || results.isEmpty()) {
-            return;
-        }
-
-        GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
-
-        if (exam.getCategory() == ExamCategory.GRADED) {
-            if (exam.getGradingType() == GradingType.RELATIVE) {
-                calculateRelativeGrades(results, gradeScale);
-            } else {
-                calculateAbsoluteGrades(results, gradeScale);
-            }
-        } else if (exam.getCategory() == ExamCategory.PASS_FAIL) {
-            calculatePassFailGrades(exam, results);
-        }
-    }
-
-    /**
-     * 상대평가 - 백분위 기반 등급 계산
-     */
-    private void calculateRelativeGrades(List<ExamResult> results, GradeScale gradeScale) {
-        List<ExamResult> sortedResults = results.stream()
-                .sorted(Comparator.comparingInt(ExamResult::getTotalScore).reversed())
-                .toList();
-
-        int totalCount = sortedResults.size();
-
-        for (int i = 0; i < sortedResults.size(); i++) {
-            ExamResult result = sortedResults.get(i);
-            double percentile = (double) i / totalCount * 100;
-            int grade = getGradeFromPercentile(percentile, gradeScale);
-            result.assignGrade(grade);
-        }
-    }
-
-    /**
-     * 절대평가 - 점수 기반 등급 계산
-     */
-    private void calculateAbsoluteGrades(List<ExamResult> results, GradeScale gradeScale) {
-        for (ExamResult result : results) {
-            int grade = getGradeFromScore(result.getTotalScore(), gradeScale);
-            result.assignGrade(grade);
-        }
-    }
-
-    /**
-     * 합불제 - 합격/불합격 계산
-     */
-    private void calculatePassFailGrades(Exam exam, List<ExamResult> results) {
-        Integer passScore = exam.getPassScore();
-        if (passScore == null) {
-            results.forEach(r -> r.assignGrade(0));
-            return;
-        }
-
-        for (ExamResult result : results) {
-            int grade = result.getTotalScore() >= passScore ? 0 : -1;
-            result.assignGrade(grade);
-        }
     }
 
     /**
@@ -165,6 +94,17 @@ public class GradeCalculator {
         return gradeScale == GradeScale.FIVE_GRADE ? 5 : 9;
     }
 
+    public Integer resolveStoredOrRelativeGrade(Exam exam, ExamResult result, List<Integer> allScores) {
+        if (exam.getCategory() == ExamCategory.PASS_FAIL) {
+            return null;
+        }
+        if (exam.getCategory() == ExamCategory.GRADED && exam.getGradingType() == GradingType.RELATIVE) {
+            GradeScale scale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
+            return calculateRelativeGrade(result.getTotalScore(), allScores, scale);
+        }
+        return result.getGrade();
+    }
+
     // 통계 조회용 메서드들
 
     public int calculateGradeForScore(int score, List<Integer> allScores, GradingType gradingType) {
@@ -176,17 +116,7 @@ public class GradeCalculator {
             return getGradeFromScore(score, gradeScale);
         }
 
-        // RELATIVE
-        if (allScores == null || allScores.isEmpty()) {
-            return gradeScale == GradeScale.FIVE_GRADE ? 3 : 5;
-        }
-
-        long higherCount = allScores.stream()
-                .filter(s -> s > score)
-                .count();
-
-        double percentile = (double) higherCount / allScores.size() * 100;
-        return getGradeFromPercentile(percentile, gradeScale);
+        return calculateRelativeGrade(score, allScores, gradeScale);
     }
 
     /**

@@ -88,7 +88,7 @@ class ExamExportServiceTest {
         service.writeTenantWideCsv(out);
 
         String csv = csv(out);
-        assertThat(csv).contains("학생명,휴대폰,시험명,응시일,점수,만점,정답수,오답수,등수,백분위,등급");
+        assertThat(csv).contains("학생명,휴대폰,시험명,응시일,점수,만점,정답수,오답수,등수,백분위,등급/합격 여부");
         assertThat(csv).contains("홍길동,010-1111-2222,테스트 시험,2026-08-01,20,40,1,1,1,0.0,");
     }
 
@@ -136,6 +136,33 @@ class ExamExportServiceTest {
         assertThat(lines[1]).isEqualTo("학생 2,010-2222-0002,테스트 시험,2026-08-02,40,40,2,0,1,66.7,1");
         assertThat(lines[2]).isEqualTo("학생 1,010-1111-0001,테스트 시험,2026-08-01,20,40,1,1,2,33.3,3");
         assertThat(csv).doesNotContain("학생 3");
+    }
+
+    @Test
+    @DisplayName("prepareCsvForExam: P/NP의 과거 숫자 등급 대신 합불 판정을 내보낸다")
+    void prepareCsvForExam_passFailUsesPassStatusInsteadOfLegacyGrade() throws Exception {
+        Exam exam = Exam.create("단어 시험", ExamCategory.PASS_FAIL, GradingType.ABSOLUTE,
+                GradeScale.NINE_GRADE, 1, Map.of("1", "1"), Map.of("1", 20), Map.of("1", "어휘"), 15);
+        ReflectionTestUtils.setField(exam, "id", 81L);
+        ExamResult result = ExamResult.create(exam, 7L, 20);
+        result.assignGrade(8);
+        ReflectionTestUtils.setField(result, "id", 200L);
+        ReflectionTestUtils.setField(result, "createdAt", Instant.parse("2026-08-02T00:00:00Z"));
+        given(examRepository.findById(81L)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(81L)).willReturn(List.of(result));
+        given(studentGradeQueryService.getStudentGrades(
+                exam, List.of(result), null, null, null, Pageable.unpaged(Sort.unsorted())))
+                .willReturn(new PageImpl<>(List.of(new StudentGradeResponse(
+                        7L, "010-1111-0001", true, "학생 1", 20, 1, 100.0,
+                        8, ExamCategory.PASS_FAIL, true, Instant.parse("2026-08-02T00:00:00Z"), 200L))));
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        service.prepareCsvForExam(81L, null, null, null, Sort.unsorted()).writeTo(out);
+
+        String csv = csv(out);
+        assertThat(csv).contains("백분위,합격 여부");
+        assertThat(csv).contains("학생 1,010-1111-0001,단어 시험,2026-08-02,20,20,0,0,1,100.0,합격");
+        assertThat(csv).doesNotContain(",8\r\n");
     }
 
     @Test

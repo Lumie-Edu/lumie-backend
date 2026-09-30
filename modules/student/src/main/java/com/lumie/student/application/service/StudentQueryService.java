@@ -1,5 +1,7 @@
 package com.lumie.student.application.service;
 
+import com.lumie.common.util.ReportingTime;
+import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.common.csv.CsvWriter;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.auth.api.AuthService;
@@ -65,13 +67,13 @@ public class StudentQueryService {
     }
 
     public StudentResponse getStudentByPhone(String phone) {
-        Student student = studentRepository.findByPhone(phone)
+        Student student = studentRepository.findByCanonicalPhone(PhoneNumberUtils.toDigits(phone))
                 .orElseThrow(() -> new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Student not found with email: phone: %s".formatted(phone)));
         return enrich(student);
     }
 
     public Optional<StudentResponse> findStudentByPhone(String phone) {
-        return studentRepository.findByPhone(phone)
+        return studentRepository.findByCanonicalPhone(PhoneNumberUtils.toDigits(phone))
                 .map(this::enrich);
     }
 
@@ -165,7 +167,7 @@ public class StudentQueryService {
 
     public EnrollmentTrendResponse getEnrollmentTrend(int months) {
         int window = Math.max(1, Math.min(months, 24));
-        ZoneId zone = ZoneId.systemDefault();
+        ZoneId zone = ReportingTime.ZONE;
         YearMonth currentMonth = YearMonth.now(zone);
         YearMonth firstMonth = currentMonth.minusMonths(window - 1L);
         Instant windowStart = firstMonth.atDay(1).atStartOfDay(zone).toInstant();
@@ -205,7 +207,7 @@ public class StudentQueryService {
      * currently-active students plus those deactivated during the current month.
      */
     public DropoutSummaryResponse getDropoutSummary() {
-        ZoneId kst = ZoneId.of("Asia/Seoul");
+        ZoneId kst = ReportingTime.ZONE;
         YearMonth currentMonth = YearMonth.now(kst);
         YearMonth lastMonth = currentMonth.minusMonths(1);
 
@@ -267,7 +269,7 @@ public class StudentQueryService {
             spreadsheetSafe(s.getStudentBirthYear() == null ? "" : s.getStudentBirthYear().toString()),
             spreadsheetSafe(nullToEmpty(s.getStudentMemo())),
             s.isActive() ? "재원" : "휴원",
-            s.getCreatedAt() == null ? "" : LocalDate.ofInstant(s.getCreatedAt(), ZoneId.systemDefault()).format(DATE_FMT)
+            s.getCreatedAt() == null ? "" : LocalDate.ofInstant(s.getCreatedAt(), ReportingTime.ZONE).format(DATE_FMT)
         );
     }
 

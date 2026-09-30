@@ -16,6 +16,7 @@ public record ExamResultResponse(
         Integer score,
         Integer totalPossibleScore,
         @Schema(nullable = true) Integer grade,
+        @Schema(nullable = true) Boolean isPassed,
         Integer correctCount,
         Integer incorrectCount,
         boolean hasOmrImage,
@@ -26,6 +27,10 @@ public record ExamResultResponse(
     }
 
     public static ExamResultResponse from(ExamResult result, String studentName) {
+        return from(result, studentName, result.getExam().isPassFail() ? null : result.getGrade());
+    }
+
+    public static ExamResultResponse from(ExamResult result, String studentName, Integer displayedGrade) {
         boolean studentDeleted = result.isStudentDeleted();
         Long studentId = studentDeleted ? null : result.getStudentId();
         return new ExamResultResponse(
@@ -38,7 +43,8 @@ public record ExamResultResponse(
                 studentId != null,
                 result.getTotalScore(),
                 result.getExam().calculateTotalPossibleScore(),
-                result.getGrade(),
+                result.getExam().isPassFail() ? null : displayedGrade,
+                result.passStatus(),
                 result.getCorrectCount(),
                 result.getIncorrectCount(),
                 result.getOmrImageKey() != null,

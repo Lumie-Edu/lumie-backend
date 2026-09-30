@@ -122,7 +122,7 @@ public class TenantController {
     public ResponseEntity<InputStreamResource> getLogo(@PathVariable String slug) {
         LogoStream logo = tenantLogoService.downloadLogo(slug);
         if (logo == null) {
-            return ResponseEntity.notFound().build();
+            throw new ResourceNotFoundException("Tenant logo", slug);
         }
         MediaType type = logo.contentType() != null
                 ? MediaType.parseMediaType(logo.contentType())

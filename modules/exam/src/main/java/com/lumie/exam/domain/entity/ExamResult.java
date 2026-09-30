@@ -174,8 +174,12 @@ public class ExamResult extends TenantScopedEntity {
                                     String correctAnswer, Integer maxScore) {}
 
     public boolean isPassed() {
+        return Boolean.TRUE.equals(passStatus());
+    }
+
+    public Boolean passStatus() {
         if (!exam.isPassFail() || exam.getPassScore() == null) {
-            return false;
+            return null;
         }
         return totalScore >= exam.getPassScore();
     }

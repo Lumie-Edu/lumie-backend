@@ -1,5 +1,8 @@
 package com.lumie.exam.application.dto.response.statistics;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import com.lumie.exam.domain.vo.ExamCategory;
+
 import java.util.List;
 
 public record StabilityIndexResponse(
@@ -16,7 +19,9 @@ public record StabilityIndexResponse(
             String examName,
             int score,
             int totalPossibleScore,
-            int grade,
+            @Schema(nullable = true) Integer grade,
+            @Schema(nullable = true) Boolean isPassed,
+            ExamCategory examCategory,
             java.time.Instant examDate
     ) {}
 }

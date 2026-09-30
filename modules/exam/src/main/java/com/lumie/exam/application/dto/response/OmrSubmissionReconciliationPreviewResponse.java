@@ -35,7 +35,7 @@ public record OmrSubmissionReconciliationPreviewResponse(
             return new CurrentResult(
                     result.getId(),
                     result.getTotalScore(),
-                    result.getGrade(),
+                    result.getExam().isPassFail() ? null : result.getGrade(),
                     result.getCurrentSubmissionId(),
                     result.getManualOverrideAt(),
                     result.getCreatedAt()

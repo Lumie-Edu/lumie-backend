@@ -197,7 +197,7 @@ spec:
             cpu: 250m
             memory: 768Mi
           limits:
-            memory: 768Mi
+            memory: 1Gi
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness

@@ -1,6 +1,7 @@
 package com.lumie.auth.domain.entity;
 
 import com.lumie.common.auth.Role;
+import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.auth.domain.vo.UserStatus;
 import com.lumie.common.domain.TenantScopedEntity;
 import jakarta.persistence.Column;
@@ -76,7 +77,7 @@ public class User extends TenantScopedEntity {
         this.userLoginId = userLoginId;
         this.passwordHash = passwordHash;
         this.name = name;
-        this.phone = phone;
+        this.phone = PhoneNumberUtils.toDigits(phone);
         this.role = role;
         this.status = status;
         this.avatarSeed = com.lumie.auth.domain.vo.AvatarSeeds.randomSeed();
@@ -97,8 +98,14 @@ public class User extends TenantScopedEntity {
 
     public void updateProfile(String name, String phone, String email) {
         this.name = name;
-        this.phone = phone;
-        this.email = email;
+        this.phone = phone == null || phone.isBlank() ? null : PhoneNumberUtils.toDigits(phone);
+        this.email = email == null || email.isBlank() ? null : email;
+    }
+
+    public void updateIdentity(String name, String phone, String email) {
+        if (name != null && !name.isBlank()) this.name = name;
+        if (phone != null) this.phone = phone.isBlank() ? null : PhoneNumberUtils.toDigits(phone);
+        if (email != null) this.email = email;
     }
 
     public void changeLoginId(String newLoginId) {

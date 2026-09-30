@@ -1,4 +1,4 @@
-package com.lumie.exam.adapter.out.config;
+package com.lumie.app.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

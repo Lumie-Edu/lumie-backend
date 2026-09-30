@@ -315,6 +315,14 @@ class TenantControllerTest {
     }
 
     @Test
+    void missingLogoUsesProblemDetail() throws Exception {
+        mockMvc.perform(get("/v1/tenants/test-academy/logo"))
+                .andExpect(status().isNotFound())
+                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("application/problem+json")))
+                .andExpect(jsonPath("$.code").value("COMMON_003"));
+    }
+
+    @Test
     @DisplayName("GET /v1/tenants/public/current-branding - host tenant 로그인 브랜딩 반환")
     void getCurrentPublicTenantBrandingSuccess() throws Exception {
         PublicTenantResponse response = PublicTenantResponse.builder()

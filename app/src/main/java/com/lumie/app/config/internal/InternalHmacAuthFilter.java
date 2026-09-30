@@ -1,6 +1,8 @@
 package com.lumie.app.config.internal;
 
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.exception.ProblemResponseWriter;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.api.TenantService.TenantData;
 import jakarta.servlet.FilterChain;
@@ -55,6 +57,7 @@ public class InternalHmacAuthFilter extends OncePerRequestFilter {
     public static final String TIMESTAMP_HEADER = "X-Timestamp";
     public static final String TENANT_SLUG_HEADER = "X-Tenant-Slug";
 
+    private final ProblemResponseWriter problems;
     private static final String INTERNAL_PATH_PREFIX = "/internal/";
     private static final long MAX_TIMESTAMP_SKEW_SECONDS = 300L;
     private static final long MAX_BODY_BYTES = 1L * 1024 * 1024; // 1 MiB
@@ -89,7 +92,7 @@ public class InternalHmacAuthFilter extends OncePerRequestFilter {
                                     FilterChain chain) throws ServletException, IOException {
         String tenantSlug = request.getHeader(TENANT_SLUG_HEADER);
         if (isBlank(tenantSlug)) {
-            reject(response, "missing X-Tenant-Slug header");
+            reject(request, response, "missing X-Tenant-Slug header");
             return;
         }
 
@@ -98,37 +101,37 @@ public class InternalHmacAuthFilter extends OncePerRequestFilter {
         try {
             timestamp = Long.parseLong(timestampHeader);
         } catch (NumberFormatException | NullPointerException e) {
-            reject(response, "missing or invalid X-Timestamp header");
+            reject(request, response, "missing or invalid X-Timestamp header");
             return;
         }
 
         long now = Instant.now().getEpochSecond();
         if (Math.abs(now - timestamp) > MAX_TIMESTAMP_SKEW_SECONDS) {
-            reject(response, "timestamp skew too large");
+            reject(request, response, "timestamp skew too large");
             return;
         }
 
         String providedSignature = request.getHeader(SIGNATURE_HEADER);
         if (isBlank(providedSignature)) {
-            reject(response, "missing X-Signature header");
+            reject(request, response, "missing X-Signature header");
             return;
         }
 
         long contentLength = request.getContentLengthLong();
         if (contentLength > MAX_BODY_BYTES) {
-            reject(response, "body too large");
+            reject(request, response, "body too large");
             return;
         }
         byte[] body = readBoundedBody(request, MAX_BODY_BYTES);
         if (body == null) {
-            reject(response, "body too large");
+            reject(request, response, "body too large");
             return;
         }
         CachedBodyHttpServletRequest wrapped = new CachedBodyHttpServletRequest(request, body);
 
         String expectedSignature = computeSignature(timestamp, tenantSlug, body);
         if (!constantTimeEquals(expectedSignature, providedSignature.toLowerCase(Locale.ROOT))) {
-            reject(response, "signature mismatch");
+            reject(request, response, "signature mismatch");
             return;
         }
 
@@ -136,7 +139,7 @@ public class InternalHmacAuthFilter extends OncePerRequestFilter {
         // so RLS sees a populated context — setTenant alone leaves rows invisible.
         TenantData tenant = tenantService.getTenantBySlug(tenantSlug).orElse(null);
         if (tenant == null || !tenant.isActive()) {
-            reject(response, "unknown or inactive tenant");
+            reject(request, response, "unknown or inactive tenant");
             return;
         }
 
@@ -207,10 +210,9 @@ public class InternalHmacAuthFilter extends OncePerRequestFilter {
         return value == null || value.isBlank();
     }
 
-    private static void reject(HttpServletResponse response, String reason) throws IOException {
+    private void reject(HttpServletRequest request, HttpServletResponse response, String reason) throws IOException {
         log.warn("Rejected /internal/** request: {}", reason);
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
-        response.getWriter().write("{\"error\":\"unauthorized\",\"reason\":\"" + reason + "\"}");
+        problems.write(request, response, HttpServletResponse.SC_UNAUTHORIZED,
+                CommonErrorCode.UNAUTHORIZED.getCode(), "Unauthorized internal request");
     }
 }

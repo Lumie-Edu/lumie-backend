@@ -1,5 +1,6 @@
 package com.lumie.lecture.application.service;
 
+import com.lumie.lecture.domain.vo.LectureTargets;
 import com.lumie.lecture.application.dto.request.CreateLectureRequest;
 import com.lumie.lecture.application.dto.request.UpdateLectureRequest;
 import com.lumie.lecture.application.dto.response.LectureResponse;
@@ -162,7 +163,7 @@ public class LectureCommandService {
 
     private List<Long> classIdsForResponse(Long lectureId, Long fallbackClassId) {
         List<Long> classIds = targetRepository.findClassIdsByLectureIdOrderByClassIdAsc(lectureId);
-        return primaryFirst(classIds, fallbackClassId);
+        return LectureTargets.primaryFirst(classIds, fallbackClassId);
     }
 
     private static List<Long> normalizeClassIds(Long classId, List<Long> classIds) {
@@ -182,17 +183,5 @@ public class LectureCommandService {
         return classIds.isEmpty() ? null : classIds.get(0);
     }
 
-    private static List<Long> primaryFirst(List<Long> classIds, Long primaryClassId) {
-        if (classIds.isEmpty()) {
-            return primaryClassId == null ? List.of() : List.of(primaryClassId);
-        }
-        if (primaryClassId == null || !classIds.contains(primaryClassId)) {
-            return classIds;
-        }
-        return java.util.stream.Stream.concat(
-                        java.util.stream.Stream.of(primaryClassId),
-                        classIds.stream().filter(id -> !id.equals(primaryClassId))
-                )
-                .toList();
-    }
+
 }

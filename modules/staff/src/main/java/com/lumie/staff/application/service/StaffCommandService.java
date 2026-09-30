@@ -59,7 +59,7 @@ public class StaffCommandService {
         validateStaffPhoneFormat(request.phone());
 
         String normalizedPhone = PhoneNumberUtils.toDigits(request.phone());
-        if (normalizedPhone != null && !normalizedPhone.isBlank() && staffRepository.existsByPhone(normalizedPhone)) {
+        if (normalizedPhone != null && !normalizedPhone.isBlank() && staffRepository.existsByCanonicalPhone(normalizedPhone)) {
             throw new BusinessException(StaffErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(request.phone()));
         }
 
@@ -85,6 +85,10 @@ public class StaffCommandService {
         );
 
         Staff saved = staffRepository.save(staff);
+        if (request.email() != null && !authService.updateIdentity(
+                userResult.userId(), null, null, request.email())) {
+            throw new BusinessException(StaffErrorCode.AUTH_OP_FAILED, "Linked user not found");
+        }
 
         log.info("Staff registered: {} (role={}) in tenant: {}", saved.getUserLoginId(), requestedRole, tenantSlug);
         return StaffResponse.from(saved);
@@ -100,7 +104,7 @@ public class StaffCommandService {
 
         validateStaffPhoneFormat(request.phone());
         String normalizedPhone = PhoneNumberUtils.toDigits(request.phone());
-        if (normalizedPhone != null && !normalizedPhone.isBlank() && staffRepository.existsByPhoneAndIdNot(normalizedPhone, id)) {
+        if (normalizedPhone != null && !normalizedPhone.isBlank() && staffRepository.existsByCanonicalPhoneAndIdNot(normalizedPhone, id)) {
             throw new BusinessException(StaffErrorCode.DUPLICATE_PHONE, "Phone number already exists: %s".formatted(request.phone()));
         }
 
@@ -108,6 +112,11 @@ public class StaffCommandService {
                 request.staffMemo());
 
         Staff updated = staffRepository.save(staff);
+        if ((request.name() != null || request.phone() != null || request.email() != null)
+                && !authService.updateIdentity(staff.getUserId(), request.name(),
+                        PhoneNumberUtils.toDigits(request.phone()), request.email())) {
+            throw new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Linked user not found");
+        }
 
         log.info("Staff updated: {} in tenant: {}", id, tenantSlug);
         return StaffResponse.from(updated);
@@ -240,7 +249,13 @@ public class StaffCommandService {
     }
 
     private void validateRolePermission(Role creator, String requestedRole) {
-        Role requested = Role.fromString(requestedRole);
+        Role requested;
+        try {
+            requested = Role.valueOf(requestedRole);
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            throw new BusinessException(StaffErrorCode.INVALID_ROLE,
+                    "Invalid role: " + requestedRole + ". Allowed: MANAGER, INSTRUCTOR");
+        }
         if (!CREATABLE_ROLES.contains(requested)) {
             throw new BusinessException(StaffErrorCode.INVALID_ROLE,
                     "Invalid role: " + requestedRole + ". Allowed: MANAGER, INSTRUCTOR");

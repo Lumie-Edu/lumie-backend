@@ -9,6 +9,13 @@ public final class AuthorizationGuard {
     private AuthorizationGuard() {
     }
 
+    public static void requireStaff() {
+        Role role = UserContextHolder.getUserRole();
+        if (role == null || !role.hasAuthority(Role.INSTRUCTOR)) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
+    }
+
     public static void requireOwner() {
         Role role = UserContextHolder.getUserRole();
         if (role != Role.OWNER) {

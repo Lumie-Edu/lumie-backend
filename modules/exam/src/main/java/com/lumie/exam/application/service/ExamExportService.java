@@ -1,5 +1,6 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.common.util.ReportingTime;
 import com.lumie.common.csv.CsvWriter;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -10,10 +11,7 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.ExamSource;
-import com.lumie.exam.domain.vo.GradeScale;
-import com.lumie.exam.domain.vo.GradingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.OutputStream;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -44,6 +41,14 @@ public class ExamExportService {
         "학생명", "휴대폰", "시험명", "응시일", "점수", "만점",
         "정답수", "오답수", "등수", "백분위", "등급"
     );
+    private static final List<String> PASS_FAIL_HEADERS = List.of(
+        "학생명", "휴대폰", "시험명", "응시일", "점수", "만점",
+        "정답수", "오답수", "등수", "백분위", "합격 여부"
+    );
+    private static final List<String> MIXED_HEADERS = List.of(
+        "학생명", "휴대폰", "시험명", "응시일", "점수", "만점",
+        "정답수", "오답수", "등수", "백분위", "등급/합격 여부"
+    );
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final ExamRepository examRepository;
@@ -56,7 +61,7 @@ public class ExamExportService {
     @Transactional(readOnly = true)
     public void writeTenantWideCsv(OutputStream out) {
         try (CsvWriter csv = new CsvWriter(out)) {
-            csv.writeHeader(HEADERS);
+            csv.writeHeader(MIXED_HEADERS);
             for (Exam exam : examRepository.findBySource(ExamSource.EXAM_MANAGEMENT)) {
                 writeTenantWideRows(csv, exam);
                 csv.flush();
@@ -76,7 +81,7 @@ public class ExamExportService {
             .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
         List<ExamResult> results = resultRepository.findByExamId(examId);
 
-        return CsvExport.from(buildRowsForSingleExam(
+        return CsvExport.from(exam.isPassFail() ? PASS_FAIL_HEADERS : HEADERS, buildRowsForSingleExam(
             exam,
             results,
             classId,
@@ -169,16 +174,12 @@ public class ExamExportService {
             result.getIncorrectCount(),
             rank,
             Math.round(percentile * 10) / 10.0,
-            grade
+            outcome(exam, grade, result.passStatus())
         );
     }
 
     private Integer calculateGrade(Exam exam, ExamResult result, List<Integer> allScores) {
-        GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
-        if (exam.getCategory() == ExamCategory.GRADED && exam.getGradingType() == GradingType.RELATIVE) {
-            return gradeCalculator.calculateRelativeGrade(result.getTotalScore(), allScores, gradeScale);
-        }
-        return result.getGrade();
+        return gradeCalculator.resolveStoredOrRelativeGrade(exam, result, allScores);
     }
 
     private ExamCsvRow toFilteredRow(
@@ -206,19 +207,26 @@ public class ExamExportService {
             result.getIncorrectCount(),
             response.rank(),
             response.percentile(),
-            response.grade()
+            outcome(exam, response.grade(), result.passStatus())
         );
     }
 
-    public record CsvExport(List<List<String>> rows) {
+    private static String outcome(Exam exam, Integer grade, Boolean passed) {
+        if (exam.isPassFail()) {
+            return passed == null ? "기준 미확인" : passed ? "합격" : "불합격";
+        }
+        return grade == null ? "" : grade.toString();
+    }
 
-        private static CsvExport from(List<ExamCsvRow> sourceRows) {
-            return new CsvExport(sourceRows.stream().map(ExamExportService::toCsvColumns).toList());
+    public record CsvExport(List<String> headers, List<List<String>> rows) {
+
+        private static CsvExport from(List<String> headers, List<ExamCsvRow> sourceRows) {
+            return new CsvExport(headers, sourceRows.stream().map(ExamExportService::toCsvColumns).toList());
         }
 
         public void writeTo(OutputStream out) {
             try (CsvWriter csv = new CsvWriter(out)) {
-                csv.writeHeader(HEADERS);
+                csv.writeHeader(headers);
                 for (List<String> row : rows) {
                     csv.writeRow(row);
                 }
@@ -243,13 +251,13 @@ public class ExamExportService {
             Integer.toString(row.incorrectCount()),
             Integer.toString(row.rank()),
             Double.toString(row.percentile()),
-            row.grade() == null ? "" : row.grade().toString()
+            row.outcome()
         );
     }
 
     private static String formatSubmittedDate(Instant submittedAt) {
         return submittedAt == null ? ""
-            : LocalDate.ofInstant(submittedAt, ZoneId.systemDefault()).format(DATE_FMT);
+            : LocalDate.ofInstant(submittedAt, ReportingTime.ZONE).format(DATE_FMT);
     }
 
     private Map<Long, StudentService.StudentData> fetchStudentMap(List<ExamResult> results) {
@@ -289,7 +297,7 @@ public class ExamExportService {
         int incorrectCount,
         int rank,
         double percentile,
-        Integer grade
+        String outcome
     ) {
     }
 }

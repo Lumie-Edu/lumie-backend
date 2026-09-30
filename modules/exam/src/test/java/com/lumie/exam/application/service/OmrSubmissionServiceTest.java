@@ -3,12 +3,14 @@ package com.lumie.exam.application.service;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.ApplyOmrSubmissionRequest;
+import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.dto.request.ConfirmOmrSubmissionReconciliationRequest;
 import com.lumie.exam.application.dto.request.PreviewOmrSubmissionReconciliationRequest;
 import com.lumie.exam.application.dto.request.RegisterStudentFromOmrSubmissionRequest;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.OmrSubmission;
+import com.lumie.exam.application.dto.response.OmrSubmissionResponse;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
@@ -29,6 +31,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,6 +63,52 @@ class OmrSubmissionServiceTest {
     @AfterEach
     void clearTenant() {
         TenantContextHolder.clear();
+    }
+
+    @Test
+    void passFailCallbackKeepsScoreWithoutPersistingWorkerNumericGrade() {
+        Exam exam = Exam.create("단어 시험", com.lumie.exam.domain.vo.ExamCategory.PASS_FAIL,
+                com.lumie.exam.domain.vo.GradingType.ABSOLUTE,
+                com.lumie.exam.domain.vo.GradeScale.NINE_GRADE, 1,
+                Map.of("1", "1"), Map.of("1", 20), Map.of("1", "어휘"), 15);
+        OmrSubmission submission = OmrSubmission.pending(
+                exam, 62L, 0, "temp/omr.png", java.time.Instant.parse("2026-09-30T00:00:00Z"));
+        given(submissionRepository.findByJobIdAndImageIndexForUpdate(62L, 0))
+                .willReturn(Optional.of(submission));
+        OmrGradingCallbackRequest callback = new OmrGradingCallbackRequest(
+                62L, 81L, "test-academy", 0, 1, true, null, null, 20, 8, List.of());
+
+        assertThat(service.completeIfPending(62L, 0, callback, "omr/submission.png")).isTrue();
+        assertThat(submission.getTotalScore()).isEqualTo(20);
+        assertThat(submission.getGrade()).isNull();
+        assertThat(OmrSubmissionResponse.from(submission, null, false).grade()).isNull();
+    }
+
+    @Test
+    void passFailMatchedSubmissionStillCreatesOfficialResultWithNullGrade() {
+        Exam exam = Exam.create("단어 시험", com.lumie.exam.domain.vo.ExamCategory.PASS_FAIL,
+                com.lumie.exam.domain.vo.GradingType.ABSOLUTE,
+                com.lumie.exam.domain.vo.GradeScale.NINE_GRADE, 1,
+                Map.of("1", "1"), Map.of("1", 20), Map.of("1", "어휘"), 15);
+        org.springframework.test.util.ReflectionTestUtils.setField(exam, "id", 81L);
+        OmrSubmission submission = OmrSubmission.pending(
+                exam, 63L, 0, "temp/omr.png", java.time.Instant.parse("2026-09-30T00:00:00Z"));
+        given(submissionRepository.findByJobIdAndImageIndexForUpdate(63L, 0))
+                .willReturn(Optional.of(submission));
+        given(studentService.getStudentByPhone("test-academy", "01012345678"))
+                .willReturn(Optional.of(new StudentService.StudentData(
+                        7L, 8L, "학생", "01012345678", true, null, null)));
+        given(resultCommandService.resolveResult(eq(exam), eq(7L), any())).willAnswer(invocation -> {
+            com.lumie.exam.application.port.out.OmrServicePort.OmrGradingResult grading = invocation.getArgument(2);
+            assertThat(grading.grade()).isNull();
+            return ExamResult.create(exam, 7L, grading.totalScore());
+        });
+        OmrGradingCallbackRequest callback = new OmrGradingCallbackRequest(
+                63L, 81L, "test-academy", 0, 1, true, null, "01012345678", 20, 8, List.of());
+
+        assertThat(service.completeIfPending(63L, 0, callback, "omr/submission.png")).isTrue();
+        assertThat(submission.getGrade()).isNull();
+        org.mockito.Mockito.verify(resultRepository).saveAndFlush(any(ExamResult.class));
     }
 
     @Test
@@ -178,6 +227,8 @@ class OmrSubmissionServiceTest {
         given(studentService.getStudentByPhone("test-academy", "01012345678")).willReturn(Optional.of(
                 new StudentService.StudentData(7L, 8L, "학생", "01012345678", true, null, null)));
         given(resultRepository.findByExamIdAndStudentId(1L, 7L)).willReturn(Optional.of(currentResult));
+        Exam currentExam = submission.getExam();
+        given(currentResult.getExam()).willReturn(currentExam);
         given(currentResult.getId()).willReturn(99L);
         given(currentResult.getTotalScore()).willReturn(88);
         given(currentResult.getCreatedAt()).willReturn(java.time.Instant.parse("2026-08-05T00:00:00Z"));

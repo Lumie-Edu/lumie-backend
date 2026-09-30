@@ -36,7 +36,6 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -101,8 +100,8 @@ class ResultControllerTest {
         TenantContextHolder.setTenant("test-academy");
         UserContextHolder.setUserRole(Role.INSTRUCTOR);
         Sort sort = Sort.by(Sort.Direction.DESC, StudentGradeQueryService.SORT_FIELD_TOTAL_SCORE);
-        String expectedDate = LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE);
-        ExamExportService.CsvExport csvExport = new ExamExportService.CsvExport(List.of());
+        String expectedDate = LocalDate.now(com.lumie.common.util.ReportingTime.ZONE).format(DateTimeFormatter.BASIC_ISO_DATE);
+        ExamExportService.CsvExport csvExport = new ExamExportService.CsvExport(List.of(), List.of());
         org.mockito.BDDMockito.given(examExportService.prepareCsvForExam(55L, 9L, true, false, sort))
             .willReturn(csvExport);
 
@@ -177,7 +176,7 @@ class ResultControllerTest {
             org.mockito.ArgumentMatchers.eq(true),
             org.mockito.ArgumentMatchers.eq(false),
             org.mockito.ArgumentMatchers.any(Sort.class)
-        )).willReturn(new ExamExportService.CsvExport(List.of()));
+        )).willReturn(new ExamExportService.CsvExport(List.of(), List.of()));
 
         mockMvc.perform(get("/v1/exams/55/results/export.csv")
                 .header(TEST_ROLE_HEADER, Role.INSTRUCTOR.name())

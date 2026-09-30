@@ -14,7 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,9 +36,8 @@ class AuthControllerRegistrationTest {
     void ownerRegistrationIsUnavailableFromATenantHost() {
         TenantContextHolder.setTenant("inst-joossameng");
 
-        var response = controller().registerOwner(null, request);
-
-        assertThat(response.getStatusCode().value()).isEqualTo(404);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> controller().registerOwner(null, request))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
         verifyNoInteractions(authRegistrationService);
     }
 

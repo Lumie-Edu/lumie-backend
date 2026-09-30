@@ -41,6 +41,16 @@ public class Staff extends TenantScopedEntity {
     @Column(name = "email", length = 255)
     private String email;
 
+    // Keep old columns for rolling compatibility while showing the User-owned values.
+    @Formula("(SELECT u.name FROM users u WHERE u.id = user_id)")
+    private String canonicalName;
+
+    @Formula("(SELECT u.phone FROM users u WHERE u.id = user_id)")
+    private String canonicalPhone;
+
+    @Formula("(SELECT u.email FROM users u WHERE u.id = user_id)")
+    private String canonicalEmail;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -83,15 +93,34 @@ public class Staff extends TenantScopedEntity {
         this.userLoginId = newLoginId;
     }
 
+    public void synchronizeIdentity(String name, String phone, String email,
+                                    boolean nameChanged, boolean phoneChanged, boolean emailChanged) {
+        if (nameChanged) {
+            this.name = name;
+            this.canonicalName = name;
+        }
+        if (phoneChanged) {
+            this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
+            this.canonicalPhone = this.phone;
+        }
+        if (emailChanged) {
+            this.email = email;
+            this.canonicalEmail = email;
+        }
+    }
+
     public void updateInfo(String name, String phone, String email, String staffMemo) {
         if (name != null && !name.isBlank()) {
             this.name = name;
+            this.canonicalName = name;
         }
         if (phone != null) {
             this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
+            this.canonicalPhone = this.phone;
         }
         if (email != null) {
             this.email = email;
+            this.canonicalEmail = email;
         }
         if (staffMemo != null) {
             this.staffMemo = staffMemo;
@@ -99,15 +128,28 @@ public class Staff extends TenantScopedEntity {
     }
 
     public String getStaffName() {
-        return name;
+        return canonicalName != null ? canonicalName : name;
     }
 
     public String getStaffPhone() {
-        return phone;
+        return canonicalName != null ? canonicalPhone : phone;
     }
 
     public String getStaffEmail() {
-        return email != null ? email : userLoginId;
+        String currentEmail = getEmail();
+        return currentEmail != null ? currentEmail : userLoginId;
+    }
+
+    public String getName() {
+        return getStaffName();
+    }
+
+    public String getPhone() {
+        return getStaffPhone();
+    }
+
+    public String getEmail() {
+        return canonicalName != null ? canonicalEmail : email;
     }
 
     public boolean isActive() {

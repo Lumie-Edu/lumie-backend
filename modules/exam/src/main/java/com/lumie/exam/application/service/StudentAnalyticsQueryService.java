@@ -8,9 +8,6 @@ import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.vo.ExamCategory;
-import com.lumie.exam.domain.vo.GradeScale;
-import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.domain.vo.Priority;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,12 +43,7 @@ public class StudentAnalyticsQueryService {
         int rank = statisticsCalculator.calculateRank(result.getTotalScore(), allScores);
         double percentile = statisticsCalculator.calculatePercentile(result.getTotalScore(), allScores);
 
-        Integer grade = result.getGrade();
-        if (exam.getCategory() == ExamCategory.GRADED &&
-            exam.getGradingType() == GradingType.RELATIVE) {
-            GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
-            grade = gradeCalculator.calculateRelativeGrade(result.getTotalScore(), allScores, gradeScale);
-        }
+        Integer grade = gradeCalculator.resolveStoredOrRelativeGrade(exam, result, allScores);
 
         List<StudentRankResponse.TypePercentile> typePercentiles = calculateTypePercentiles(exam, result, allResults);
 
@@ -67,38 +59,7 @@ public class StudentAnalyticsQueryService {
 
         List<ExamResult> results = resultRepository.findByStudentId(studentId);
 
-        if (results.isEmpty()) {
-            return new StabilityIndexResponse(
-                    studentId, 0, 0.0, 0.0, 0.0, "N/A", Collections.emptyList()
-            );
-        }
-
-        List<Integer> scores = results.stream()
-                .map(ExamResult::getTotalScore)
-                .toList();
-
-        double average = statisticsCalculator.calculateMean(scores);
-        double stdDev = statisticsCalculator.calculateStandardDeviation(scores);
-        double cv = statisticsCalculator.calculateCoefficientOfVariation(scores);
-        String stabilityLevel = statisticsCalculator.determineStabilityLevel(cv);
-
-        List<StabilityIndexResponse.ScoreHistory> history = results.stream()
-                .sorted(Comparator.comparing(ExamResult::getCreatedAt))
-                .map(r -> new StabilityIndexResponse.ScoreHistory(
-                        r.getExam().getId(), r.getExam().getName(),
-                        r.getTotalScore(), r.getExam().calculateTotalPossibleScore(),
-                        r.getGrade() != null ? r.getGrade() : 0,
-                        r.getCreatedAt()
-                ))
-                .toList();
-
-        return new StabilityIndexResponse(
-                studentId, results.size(),
-                Math.round(average * 10) / 10.0,
-                Math.round(stdDev * 10) / 10.0,
-                Math.round(cv * 10) / 10.0,
-                stabilityLevel, history
-        );
+        return ExamStatisticsProjection.calculateStabilityIndex(studentId, results, statisticsCalculator);
     }
 
     public TypeGrowthTrendResponse getTypeGrowthTrend(Long studentId) {
@@ -248,60 +209,8 @@ public class StudentAnalyticsQueryService {
 
     private List<StudentRankResponse.TypePercentile> calculateTypePercentiles(
             Exam exam, ExamResult studentResult, List<ExamResult> allResults) {
-
-        if (exam.getQuestionTypes() == null) {
-            return Collections.emptyList();
-        }
-
-        Map<String, int[]> studentTypeStats = new HashMap<>();
-        for (QuestionResult qr : studentResult.getQuestionResults()) {
-            String type = exam.getQuestionType(qr.getQuestionNumber());
-            if (type == null) continue;
-            studentTypeStats.computeIfAbsent(type, k -> new int[]{0, 0});
-            studentTypeStats.get(type)[1]++;
-            if (qr.isCorrect()) {
-                studentTypeStats.get(type)[0]++;
-            }
-        }
-
-        Map<String, List<Double>> typeAccuracies = new HashMap<>();
-        for (ExamResult result : allResults) {
-            Map<String, int[]> resultTypeStats = new HashMap<>();
-            for (QuestionResult qr : result.getQuestionResults()) {
-                String type = exam.getQuestionType(qr.getQuestionNumber());
-                if (type == null) continue;
-                resultTypeStats.computeIfAbsent(type, k -> new int[]{0, 0});
-                resultTypeStats.get(type)[1]++;
-                if (qr.isCorrect()) {
-                    resultTypeStats.get(type)[0]++;
-                }
-            }
-            for (Map.Entry<String, int[]> entry : resultTypeStats.entrySet()) {
-                double acc = entry.getValue()[1] > 0
-                        ? (double) entry.getValue()[0] / entry.getValue()[1] * 100
-                        : 0;
-                typeAccuracies.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(acc);
-            }
-        }
-
-        return studentTypeStats.entrySet().stream()
-                .map(entry -> {
-                    String type = entry.getKey();
-                    int correct = entry.getValue()[0];
-                    int total = entry.getValue()[1];
-                    double accuracy = total > 0 ? (double) correct / total * 100 : 0;
-
-                    List<Double> allAccuracies = typeAccuracies.getOrDefault(type, Collections.emptyList());
-                    long lowerCount = allAccuracies.stream().filter(a -> a < accuracy).count();
-                    double percentile = allAccuracies.isEmpty() ? 0 : (double) lowerCount / allAccuracies.size() * 100;
-
-                    return new StudentRankResponse.TypePercentile(
-                            type, correct, total,
-                            Math.round(accuracy * 10) / 10.0,
-                            Math.round(percentile * 10) / 10.0
-                    );
-                })
-                .toList();
+        return ExamStatisticsProjection.calculateTypePercentiles(exam, studentResult,
+                ExamStatisticsProjection.calculateTypeAccuracies(exam, allResults));
     }
 
     private int calculateTargetScoreForGrade(int targetGrade, List<Integer> sortedScores) {

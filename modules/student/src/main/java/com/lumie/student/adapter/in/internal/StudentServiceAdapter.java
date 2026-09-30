@@ -1,6 +1,7 @@
 package com.lumie.student.adapter.in.internal;
 
 import com.lumie.student.api.StudentService;
+import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +52,7 @@ public class StudentServiceAdapter implements StudentService {
     @Override
     public Optional<StudentData> getStudentByPhone(String tenantSlug, String phone) {
         log.debug("internal.getStudentByPhone slug={}", tenantSlug);
-        return studentRepository.findByPhone(phone).map(this::toData);
+        return studentRepository.findByCanonicalPhone(PhoneNumberUtils.toDigits(phone)).map(this::toData);
     }
 
     @Override

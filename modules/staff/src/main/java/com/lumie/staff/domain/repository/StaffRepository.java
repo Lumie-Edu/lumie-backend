@@ -23,10 +23,10 @@ public interface StaffRepository extends JpaRepository<Staff, Long>, JpaSpecific
 
     boolean existsByUserLoginId(String userLoginId);
 
-    boolean existsByPhone(String phone);
+    boolean existsByCanonicalPhone(String phone);
 
-    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Staff s WHERE s.phone = :phone AND s.id != :excludeId")
-    boolean existsByPhoneAndIdNot(@Param("phone") String phone, @Param("excludeId") Long excludeId);
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Staff s WHERE s.canonicalPhone = :phone AND s.id != :excludeId")
+    boolean existsByCanonicalPhoneAndIdNot(@Param("phone") String phone, @Param("excludeId") Long excludeId);
 
     long countByIsActive(Boolean isActive);
 
@@ -47,9 +47,9 @@ public interface StaffRepository extends JpaRepository<Staff, Long>, JpaSpecific
             if (search != null && !search.isBlank()) {
                 String pattern = "%" + search.toLowerCase(Locale.ROOT) + "%";
                 predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("name")), pattern),
+                        cb.like(cb.lower(root.get("canonicalName")), pattern),
                         cb.like(cb.lower(root.get("userLoginId")), pattern),
-                        cb.like(cb.lower(root.get("email")), pattern)
+                        cb.like(cb.lower(root.get("canonicalEmail")), pattern)
                 ));
             }
             return cb.and(predicates.toArray(new Predicate[0]));

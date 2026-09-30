@@ -1,5 +1,6 @@
 package com.lumie.exam.adapter.in.web;
 
+import com.lumie.common.util.ReportingTime;
 import com.lumie.common.api.JobAcceptedResponse;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.auth.AuthorizationGuard;
@@ -53,7 +54,6 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -399,7 +399,7 @@ public class ResultController {
         AuthorizationGuard.requireOwner();
         String filename = "%s_grades_%s.csv".formatted(
             TenantContextHolder.getRequiredTenant(),
-            LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE)
+            LocalDate.now(ReportingTime.ZONE).format(DateTimeFormatter.BASIC_ISO_DATE)
         );
 
         return ResponseEntity.ok()
@@ -428,7 +428,7 @@ public class ResultController {
         String filename = "%s_exam_%d_grades_%s.csv".formatted(
             TenantContextHolder.getRequiredTenant(),
             examId,
-            LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE)
+            LocalDate.now(ReportingTime.ZONE).format(DateTimeFormatter.BASIC_ISO_DATE)
         );
 
         return ResponseEntity.ok()

@@ -13,6 +13,8 @@ public interface AuthService {
 
     ChangeLoginIdResult changeLoginId(Long userId, String newLoginId);
 
+    boolean updateIdentity(Long userId, String name, String phone, String email);
+
     /**
      * Batch lookup of avatar seeds keyed by user ID. Users without an
      * avatar seed are simply omitted from the returned map.

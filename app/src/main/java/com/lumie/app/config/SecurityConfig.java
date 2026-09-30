@@ -1,6 +1,8 @@
 package com.lumie.app.config;
 
 import com.lumie.app.config.internal.InternalHmacAuthFilter;
+import com.lumie.common.exception.ProblemResponseWriter;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.auth.adapter.in.security.SessionAuthenticationFilter;
 import com.lumie.auth.adapter.in.security.SameOriginCsrfFilter;
 import com.lumie.auth.adapter.in.security.LegacyJwtMigrationFilter;
@@ -16,9 +18,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
@@ -32,6 +32,7 @@ public class SecurityConfig {
     private final HostTenantFilter hostTenantFilter;
     private final InternalHmacAuthFilter internalHmacAuthFilter;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final ProblemResponseWriter problems;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -58,7 +59,10 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .authenticationEntryPoint((request, response, exception) ->
+                                problems.write(request, response, 401, CommonErrorCode.UNAUTHORIZED.getCode(), "Unauthorized"))
+                        .accessDeniedHandler((request, response, exception) ->
+                                problems.write(request, response, 403, CommonErrorCode.FORBIDDEN.getCode(), "Forbidden"))
                 )
                 .addFilterBefore(hostTenantFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(legacyJwtMigrationFilter, HostTenantFilter.class)

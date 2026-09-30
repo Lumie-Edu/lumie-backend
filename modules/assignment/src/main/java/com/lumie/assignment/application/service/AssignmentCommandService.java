@@ -1,5 +1,6 @@
 package com.lumie.assignment.application.service;
 
+import com.lumie.common.auth.CurrentStudentResolver;
 import com.lumie.assignment.application.dto.request.CreateAssignmentRequest;
 import com.lumie.assignment.application.dto.request.CreateSubmissionRequest;
 import com.lumie.assignment.application.dto.request.SubmitAssignmentRequest;
@@ -24,7 +25,6 @@ import com.lumie.assignment.domain.vo.SubmissionStatus;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.api.ExamService;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
@@ -369,12 +369,7 @@ public class AssignmentCommandService {
     }
 
     private Long currentStudentId() {
-        String slug = TenantContextHolder.getRequiredTenant();
-        Long userId = UserContextHolder.getRequiredUserId();
-        return studentService.getStudentsByUserIds(slug, List.of(userId)).students().stream()
-                .findFirst()
-                .map(StudentService.StudentData::id)
-                .orElseThrow(() -> new BusinessException(AssignmentErrorCode.STUDENT_NOT_FOUND));
+        return CurrentStudentResolver.requireStudentId(studentService, AssignmentErrorCode.STUDENT_NOT_FOUND);
     }
 
     private SubmissionResponse studentSubmissionResponse(Assignment assignment, AssignmentSubmission submission) {

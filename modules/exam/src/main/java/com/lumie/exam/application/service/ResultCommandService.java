@@ -31,7 +31,6 @@ import com.lumie.exam.domain.repository.OmrSubmissionRepository;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.exam.domain.vo.ExamCategory;
-import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -96,9 +95,11 @@ public class ResultCommandService {
                     exam.getQuestionScores(),
                     exam.getQuestionTypes()
             );
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.error("OMR grading failed", e);
-            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED);
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED, e);
         }
 
         // Phase 3 — persist results in a fresh write transaction.
@@ -109,7 +110,7 @@ public class ResultCommandService {
             ExamResult result = resolveResult(examId, managedExam, studentId, omrResult);
             result.assignPhoneNumber(student.studentPhone());
             ExamResult saved = resultRepository.save(result);
-            return ExamResultResponse.from(saved);
+            return toProjectedResponse(saved, null);
         });
 
         log.info("OMR grading completed for exam: {}, student: {}", examId, studentId);
@@ -151,9 +152,17 @@ public class ResultCommandService {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         String tenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
 
-        // Validate object keys
+        // Presign gives every upload in this request one batch directory.
+        String batchKey = request.batchKey();
+        if (batchKey == null || !batchKey.matches("[0-9a-f]{8}")) {
+            throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA);
+        }
+        String batchPrefix = FileObjectKeyFactory.temporaryOmrPrefix(tenantId) + batchKey + "/";
         for (String key : request.objectKeys()) {
-            if (!key.startsWith("tmp/" + tenantId + "/omr/") || key.contains("..")) {
+            if (key == null || !key.startsWith(batchPrefix)
+                    || key.length() == batchPrefix.length()
+                    || !key.substring(batchPrefix.length()).matches("[a-zA-Z0-9가-힣._-]+")
+                    || key.contains("..")) {
                 throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA);
             }
         }
@@ -297,7 +306,7 @@ public class ResultCommandService {
             result.updatePhoneMatch(normalizedPhone, matchedStudent != null ? matchedStudent.id() : null);
             result.recordManualOverride(Instant.now());
             ExamResult saved = resultRepository.saveAndFlush(result);
-            return ExamResultResponse.from(saved, matchedStudent != null ? matchedStudent.studentName() : null);
+            return toProjectedResponse(saved, matchedStudent != null ? matchedStudent.studentName() : null);
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ExamErrorCode.DUPLICATE_RESULT,
                     "이미 해당 학생의 시험 성적이 있습니다.", e);
@@ -399,6 +408,18 @@ public class ResultCommandService {
         return normalized.isEmpty() ? null : normalized;
     }
 
+    private ExamResultResponse toProjectedResponse(ExamResult result, String studentName) {
+        Exam exam = result.getExam();
+        List<Integer> allScores = exam.getCategory() == ExamCategory.GRADED
+                && exam.getGradingType() == GradingType.RELATIVE
+                ? resultRepository.findByExamId(exam.getId()).stream()
+                    .map(ExamResult::getTotalScore)
+                    .toList()
+                : List.of();
+        return ExamResultResponse.from(result, studentName,
+                gradeCalculator.resolveStoredOrRelativeGrade(exam, result, allScores));
+    }
+
     private ExamService.ManualGradeResult toManualGradeResult(ExamResult result, Exam exam, Long studentId) {
         List<ExamService.QuestionGradeData> questionResults = result.getQuestionResults().stream()
                 .sorted(java.util.Comparator.comparing(QuestionResult::getQuestionNumber))
@@ -417,18 +438,13 @@ public class ResultCommandService {
                 })
                 .toList();
 
-        Integer grade = result.getGrade();
-        if (exam.getCategory() == ExamCategory.GRADED && exam.getGradingType() == GradingType.ABSOLUTE) {
-            GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
-            grade = gradeCalculator.calculateGradeForScore(
-                    result.getTotalScore(), List.of(), GradingType.ABSOLUTE, gradeScale);
-        } else if (exam.getCategory() == ExamCategory.GRADED && exam.getGradingType() == GradingType.RELATIVE) {
-            GradeScale gradeScale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
-            List<Integer> allScores = resultRepository.findByExamId(exam.getId()).stream()
+        List<Integer> allScores = exam.getCategory() == ExamCategory.GRADED
+                && exam.getGradingType() == GradingType.RELATIVE
+                ? resultRepository.findByExamId(exam.getId()).stream()
                     .map(ExamResult::getTotalScore)
-                    .toList();
-            grade = gradeCalculator.calculateRelativeGrade(result.getTotalScore(), allScores, gradeScale);
-        }
+                    .toList()
+                : List.of();
+        Integer grade = gradeCalculator.resolveStoredOrRelativeGrade(exam, result, allScores);
 
         return new ExamService.ManualGradeResult(
                 result.getId(),

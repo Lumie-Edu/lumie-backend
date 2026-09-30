@@ -28,6 +28,8 @@ dependencies {
     implementation(project(":modules:notification"))
     implementation(project(":modules:file"))
 
+    implementation("org.springframework.boot:spring-boot-starter-amqp")
+
     // Spring Boot (needed for app module's own classes)
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")

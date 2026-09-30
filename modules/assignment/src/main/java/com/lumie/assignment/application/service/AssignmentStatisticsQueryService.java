@@ -1,5 +1,6 @@
 package com.lumie.assignment.application.service;
 
+import com.lumie.common.util.ReportingTime;
 import com.lumie.assignment.application.dto.response.statistics.AssignmentDashboardResponse;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
@@ -21,7 +22,7 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class AssignmentStatisticsQueryService {
 
-    private static final ZoneId REPORTING_ZONE = ZoneId.of("Asia/Seoul");
+    private static final ZoneId REPORTING_ZONE = ReportingTime.ZONE;
 
     private final AssignmentSubmissionRepository submissionRepository;
 

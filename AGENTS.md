@@ -1,6 +1,6 @@
 # lumie-backend
 
-Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot 3.4. `app/` is the single `@SpringBootApplication`; `modules/*` are domain modules (logical, not deployables).
+Spring Boot **monolith** (Gradle multi-module, hexagonal). Java 21 + Spring Boot 3.5.16. `app/` is the single `@SpringBootApplication`; `modules/*` are domain modules (logical, not deployables).
 
 > Workspace rules apply (`../AGENTS.md`).
 

@@ -1,15 +1,21 @@
 package com.lumie.auth.application.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import com.lumie.common.validation.PersonName;
+import com.lumie.common.validation.PersonNamePolicy;
+import com.lumie.common.validation.MobilePhone;
+import com.lumie.common.validation.LoginId;
+import com.lumie.common.validation.LoginIdPolicy;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @Builder
 public record OwnerRegisterRequest(
-        @NotBlank(message = "User login ID is required")
-        @Size(min = 4, max = 50, message = "User login ID must be between 4 and 50 characters")
-        @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "User login ID can only contain letters, numbers, and underscores")
+        @LoginId
+        @Schema(minLength = LoginIdPolicy.MIN_LENGTH, maxLength = LoginIdPolicy.MAX_LENGTH,
+                pattern = LoginIdPolicy.PATTERN, requiredMode = Schema.RequiredMode.REQUIRED)
         String userLoginId,
 
         @NotBlank(message = "Password is required")
@@ -20,11 +26,12 @@ public record OwnerRegisterRequest(
         )
         String password,
 
-        @NotBlank(message = "Name is required")
-        @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
+        @PersonName
+        @Schema(minLength = PersonNamePolicy.MIN_LENGTH, maxLength = PersonNamePolicy.MAX_LENGTH,
+                requiredMode = Schema.RequiredMode.REQUIRED)
         String name,
 
-        @Size(max = 20, message = "Phone must be at most 20 characters")
+        @MobilePhone
         String phone,
 
         @NotBlank(message = "Institute name is required")

@@ -1,7 +1,5 @@
 package com.lumie.tenant.application.dto.request;
 
-import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
@@ -13,14 +11,6 @@ public record CompleteTenantOnboardingRequest(
         @Size(max = 30, message = "Phone must be at most 30 characters")
         String phone,
 
-        @ArraySchema(schema = @Schema(allowableValues = {
-                "ai",
-                "students", "employees",
-                "classes", "assignments", "lectures",
-                "grades", "omr-grading", "reports",
-                "announcements", "sms", "resources", "qna",
-                "textbooks", "reviews"
-        }))
         @Size(max = 100, message = "Hidden sidebar item ids must contain at most 100 entries")
         List<@Size(max = 80, message = "Sidebar item id must be at most 80 characters")
         @Pattern(

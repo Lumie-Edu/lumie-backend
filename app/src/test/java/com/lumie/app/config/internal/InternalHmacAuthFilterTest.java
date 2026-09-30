@@ -1,6 +1,7 @@
 package com.lumie.app.config.internal;
 
 import com.lumie.tenant.api.TenantService;
+import com.lumie.common.exception.ProblemResponseWriter;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -22,7 +23,7 @@ class InternalHmacAuthFilterTest {
 
     private static final class ExposedInternalHmacAuthFilter extends InternalHmacAuthFilter {
         private ExposedInternalHmacAuthFilter(InternalAuthProperties properties, TenantService tenantService) {
-            super(properties, tenantService);
+            super(mock(ProblemResponseWriter.class), properties, tenantService);
         }
 
         private boolean shouldSkip(String path) {

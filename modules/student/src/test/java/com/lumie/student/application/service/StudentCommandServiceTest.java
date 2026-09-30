@@ -104,14 +104,14 @@ class StudentCommandServiceTest {
         );
         given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
                 .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
-        given(studentRepository.existsByPhone("01099999999")).willReturn(false);
+        given(studentRepository.existsByCanonicalPhone("01099999999")).willReturn(false);
         given(authService.createUser("김민조", "01099999999", Role.STUDENT.name(), 1L))
                 .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "01099999999"));
         given(studentRepository.save(any(Student.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         service.registerStudent(request);
 
-        verify(studentRepository).existsByPhone("01099999999");
+        verify(studentRepository).existsByCanonicalPhone("01099999999");
         verify(authService).createUser("김민조", "01099999999", Role.STUDENT.name(), 1L);
     }
 
@@ -128,7 +128,7 @@ class StudentCommandServiceTest {
         );
         given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
                 .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
-        given(studentRepository.existsByPhone("01099999999")).willReturn(false);
+        given(studentRepository.existsByCanonicalPhone("01099999999")).willReturn(false);
         given(authService.createUser("김민조", "01099999999", Role.STUDENT.name(), 1L))
                 .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "01099999999"));
         given(studentRepository.save(any(Student.class))).willAnswer(invocation -> invocation.getArgument(0));
@@ -153,7 +153,7 @@ class StudentCommandServiceTest {
         );
         given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
                 .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
-        given(studentRepository.existsByPhone("01099999999")).willReturn(false);
+        given(studentRepository.existsByCanonicalPhone("01099999999")).willReturn(false);
 
         assertThatThrownBy(() -> service.registerStudent(request))
                 .isInstanceOfSatisfying(BusinessException.class, e ->
@@ -213,6 +213,37 @@ class StudentCommandServiceTest {
         ArgumentCaptor<Student> captor = ArgumentCaptor.forClass(Student.class);
         verify(studentRepository).save(captor.capture());
         assertThat(captor.getValue().getParentPhone()).isNull();
+        org.mockito.Mockito.verifyNoInteractions(authService);
+    }
+
+    @Test
+    @DisplayName("updateStudent는 빈 학생 연락처를 Student와 User 양쪽에서 삭제한다")
+    void updateStudent_blankPhone_clearsCanonicalIdentity() {
+        Student student = Student.create(100L, "user_100", "기존 이름", "01099999999", null, null, null, null);
+        ReflectionTestUtils.setField(student, "id", 42L);
+        given(studentRepository.findById(42L)).willReturn(Optional.of(student));
+        given(studentRepository.save(student)).willReturn(student);
+        given(authService.updateIdentity(100L, null, "", null)).willReturn(true);
+
+        service.updateStudent(42L, new com.lumie.student.application.dto.request.StudentUpdateRequest(
+                null, "", null, null, null, null));
+
+        assertThat(student.getPhone()).isNull();
+        verify(authService).updateIdentity(100L, null, "", null);
+    }
+
+    @Test
+    void updateStudentNameDoesNotSendUnchangedPhoneToUser() {
+        Student student = Student.create(100L, "user_100", "기존 이름", "01099999999", null, null, null, null);
+        ReflectionTestUtils.setField(student, "id", 42L);
+        given(studentRepository.findById(42L)).willReturn(Optional.of(student));
+        given(studentRepository.save(student)).willReturn(student);
+        given(authService.updateIdentity(100L, "새 이름", null, null)).willReturn(true);
+
+        service.updateStudent(42L, new com.lumie.student.application.dto.request.StudentUpdateRequest(
+                "새 이름", null, null, null, null, null));
+
+        verify(authService).updateIdentity(100L, "새 이름", null, null);
     }
 
     @Test
@@ -258,7 +289,7 @@ class StudentCommandServiceTest {
         );
         given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
                 .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
-        given(studentRepository.existsByPhone("01012345678")).willReturn(true);
+        given(studentRepository.existsByCanonicalPhone("01012345678")).willReturn(true);
 
         assertThatThrownBy(() -> service.registerStudent(request))
                 .isInstanceOfSatisfying(BusinessException.class, e ->
@@ -285,8 +316,8 @@ class StudentCommandServiceTest {
                 .build();
         given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
                 .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
-        given(studentRepository.existsByPhone("01012345678")).willReturn(true);
-        given(studentRepository.findByPhone("01012345678")).willReturn(java.util.Optional.of(inactiveStudent));
+        given(studentRepository.existsByCanonicalPhone("01012345678")).willReturn(true);
+        given(studentRepository.findByCanonicalPhone("01012345678")).willReturn(java.util.Optional.of(inactiveStudent));
 
         assertThatThrownBy(() -> service.registerStudent(request))
                 .isInstanceOfSatisfying(BusinessException.class, e -> {
@@ -313,8 +344,8 @@ class StudentCommandServiceTest {
         Student inactiveStudent = inactiveStudent(43L, 101L);
         ReflectionTestUtils.setField(student, "id", 42L);
         given(studentRepository.findById(42L)).willReturn(Optional.of(student));
-        given(studentRepository.existsByPhoneExcluding("01012345678", 42L)).willReturn(true);
-        given(studentRepository.findByPhone("01012345678")).willReturn(Optional.of(inactiveStudent));
+        given(studentRepository.existsByCanonicalPhoneExcluding("01012345678", 42L)).willReturn(true);
+        given(studentRepository.findByCanonicalPhone("01012345678")).willReturn(Optional.of(inactiveStudent));
 
         assertThatThrownBy(() -> service.updateStudent(42L, new com.lumie.student.application.dto.request.StudentUpdateRequest(
                 null,
@@ -343,7 +374,7 @@ class StudentCommandServiceTest {
                 "text/csv",
                 csv.getBytes(UTF_8)
         );
-        given(studentRepository.existsByPhone("01012345678")).willReturn(false);
+        given(studentRepository.existsByCanonicalPhone("01012345678")).willReturn(false);
 
         BulkImportResult result = service.bulkImportStudents(file);
 
@@ -370,7 +401,7 @@ class StudentCommandServiceTest {
                 "text/csv",
                 csv.getBytes(UTF_8)
         );
-        given(studentRepository.existsByPhone("01012345678")).willReturn(false);
+        given(studentRepository.existsByCanonicalPhone("01012345678")).willReturn(false);
         given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
                 .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
         given(authService.createUser("김민조", "010-1234-5678", Role.STUDENT.name(), 1L))
@@ -399,8 +430,8 @@ class StudentCommandServiceTest {
                 "text/csv",
                 csv.getBytes(UTF_8)
         );
-        given(studentRepository.existsByPhone("01012345678")).willReturn(true);
-        given(studentRepository.findByPhone("01012345678")).willReturn(Optional.of(inactiveStudent(43L, 101L)));
+        given(studentRepository.existsByCanonicalPhone("01012345678")).willReturn(true);
+        given(studentRepository.findByCanonicalPhone("01012345678")).willReturn(Optional.of(inactiveStudent(43L, 101L)));
 
         BulkImportResult result = service.bulkImportStudents(file);
 
@@ -431,8 +462,8 @@ class StudentCommandServiceTest {
                 "text/csv",
                 csv.getBytes(UTF_8)
         );
-        given(studentRepository.existsByPhone("01012345678")).willReturn(false);
-        given(studentRepository.existsByPhone("01099999999")).willReturn(false);
+        given(studentRepository.existsByCanonicalPhone("01012345678")).willReturn(false);
+        given(studentRepository.existsByCanonicalPhone("01099999999")).willReturn(false);
         given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
                 .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
         given(authService.createUser("김민조", "010-1234-5678", Role.STUDENT.name(), 1L))
@@ -485,6 +516,29 @@ class StudentCommandServiceTest {
                 .extracting(BulkImportResult.RowError::rowNumber, BulkImportResult.RowError::code)
                 .containsExactly(tuple(2, StudentErrorCode.BULK_IMPORT_INVALID_PHONE.getCode()));
         verify(authService, never()).createUser(any(), any(), eq(Role.STUDENT.name()), anyLong());
+    }
+
+    @Test
+    void bulkImportStudentPhoneAcceptsLongFormattingWhenDigitsAreValid() {
+        String csv = "학생 이름,학생 연락처,학교명,출생 연도,학부모 연락처,메모\n"
+                + "김민조,((010))---1234---5678,,,,\n";
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "students.csv", "text/csv", csv.getBytes(UTF_8));
+        given(studentRepository.existsByCanonicalPhone("01012345678")).willReturn(false);
+        given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
+        given(authService.createUser("김민조", "((010))---1234---5678", Role.STUDENT.name(), 1L))
+                .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "01012345678"));
+        given(studentRepository.save(any(Student.class))).willAnswer(invocation -> {
+            Student student = invocation.getArgument(0);
+            ReflectionTestUtils.setField(student, "id", 1_100L);
+            return student;
+        });
+
+        BulkImportResult result = service.bulkImportStudents(file);
+
+        assertThat(result.successCount()).isEqualTo(1);
+        assertThat(result.errors()).isEmpty();
     }
 
     private static Student inactiveStudent(Long id, Long userId) {

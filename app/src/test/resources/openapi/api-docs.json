@@ -524,6 +524,9 @@
       "ChangeLoginIdRequest" : {
         "properties" : {
           "loginId" : {
+            "maxLength" : 50,
+            "minLength" : 4,
+            "pattern" : "^[a-zA-Z0-9_]+$",
             "type" : "string"
           }
         },
@@ -800,7 +803,6 @@
         "properties" : {
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "reviews" ],
               "maxLength" : 80,
               "minLength" : 0,
               "pattern" : "^[a-z0-9][a-z0-9-]*$",
@@ -1778,6 +1780,10 @@
             "format" : "int32",
             "type" : "integer"
           },
+          "isPassed" : {
+            "nullable" : true,
+            "type" : "boolean"
+          },
           "isRegistered" : {
             "type" : "boolean"
           },
@@ -1803,7 +1809,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "correctCount", "createdAt", "examId", "examName", "grade", "hasOmrImage", "id", "incorrectCount", "isRegistered", "phoneNumber", "score", "studentId", "studentName", "totalPossibleScore" ],
+        "required" : [ "correctCount", "createdAt", "examId", "examName", "grade", "hasOmrImage", "id", "incorrectCount", "isPassed", "isRegistered", "phoneNumber", "score", "studentId", "studentName", "totalPossibleScore" ],
         "type" : "object"
       },
       "ExamStatisticsResponse" : {
@@ -2845,8 +2851,6 @@
             "type" : "string"
           },
           "phone" : {
-            "maxLength" : 20,
-            "minLength" : 0,
             "type" : "string"
           },
           "userLoginId" : {
@@ -4096,6 +4100,7 @@
             "type" : "array"
           }
         },
+        "required" : [ "studentIds" ],
         "type" : "object"
       },
       "ReportJobStatusResponse" : {
@@ -4368,6 +4373,10 @@
       },
       "ScoreHistory" : {
         "properties" : {
+          "examCategory" : {
+            "enum" : [ "GRADED", "PASS_FAIL" ],
+            "type" : "string"
+          },
           "examDate" : {
             "format" : "date-time",
             "type" : "string"
@@ -4381,7 +4390,12 @@
           },
           "grade" : {
             "format" : "int32",
+            "nullable" : true,
             "type" : "integer"
+          },
+          "isPassed" : {
+            "nullable" : true,
+            "type" : "boolean"
           },
           "score" : {
             "format" : "int32",
@@ -4392,7 +4406,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "examDate", "examId", "examName", "grade", "score", "totalPossibleScore" ],
+        "required" : [ "examCategory", "examDate", "examId", "examName", "grade", "isPassed", "score", "totalPossibleScore" ],
         "type" : "object"
       },
       "ScoreRangeDistribution" : {
@@ -4844,9 +4858,13 @@
       "StaffRequest" : {
         "properties" : {
           "email" : {
+            "maxLength" : 255,
+            "minLength" : 0,
             "type" : "string"
           },
           "name" : {
+            "maxLength" : 100,
+            "minLength" : 2,
             "type" : "string"
           },
           "phone" : {
@@ -4919,6 +4937,8 @@
       "StaffUpdateRequest" : {
         "properties" : {
           "email" : {
+            "maxLength" : 255,
+            "minLength" : 0,
             "type" : "string"
           },
           "name" : {
@@ -5142,6 +5162,8 @@
       "StudentRequest" : {
         "properties" : {
           "name" : {
+            "maxLength" : 100,
+            "minLength" : 2,
             "type" : "string"
           },
           "parentPhone" : {
@@ -5549,7 +5571,6 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "reviews" ],
               "type" : "string"
             },
             "type" : "array"
@@ -6119,8 +6140,6 @@
             "type" : "string"
           },
           "phone" : {
-            "maxLength" : 20,
-            "minLength" : 0,
             "type" : "string"
           }
         },
@@ -6223,7 +6242,6 @@
           },
           "hiddenSidebarItemIds" : {
             "items" : {
-              "enum" : [ "ai", "students", "employees", "classes", "assignments", "lectures", "grades", "omr-grading", "reports", "announcements", "sms", "resources", "qna", "textbooks", "reviews" ],
               "maxLength" : 80,
               "minLength" : 0,
               "pattern" : "^[a-z0-9][a-z0-9-]*$",

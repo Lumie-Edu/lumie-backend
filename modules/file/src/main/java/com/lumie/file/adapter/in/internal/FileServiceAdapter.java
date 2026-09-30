@@ -1,5 +1,6 @@
 package com.lumie.file.adapter.in.internal;
 
+import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.api.TemporaryAttachment;
@@ -21,6 +22,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Slf4j
@@ -174,7 +176,7 @@ public class FileServiceAdapter implements FileService {
 
     private void validateNewAttachments(List<TemporaryAttachment> attachments) {
         if (attachments == null) return;
-        if (attachments.size() > MAX_ATTACHMENTS
+        if (attachments.size() > MAX_ATTACHMENTS || attachments.stream().anyMatch(Objects::isNull)
                 || attachments.stream().map(TemporaryAttachment::objectKey).distinct().count() != attachments.size()) {
             throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "Invalid attachment list");
         }
@@ -190,8 +192,7 @@ public class FileServiceAdapter implements FileService {
     private void validateTemporaryObject(TemporaryAttachment attachment) {
         String tenantId = com.lumie.common.tenant.TenantContextHolder.toStorageTenantId(
                 com.lumie.common.tenant.TenantContextHolder.getRequiredTenant());
-        String prefix = "tmp/" + tenantId + "/uploads/";
-        if (attachment.objectKey() == null || !attachment.objectKey().startsWith(prefix)
+        if (!FileObjectKeyFactory.isTemporaryUploadKey(tenantId, attachment.objectKey(), attachment.filename())
                 || !storagePort.objectExists(attachment.objectKey())
                 || storagePort.objectSize(attachment.objectKey()) != attachment.fileSize()) {
             throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);

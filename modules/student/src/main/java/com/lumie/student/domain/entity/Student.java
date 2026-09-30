@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Formula;
 
 @Entity
 @Table(name = "students")
@@ -32,6 +33,13 @@ public class Student extends TenantScopedEntity {
 
     @Column(name = "phone", length = 20)
     private String phone;
+
+    // The old columns remain dual-written for rolling compatibility; new reads prefer User.
+    @Formula("(SELECT u.name FROM users u WHERE u.id = user_id)")
+    private String canonicalName;
+
+    @Formula("(SELECT u.phone FROM users u WHERE u.id = user_id)")
+    private String canonicalPhone;
 
     @Column(name = "student_highschool", length = 100)
     private String studentHighschool;
@@ -81,14 +89,27 @@ public class Student extends TenantScopedEntity {
                 .build();
     }
 
+    public void synchronizeIdentity(String name, String phone, boolean nameChanged, boolean phoneChanged) {
+        if (nameChanged) {
+            this.name = name;
+            this.canonicalName = name;
+        }
+        if (phoneChanged) {
+            this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
+            this.canonicalPhone = this.phone;
+        }
+    }
+
     public void updateInfo(String name, String phone, String studentHighschool,
                            Integer studentBirthYear, String parentPhone,
                            String studentMemo) {
         if (name != null && !name.isBlank()) {
             this.name = name;
+            this.canonicalName = name;
         }
         if (phone != null) {
-            this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
+            this.phone = phone.isBlank() ? null : com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
+            this.canonicalPhone = this.phone;
         }
         if (studentHighschool != null) {
             this.studentHighschool = studentHighschool;
@@ -121,11 +142,19 @@ public class Student extends TenantScopedEntity {
     }
 
     public String getStudentName() {
-        return name;
+        return canonicalName != null ? canonicalName : name;
     }
 
     public String getStudentPhone() {
-        return phone;
+        return canonicalName != null ? canonicalPhone : phone;
+    }
+
+    public String getName() {
+        return getStudentName();
+    }
+
+    public String getPhone() {
+        return getStudentPhone();
     }
 
     public String getStudentEmail() {

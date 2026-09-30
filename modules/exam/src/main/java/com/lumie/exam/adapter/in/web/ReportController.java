@@ -7,6 +7,7 @@ import com.lumie.exam.application.service.ReportJobService;
 import com.lumie.common.api.JobAcceptedResponse;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -57,7 +58,7 @@ public class ReportController {
     @PostMapping("/exams/{examId}/reports/batch")
     public ResponseEntity<JobAcceptedResponse> createBatchReport(
             @PathVariable Long examId,
-            @RequestBody ReportBatchRequest request,
+            @Valid @RequestBody ReportBatchRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
         if (idempotencyKey != null) {

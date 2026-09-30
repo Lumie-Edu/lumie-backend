@@ -49,7 +49,7 @@ class StudentGradeQueryServiceTest {
     @Mock private ExamRepository examRepository;
     @Mock private ExamResultRepository resultRepository;
     @Spy  private StatisticsCalculator statisticsCalculator = new StatisticsCalculator();
-    @Mock private GradeCalculator gradeCalculator;
+    @Spy private GradeCalculator gradeCalculator = new GradeCalculator();
     @Mock private StudentService studentService;
     @Mock private ClassService classService;
     @Mock private ExamResultCohortResolver cohortResolver;
@@ -105,6 +105,42 @@ class StudentGradeQueryServiceTest {
                 .toList();
         given(studentService.getStudentsByIds(anyString(), anyList()))
                 .willReturn(new StudentService.StudentListData(students, students.size(), 0, students.size()));
+    }
+
+    @Test
+    void absoluteGradeUsesTheStoredValueInListAndSummary() {
+        Exam exam = gradedExam();
+        ExamResult result = ExamResult.create(exam, 1L, 65);
+        result.assignGrade(7);
+        List<ExamResult> results = List.of(result);
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        stubStudentService(results);
+        given(classService.getEnrolledClassesForStudents(anyString(), anyList())).willReturn(List.of());
+
+        assertThat(service.getStudentGrades(EXAM_ID, PageRequest.of(0, 10))
+                .getContent().get(0).grade()).isEqualTo(7);
+        assertThat(service.getStudentResultSummaries(EXAM_ID).get(0).grade()).isEqualTo(7);
+    }
+
+    @Test
+    void relativeGradeUsesTheSameCohortInListAndSummary() throws Exception {
+        Exam exam = gradedExam();
+        ReflectionTestUtils.setField(exam, "gradingType", GradingType.RELATIVE);
+        List<ExamResult> results = List.of(
+                ExamResult.create(exam, 1L, 90),
+                ExamResult.create(exam, 2L, 50));
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        stubStudentService(results);
+        given(classService.getEnrolledClassesForStudents(anyString(), anyList())).willReturn(List.of());
+
+        var grades = service.getStudentGrades(EXAM_ID, PageRequest.of(0, 10)).getContent();
+        var summaries = service.getStudentResultSummaries(EXAM_ID);
+        assertThat(grades.stream().filter(row -> row.studentId().equals(2L)).findFirst().orElseThrow().grade())
+                .isEqualTo(5);
+        assertThat(summaries.stream().filter(row -> row.studentId().equals(2L)).findFirst().orElseThrow().grade())
+                .isEqualTo(5);
     }
 
     // ---------------------------------------------------------------------------

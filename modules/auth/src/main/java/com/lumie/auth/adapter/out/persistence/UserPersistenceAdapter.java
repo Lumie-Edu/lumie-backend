@@ -1,8 +1,11 @@
 package com.lumie.auth.adapter.out.persistence;
 
 import com.lumie.auth.application.port.out.UserLookupPort;
+import com.lumie.auth.api.UserIdentityChangedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import com.lumie.auth.domain.entity.User;
 import com.lumie.common.auth.Role;
+import com.lumie.common.validation.LoginIdPolicy;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +14,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Tenant-scoped JPA implementation of {@link UserLookupPort}.
@@ -27,6 +35,16 @@ import java.util.Optional;
 public class UserPersistenceAdapter implements UserLookupPort {
 
     private final UserJpaRepository userRepository;
+    private final ApplicationEventPublisher events;
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, String> getAvatarSeeds(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) return Collections.emptyMap();
+        return userRepository.findAvatarSeedsByIds(userIds).stream()
+                .collect(Collectors.toMap(UserJpaRepository.UserAvatarRow::getId,
+                        UserJpaRepository.UserAvatarRow::getAvatarSeed, (left, right) -> left));
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -95,6 +113,9 @@ public class UserPersistenceAdapter implements UserLookupPort {
     @Transactional
     public ChangeLoginIdResult changeLoginId(Long userId, String newLoginId) {
         log.debug("Changing login ID for user ID: {}", userId);
+        if (!LoginIdPolicy.isValid(newLoginId)) {
+            return new ChangeLoginIdResult(false, "Invalid login ID format", null);
+        }
         if (userRepository.existsByUserLoginId(newLoginId)) {
             return new ChangeLoginIdResult(false, "Login ID already in use: " + newLoginId, null);
         }
@@ -111,15 +132,44 @@ public class UserPersistenceAdapter implements UserLookupPort {
     @Override
     @Transactional
     public boolean updateProfile(Long userId, String name, String phone, String email) {
-        log.debug("Updating profile for user ID: {}", userId);
         return userRepository.findById(userId)
                 .map(user -> {
+                    String oldName = user.getName();
+                    String oldPhone = user.getPhone();
+                    String oldEmail = user.getEmail();
                     user.updateProfile(name, phone, email);
                     userRepository.save(user);
-                    log.info("Profile updated for user: {}", userId);
+                    publishIdentityChanges(userId, user, oldName, oldPhone, oldEmail);
                     return true;
                 })
                 .orElse(false);
+    }
+
+    @Override
+    @Transactional
+    public boolean updateIdentity(Long userId, String name, String phone, String email) {
+        return userRepository.findById(userId)
+                .map(user -> {
+                    String oldName = user.getName();
+                    String oldPhone = user.getPhone();
+                    String oldEmail = user.getEmail();
+                    user.updateIdentity(name, phone, email);
+                    userRepository.save(user);
+                    publishIdentityChanges(userId, user, oldName, oldPhone, oldEmail);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    private void publishIdentityChanges(Long userId, User user, String oldName, String oldPhone, String oldEmail) {
+        boolean nameChanged = !Objects.equals(oldName, user.getName());
+        boolean phoneChanged = !Objects.equals(oldPhone, user.getPhone());
+        boolean emailChanged = !Objects.equals(oldEmail, user.getEmail());
+        if (nameChanged || phoneChanged || emailChanged) {
+            events.publishEvent(new UserIdentityChangedEvent(
+                    userId, user.getName(), user.getPhone(), user.getEmail(),
+                    nameChanged, phoneChanged, emailChanged));
+        }
     }
 
     @Override

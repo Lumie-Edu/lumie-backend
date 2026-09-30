@@ -1,6 +1,8 @@
 package com.lumie.auth.adapter.in.security;
 
 import com.lumie.auth.adapter.out.config.SessionConfig;
+import com.lumie.common.exception.ProblemResponseWriter;
+import com.lumie.common.exception.CommonErrorCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -23,12 +25,15 @@ import java.io.IOException;
 public class SameOriginCsrfFilter extends OncePerRequestFilter {
 
     private final SessionConfig sessionConfig;
+    private final SameOriginPolicy sameOriginPolicy;
+    private final ProblemResponseWriter problems;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        if (isUnsafeMethod(request) && hasSessionCookie(request) && !isSameOrigin(request)) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Cross-origin request rejected");
+        if (isUnsafeMethod(request) && hasSessionCookie(request) && !sameOriginPolicy.isAllowed(request)) {
+            problems.write(request, response, HttpServletResponse.SC_FORBIDDEN,
+                    CommonErrorCode.FORBIDDEN.getCode(), "Cross-origin request rejected");
             return;
         }
         filterChain.doFilter(request, response);
@@ -47,17 +52,6 @@ public class SameOriginCsrfFilter extends OncePerRequestFilter {
             if (sessionConfig.getCookieName().equals(cookie.getName())) return true;
         }
         return false;
-    }
-
-    private boolean isSameOrigin(HttpServletRequest request) {
-        String origin = request.getHeader("Origin");
-        if (origin == null || origin.isBlank()) return false;
-        if (sessionConfig.getCsrfAllowedOrigins().contains(origin)) return true;
-        String scheme = request.getHeader("X-Forwarded-Proto");
-        if (scheme == null || scheme.isBlank()) scheme = request.getScheme();
-        String host = request.getHeader("Host");
-        if (host == null || host.isBlank()) host = request.getServerName();
-        return (scheme + "://" + host).equalsIgnoreCase(origin);
     }
 
     @Override

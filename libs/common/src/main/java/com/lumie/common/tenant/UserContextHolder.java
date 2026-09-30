@@ -1,6 +1,8 @@
 package com.lumie.common.tenant;
 
 import com.lumie.common.auth.Role;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 
 /**
  * Holds the current user context for the request thread.
@@ -27,7 +29,7 @@ public final class UserContextHolder {
     public static Long getRequiredUserId() {
         Long userId = CURRENT_USER_ID.get();
         if (userId == null) {
-            throw new IllegalStateException("User ID is not set in context");
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED, "User ID is not set in context");
         }
         return userId;
     }

@@ -1,6 +1,8 @@
 package com.lumie.exam.adapter.out.external;
 
 import com.lumie.exam.application.port.out.OmrServicePort;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import lombok.extern.slf4j.Slf4j;
@@ -27,11 +29,13 @@ public class OmrServiceClient implements OmrServicePort {
     private static final Duration OMR_READ_TIMEOUT = Duration.ofSeconds(90);
 
     private final RestClient restClient;
+    private final ObjectMapper objectMapper;
 
     @Value("${lumie.services.grading.url}")
     private String gradingServiceUrl;
 
-    public OmrServiceClient(RestClient.Builder restClientBuilder) {
+    public OmrServiceClient(RestClient.Builder restClientBuilder, ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
         // OMR grading is long-running (image processing); override default 30s read timeout to 90s.
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
@@ -63,7 +67,7 @@ public class OmrServiceClient implements OmrServicePort {
             body.add("question_types", toJson(questionTypes));
 
             ResponseEntity<OmrResponse> response = restClient.post()
-                    .uri(gradingServiceUrl + "/api/omr/grade")
+                    .uri(gradingServiceUrl + "/api/temp/grading")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .header("X-Tenant-Slug", tenantSlug)
                     .body(body)
@@ -80,29 +84,16 @@ public class OmrServiceClient implements OmrServicePort {
             throw e;
         } catch (Exception e) {
             log.error("OMR grading failed", e);
-            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED, e.getMessage());
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED, e);
         }
     }
 
     private String toJson(Map<?, ?> map) {
         try {
-            StringBuilder sb = new StringBuilder("{");
-            boolean first = true;
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                if (!first) sb.append(",");
-                sb.append("\"").append(entry.getKey()).append("\":");
-                if (entry.getValue() instanceof String) {
-                    sb.append("\"").append(entry.getValue()).append("\"");
-                } else {
-                    sb.append(entry.getValue());
-                }
-                first = false;
-            }
-            sb.append("}");
-            return sb.toString();
-        } catch (Exception e) {
+            return objectMapper.writeValueAsString(map);
+        } catch (JsonProcessingException e) {
             log.error("Failed to convert map to JSON for OMR grading", e);
-            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED);
+            throw new BusinessException(ExamErrorCode.OMR_GRADING_FAILED, e);
         }
     }
 

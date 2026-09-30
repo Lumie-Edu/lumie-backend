@@ -1,5 +1,6 @@
 package com.lumie.tenant.application.dto.request;
 
+import com.lumie.common.util.SlugValidator;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -8,7 +9,7 @@ import lombok.Builder;
 @Builder
 public record CreateTenantRequest(
         @NotBlank(message = "Slug is required")
-        @Pattern(regexp = "^[a-z][a-z0-9-]{2,29}$", message = "Slug must start with a letter, contain only lowercase letters, numbers, and hyphens, and be 3-30 characters")
+        @Pattern(regexp = SlugValidator.FORMAT, message = "Slug must start with a letter, contain only lowercase letters, numbers, and hyphens, and be 3-30 characters")
         String slug,
 
         @NotBlank(message = "Name is required")

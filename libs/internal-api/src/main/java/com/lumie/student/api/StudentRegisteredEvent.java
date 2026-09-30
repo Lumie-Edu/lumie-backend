@@ -11,7 +11,7 @@ import com.lumie.event.DomainEvent;
  * student. Replaces the direct {@code student → exam.linkUnregistered}
  * call that created the student↔exam circular dependency.
  *
- * <p>Schema version 2.
+ * <p>Schema version 1 (the DomainEvent default).
  *
  * @param studentId persisted student id
  * @param phone phone number recorded on the student (may be null/blank)

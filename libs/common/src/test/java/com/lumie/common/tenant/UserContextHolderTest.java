@@ -1,6 +1,8 @@
 package com.lumie.common.tenant;
 
 import com.lumie.common.auth.Role;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +31,8 @@ class UserContextHolderTest {
 
     @Test
     void getRequiredUserId_whenNotSet_throwsException() {
-        assertThrows(IllegalStateException.class, UserContextHolder::getRequiredUserId);
+        BusinessException exception = assertThrows(BusinessException.class, UserContextHolder::getRequiredUserId);
+        assertEquals(CommonErrorCode.UNAUTHORIZED, exception.getErrorCode());
     }
 
     @Test

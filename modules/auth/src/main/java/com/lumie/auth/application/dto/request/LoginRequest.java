@@ -1,15 +1,17 @@
 package com.lumie.auth.application.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import com.lumie.common.validation.LoginId;
+import com.lumie.common.validation.LoginIdPolicy;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @Builder
 public record LoginRequest(
-        @NotBlank(message = "User login ID is required")
-        @Size(min = 4, max = 50, message = "User login ID must be between 4 and 50 characters")
-        @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "User login ID can only contain letters, numbers, and underscores")
+        @LoginId
+        @Schema(minLength = LoginIdPolicy.MIN_LENGTH, maxLength = LoginIdPolicy.MAX_LENGTH,
+                pattern = LoginIdPolicy.PATTERN, requiredMode = Schema.RequiredMode.REQUIRED)
         String userLoginId,
 
         @NotBlank(message = "Password is required")

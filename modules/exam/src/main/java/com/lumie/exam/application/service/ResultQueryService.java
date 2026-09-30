@@ -1,5 +1,6 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.common.auth.CurrentStudentResolver;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
@@ -8,10 +9,11 @@ import com.lumie.exam.application.dto.response.statistics.TopStudentMonthlyRespo
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.OmrGradingJob;
+import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.student.api.StudentService;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -37,6 +40,7 @@ public class ResultQueryService {
     private final OmrGradingJobRepository jobRepository;
     private final OmrStoragePort storagePort;
     private final StudentService studentService;
+    private final GradeCalculator gradeCalculator;
 
     public List<ExamResultResponse> getExamResults(Long examId) {
         log.debug("Getting results for exam: {}", examId);
@@ -44,9 +48,7 @@ public class ResultQueryService {
         List<ExamResult> results = resultRepository.findByExamId(examId);
         Map<Long, String> nameByStudentId = resolveStudentNames(results);
 
-        return results.stream()
-                .map(r -> ExamResultResponse.from(r, resolveStudentName(r, nameByStudentId)))
-                .toList();
+        return toResponses(results, nameByStudentId, scoresByExam(results));
     }
 
     public List<RecentCompletedExamResponse> getRecentCompletedExams() {
@@ -76,9 +78,7 @@ public class ResultQueryService {
         List<ExamResult> results = resultRepository.findByOmrGradingJobId(jobId);
         Map<Long, String> nameByStudentId = resolveStudentNames(results);
 
-        return results.stream()
-                .map(r -> ExamResultResponse.from(r, resolveStudentName(r, nameByStudentId)))
-                .toList();
+        return toResponses(results, nameByStudentId, fullRelativeCohorts(results));
     }
 
     public List<ExamResultResponse> getStudentResults(Long studentId) {
@@ -87,14 +87,38 @@ public class ResultQueryService {
         List<ExamResult> results = resultRepository.findByStudentId(studentId);
         Map<Long, String> nameByStudentId = resolveStudentNames(results);
 
-        return results.stream()
-                .map(r -> ExamResultResponse.from(r, resolveStudentName(r, nameByStudentId)))
-                .toList();
+        return toResponses(results, nameByStudentId, fullRelativeCohorts(results));
     }
 
     public List<ExamResultResponse> getCurrentStudentResults() {
         Long studentId = currentStudentId();
         return getStudentResults(studentId);
+    }
+
+    private List<ExamResultResponse> toResponses(List<ExamResult> results,
+                                                Map<Long, String> names,
+                                                Map<Long, List<Integer>> scoresByExam) {
+        return results.stream()
+                .map(result -> ExamResultResponse.from(result, resolveStudentName(result, names),
+                        gradeCalculator.resolveStoredOrRelativeGrade(result.getExam(), result,
+                                scoresByExam.getOrDefault(result.getExam().getId(), List.of()))))
+                .toList();
+    }
+
+    private Map<Long, List<Integer>> fullRelativeCohorts(List<ExamResult> results) {
+        Set<Long> relativeExamIds = results.stream()
+                .filter(result -> result.getExam().getCategory() == ExamCategory.GRADED
+                        && result.getExam().getGradingType() == GradingType.RELATIVE)
+                .map(result -> result.getExam().getId())
+                .collect(Collectors.toSet());
+        if (relativeExamIds.isEmpty()) return Map.of();
+        return scoresByExam(resultRepository.findByExamIdIn(relativeExamIds));
+    }
+
+    private static Map<Long, List<Integer>> scoresByExam(List<ExamResult> results) {
+        return results.stream().collect(Collectors.groupingBy(
+                result -> result.getExam().getId(),
+                Collectors.mapping(ExamResult::getTotalScore, Collectors.toList())));
     }
 
     /**
@@ -130,12 +154,7 @@ public class ResultQueryService {
     }
 
     private Long currentStudentId() {
-        String tenantSlug = TenantContextHolder.getRequiredTenant();
-        Long userId = UserContextHolder.getRequiredUserId();
-        return studentService.getStudentsByUserIds(tenantSlug, List.of(userId)).students().stream()
-                .findFirst()
-                .map(StudentService.StudentData::id)
-                .orElseThrow(() -> new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND));
+        return CurrentStudentResolver.requireStudentId(studentService, ExamErrorCode.STUDENT_NOT_FOUND);
     }
 
     public List<TopStudentMonthlyResponse> getTopStudentsMonthly(int limit) {

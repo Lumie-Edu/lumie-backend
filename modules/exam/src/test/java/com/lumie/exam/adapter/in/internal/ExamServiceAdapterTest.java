@@ -3,7 +3,10 @@ package com.lumie.exam.adapter.in.internal;
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
 import com.lumie.exam.application.service.ExamCommandService;
+import com.lumie.exam.application.service.GradeCalculator;
 import com.lumie.exam.application.service.ResultCommandService;
+import com.lumie.exam.domain.entity.Exam;
+import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.vo.ExamCategory;
@@ -15,7 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -42,8 +47,43 @@ class ExamServiceAdapterTest {
     @Mock
     private ExamCommandService examCommandService;
 
+    @Spy
+    private GradeCalculator gradeCalculator = new GradeCalculator();
+
     @InjectMocks
     private ExamServiceAdapter examServiceAdapter;
+
+    @Test
+    void assignmentResultKeepsStoredAbsoluteGradeAndUnknownHistory() {
+        Exam exam = ExamFixtures.aGradedExam();
+        ExamResult stored = ExamFixtures.anExamResult(exam, 1L, 60);
+        stored.assignGrade(7);
+        ReflectionTestUtils.setField(stored, "id", 11L);
+        ExamResult unknown = ExamFixtures.anExamResult(exam, 2L, 60);
+        ReflectionTestUtils.setField(unknown, "id", 12L);
+        given(examResultRepository.findByExamId(1L)).willReturn(List.of(stored, unknown));
+
+        Map<Long, ExamService.AssignmentResultData> results = examServiceAdapter.getResultsForAssignment("tenant-a", 1L);
+
+        assertThat(results.get(11L).grade()).isEqualTo(7);
+        assertThat(results.get(12L).grade()).isNull();
+    }
+
+    @Test
+    void assignmentRelativeGradeUsesFullExamCohort() {
+        Exam exam = Exam.create("상대 시험", ExamCategory.GRADED, GradingType.RELATIVE,
+                GradeScale.NINE_GRADE, 1, Map.of("1", "1"), Map.of("1", 100), Map.of("1", "단답"), null);
+        ExamResult first = ExamFixtures.anExamResult(exam, 1L, 100, List.of(true));
+        ExamResult second = ExamFixtures.anExamResult(exam, 2L, 60, List.of(false));
+        ReflectionTestUtils.setField(first, "id", 11L);
+        ReflectionTestUtils.setField(second, "id", 12L);
+        given(examResultRepository.findByExamId(1L)).willReturn(List.of(first, second));
+
+        Map<Long, ExamService.AssignmentResultData> results = examServiceAdapter.getResultsForAssignment("tenant-a", 1L);
+
+        assertThat(results.get(11L).grade()).isEqualTo(1);
+        assertThat(results.get(12L).grade()).isEqualTo(5);
+    }
 
     @Test
     @DisplayName("과제용 시험 생성은 시험 관리에 노출되지 않는 private 생성으로 위임한다")

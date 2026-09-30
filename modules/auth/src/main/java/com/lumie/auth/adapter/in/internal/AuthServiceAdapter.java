@@ -1,10 +1,10 @@
 package com.lumie.auth.adapter.in.internal;
 
-import com.lumie.auth.adapter.out.persistence.UserJpaRepository;
 import com.lumie.auth.application.exception.AuthErrors;
 import com.lumie.auth.application.port.out.SessionPersistencePort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.common.auth.Role;
+import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.auth.api.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,9 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -27,20 +25,12 @@ public class AuthServiceAdapter implements AuthService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final UserLookupPort userLookupPort;
-    private final UserJpaRepository userJpaRepository;
     private final PasswordEncoder passwordEncoder;
     private final SessionPersistencePort sessionPersistencePort;
 
     @Override
     public Map<Long, String> getAvatarSeeds(Collection<Long> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        return userJpaRepository.findAvatarSeedsByIds(userIds).stream()
-                .collect(Collectors.toMap(
-                        UserJpaRepository.UserAvatarRow::getId,
-                        UserJpaRepository.UserAvatarRow::getAvatarSeed,
-                        (a, b) -> a));
+        return userLookupPort.getAvatarSeeds(userIds);
     }
 
     @Override
@@ -59,7 +49,7 @@ public class AuthServiceAdapter implements AuthService {
 
             String userLoginId;
             if (phone != null && !phone.isBlank()) {
-                userLoginId = phone.replaceAll("[^0-9]", "");
+                userLoginId = PhoneNumberUtils.toDigits(phone);
                 if (userLookupPort.existsByUserLoginId(userLoginId)) {
                     return new CreateUserResult(false, "Login ID (phone) already exists: " + userLoginId, null, null);
                 }
@@ -84,6 +74,11 @@ public class AuthServiceAdapter implements AuthService {
             }
         }
         throw new AuthErrors.LoginIdGenerationFailedException();
+    }
+
+    @Override
+    public boolean updateIdentity(Long userId, String name, String phone, String email) {
+        return userLookupPort.updateIdentity(userId, name, phone, email);
     }
 
     @Override

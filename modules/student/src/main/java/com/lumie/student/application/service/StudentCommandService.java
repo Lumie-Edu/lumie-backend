@@ -16,6 +16,7 @@ import com.lumie.common.exception.QuotaExceededException;
 import com.lumie.student.domain.exception.StudentErrorCode;
 import com.lumie.student.domain.repository.StudentRepository;
 import com.lumie.common.util.PhoneNumberUtils;
+import com.lumie.common.validation.PersonNamePolicy;
 import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.persistence.EntityManager;
@@ -120,6 +121,11 @@ public class StudentCommandService {
         );
 
         Student updated = studentRepository.save(student);
+        if ((request.name() != null || request.phone() != null)
+                && !authService.updateIdentity(student.getUserId(), request.name(),
+                        PhoneNumberUtils.toDigits(request.phone()), null)) {
+            throw new BusinessException(StudentErrorCode.STUDENT_NOT_FOUND, "Linked user not found");
+        }
 
         log.info("Student updated: {} in tenant: {}", id, tenantSlug);
         return StudentResponse.from(updated);
@@ -422,9 +428,9 @@ public class StudentCommandService {
         if (row.name() == null || row.name().isBlank()) {
             errors.add(rowError(row.rowNumber(), "name", row.name(),
                     StudentErrorCode.BULK_IMPORT_NAME_REQUIRED));
-        } else if (row.name().length() > 100) {
+        } else if (!PersonNamePolicy.isValid(row.name())) {
             errors.add(rowError(row.rowNumber(), "name", row.name(),
-                    StudentErrorCode.BULK_IMPORT_INVALID_LENGTH, "이름은 100자를 초과할 수 없습니다."));
+                    StudentErrorCode.BULK_IMPORT_INVALID_LENGTH, "이름은 2–100자여야 합니다."));
         } else if (isUnsafeSpreadsheetValue(row.name())) {
             errors.add(rowError(row.rowNumber(), "name", row.name(),
                     StudentErrorCode.BULK_IMPORT_UNSAFE_SPREADSHEET_VALUE));
@@ -432,10 +438,7 @@ public class StudentCommandService {
 
         // phone: format + uniqueness (optional field — only validate when present)
         if (row.phone() != null && !row.phone().isBlank()) {
-            if (row.phone().length() > 20) {
-                errors.add(rowError(row.rowNumber(), "phone", row.phone(),
-                        StudentErrorCode.BULK_IMPORT_INVALID_LENGTH, "연락처는 20자를 초과할 수 없습니다."));
-            } else if (!PhoneNumberUtils.isValidStudentPhone(row.phone())) {
+            if (!PhoneNumberUtils.isValidStudentPhone(row.phone())) {
                 errors.add(rowError(row.rowNumber(), "phone", row.phone(),
                         StudentErrorCode.BULK_IMPORT_INVALID_PHONE));
             } else {
@@ -527,13 +530,13 @@ public class StudentCommandService {
 
     private StudentPhoneConflictStatus resolveStudentPhoneConflict(String normalizedPhone, Long excludeId) {
         boolean duplicate = excludeId == null
-                ? studentRepository.existsByPhone(normalizedPhone)
-                : studentRepository.existsByPhoneExcluding(normalizedPhone, excludeId);
+                ? studentRepository.existsByCanonicalPhone(normalizedPhone)
+                : studentRepository.existsByCanonicalPhoneExcluding(normalizedPhone, excludeId);
         if (!duplicate) {
             return StudentPhoneConflictStatus.NONE;
         }
 
-        return studentRepository.findByPhone(normalizedPhone)
+        return studentRepository.findByCanonicalPhone(normalizedPhone)
                 .filter(existing -> excludeId == null || !java.util.Objects.equals(existing.getId(), excludeId))
                 .map(existing -> existing.isActive()
                         ? StudentPhoneConflictStatus.ACTIVE_STUDENT

@@ -1,6 +1,7 @@
 package com.lumie.exam.adapter.in.web;
 
 import com.lumie.exam.application.dto.response.ExamResultResponse;
+import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
 import com.lumie.exam.application.dto.request.ReportBatchDataRequest;
 import com.lumie.exam.application.dto.response.ReportBatchDataResponse;
@@ -68,6 +69,6 @@ public class InternalReportController {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         return studentService.getStudent(tenantSlug, studentId)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Student", String.valueOf(studentId)));
     }
 }
