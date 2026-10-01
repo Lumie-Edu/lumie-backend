@@ -231,7 +231,7 @@ class ResultControllerTest {
                 TenantContextHolder.setTenant(tenant);
             }
             if (role != null) {
-                UserContextHolder.setUserRole(role);
+                UserContextHolder.setUserRole(Role.valueOf(role));
             }
 
             try {
