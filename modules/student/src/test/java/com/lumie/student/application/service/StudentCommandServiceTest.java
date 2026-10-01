@@ -141,6 +141,19 @@ class StudentCommandServiceTest {
     }
 
     @Test
+    void registerStudentWithoutPhoneReturnsNullPhone() {
+        StudentRequest request = new StudentRequest("김민조", "", null, null, null, null);
+        given(billingService.checkQuota(TENANT, MetricType.STUDENTS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STUDENTS, "ok"));
+        given(authService.createUser("김민조", "", Role.STUDENT.name(), 1L))
+                .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "student_100"));
+        given(studentRepository.save(any(Student.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(service.registerStudent(request).phone()).isNull();
+        verify(eventPublisher).publishEvent(new StudentRegisteredEvent(null, null, TENANT, 1L));
+    }
+
+    @Test
     @DisplayName("registerStudent는 잘못된 학부모 연락처 형식을 막는다")
     void registerStudent_invalidParentPhone_blocksRegistration() {
         StudentRequest request = new StudentRequest(

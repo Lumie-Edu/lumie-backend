@@ -1,5 +1,7 @@
 package com.lumie.app.migration;
 
+import com.lumie.auth.domain.entity.User;
+import com.lumie.common.auth.Role;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
@@ -13,6 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -333,6 +336,31 @@ class MigrationsRlsIntegrationTest {
                     .satisfies(error -> assertThat(((SQLException) error).getSQLState()).isEqualTo("23505"));
             admin.rollback(staffSavepoint);
             admin.rollback();
+        }
+    }
+
+    @Test
+    void usersWithoutPhonesCanBeCreatedRepeatedlyUnderPhoneUniquenessIndexes() throws Exception {
+        try (Connection admin = adminConnection()) {
+            admin.setAutoCommit(false);
+            try (PreparedStatement insert = admin.prepareStatement("""
+                    INSERT INTO users (user_login_id, password_hash, name, phone, role, tenant_id)
+                    VALUES (?, 'test', ?, ?, ?, 1)
+                    """)) {
+                for (int i = 0; i < 4; i++) {
+                    Role role = i < 2 ? Role.STUDENT : Role.INSTRUCTOR;
+                    User user = User.create("identity-no-phone-" + i, "No Phone " + i,
+                            i % 2 == 0 ? "" : "   ", "test", role);
+                    assertThat(user.getPhone()).isNull();
+                    insert.setString(1, user.getUserLoginId());
+                    insert.setString(2, user.getName());
+                    insert.setString(3, user.getPhone());
+                    insert.setString(4, user.getRole().name());
+                    insert.executeUpdate();
+                }
+            } finally {
+                admin.rollback();
+            }
         }
     }
 

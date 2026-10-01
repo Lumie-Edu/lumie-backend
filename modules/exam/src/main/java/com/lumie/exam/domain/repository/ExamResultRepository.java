@@ -44,6 +44,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
      * Batch-fetch all results across multiple exams. Used to avoid N+1 queries
      * when computing per-exam statistics for a student's history.
      */
+    @EntityGraph(attributePaths = {"exam"})
     List<ExamResult> findByExamIdIn(Collection<Long> examIds);
 
     List<ExamResult> findByExamIdAndStudentIdIsNotNull(Long examId);

@@ -57,7 +57,8 @@ public class Student extends TenantScopedEntity {
         this.userId = userId;
         this.userLoginId = userLoginId;
         this.canonicalName = name;
-        this.canonicalPhone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
+        this.canonicalPhone = phone == null || phone.isBlank() ? null
+                : com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         this.studentHighschool = studentHighschool;
         this.studentBirthYear = studentBirthYear;
         this.parentPhone = normalizeBlankParentPhone(parentPhone);

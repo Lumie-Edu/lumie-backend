@@ -1,14 +1,11 @@
 package com.lumie.tenant.application.service;
 
-import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.common.cache.CacheConfig;
 import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.tenant.application.dto.request.CompleteTenantOnboardingRequest;
-import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
-import com.lumie.tenant.api.TenantCreatedEvent;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.domain.exception.TenantErrorCode;
@@ -17,7 +14,6 @@ import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,35 +33,6 @@ import java.time.Instant;
 public class TenantCommandService {
 
     private final TenantPersistencePort tenantPersistencePort;
-    private final ApplicationEventPublisher eventPublisher;
-
-    public TenantResponse createTenant(CreateTenantRequest request) {
-        log.info("Creating tenant with slug: {}", request.slug());
-
-        if (tenantPersistencePort.existsBySlug(request.slug())) {
-            throw new DuplicateResourceException("Tenant", request.slug());
-        }
-
-        Tenant tenant = Tenant.create(
-                request.slug(),
-                request.name(),
-                request.displayName()
-        );
-
-        Tenant savedTenant = tenantPersistencePort.save(tenant);
-        log.info("Tenant created with ID: {}, slug: {}", savedTenant.getId(), savedTenant.getSlugValue());
-
-        savedTenant.startProvisioning();
-        savedTenant.activate();
-        tenantPersistencePort.save(savedTenant);
-
-        // Free-subscription provisioning runs as an AFTER_COMMIT listener on this
-        // event in billing. Breaks the previous tenant↔billing cycle
-        // (CIRCULAR_MODULE_DEPS_AUDIT Resolution A, pair 3).
-        eventPublisher.publishEvent(new TenantCreatedEvent(savedTenant.getId(), savedTenant.getSlugValue()));
-
-        return TenantResponse.from(savedTenant);
-    }
 
     @CacheEvict(value = CacheConfig.CACHE_TENANTS_BY_SLUG, key = "#slug")
     public TenantResponse updateTenant(String slug, UpdateTenantRequest request) {

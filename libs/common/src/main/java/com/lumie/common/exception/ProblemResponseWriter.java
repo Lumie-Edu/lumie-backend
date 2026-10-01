@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -33,6 +34,7 @@ public class ProblemResponseWriter {
         String tenant = MDC.get("tenantSlug");
         if (tenant != null) body.put("tenantSlug", tenant);
         response.setStatus(status);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         objectMapper.writeValue(response.getWriter(), body);
     }

@@ -1421,26 +1421,6 @@
         "required" : [ "contentType", "entityType", "fileSize", "filename" ],
         "type" : "object"
       },
-      "CreateTenantRequest" : {
-        "properties" : {
-          "displayName" : {
-            "maxLength" : 200,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "name" : {
-            "maxLength" : 100,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "slug" : {
-            "pattern" : "^[a-z][a-z0-9-]{2,29}$",
-            "type" : "string"
-          }
-        },
-        "required" : [ "name", "slug" ],
-        "type" : "object"
-      },
       "CreateTextbookFolderRequest" : {
         "properties" : {
           "name" : {
@@ -2025,61 +2005,6 @@
         "required" : [ "contentType", "createdAt", "entityId", "entityType", "fileSize", "folderId", "id", "originalFilename", "uploadCompleted" ],
         "type" : "object"
       },
-      "GoalSimulationRequest" : {
-        "properties" : {
-          "baseExamId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "targetGrade" : {
-            "format" : "int32",
-            "maximum" : 9,
-            "minimum" : 1,
-            "type" : "integer"
-          }
-        },
-        "required" : [ "targetGrade" ],
-        "type" : "object"
-      },
-      "GoalSimulationResponse" : {
-        "properties" : {
-          "achievable" : {
-            "type" : "boolean"
-          },
-          "currentGrade" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "currentScore" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "scenarios" : {
-            "items" : {
-              "$ref" : "#/components/schemas/ImprovementScenario"
-            },
-            "type" : "array"
-          },
-          "scoreDifference" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "studentId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "targetGrade" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "targetScore" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "achievable", "currentGrade", "currentScore", "scenarios", "scoreDifference", "studentId", "targetGrade", "targetScore" ],
-        "type" : "object"
-      },
       "GradeBucket" : {
         "properties" : {
           "count" : {
@@ -2150,43 +2075,6 @@
           }
         },
         "required" : [ "messages" ],
-        "type" : "object"
-      },
-      "ImprovementScenario" : {
-        "properties" : {
-          "additionalCorrectNeeded" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "currentAccuracy" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "currentCorrect" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "potentialScoreGain" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "priority" : {
-            "enum" : [ "HIGH", "MEDIUM", "LOW" ],
-            "type" : "string"
-          },
-          "questionType" : {
-            "type" : "string"
-          },
-          "targetAccuracy" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "totalQuestions" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "additionalCorrectNeeded", "currentAccuracy", "currentCorrect", "potentialScoreGain", "priority", "questionType", "targetAccuracy", "totalQuestions" ],
         "type" : "object"
       },
       "InvoiceResponse" : {
@@ -13225,43 +13113,6 @@
         "tags" : [ "statistics-controller" ]
       }
     },
-    "/v1/statistics/students/{studentId}/goal-simulation" : {
-      "post" : {
-        "operationId" : "simulateGoal",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "studentId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/GoalSimulationRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GoalSimulationResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "statistics-controller" ]
-      }
-    },
     "/v1/statistics/students/{studentId}/normalized" : {
       "get" : {
         "operationId" : "getNormalizedScores",
@@ -14154,32 +14005,6 @@
               }
             },
             "description" : "OK"
-          }
-        },
-        "tags" : [ "tenant-controller" ]
-      },
-      "post" : {
-        "operationId" : "createTenant",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CreateTenantRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TenantResponse"
-                }
-              }
-            },
-            "description" : "Created"
           }
         },
         "tags" : [ "tenant-controller" ]

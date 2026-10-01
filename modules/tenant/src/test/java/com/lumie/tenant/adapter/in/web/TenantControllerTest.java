@@ -5,10 +5,11 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.tenant.api.TenantStatus;
 import com.lumie.tenant.application.dto.request.CompleteTenantOnboardingRequest;
-import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.PublicTenantResponse;
 import com.lumie.tenant.application.dto.response.TenantResponse;
@@ -20,6 +21,7 @@ import com.lumie.tenant.domain.exception.TenantErrorCode;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.MethodValidationInterceptor;
 
@@ -40,9 +43,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -81,53 +86,30 @@ class TenantControllerTest {
         objectMapper = new ObjectMapper();
     }
 
-    @Test
-    @DisplayName("POST /v1/tenants - 테넌트 생성 성공")
-    void createTenantSuccess() throws Exception {
-        CreateTenantRequest request = CreateTenantRequest.builder()
-                .slug("test-academy")
-                .name("Test Academy")
-                .displayName("테스트 학원")
-                .build();
+    @AfterEach
+    void clearContext() {
+        TenantContextHolder.clear();
+        UserContextHolder.clear();
+    }
 
-        TenantResponse response = TenantResponse.builder()
-                .id(1L)
-                .slug("test-academy")
-                .name("Test Academy")
-                .displayName("테스트 학원")
-                .status(TenantStatus.PENDING)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        when(tenantCommandService.createTenant(any())).thenReturn(response);
-
-        mockMvc.perform(post("/v1/tenants")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.slug").value("test-academy"))
-                .andExpect(jsonPath("$.name").value("Test Academy"))
-                .andExpect(jsonPath("$.status").value("PENDING"));
+    private static void setOwnerTenantContext() {
+        TenantContextHolder.setTenant("test-academy");
+        UserContextHolder.setUserRole(Role.OWNER);
     }
 
     @Test
-    @DisplayName("POST /v1/tenants - 잘못된 slug 형식")
-    void createTenantInvalidSlug() throws Exception {
-        CreateTenantRequest request = CreateTenantRequest.builder()
-                .slug("AB")
-                .name("Test Academy")
-                .build();
-
+    void directTenantCreationEndpointIsRemoved() throws Exception {
         mockMvc.perform(post("/v1/tenants")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                        .content("{}"))
+                .andExpect(status().isMethodNotAllowed());
+        verifyNoInteractions(tenantCommandService);
     }
 
     @Test
     @DisplayName("GET /v1/tenants/{slug} - 테넌트 조회 성공")
     void getTenantSuccess() throws Exception {
+        TenantContextHolder.setTenant("test-academy");
         TenantResponse response = TenantResponse.builder()
                 .id(1L)
                 .slug("test-academy")
@@ -148,6 +130,7 @@ class TenantControllerTest {
     @Test
     @DisplayName("GET /v1/tenants/{slug} - 존재하지 않는 테넌트")
     void getTenantNotFound() throws Exception {
+        TenantContextHolder.setTenant("non-existent");
         when(tenantQueryService.getTenantBySlug("non-existent"))
                 .thenThrow(new ResourceNotFoundException("Tenant", "non-existent"));
 
@@ -156,8 +139,34 @@ class TenantControllerTest {
     }
 
     @Test
+    void privateTenantReadRejectsAnotherSlug() throws Exception {
+        TenantContextHolder.setTenant("test-academy");
+
+        mockMvc.perform(get("/v1/tenants/another-academy"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("TENANT_019"));
+
+        verifyNoInteractions(tenantQueryService);
+    }
+
+    @Test
+    void tenantListReturnsOnlyBoundTenant() throws Exception {
+        TenantContextHolder.setTenant("test-academy");
+        when(tenantQueryService.getTenantBySlug("test-academy"))
+                .thenReturn(TenantResponse.builder().slug("test-academy").name("Own academy").build());
+
+        mockMvc.perform(get("/v1/tenants"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].slug").value("test-academy"));
+
+        verify(tenantQueryService).getTenantBySlug("test-academy");
+    }
+
+    @Test
     @DisplayName("PATCH /v1/tenants/{slug} - 숨김 sidebar 항목 저장")
     void updateTenantHiddenSidebarItemsSuccess() throws Exception {
+        setOwnerTenantContext();
         UpdateTenantRequest request = UpdateTenantRequest.builder()
                 .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .build();
@@ -199,6 +208,7 @@ class TenantControllerTest {
     @Test
     @DisplayName("PATCH /v1/tenants/{slug} - 지원하지 않는 sidebar 항목")
     void updateTenantUnsupportedHiddenSidebarItem() throws Exception {
+        setOwnerTenantContext();
         doThrow(new BusinessException(TenantErrorCode.INVALID_SIDEBAR_ITEM_ID))
                 .when(tenantCommandService).updateTenant(any(), any());
 
@@ -297,8 +307,54 @@ class TenantControllerTest {
     @Test
     @DisplayName("DELETE /v1/tenants/{slug} - 테넌트 삭제 성공")
     void deleteTenantSuccess() throws Exception {
+        setOwnerTenantContext();
         mockMvc.perform(delete("/v1/tenants/test-academy"))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void ownerCannotMutateAnotherTenant() throws Exception {
+        setOwnerTenantContext();
+        MockMultipartFile logo = new MockMultipartFile("file", "logo.png", "image/png", new byte[]{1});
+
+        mockMvc.perform(patch("/v1/tenants/another-academy")
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("TENANT_019"));
+        mockMvc.perform(delete("/v1/tenants/another-academy"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("TENANT_019"));
+        mockMvc.perform(post("/v1/tenants/another-academy/suspend"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("TENANT_019"));
+        mockMvc.perform(post("/v1/tenants/another-academy/reactivate"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("TENANT_019"));
+        mockMvc.perform(multipart("/v1/tenants/another-academy/logo").file(logo))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("TENANT_019"));
+        mockMvc.perform(delete("/v1/tenants/another-academy/logo"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("TENANT_019"));
+
+        verifyNoInteractions(tenantCommandService, tenantLogoService, tenantQueryService);
+    }
+
+    @Test
+    void managerCannotMutateOwnTenant() throws Exception {
+        TenantContextHolder.setTenant("test-academy");
+        UserContextHolder.setUserRole(Role.MANAGER);
+        MockMultipartFile logo = new MockMultipartFile("file", "logo.png", "image/png", new byte[]{1});
+
+        mockMvc.perform(patch("/v1/tenants/test-academy")
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("COMMON_006"));
+        mockMvc.perform(delete("/v1/tenants/test-academy"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("COMMON_006"));
+        mockMvc.perform(post("/v1/tenants/test-academy/suspend"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("COMMON_006"));
+        mockMvc.perform(post("/v1/tenants/test-academy/reactivate"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("COMMON_006"));
+        mockMvc.perform(multipart("/v1/tenants/test-academy/logo").file(logo))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("COMMON_006"));
+        mockMvc.perform(delete("/v1/tenants/test-academy/logo"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("COMMON_006"));
+
+        verifyNoInteractions(tenantCommandService, tenantLogoService, tenantQueryService);
     }
 
     @Test

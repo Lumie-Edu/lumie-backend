@@ -1,6 +1,5 @@
 package com.lumie.exam.adapter.in.web;
 
-import com.lumie.exam.application.dto.request.GoalSimulationRequest;
 import com.lumie.exam.application.dto.response.statistics.*;
 import com.lumie.exam.application.service.ChoiceDistributionQueryService;
 import com.lumie.exam.application.service.ClassComparisonQueryService;
@@ -12,7 +11,6 @@ import com.lumie.exam.application.service.ResultQueryService;
 import com.lumie.exam.application.dto.response.RecentCompletedExamResponse;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -117,13 +115,6 @@ public class StatisticsController {
     @GetMapping("/students/{studentId}/normalized")
     public ResponseEntity<NormalizedScoreResponse> getNormalizedScores(@PathVariable Long studentId) {
         return ResponseEntity.ok(studentAnalyticsQueryService.getNormalizedScores(studentId));
-    }
-
-    @PostMapping("/students/{studentId}/goal-simulation")
-    public ResponseEntity<GoalSimulationResponse> simulateGoal(
-            @PathVariable Long studentId,
-            @Valid @RequestBody GoalSimulationRequest request) {
-        return ResponseEntity.ok(studentAnalyticsQueryService.simulateGoal(studentId, request));
     }
 
     @GetMapping("/dashboard")

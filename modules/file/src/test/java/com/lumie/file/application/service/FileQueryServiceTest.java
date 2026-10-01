@@ -1,6 +1,7 @@
 package com.lumie.file.application.service;
 
 import com.lumie.common.auth.Role;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.application.port.out.StoragePort;
@@ -8,6 +9,7 @@ import com.lumie.file.domain.entity.FileDownload;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.repository.FileDownloadRepository;
 import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.AfterEach;
@@ -24,7 +26,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FileQueryService 테스트")
@@ -64,5 +70,38 @@ class FileQueryServiceTest {
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).userName()).isEqualTo("삭제된 학생");
+    }
+
+    @Test
+    void metadataReadEnforcesTheSameEntityPolicyAsDownload() {
+        UUID fileId = UUID.randomUUID();
+        FileMetadata metadata = FileMetadata.create(EntityType.QNA, 8L, "private.pdf",
+                "application/pdf", 1L, "object", null);
+        given(fileMetadataRepository.findById(fileId)).willReturn(Optional.of(metadata));
+        doThrow(new BusinessException(FileErrorCode.ACCESS_DENIED))
+                .when(fileMetadataLookupService).requireAccess(EntityType.QNA, 8L);
+
+        assertThatThrownBy(() -> queryService.getFileMetadata(fileId))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(FileErrorCode.ACCESS_DENIED));
+        verify(fileMetadataLookupService).requireAccess(EntityType.QNA, 8L);
+    }
+
+    @Test
+    void inaccessibleCollectionIsRejectedBeforeMetadataQuery() {
+        doThrow(new BusinessException(FileErrorCode.ACCESS_DENIED))
+                .when(fileMetadataLookupService).requireAccess(EntityType.QNA, 8L);
+
+        assertThatThrownBy(() -> queryService.getFilesByEntity(EntityType.QNA, 8L))
+                .isInstanceOf(BusinessException.class);
+        verifyNoInteractions(fileMetadataRepository);
+    }
+
+    @Test
+    void staffTextbookCollectionUsesTheSharedAccessPolicy() {
+        queryService.getAllFilesByEntityType(EntityType.TEXTBOOK);
+
+        verify(fileMetadataLookupService).requireAccess(EntityType.TEXTBOOK, null);
+        verify(fileMetadataRepository).findByEntityType(EntityType.TEXTBOOK);
     }
 }

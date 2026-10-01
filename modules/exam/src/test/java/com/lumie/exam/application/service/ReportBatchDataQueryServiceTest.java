@@ -9,6 +9,9 @@ import com.lumie.exam.domain.entity.ReportGenerationJob;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
+import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.GradeScale;
+import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.test.ExamFixtures;
 import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.AfterEach;
@@ -20,7 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -177,6 +182,32 @@ class ReportBatchDataQueryServiceTest {
         assertThat(response.items().get(1).questionResults().get(0).selectedChoice()).isNull();
         assertThat(response.items().get(2).success()).isFalse();
         assertThat(response.items().get(2).error()).isEqualTo("RESULT_NOT_FOUND");
+    }
+
+    @Test
+    void getBatchData_usesFullRelativeCohortInReportHistory() {
+        Exam exam = Exam.create("상대 시험", ExamCategory.GRADED, GradingType.RELATIVE,
+                GradeScale.NINE_GRADE, 1, Map.of("1", "1"), Map.of("1", 100), Map.of("1", "단답"), null);
+        ReflectionTestUtils.setField(exam, "id", 10L);
+        ExamResult studentResult = ExamResult.create(exam, 1L, 60);
+        studentResult.assignGrade(8);
+        ReflectionTestUtils.setField(studentResult, "createdAt", Instant.parse("2026-01-01T00:00:00Z"));
+        ExamResult peerResult = ExamResult.create(exam, 2L, 100);
+
+        given(examRepository.findById(10L)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(10L)).willReturn(List.of(studentResult, peerResult));
+        given(resultRepository.findByStudentIdIn(List.of(1L))).willReturn(List.of(studentResult));
+        given(resultRepository.findByExamIdIn(List.of(10L))).willReturn(List.of(studentResult, peerResult));
+        given(studentService.getStudentsByIds("test-academy", List.of(1L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(1L, null, "학생1", "010-1", true, null, null)),
+                        1, 0, 1));
+
+        ReportBatchDataResponse response = service.getBatchData(10L, List.of(1L));
+
+        assertThat(response.items().getFirst().examResult().grade()).isEqualTo(5);
+        assertThat(response.items().getFirst().stabilityIndex().scoreHistory().getFirst().grade()).isEqualTo(5);
+        verify(resultRepository).findByExamIdIn(List.of(10L));
     }
 
     private static ExamResult result(Exam exam, Long resultId, Long studentId, int score, boolean firstCorrect) {

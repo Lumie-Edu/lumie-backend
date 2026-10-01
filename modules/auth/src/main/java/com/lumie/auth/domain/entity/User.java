@@ -77,7 +77,7 @@ public class User extends TenantScopedEntity {
         this.userLoginId = userLoginId;
         this.passwordHash = passwordHash;
         this.name = name;
-        this.phone = PhoneNumberUtils.toDigits(phone);
+        this.phone = phone == null || phone.isBlank() ? null : PhoneNumberUtils.toDigits(phone);
         this.role = role;
         this.status = status;
         this.avatarSeed = com.lumie.auth.domain.vo.AvatarSeeds.randomSeed();

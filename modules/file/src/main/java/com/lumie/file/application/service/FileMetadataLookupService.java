@@ -25,7 +25,7 @@ public class FileMetadataLookupService {
     @Transactional(readOnly = true)
     public DownloadMetadata getAuthorizedDownloadMetadata(UUID fileId) {
         FileMetadata fileMetadata = findCompletedFile(fileId);
-        authorizeFileAccess(fileMetadata);
+        requireAccess(fileMetadata.getEntityType(), fileMetadata.getEntityId());
         return DownloadMetadata.from(fileMetadata);
     }
 
@@ -39,7 +39,7 @@ public class FileMetadataLookupService {
         return fileMetadata;
     }
 
-    private void authorizeFileAccess(FileMetadata fileMetadata) {
+    public void requireAccess(EntityType entityType, Long entityId) {
         Role role = UserContextHolder.getUserRole();
         if (role == null) {
             throw new BusinessException(CommonErrorCode.FORBIDDEN);
@@ -48,15 +48,15 @@ public class FileMetadataLookupService {
             return;
         }
 
-        if (fileMetadata.getEntityType() == EntityType.ANNOUNCEMENT
-                && fileMetadata.getEntityId() != null
-                && contentService.canUserViewAnnouncement(fileMetadata.getEntityId(), role.name(), UserContextHolder.getUserId())) {
+        if (entityType == EntityType.ANNOUNCEMENT
+                && entityId != null
+                && contentService.canUserViewAnnouncement(entityId, role.name(), UserContextHolder.getUserId())) {
             return;
         }
 
-        if (fileMetadata.getEntityType() == EntityType.QNA
-                && fileMetadata.getEntityId() != null
-                && contentService.canUserViewQna(fileMetadata.getEntityId(), role.name(), UserContextHolder.getUserId())) {
+        if (entityType == EntityType.QNA
+                && entityId != null
+                && contentService.canUserViewQna(entityId, role.name(), UserContextHolder.getUserId())) {
             return;
         }
 

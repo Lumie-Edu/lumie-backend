@@ -58,7 +58,8 @@ public class Staff extends TenantScopedEntity {
         this.userId = userId;
         this.userLoginId = userLoginId;
         this.canonicalName = name;
-        this.canonicalPhone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
+        this.canonicalPhone = phone == null || phone.isBlank() ? null
+                : com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         this.canonicalEmail = email;
         this.staffMemo = staffMemo;
         this.employmentStatus = employmentStatus != null ? employmentStatus : EmploymentStatus.ACTIVE;
@@ -88,7 +89,8 @@ public class Staff extends TenantScopedEntity {
             this.canonicalName = name;
         }
         if (phone != null) {
-            this.canonicalPhone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
+            this.canonicalPhone = phone.isBlank() ? null
+                    : com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         }
         if (email != null) {
             this.canonicalEmail = email;

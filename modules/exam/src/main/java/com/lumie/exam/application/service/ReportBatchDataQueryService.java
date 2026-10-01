@@ -17,6 +17,7 @@ import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -233,13 +234,29 @@ public class ReportBatchDataQueryService {
             return Map.of();
         }
 
-        return resultRepository.findByStudentIdIn(studentIds).stream()
+        List<ExamResult> studentResults = resultRepository.findByStudentIdIn(studentIds);
+        List<Long> relativeExamIds = studentResults.stream()
+                .filter(result -> result.getExam().getCategory() == ExamCategory.GRADED
+                        && result.getExam().getGradingType() == GradingType.RELATIVE)
+                .map(result -> result.getExam().getId())
+                .distinct()
+                .toList();
+        Map<Long, List<Integer>> relativeScoresByExamId = relativeExamIds.isEmpty()
+                ? Map.of()
+                : resultRepository.findByExamIdIn(relativeExamIds).stream()
+                        .collect(Collectors.groupingBy(
+                                result -> result.getExam().getId(),
+                                Collectors.mapping(ExamResult::getTotalScore, Collectors.toList())));
+
+        return studentResults.stream()
                 .collect(Collectors.groupingBy(ExamResult::getStudentId))
                 .entrySet()
                 .stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        entry -> ExamStatisticsProjection.calculateStabilityIndex(entry.getKey(), entry.getValue(), statisticsCalculator)
+                        entry -> ExamStatisticsProjection.calculateStabilityIndex(
+                                entry.getKey(), entry.getValue(), statisticsCalculator,
+                                gradeCalculator, relativeScoresByExamId)
                 ));
     }
 

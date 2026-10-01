@@ -1,19 +1,15 @@
 package com.lumie.tenant.application.service;
 
-import com.lumie.common.exception.DuplicateResourceException;
 import com.lumie.common.exception.ResourceNotFoundException;
 import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.tenant.application.dto.request.CompleteTenantOnboardingRequest;
-import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
-import com.lumie.tenant.api.TenantCreatedEvent;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
 import com.lumie.tenant.api.TenantStatus;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,7 +18,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 import java.util.List;
@@ -38,54 +33,13 @@ class TenantCommandServiceTest {
     @Mock
     private TenantPersistencePort tenantPersistencePort;
 
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
-
     @InjectMocks
     private TenantCommandService tenantCommandService;
-
-    private CreateTenantRequest createRequest;
-
-    @BeforeEach
-    void setUp() {
-        createRequest = CreateTenantRequest.builder()
-                .slug("test-academy")
-                .name("Test Academy")
-                .displayName("테스트 학원")
-                .build();
-    }
 
     @AfterEach
     void clearContext() {
         TenantContextHolder.clear();
         UserContextHolder.clear();
-    }
-
-    @Test
-    @DisplayName("테넌트 생성 성공")
-    void createTenantSuccess() {
-        when(tenantPersistencePort.existsBySlug("test-academy")).thenReturn(false);
-        when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        TenantResponse response = tenantCommandService.createTenant(createRequest);
-
-        assertThat(response.slug()).isEqualTo("test-academy");
-        assertThat(response.name()).isEqualTo("Test Academy");
-        assertThat(response.status()).isEqualTo(TenantStatus.ACTIVE);
-
-        verify(eventPublisher).publishEvent(any(TenantCreatedEvent.class));
-    }
-
-    @Test
-    @DisplayName("중복 slug로 테넌트 생성 시 예외")
-    void createTenantDuplicateSlug() {
-        when(tenantPersistencePort.existsBySlug("test-academy")).thenReturn(true);
-
-        assertThatThrownBy(() -> tenantCommandService.createTenant(createRequest))
-                .isInstanceOf(DuplicateResourceException.class);
-
-        verify(tenantPersistencePort, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

@@ -123,6 +123,33 @@ class StaffCommandServiceTest {
     }
 
     @Test
+    void registerStaffWithoutPhoneReturnsNullPhone() {
+        var request = new StaffRequest(Role.INSTRUCTOR.name(), "강사님", "", null, null);
+        given(billingService.checkQuota(TENANT, MetricType.ADMINS))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.ADMINS, "ok"));
+        given(authService.createUser("강사님", "", Role.INSTRUCTOR.name(), 1L))
+                .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "staff_100"));
+        given(staffRepository.save(any(Staff.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(service.registerStaff(request).phone()).isNull();
+    }
+
+    @Test
+    void updateStaffBlankPhoneReturnsTheNullStoredOnUser() {
+        Staff staff = Staff.create(100L, "staff_100", "강사님", "01011112222", null, null);
+        ReflectionTestUtils.setField(staff, "id", 10L);
+        ReflectionTestUtils.setField(staff, "role", Role.INSTRUCTOR.name());
+        given(staffRepository.findById(10L)).willReturn(Optional.of(staff));
+        given(staffRepository.save(staff)).willReturn(staff);
+        given(authService.updateIdentity(100L, null, "", null)).willReturn(true);
+
+        assertThat(service.updateStaff(10L,
+                new com.lumie.staff.application.dto.request.StaffUpdateRequest(null, "", null, null))
+                .phone()).isNull();
+        verify(authService).updateIdentity(100L, null, "", null);
+    }
+
+    @Test
     void updateStaffWritesCanonicalUserIdentityAndEmail() {
         Staff staff = Staff.create(100L, "staff_100", "기존 이름", "01011112222", "old@example.com", null);
         ReflectionTestUtils.setField(staff, "id", 10L);

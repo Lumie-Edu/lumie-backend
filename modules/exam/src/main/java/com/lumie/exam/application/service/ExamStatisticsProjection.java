@@ -3,6 +3,8 @@ package com.lumie.exam.application.service;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
+import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.application.dto.response.statistics.StudentRankResponse;
 import com.lumie.exam.application.dto.response.statistics.StabilityIndexResponse;
 import java.util.*;
@@ -76,7 +78,12 @@ public final class ExamStatisticsProjection {
         return typeStats;
     }
 
-    public static StabilityIndexResponse calculateStabilityIndex(Long studentId, List<ExamResult> results, StatisticsCalculator statisticsCalculator) {
+    public static StabilityIndexResponse calculateStabilityIndex(
+            Long studentId,
+            List<ExamResult> results,
+            StatisticsCalculator statisticsCalculator,
+            GradeCalculator gradeCalculator,
+            Map<Long, List<Integer>> relativeScoresByExamId) {
         if (results.isEmpty()) {
             return new StabilityIndexResponse(studentId, 0, 0.0, 0.0, 0.0, "N/A", List.of());
         }
@@ -95,7 +102,12 @@ public final class ExamStatisticsProjection {
                         r.getExam().getName(),
                         r.getTotalScore(),
                         r.getExam().calculateTotalPossibleScore(),
-                        r.getExam().isPassFail() ? null : r.getGrade(),
+                        gradeCalculator.resolveStoredOrRelativeGrade(r.getExam(), r,
+                                r.getExam().getCategory() == ExamCategory.GRADED
+                                        && r.getExam().getGradingType() == GradingType.RELATIVE
+                                        ? Objects.requireNonNull(relativeScoresByExamId.get(r.getExam().getId()),
+                                                "Missing full relative-grade cohort for exam " + r.getExam().getId())
+                                        : List.of()),
                         r.passStatus(),
                         r.getExam().getCategory(),
                         r.getCreatedAt()

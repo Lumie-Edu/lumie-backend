@@ -1,6 +1,5 @@
 package com.lumie.tenant.adapter.in.web;
 
-import com.lumie.tenant.application.dto.request.CreateTenantRequest;
 import com.lumie.tenant.application.dto.request.CompleteTenantOnboardingRequest;
 import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.PublicTenantResponse;
@@ -10,13 +9,15 @@ import com.lumie.tenant.application.service.TenantCommandService;
 import com.lumie.tenant.application.service.TenantLogoService;
 import com.lumie.tenant.application.service.TenantQueryService;
 import com.lumie.common.exception.ResourceNotFoundException;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.tenant.domain.exception.TenantErrorCode;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -48,29 +49,25 @@ public class TenantController {
         return ResponseEntity.ok(tenantQueryService.getCurrentPublicTenant(tenantSlug));
     }
 
-    @PostMapping
-    @ApiResponse(responseCode = "201", description = "Created")
-    public ResponseEntity<TenantResponse> createTenant(@Valid @RequestBody CreateTenantRequest request) {
-        TenantResponse response = tenantCommandService.createTenant(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
     @GetMapping("/{slug}")
     public ResponseEntity<TenantResponse> getTenant(@PathVariable String slug) {
+        requireCurrentTenant(slug);
         TenantResponse response = tenantQueryService.getTenantBySlug(slug);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
     public ResponseEntity<List<TenantResponse>> getAllTenants() {
-        List<TenantResponse> response = tenantQueryService.getAllTenants();
-        return ResponseEntity.ok(response);
+        String slug = TenantContextHolder.getTenant();
+        requireCurrentTenant(slug);
+        return ResponseEntity.ok(List.of(tenantQueryService.getTenantBySlug(slug)));
     }
 
     @PatchMapping("/{slug}")
     public ResponseEntity<TenantResponse> updateTenant(
             @PathVariable String slug,
             @Valid @RequestBody UpdateTenantRequest request) {
+        requireCurrentOwner(slug);
         TenantResponse response = tenantCommandService.updateTenant(slug, request);
         return ResponseEntity.ok(response);
     }
@@ -86,6 +83,7 @@ public class TenantController {
     @DeleteMapping("/{slug}")
     @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteTenant(@PathVariable String slug) {
+        requireCurrentOwner(slug);
         tenantCommandService.deleteTenant(slug);
         return ResponseEntity.noContent().build();
     }
@@ -94,12 +92,14 @@ public class TenantController {
     public ResponseEntity<TenantResponse> suspendTenant(
             @PathVariable String slug,
             @RequestParam(required = false, defaultValue = "Manual suspension") String reason) {
+        requireCurrentOwner(slug);
         TenantResponse response = tenantCommandService.suspendTenant(slug, reason);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{slug}/reactivate")
     public ResponseEntity<TenantResponse> reactivateTenant(@PathVariable String slug) {
+        requireCurrentOwner(slug);
         TenantResponse response = tenantCommandService.reactivateTenant(slug);
         return ResponseEntity.ok(response);
     }
@@ -108,12 +108,14 @@ public class TenantController {
     public ResponseEntity<TenantResponse> uploadLogo(
             @PathVariable String slug,
             @RequestParam("file") MultipartFile file) {
+        requireCurrentOwner(slug);
         tenantLogoService.uploadLogo(slug, file);
         return ResponseEntity.ok(tenantQueryService.getTenantBySlug(slug));
     }
 
     @DeleteMapping("/{slug}/logo")
     public ResponseEntity<TenantResponse> deleteLogo(@PathVariable String slug) {
+        requireCurrentOwner(slug);
         tenantLogoService.deleteLogo(slug);
         return ResponseEntity.ok(tenantQueryService.getTenantBySlug(slug));
     }
@@ -131,5 +133,18 @@ public class TenantController {
                 .contentType(type)
                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300")
                 .body(new InputStreamResource(logo.stream()));
+    }
+
+    private static void requireCurrentOwner(String slug) {
+        AuthorizationGuard.requireOwner();
+        requireCurrentTenant(slug);
+    }
+
+    private static void requireCurrentTenant(String slug) {
+        String currentTenant = TenantContextHolder.getTenant();
+        if (currentTenant == null || !currentTenant.equals(slug)) {
+            throw new BusinessException(TenantErrorCode.TENANT_CONTEXT_MISMATCH,
+                    "요청 학원과 인증 학원이 일치하지 않습니다.");
+        }
     }
 }

@@ -51,11 +51,14 @@ public class FileQueryService {
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
+        fileMetadataLookupService.requireAccess(fileMetadata.getEntityType(), fileMetadata.getEntityId());
+
         return FileMetadataResponse.from(fileMetadata);
     }
 
     @Transactional(readOnly = true)
     public List<FileMetadataResponse> getFilesByEntity(EntityType entityType, Long entityId) {
+        fileMetadataLookupService.requireAccess(entityType, entityId);
         return fileMetadataRepository.findByEntityTypeAndEntityId(entityType, entityId).stream()
                 .map(FileMetadataResponse::from)
                 .toList();
@@ -63,6 +66,7 @@ public class FileQueryService {
 
     @Transactional(readOnly = true)
     public List<FileMetadataResponse> getFilesByEntityAndFolder(EntityType entityType, UUID folderId) {
+        fileMetadataLookupService.requireAccess(entityType, null);
         List<FileMetadata> files = fileMetadataRepository.findByEntityTypeAndFolderId(entityType, folderId);
 
         return files.stream()
@@ -72,6 +76,7 @@ public class FileQueryService {
 
     @Transactional(readOnly = true)
     public List<FileMetadataResponse> getAllFilesByEntityType(EntityType entityType) {
+        fileMetadataLookupService.requireAccess(entityType, null);
         List<FileMetadata> files = fileMetadataRepository.findByEntityType(entityType);
 
         return files.stream()
