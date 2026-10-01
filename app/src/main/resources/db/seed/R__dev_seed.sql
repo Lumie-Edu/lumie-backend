@@ -80,9 +80,9 @@ BEGIN
 
   -- Students (structure/score profile mirrors a real cohort; identities synthetic).
   INSERT INTO students (user_id, student_highschool, student_birth_year, student_memo, is_active,
-                         user_login_id, name, phone, parent_phone, tenant_id)
-  SELECT u.id, v.hs, v.by, NULL, true, u.user_login_id, u.name,
-         u.phone, '010-0000-20'||right(u.user_login_id, 2), t_id
+                         user_login_id, parent_phone, tenant_id)
+  SELECT u.id, v.hs, v.by, NULL, true, u.user_login_id,
+         '010-0000-20'||right(u.user_login_id, 2), t_id
   FROM users u
   JOIN (VALUES
     ('demo_stu_01','상암고등학교',2007),
@@ -97,11 +97,11 @@ BEGIN
   WHERE u.tenant_id = t_id;
 
   -- Staff (staff table).
-  INSERT INTO staff (user_id, staff_memo, user_login_id, name, phone, is_active, email,
+  INSERT INTO staff (user_id, staff_memo, user_login_id, is_active,
                       employment_status, tenant_id)
   SELECT u.id,
          CASE u.role WHEN 'OWNER' THEN '원장' WHEN 'MANAGER' THEN '총괄 매니저' ELSE '영어 강사' END,
-         u.user_login_id, u.name, u.phone, true, u.email, 'ACTIVE', t_id
+         u.user_login_id, true, 'ACTIVE', t_id
   FROM users u
   WHERE u.tenant_id = t_id AND u.role IN ('OWNER','MANAGER','INSTRUCTOR');
 

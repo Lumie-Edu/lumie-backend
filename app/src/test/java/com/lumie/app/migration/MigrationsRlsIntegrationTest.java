@@ -265,7 +265,7 @@ class MigrationsRlsIntegrationTest {
     }
 
     @Test
-    void userIdentityExpansionKeepsLegacyColumnsWhileMovingPhoneUniquenessToUsers() throws Exception {
+    void userIdentityContractRemovesLegacyColumnsAndKeepsPhoneUniquenessOnUsers() throws Exception {
         try (Connection admin = adminConnection();
              Statement st = admin.createStatement();
              ResultSet columns = st.executeQuery("""
@@ -280,12 +280,7 @@ class MigrationsRlsIntegrationTest {
                 nullability.put(columns.getString("table_name") + "." + columns.getString("column_name"),
                         columns.getString("is_nullable"));
             }
-            assertThat(nullability)
-                    .containsEntry("students.name", "YES")
-                    .containsEntry("students.phone", "YES")
-                    .containsEntry("staff.name", "YES")
-                    .containsEntry("staff.phone", "YES")
-                    .containsEntry("staff.email", "YES");
+            assertThat(nullability).isEmpty();
         }
 
         try (Connection admin = adminConnection();
@@ -294,7 +289,7 @@ class MigrationsRlsIntegrationTest {
                      SELECT indexname
                      FROM pg_indexes
                      WHERE schemaname = 'public'
-                       AND indexname IN ('idx_students_phone', 'idx_staff_phone',
+                       AND indexname IN ('idx_students_phone', 'idx_staff_phone', 'idx_staff_email',
                                          'uq_users_student_phone', 'uq_users_staff_phone')
                      """)) {
             var names = new java.util.HashSet<String>();
@@ -302,7 +297,6 @@ class MigrationsRlsIntegrationTest {
                 names.add(indexes.getString("indexname"));
             }
             assertThat(names).containsExactlyInAnyOrder(
-                    "idx_students_phone", "idx_staff_phone",
                     "uq_users_student_phone", "uq_users_staff_phone");
         }
     }
