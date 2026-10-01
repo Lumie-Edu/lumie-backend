@@ -175,6 +175,6 @@ public class ClassQueryService {
     }
 
     private Long currentStudentId() {
-        return CurrentStudentResolver.requireStudentId(studentService, CommonErrorCode.FORBIDDEN);
+        return CurrentStudentResolver.requireStudentId(studentService, CommonErrorCode.RESOURCE_NOT_FOUND);
     }
 }

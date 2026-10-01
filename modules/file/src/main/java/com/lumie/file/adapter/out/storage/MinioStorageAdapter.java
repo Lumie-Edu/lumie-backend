@@ -20,12 +20,14 @@ public class MinioStorageAdapter implements StoragePort {
     private final MinioClient minioClient;
     private final MinioClient presignMinioClient;
 
-    @Value("${minio.bucket-name}")
-    private String bucketName;
+    private final String bucketName;
 
-    public MinioStorageAdapter(MinioClient minioClient, @Qualifier("presignMinioClient") MinioClient presignMinioClient) {
+    public MinioStorageAdapter(MinioClient minioClient,
+                               @Qualifier("presignMinioClient") MinioClient presignMinioClient,
+                               @Value("${minio.bucket-name}") String bucketName) {
         this.minioClient = minioClient;
         this.presignMinioClient = presignMinioClient;
+        this.bucketName = bucketName;
     }
 
     @Override

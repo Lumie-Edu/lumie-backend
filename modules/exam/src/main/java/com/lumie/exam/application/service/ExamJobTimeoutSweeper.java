@@ -57,19 +57,30 @@ public class ExamJobTimeoutSweeper {
         int totalOmr = 0;
         int totalReport = 0;
         for (TenantData tenant : tenants) {
+            String previousMdcSlug = MDC.get("tenantSlug");
+            String previousMdcId = MDC.get("tenantId");
             try {
-                TenantContextHolder.setTenant(tenant.slug());
-                TenantContextHolder.setTenantId(tenant.id());
                 MDC.put("tenantSlug", tenant.slug());
                 MDC.put("tenantId", String.valueOf(tenant.id()));
-                totalOmr += tx.sweepOmrJobs(cutoff);
-                totalReport += tx.sweepReportJobs(cutoff);
+                totalOmr += TenantContextHolder.withinContext(tenant.slug(), tenant.id(), () -> {
+                    return tx.sweepOmrJobs(cutoff);
+                });
+                totalReport += TenantContextHolder.withinContext(tenant.slug(), tenant.id(), () -> {
+                    return tx.sweepReportJobs(cutoff);
+                });
             } catch (Exception e) {
                 log.error("Failed to sweep stale jobs for tenant {}: {}", tenant.slug(), e.getMessage());
             } finally {
-                TenantContextHolder.clear();
-                MDC.remove("tenantSlug");
-                MDC.remove("tenantId");
+                if (previousMdcSlug == null) {
+                    MDC.remove("tenantSlug");
+                } else {
+                    MDC.put("tenantSlug", previousMdcSlug);
+                }
+                if (previousMdcId == null) {
+                    MDC.remove("tenantId");
+                } else {
+                    MDC.put("tenantId", previousMdcId);
+                }
             }
         }
 

@@ -2,12 +2,14 @@ package com.lumie.lecture.application.service;
 
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.common.test.ReflectionTestUtils;
 import com.lumie.common.test.TenantContextExtension;
 import com.lumie.lecture.application.dto.response.WatchResponse;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.entity.LectureClassTarget;
+import com.lumie.lecture.domain.exception.LectureErrorCode;
 import com.lumie.lecture.domain.repository.LectureClassTargetRepository;
 import com.lumie.lecture.domain.repository.LectureRepository;
 import com.lumie.lecture.domain.vo.LectureVisibility;
@@ -81,7 +83,19 @@ class LectureQueryServiceTest {
                 .willReturn(List.of(target(lecture, 2L), target(lecture, 3L)));
 
         assertThatThrownBy(() -> queryService.getWatchUrls(1L, 4L))
-                .isInstanceOf(BusinessException.class);
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(LectureErrorCode.LECTURE_NOT_VISIBLE_TO_CLASS));
+    }
+
+    @Test
+    @DisplayName("학생 역할에 연결된 Student 행이 없으면 404를 반환한다")
+    void findByClassIdForStudent_withoutStudent_throwsNotFound() {
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(100L)))
+                .willReturn(new StudentService.StudentListData(List.of(), 0, 0, 0));
+
+        assertThatThrownBy(() -> queryService.findByClassIdForStudent(2L, PageRequest.of(0, 20)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.RESOURCE_NOT_FOUND));
     }
 
     @Test

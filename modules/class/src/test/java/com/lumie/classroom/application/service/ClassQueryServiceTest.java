@@ -5,6 +5,7 @@ import com.lumie.classroom.application.dto.ClassResponse;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.repository.ClassRepository;
@@ -211,13 +212,14 @@ class ClassQueryServiceTest {
     }
 
     @Test
-    @DisplayName("getClassesForCurrentStudent는 현재 사용자에 연결된 학생이 없으면 거부한다")
+    @DisplayName("getClassesForCurrentStudent는 현재 사용자에 연결된 학생이 없으면 404를 반환한다")
     void getClassesForCurrentStudent_withoutStudent_throws() {
         given(studentService.getStudentsByUserIds("test-tenant", List.of(100L)))
                 .willReturn(new StudentService.StudentListData(List.of(), 0, 0, 0));
 
         assertThatThrownBy(() -> queryService.getClassesForCurrentStudent(PageRequest.of(0, 20)))
-                .isInstanceOf(BusinessException.class);
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.RESOURCE_NOT_FOUND));
     }
 
     @Test
