@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
@@ -130,5 +131,15 @@ class CanonicalIdentityRepositoryIntegrationTest extends FullContextTestBase {
         assertThat(jdbc.queryForObject(
                 "select count(*) from staff where id = ?",
                 Integer.class, teacher.getId())).isEqualTo(1);
+    }
+
+    @Test
+    void publicNameAndPhoneSortsUseCanonicalUserIdentity() {
+        assertThat(students.search(null, null, null, null,
+                PageRequest.of(0, 10, Sort.by("name")))).hasSize(1);
+        assertThat(students.search(null, null, null, null,
+                PageRequest.of(0, 10, Sort.by("phone")))).hasSize(1);
+        assertThat(staff.search(null, null,
+                PageRequest.of(0, 10, Sort.by("name")))).hasSize(1);
     }
 }

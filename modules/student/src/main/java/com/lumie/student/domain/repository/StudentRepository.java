@@ -3,7 +3,9 @@ package com.lumie.student.domain.repository;
 import com.lumie.student.domain.entity.Student;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -117,6 +119,14 @@ public interface StudentRepository extends JpaRepository<Student, Long>,
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        return findAll(spec, pageable);
+        if (pageable.isUnpaged() || pageable.getSort().isUnsorted()) {
+            return findAll(spec, pageable);
+        }
+        var orders = pageable.getSort().stream().map(order -> order.withProperty(switch (order.getProperty()) {
+            case "name" -> "canonicalName";
+            case "phone" -> "canonicalPhone";
+            default -> order.getProperty();
+        })).toList();
+        return findAll(spec, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders)));
     }
 }
