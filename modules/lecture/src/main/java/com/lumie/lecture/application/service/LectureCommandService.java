@@ -5,6 +5,7 @@ import com.lumie.lecture.application.dto.request.CreateLectureRequest;
 import com.lumie.lecture.application.dto.request.UpdateLectureRequest;
 import com.lumie.lecture.application.dto.response.LectureResponse;
 import com.lumie.classroom.api.ClassService;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.auth.Role;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.entity.LectureClassTarget;
@@ -149,10 +150,8 @@ public class LectureCommandService {
     }
 
     private Long currentInstructorStaffId(String tenantSlug) {
+        AuthorizationGuard.requireStaff();
         Role role = UserContextHolder.getUserRole();
-        if (role == null || role == Role.STUDENT) {
-            throw new BusinessException(CommonErrorCode.FORBIDDEN);
-        }
         if (role != Role.INSTRUCTOR) {
             return null;
         }
