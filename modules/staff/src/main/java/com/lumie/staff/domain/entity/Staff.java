@@ -32,16 +32,6 @@ public class Staff extends TenantScopedEntity {
     @Column(name = "user_login_id", nullable = false, length = 50)
     private String userLoginId;
 
-    @Column(name = "name", nullable = false, length = 100)
-    private String name;
-
-    @Column(name = "phone", length = 20)
-    private String phone;
-
-    @Column(name = "email", length = 255)
-    private String email;
-
-    // Keep old columns for rolling compatibility while showing the User-owned values.
     @Formula("(SELECT u.name FROM users u WHERE u.id = user_id)")
     private String canonicalName;
 
@@ -67,9 +57,9 @@ public class Staff extends TenantScopedEntity {
                  EmploymentStatus employmentStatus, Boolean isActive) {
         this.userId = userId;
         this.userLoginId = userLoginId;
-        this.name = name;
-        this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
-        this.email = email;
+        this.canonicalName = name;
+        this.canonicalPhone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
+        this.canonicalEmail = email;
         this.staffMemo = staffMemo;
         this.employmentStatus = employmentStatus != null ? employmentStatus : EmploymentStatus.ACTIVE;
         this.isActive = isActive != null ? isActive : true;
@@ -93,33 +83,14 @@ public class Staff extends TenantScopedEntity {
         this.userLoginId = newLoginId;
     }
 
-    public void synchronizeIdentity(String name, String phone, String email,
-                                    boolean nameChanged, boolean phoneChanged, boolean emailChanged) {
-        if (nameChanged) {
-            this.name = name;
-            this.canonicalName = name;
-        }
-        if (phoneChanged) {
-            this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
-            this.canonicalPhone = this.phone;
-        }
-        if (emailChanged) {
-            this.email = email;
-            this.canonicalEmail = email;
-        }
-    }
-
     public void updateInfo(String name, String phone, String email, String staffMemo) {
         if (name != null && !name.isBlank()) {
-            this.name = name;
             this.canonicalName = name;
         }
         if (phone != null) {
-            this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
-            this.canonicalPhone = this.phone;
+            this.canonicalPhone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         }
         if (email != null) {
-            this.email = email;
             this.canonicalEmail = email;
         }
         if (staffMemo != null) {
@@ -128,11 +99,11 @@ public class Staff extends TenantScopedEntity {
     }
 
     public String getStaffName() {
-        return canonicalName != null ? canonicalName : name;
+        return canonicalName;
     }
 
     public String getStaffPhone() {
-        return canonicalName != null ? canonicalPhone : phone;
+        return canonicalPhone;
     }
 
     public String getStaffEmail() {
@@ -149,7 +120,7 @@ public class Staff extends TenantScopedEntity {
     }
 
     public String getEmail() {
-        return canonicalName != null ? canonicalEmail : email;
+        return canonicalEmail;
     }
 
     public boolean isActive() {

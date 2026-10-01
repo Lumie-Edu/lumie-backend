@@ -28,13 +28,6 @@ public class Student extends TenantScopedEntity {
     @Column(name = "user_login_id", nullable = false, length = 50)
     private String userLoginId;
 
-    @Column(name = "name", nullable = false, length = 100)
-    private String name;
-
-    @Column(name = "phone", length = 20)
-    private String phone;
-
-    // The old columns remain dual-written for rolling compatibility; new reads prefer User.
     @Formula("(SELECT u.name FROM users u WHERE u.id = user_id)")
     private String canonicalName;
 
@@ -63,8 +56,8 @@ public class Student extends TenantScopedEntity {
                     String studentMemo, Boolean isActive) {
         this.userId = userId;
         this.userLoginId = userLoginId;
-        this.name = name;
-        this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
+        this.canonicalName = name;
+        this.canonicalPhone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         this.studentHighschool = studentHighschool;
         this.studentBirthYear = studentBirthYear;
         this.parentPhone = normalizeBlankParentPhone(parentPhone);
@@ -89,27 +82,14 @@ public class Student extends TenantScopedEntity {
                 .build();
     }
 
-    public void synchronizeIdentity(String name, String phone, boolean nameChanged, boolean phoneChanged) {
-        if (nameChanged) {
-            this.name = name;
-            this.canonicalName = name;
-        }
-        if (phoneChanged) {
-            this.phone = com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
-            this.canonicalPhone = this.phone;
-        }
-    }
-
     public void updateInfo(String name, String phone, String studentHighschool,
                            Integer studentBirthYear, String parentPhone,
                            String studentMemo) {
         if (name != null && !name.isBlank()) {
-            this.name = name;
             this.canonicalName = name;
         }
         if (phone != null) {
-            this.phone = phone.isBlank() ? null : com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
-            this.canonicalPhone = this.phone;
+            this.canonicalPhone = phone.isBlank() ? null : com.lumie.common.util.PhoneNumberUtils.toDigits(phone);
         }
         if (studentHighschool != null) {
             this.studentHighschool = studentHighschool;
@@ -142,11 +122,11 @@ public class Student extends TenantScopedEntity {
     }
 
     public String getStudentName() {
-        return canonicalName != null ? canonicalName : name;
+        return canonicalName;
     }
 
     public String getStudentPhone() {
-        return canonicalName != null ? canonicalPhone : phone;
+        return canonicalPhone;
     }
 
     public String getName() {

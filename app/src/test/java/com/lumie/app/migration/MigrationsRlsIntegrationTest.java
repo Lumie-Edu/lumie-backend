@@ -265,6 +265,84 @@ class MigrationsRlsIntegrationTest {
     }
 
     @Test
+    void userIdentityExpansionKeepsLegacyColumnsWhileMovingPhoneUniquenessToUsers() throws Exception {
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement();
+             ResultSet columns = st.executeQuery("""
+                     SELECT table_name, column_name, is_nullable
+                     FROM information_schema.columns
+                     WHERE table_schema = 'public'
+                       AND table_name IN ('students', 'staff')
+                       AND column_name IN ('name', 'phone', 'email')
+                     """)) {
+            var nullability = new java.util.HashMap<String, String>();
+            while (columns.next()) {
+                nullability.put(columns.getString("table_name") + "." + columns.getString("column_name"),
+                        columns.getString("is_nullable"));
+            }
+            assertThat(nullability)
+                    .containsEntry("students.name", "YES")
+                    .containsEntry("students.phone", "YES")
+                    .containsEntry("staff.name", "YES")
+                    .containsEntry("staff.phone", "YES")
+                    .containsEntry("staff.email", "YES");
+        }
+
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement();
+             ResultSet indexes = st.executeQuery("""
+                     SELECT indexname
+                     FROM pg_indexes
+                     WHERE schemaname = 'public'
+                       AND indexname IN ('idx_students_phone', 'idx_staff_phone',
+                                         'uq_users_student_phone', 'uq_users_staff_phone')
+                     """)) {
+            var names = new java.util.HashSet<String>();
+            while (indexes.next()) {
+                names.add(indexes.getString("indexname"));
+            }
+            assertThat(names).containsExactlyInAnyOrder(
+                    "idx_students_phone", "idx_staff_phone",
+                    "uq_users_student_phone", "uq_users_staff_phone");
+        }
+    }
+
+    @Test
+    void userPhoneUniquenessPreservesSeparateStudentAndStaffGroups() throws Exception {
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement()) {
+            admin.setAutoCommit(false);
+            st.executeUpdate("""
+                    INSERT INTO users (user_login_id, password_hash, name, phone, role, tenant_id)
+                    VALUES ('identity-student-a', 'test', 'Student A', '01000000001', 'STUDENT', 1)
+                    """);
+            st.executeUpdate("""
+                    INSERT INTO users (user_login_id, password_hash, name, phone, role, tenant_id)
+                    VALUES ('identity-staff-a', 'test', 'Staff A', '01000000001', 'INSTRUCTOR', 1)
+                    """);
+
+            var studentSavepoint = admin.setSavepoint();
+            assertThatThrownBy(() -> st.executeUpdate("""
+                    INSERT INTO users (user_login_id, password_hash, name, phone, role, tenant_id)
+                    VALUES ('identity-student-b', 'test', 'Student B', '01000000001', 'STUDENT', 2)
+                    """))
+                    .isInstanceOf(SQLException.class)
+                    .satisfies(error -> assertThat(((SQLException) error).getSQLState()).isEqualTo("23505"));
+            admin.rollback(studentSavepoint);
+
+            var staffSavepoint = admin.setSavepoint();
+            assertThatThrownBy(() -> st.executeUpdate("""
+                    INSERT INTO users (user_login_id, password_hash, name, phone, role, tenant_id)
+                    VALUES ('identity-staff-b', 'test', 'Staff B', '01000000001', 'MANAGER', 2)
+                    """))
+                    .isInstanceOf(SQLException.class)
+                    .satisfies(error -> assertThat(((SQLException) error).getSQLState()).isEqualTo("23505"));
+            admin.rollback(staffSavepoint);
+            admin.rollback();
+        }
+    }
+
+    @Test
     void assignmentsRequireOneDedicatedExamPerTenant() throws Exception {
         try (Connection admin = adminConnection();
              Statement st = admin.createStatement();

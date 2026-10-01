@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class StaffCanonicalIdentityTest {
     @Test
-    void loadedUserIdentityWinsWhileOldColumnsStayWritable() {
+    void userIdentityIsTheOnlySourceForStaffResponses() {
         Staff staff = Staff.create(7L, "staff_7", "옛 이름", "01011112222",
                 "old@example.com", null);
         ReflectionTestUtils.setField(staff, "canonicalName", "새 이름");
@@ -24,6 +24,5 @@ class StaffCanonicalIdentityTest {
         assertThat(staff.getStaffName()).isEqualTo("관리자 수정");
         assertThat(staff.getStaffPhone()).isEqualTo("01033334444");
         assertThat(staff.getEmail()).isEqualTo("new@example.com");
-        assertThat(ReflectionTestUtils.getField(staff, "phone")).isEqualTo("01033334444");
     }
 }
