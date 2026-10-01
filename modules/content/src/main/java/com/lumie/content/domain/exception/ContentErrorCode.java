@@ -17,7 +17,7 @@ public enum ContentErrorCode implements ErrorCode {
     COMMENT_NOT_FOUND("CONTENT_203", "Comment not found", 404),
     TEXTBOOK_NOT_FOUND("CONTENT_204", "Textbook not found", 404),
     STUDENT_NOT_FOUND("CONTENT_207", "Student not found", 404),
-    ADMIN_NOT_FOUND("CONTENT_208", "Admin not found", 404),
+    STAFF_NOT_FOUND("CONTENT_208", "Staff not found", 404),
     REVIEW_NOT_FOUND("CONTENT_209", "Review not found", 404),
 
     // 400 Bad Request

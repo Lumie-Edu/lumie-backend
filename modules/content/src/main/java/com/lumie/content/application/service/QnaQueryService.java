@@ -90,13 +90,13 @@ public class QnaQueryService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        Map<Long, String> adminNameMap = userIds.stream()
+        Map<Long, String> staffNameMap = userIds.stream()
                 .flatMap(userId -> staffService.getStaffByUserId(tenantSlug, userId)
                         .map(s -> Map.entry(userId, s.name()))
                         .stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
 
-        return QnaDetailResponse.from(qnaBoard, userName, adminNameMap, DELETED_STAFF_NAME);
+        return QnaDetailResponse.from(qnaBoard, userName, staffNameMap, DELETED_STAFF_NAME);
     }
 
     public QnaUnansweredOverdueResponse getUnansweredOverdueStatistics(long thresholdHours) {

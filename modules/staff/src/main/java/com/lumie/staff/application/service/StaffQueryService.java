@@ -61,7 +61,7 @@ public class StaffQueryService {
         return authService.getAvatarSeeds(staffList.stream().map(Staff::getUserId).toList());
     }
 
-    @Cacheable(value = CacheConfig.CACHE_ADMIN_PERMISSIONS, key = "#staffId")
+    @Cacheable(value = CacheConfig.CACHE_STAFF_PERMISSIONS, key = "#staffId")
     public List<StaffPermissionResponse> getStaffPermissions(Long staffId) {
         if (staffRepository.findById(staffId).isEmpty()) {
             throw new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(staffId));

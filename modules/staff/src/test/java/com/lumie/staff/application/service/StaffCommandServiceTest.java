@@ -95,8 +95,8 @@ class StaffCommandServiceTest {
                 "teacher@example.com",
                 null
         );
-        given(billingService.checkQuota(TENANT, MetricType.ADMINS))
-                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.ADMINS, "ok"));
+        given(billingService.checkQuota(TENANT, MetricType.STAFF))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STAFF, "ok"));
 
         assertThatThrownBy(() -> service.registerStaff(request))
                 .isInstanceOfSatisfying(BusinessException.class, e ->
@@ -109,8 +109,8 @@ class StaffCommandServiceTest {
     void registerStaffStoresContactEmailOnCanonicalUser() {
         var request = new StaffRequest(Role.INSTRUCTOR.name(), "강사님", "010-1234-5678",
                 "teacher@example.com", null);
-        given(billingService.checkQuota(TENANT, MetricType.ADMINS))
-                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.ADMINS, "ok"));
+        given(billingService.checkQuota(TENANT, MetricType.STAFF))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STAFF, "ok"));
         given(authService.createUser("강사님", "010-1234-5678", Role.INSTRUCTOR.name(), 1L))
                 .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "staff_100"));
         given(staffRepository.save(any(Staff.class))).willAnswer(invocation -> invocation.getArgument(0));
@@ -125,8 +125,8 @@ class StaffCommandServiceTest {
     @Test
     void registerStaffWithoutPhoneReturnsNullPhone() {
         var request = new StaffRequest(Role.INSTRUCTOR.name(), "강사님", "", null, null);
-        given(billingService.checkQuota(TENANT, MetricType.ADMINS))
-                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.ADMINS, "ok"));
+        given(billingService.checkQuota(TENANT, MetricType.STAFF))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STAFF, "ok"));
         given(authService.createUser("강사님", "", Role.INSTRUCTOR.name(), 1L))
                 .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "staff_100"));
         given(staffRepository.save(any(Staff.class))).willAnswer(invocation -> invocation.getArgument(0));

@@ -20,17 +20,17 @@ public record QnaDetailResponse(
 ) {
     private static final String DELETED_STAFF_NAME = "삭제된 직원";
 
-    public static QnaDetailResponse from(QnaBoard qnaBoard, String qnaUserName, Map<Long, String> adminNames) {
-        return from(qnaBoard, qnaUserName, adminNames, DELETED_STAFF_NAME);
+    public static QnaDetailResponse from(QnaBoard qnaBoard, String qnaUserName, Map<Long, String> staffNames) {
+        return from(qnaBoard, qnaUserName, staffNames, DELETED_STAFF_NAME);
     }
 
     public static QnaDetailResponse from(
             QnaBoard qnaBoard,
             String qnaUserName,
-            Map<Long, String> adminNames,
+            Map<Long, String> staffNames,
             String deletedStaffName) {
         List<QnaCommentResponse> commentResponses = qnaBoard.getComments().stream()
-                .map(comment -> QnaCommentResponse.from(comment, resolveAdminName(comment, adminNames, deletedStaffName)))
+                .map(comment -> QnaCommentResponse.from(comment, resolveStaffName(comment, staffNames, deletedStaffName)))
                 .toList();
 
         return new QnaDetailResponse(
@@ -46,13 +46,13 @@ public record QnaDetailResponse(
         );
     }
 
-    private static String resolveAdminName(QnaComment comment, Map<Long, String> adminNames, String deletedStaffName) {
+    private static String resolveStaffName(QnaComment comment, Map<Long, String> staffNames, String deletedStaffName) {
         if (comment.getStudentId() != null) {
             return null;
         }
         if (comment.getUserId() == null) {
             return deletedStaffName;
         }
-        return adminNames.getOrDefault(comment.getUserId(), deletedStaffName);
+        return staffNames.getOrDefault(comment.getUserId(), deletedStaffName);
     }
 }

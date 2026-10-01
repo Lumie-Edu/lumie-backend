@@ -87,7 +87,7 @@ public class QnaBoard extends TenantScopedEntity {
         }
     }
 
-    public boolean hasAdminComment() {
+    public boolean hasStaffComment() {
         return comments.stream().anyMatch(c -> c.getUserId() != null);
     }
 

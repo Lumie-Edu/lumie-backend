@@ -599,7 +599,7 @@ class SubscriptionTest {
                 PlanLimits.builder()
                         .maxStudents(50)
                         .maxAcademies(1)
-                        .maxAdmins(2)
+                        .maxStaff(2)
                         .omrMonthlyQuota(10)
                         .build());
         return plan;

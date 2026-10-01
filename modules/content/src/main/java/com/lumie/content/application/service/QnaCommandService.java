@@ -99,7 +99,7 @@ public class QnaCommandService {
 
         QnaComment comment;
         if (request.userId() != null) {
-            comment = QnaComment.createByAdmin(qnaBoard, request.userId(), request.commentContent());
+            comment = QnaComment.createByStaff(qnaBoard, request.userId(), request.commentContent());
         } else {
             comment = QnaComment.createByStudent(qnaBoard, request.studentId(), request.commentContent());
         }
@@ -126,10 +126,10 @@ public class QnaCommandService {
         qnaCommentRepository.deleteById(commentId);
         qnaBoard.getComments().removeIf(c -> c.getId().equals(commentId));
 
-        boolean stillHasAdminComment = qnaBoard.getComments().stream()
+        boolean stillHasStaffComment = qnaBoard.getComments().stream()
                 .anyMatch(c -> c.getUserId() != null);
 
-        if (!stillHasAdminComment) {
+        if (!stillHasStaffComment) {
             qnaBoard.markAsUnanswered();
             qnaBoardRepository.save(qnaBoard);
         }

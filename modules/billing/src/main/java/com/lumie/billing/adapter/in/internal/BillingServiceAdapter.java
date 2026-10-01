@@ -115,7 +115,7 @@ public class BillingServiceAdapter implements BillingService {
         if (limits == null) return null;
         return new PlanLimits(
                 limits.maxStudents(), limits.maxAcademies(),
-                limits.maxAdmins(), limits.omrMonthlyQuota()
+                limits.maxStaff(), limits.omrMonthlyQuota()
         );
     }
 }

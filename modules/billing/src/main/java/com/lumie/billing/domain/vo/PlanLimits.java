@@ -13,14 +13,14 @@ import lombok.Builder;
 public record PlanLimits(
         Integer maxStudents,
         Integer maxAcademies,
-        Integer maxAdmins,
+        Integer maxStaff,
         Integer omrMonthlyQuota
 ) {
     public static PlanLimits free() {
         return PlanLimits.builder()
                 .maxStudents(50)
                 .maxAcademies(1)
-                .maxAdmins(2)
+                .maxStaff(2)
                 .omrMonthlyQuota(100)
                 .build();
     }
@@ -29,7 +29,7 @@ public record PlanLimits(
         return PlanLimits.builder()
                 .maxStudents(200)
                 .maxAcademies(3)
-                .maxAdmins(5)
+                .maxStaff(5)
                 .omrMonthlyQuota(500)
                 .build();
     }
@@ -38,7 +38,7 @@ public record PlanLimits(
         return PlanLimits.builder()
                 .maxStudents(1000)
                 .maxAcademies(10)
-                .maxAdmins(20)
+                .maxStaff(20)
                 .omrMonthlyQuota(5000)
                 .build();
     }
@@ -47,7 +47,7 @@ public record PlanLimits(
         return PlanLimits.builder()
                 .maxStudents(null)
                 .maxAcademies(null)
-                .maxAdmins(null)
+                .maxStaff(null)
                 .omrMonthlyQuota(null)
                 .build();
     }
@@ -72,7 +72,7 @@ public record PlanLimits(
         return switch (metricType) {
             case STUDENTS -> maxStudents;
             case ACADEMIES -> maxAcademies;
-            case ADMINS -> maxAdmins;
+            case STAFF -> maxStaff;
             case OMR_MONTHLY -> omrMonthlyQuota;
         };
     }

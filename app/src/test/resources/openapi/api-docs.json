@@ -3363,8 +3363,8 @@
             "nullable" : true,
             "type" : "integer"
           },
-          "maxAdmins" : {
-            "description" : "관리자 한도 (null = 무제한)",
+          "maxStaff" : {
+            "description" : "직원 한도 (null = 무제한)",
             "format" : "int32",
             "nullable" : true,
             "type" : "integer"
@@ -3382,7 +3382,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "maxAcademies", "maxAdmins", "maxStudents", "omrMonthlyQuota" ],
+        "required" : [ "maxAcademies", "maxStaff", "maxStudents", "omrMonthlyQuota" ],
         "type" : "object"
       },
       "PlanResponse" : {
@@ -3538,10 +3538,6 @@
       },
       "QnaCommentResponse" : {
         "properties" : {
-          "adminName" : {
-            "nullable" : true,
-            "type" : "string"
-          },
           "commentContent" : {
             "type" : "string"
           },
@@ -3560,6 +3556,10 @@
             "format" : "int64",
             "type" : "integer"
           },
+          "staffName" : {
+            "nullable" : true,
+            "type" : "string"
+          },
           "studentId" : {
             "format" : "int64",
             "nullable" : true,
@@ -3575,7 +3575,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "adminName", "commentContent", "createdAt", "id", "isReadByAuthor", "qnaId", "studentId", "updatedAt", "userId" ],
+        "required" : [ "commentContent", "createdAt", "id", "isReadByAuthor", "qnaId", "staffName", "studentId", "updatedAt", "userId" ],
         "type" : "object"
       },
       "QnaDetailResponse" : {
@@ -3770,7 +3770,7 @@
             "type" : "string"
           },
           "metricType" : {
-            "enum" : [ "STUDENTS", "ACADEMIES", "ADMINS", "OMR_MONTHLY" ],
+            "enum" : [ "STUDENTS", "ACADEMIES", "STAFF", "OMR_MONTHLY" ],
             "type" : "string"
           }
         },
@@ -13961,7 +13961,7 @@
           "name" : "metricType",
           "required" : true,
           "schema" : {
-            "enum" : [ "STUDENTS", "ACADEMIES", "ADMINS", "OMR_MONTHLY" ],
+            "enum" : [ "STUDENTS", "ACADEMIES", "STAFF", "OMR_MONTHLY" ],
             "type" : "string"
           }
         }, {

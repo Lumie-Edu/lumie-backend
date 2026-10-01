@@ -30,7 +30,7 @@ import java.util.List;
  * <ul>
  *   <li>{@code tenants-by-slug} (5 min, 1k entries) — slug → TenantData
  *       reverse lookup hit on every authenticated request.
- *   <li>{@code admin-permissions} (1 min, 10k entries) — adminId → granted
+ *   <li>{@code staff-permissions} (1 min, 10k entries) — staffId → granted
  *       permission codes, hit on every authorization check.
  *   <li>{@code plans} (1 hr, 50 entries) — plan catalogue is near-static.
  *   <li>{@code exam-dashboard} (5 min, 500 entries) — tenantId → assembled
@@ -50,7 +50,7 @@ public class CacheConfig {
 
     public static final String CACHE_TENANTS_BY_SLUG = "tenants-by-slug";
     public static final String CACHE_TENANTS_BY_DOMAIN = "tenants-by-domain";
-    public static final String CACHE_ADMIN_PERMISSIONS = "admin-permissions";
+    public static final String CACHE_STAFF_PERMISSIONS = "staff-permissions";
     public static final String CACHE_PLANS = "plans";
     public static final String CACHE_EXAM_DASHBOARD = "exam-dashboard";
 
@@ -60,7 +60,7 @@ public class CacheConfig {
         manager.setCaches(List.of(
                 build(CACHE_TENANTS_BY_SLUG, Duration.ofMinutes(5), 1_000),
                 build(CACHE_TENANTS_BY_DOMAIN, Duration.ofMinutes(5), 1_000),
-                build(CACHE_ADMIN_PERMISSIONS, Duration.ofMinutes(1), 10_000),
+                build(CACHE_STAFF_PERMISSIONS, Duration.ofMinutes(1), 10_000),
                 build(CACHE_PLANS, Duration.ofHours(1), 50),
                 build(CACHE_EXAM_DASHBOARD, Duration.ofMinutes(5), 500)
         ));

@@ -45,7 +45,7 @@ public interface BillingService {
     record PlanLimits(
             int maxStudents,
             int maxAcademies,
-            int maxAdmins,
+            int maxStaff,
             int omrMonthlyQuota
     ) {}
 }

@@ -46,7 +46,7 @@ public class QnaComment extends TenantScopedEntity {
                 .build();
     }
 
-    public static QnaComment createByAdmin(QnaBoard qnaBoard, Long userId, String commentContent) {
+    public static QnaComment createByStaff(QnaBoard qnaBoard, Long userId, String commentContent) {
         return QnaComment.builder()
                 .qnaBoard(qnaBoard)
                 .userId(userId)
@@ -54,7 +54,7 @@ public class QnaComment extends TenantScopedEntity {
                 .build();
     }
 
-    public boolean isAdminComment() {
+    public boolean isStaffComment() {
         return this.userId != null;
     }
 

@@ -218,7 +218,7 @@ lumie:
       - path-pattern: /v1/students/*/reset-password
         capacity: 10
         window: 1h
-      - path-pattern: /v1/admins/*/reset-password
+      - path-pattern: /v1/staff/*/reset-password
         capacity: 10
         window: 1h
       - path-pattern: /v1/students/bulk

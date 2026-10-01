@@ -15,6 +15,6 @@ package com.lumie.common.quota;
 public enum MetricType {
     STUDENTS,
     ACADEMIES,
-    ADMINS,
+    STAFF,
     OMR_MONTHLY
 }

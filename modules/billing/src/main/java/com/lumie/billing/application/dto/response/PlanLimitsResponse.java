@@ -15,7 +15,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record PlanLimitsResponse(
         @Schema(nullable = true, description = "학생 한도 (null = 무제한)") Integer maxStudents,
         @Schema(nullable = true, description = "학원 한도 (null = 무제한)") Integer maxAcademies,
-        @Schema(nullable = true, description = "관리자 한도 (null = 무제한)") Integer maxAdmins,
+        @Schema(nullable = true, description = "직원 한도 (null = 무제한)") Integer maxStaff,
         @Schema(nullable = true, description = "월 OMR 처리 한도 (null = 무제한)") Integer omrMonthlyQuota
 ) {
     public static PlanLimitsResponse from(PlanLimits vo) {
@@ -25,7 +25,7 @@ public record PlanLimitsResponse(
         return new PlanLimitsResponse(
                 vo.maxStudents(),
                 vo.maxAcademies(),
-                vo.maxAdmins(),
+                vo.maxStaff(),
                 vo.omrMonthlyQuota()
         );
     }

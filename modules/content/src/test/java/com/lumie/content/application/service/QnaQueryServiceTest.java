@@ -61,7 +61,7 @@ class QnaQueryServiceTest {
     @DisplayName("상세에서 삭제된 학생 작성자와 삭제된 직원 댓글 작성자를 구분한다")
     void getQna_deletedStudentAndStaffNames() {
         QnaBoard qna = qna(1L, 100L);
-        qna.addComment(QnaComment.createByAdmin(qna, 900L, "답변"));
+        qna.addComment(QnaComment.createByStaff(qna, 900L, "답변"));
         given(qnaBoardRepository.findByIdWithComments(1L)).willReturn(Optional.of(qna));
         given(studentService.getStudentsByUserIds("test-tenant", List.of(100L)))
                 .willReturn(emptyStudents());
@@ -70,7 +70,7 @@ class QnaQueryServiceTest {
         var response = queryService.getQna(1L);
 
         assertThat(response.qnaUserName()).isEqualTo("삭제된 학생");
-        assertThat(response.comments().get(0).adminName()).isEqualTo("삭제된 직원");
+        assertThat(response.comments().get(0).staffName()).isEqualTo("삭제된 직원");
     }
 
     @Test

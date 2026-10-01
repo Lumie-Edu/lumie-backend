@@ -122,7 +122,7 @@ public class StaffCommandService {
         return StaffResponse.from(updated);
     }
 
-    @CacheEvict(value = CacheConfig.CACHE_ADMIN_PERMISSIONS, key = "#staffId")
+    @CacheEvict(value = CacheConfig.CACHE_STAFF_PERMISSIONS, key = "#staffId")
     public void setStaffPermissions(Long staffId, Map<String, AccessLevel> permissions) {
         Staff staff = staffRepository.findById(staffId)
                 .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(staffId)));
@@ -275,12 +275,12 @@ public class StaffCommandService {
     }
 
     private void checkStaffQuota(String tenantSlug) {
-        var result = billingService.checkQuota(tenantSlug, MetricType.ADMINS);
+        var result = billingService.checkQuota(tenantSlug, MetricType.STAFF);
         if (!result.allowed()) {
             throw new QuotaExceededException(
                 StaffErrorCode.QUOTA_EXCEEDED,
                 TenantContextHolder.getTenant(),
-                MetricType.ADMINS,
+                MetricType.STAFF,
                 result.currentUsage(),
                 result.limit()
             );

@@ -55,7 +55,7 @@ public class GeneralQueryTool implements Tool {
                         "properties", Map.of(
                                 "sql", Map.of(
                                         "type", "string",
-                                        "description", "SELECT SQL query to execute. Must be read-only. Available tables: students, admins, academies, announcements, exams, exam_results, qna_boards, qna_comments, textbooks, reviews, toggles. Students and admins reference public.users for login info."
+                                        "description", "SELECT SQL query to execute. Must be read-only. Available tables: students, staff, academies, announcements, exams, exam_results, qna_boards, qna_comments, textbooks, reviews, toggles. Students and staff reference public.users for login info."
                                 )
                         ),
                         "required", List.of("sql")

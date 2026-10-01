@@ -54,7 +54,7 @@ public class Plan extends BaseEntity {
 
     /** NULL means unlimited. */
     @Column(name = "max_admins")
-    private Integer maxAdmins;
+    private Integer maxStaff;
 
     /** NULL means unlimited. */
     @Column(name = "omr_monthly_quota")
@@ -80,7 +80,7 @@ public class Plan extends BaseEntity {
 
     @Builder
     private Plan(String id, String name, String description, Money monthlyPrice, Money yearlyPrice,
-                 Integer maxStudents, Integer maxAcademies, Integer maxAdmins, Integer omrMonthlyQuota,
+                 Integer maxStudents, Integer maxAcademies, Integer maxStaff, Integer omrMonthlyQuota,
                  boolean advancedAnalytics, boolean prioritySupport,
                  boolean apiAccess, boolean whiteLabeling, int displayOrder) {
         this.id = id;
@@ -90,7 +90,7 @@ public class Plan extends BaseEntity {
         this.yearlyPrice = yearlyPrice;
         this.maxStudents = maxStudents;
         this.maxAcademies = maxAcademies;
-        this.maxAdmins = maxAdmins;
+        this.maxStaff = maxStaff;
         this.omrMonthlyQuota = omrMonthlyQuota;
         this.advancedAnalytics = advancedAnalytics;
         this.prioritySupport = prioritySupport;
@@ -106,14 +106,14 @@ public class Plan extends BaseEntity {
         return PlanLimits.builder()
                 .maxStudents(maxStudents)
                 .maxAcademies(maxAcademies)
-                .maxAdmins(maxAdmins)
+                .maxStaff(maxStaff)
                 .omrMonthlyQuota(omrMonthlyQuota)
                 .build();
     }
 
     /** True when this plan has no cap on the given dimension (NULL = unlimited). */
     public boolean isUnlimited() {
-        return maxStudents == null && maxAcademies == null && maxAdmins == null && omrMonthlyQuota == null;
+        return maxStudents == null && maxAcademies == null && maxStaff == null && omrMonthlyQuota == null;
     }
 
     public PlanFeatures toFeatures() {
