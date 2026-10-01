@@ -73,6 +73,11 @@ class QnaQueryServiceTest {
         assertThat(response.comments().get(0).adminName()).isEqualTo("삭제된 직원");
     }
 
+    @Test
+    void qnaAccessWithoutRoleIsDenied() {
+        assertThat(queryService.canUserViewQna(1L, null, 100L)).isFalse();
+    }
+
     private static QnaBoard qna(Long id, Long userId) {
         QnaBoard qna = QnaBoard.create(userId, "질문", "내용");
         ReflectionTestUtils.setField(qna, "id", id);

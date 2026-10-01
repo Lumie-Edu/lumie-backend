@@ -43,17 +43,7 @@ public final class UserContextHolder {
         return CURRENT_USER_NAME.get();
     }
 
-    /**
-     * Lenient String-accepting setter for session-filter / HTTP-header paths
-     * that hand off a raw role claim. Normalizes via {@link Role#fromString}
-     * (handles legacy aliases ADMIN → INSTRUCTOR, DEVELOPER → MANAGER) so
-     * every read path sees a canonical enum.
-     */
-    public static void setUserRole(String role) {
-        CURRENT_USER_ROLE.set(role == null ? null : Role.fromString(role));
-    }
-
-    /** Type-safe setter for callers that already hold a {@link Role}. */
+    /** Store the canonical role from the authenticated session. */
     public static void setUserRole(Role role) {
         CURRENT_USER_ROLE.set(role);
     }

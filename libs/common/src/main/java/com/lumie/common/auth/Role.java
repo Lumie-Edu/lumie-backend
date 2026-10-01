@@ -1,7 +1,5 @@
 package com.lumie.common.auth;
 
-import java.util.Locale;
-
 /**
  * User role with hierarchical authority.
  *
@@ -45,24 +43,4 @@ public enum Role {
         return this.level < target.level;
     }
 
-    /**
-     * Lenient parse from string. Returns {@link #STUDENT} for null / blank /
-     * unknown values (preserving the legacy behavior). Honors the historical
-     * aliases {@code ADMIN -> INSTRUCTOR} and {@code DEVELOPER -> MANAGER}.
-     */
-    public static Role fromString(String value) {
-        if (value == null || value.isBlank()) {
-            return STUDENT;
-        }
-        String normalized = value.toUpperCase(Locale.ROOT);
-        try {
-            return Role.valueOf(normalized);
-        } catch (IllegalArgumentException e) {
-            return switch (normalized) {
-                case "ADMIN" -> INSTRUCTOR;
-                case "DEVELOPER" -> MANAGER;
-                default -> STUDENT;
-            };
-        }
-    }
 }

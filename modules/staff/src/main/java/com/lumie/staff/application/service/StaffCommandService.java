@@ -233,7 +233,7 @@ public class StaffCommandService {
                     "Cannot " + action + " yourself");
         }
         Role actor = UserContextHolder.getUserRole();
-        Role targetRole = Role.fromString(target.getRole());
+        Role targetRole = Role.valueOf(target.getRole());
         if (!actor.canManage(targetRole)) {
             throw new BusinessException(CommonErrorCode.FORBIDDEN,
                     actor + " cannot " + action + " " + targetRole);

@@ -134,7 +134,7 @@ public class AnnouncementQueryService {
         List<Long> classIds = classTargetRepository.findByAnnouncementId(id).stream()
                 .map(AnnouncementClassTarget::getClassId)
                 .toList();
-        Role parsedRole = role == null ? null : Role.fromString(role);
+        Role parsedRole = role == null ? null : Role.valueOf(role);
         return isVisibleToUser(classIds, parsedRole, userId);
     }
 

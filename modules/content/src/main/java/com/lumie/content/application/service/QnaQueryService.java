@@ -107,8 +107,11 @@ public class QnaQueryService {
     }
 
     public boolean canUserViewQna(Long qnaId, String role, Long userId) {
+        if (role == null) {
+            return false;
+        }
         return qnaBoardRepository.findById(qnaId)
-                .map(qna -> Role.fromString(role) != Role.STUDENT || qna.getQnaUserId().equals(userId))
+                .map(qna -> Role.valueOf(role) != Role.STUDENT || qna.getQnaUserId().equals(userId))
                 .orElse(false);
     }
 

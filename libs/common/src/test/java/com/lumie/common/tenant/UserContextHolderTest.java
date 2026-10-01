@@ -36,14 +36,6 @@ class UserContextHolderTest {
     }
 
     @Test
-    void setAndGetUserRole_normalizesLegacyAlias() {
-        // "ADMIN" is a legacy alias that fromString maps to INSTRUCTOR.
-        UserContextHolder.setUserRole("ADMIN");
-
-        assertEquals(Role.INSTRUCTOR, UserContextHolder.getUserRole());
-    }
-
-    @Test
     void setUserRole_acceptsEnumDirectly() {
         UserContextHolder.setUserRole(Role.OWNER);
 
