@@ -145,7 +145,8 @@ public class AssignmentQueryService {
                     if (submission == null && studentId != null) {
                         submission = legacySubmissionsByStudent.get(studentId);
                     }
-                    var result = submission == null ? null : results.get(submission.getExamResultId());
+                    var result = submission == null || submission.getExamResultId() == null
+                            ? null : results.get(submission.getExamResultId());
                     return new AssignmentSubmissionStatusResponse(
                             recipient.getId(),
                             studentId,
@@ -281,7 +282,7 @@ public class AssignmentQueryService {
         }
 
         List<Assignment> assignments = assignmentRepository
-                .findByIdIn(visibleAssignmentIds)
+                .findByIdIn(List.copyOf(visibleAssignmentIds))
                 .stream()
                 .filter(assignment -> assignment.getSubmissionMode() == SubmissionMode.EXAM_MANUAL)
                 .sorted(Comparator
@@ -436,7 +437,8 @@ public class AssignmentQueryService {
     }
 
     private SubmissionResponse studentSubmissionResponse(Assignment assignment, AssignmentSubmission submission) {
-        var result = currentResults(assignment.getId()).get(submission.getExamResultId());
+        var result = submission.getExamResultId() == null ? null
+                : currentResults(assignment.getId()).get(submission.getExamResultId());
         var current = result == null || !java.util.Objects.equals(submission.getStudentId(), result.studentId())
                 ? SubmissionResponse.from(submission)
                 : SubmissionResponse.from(submission, result);

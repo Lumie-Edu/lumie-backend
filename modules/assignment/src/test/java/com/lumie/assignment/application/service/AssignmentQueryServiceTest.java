@@ -271,7 +271,6 @@ class AssignmentQueryServiceTest {
         given(assignmentRepository.findById(1L)).willReturn(Optional.of(assignment));
         given(submissionRepository.findFirstByAssignmentIdAndStudentId(1L, 42L))
                 .willReturn(Optional.of(submission));
-        given(examService.getResultsForAssignment("test-tenant", 10L)).willReturn(java.util.Map.of());
 
         try {
             var detail = queryService.getCurrentStudentAssignment(1L);

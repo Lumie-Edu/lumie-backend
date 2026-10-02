@@ -68,6 +68,10 @@
           "announcementTitle" : {
             "type" : "string"
           },
+          "audienceScope" : {
+            "enum" : [ "ALL", "TARGETED", "LEGACY_UNSPECIFIED" ],
+            "type" : "string"
+          },
           "authorId" : {
             "format" : "int64",
             "nullable" : true,
@@ -104,7 +108,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "announcementContent", "announcementTitle", "authorId", "authorName", "classIds", "createdAt", "id", "isItAssetAnnouncement", "isItImportantAnnouncement", "updatedAt" ],
+        "required" : [ "announcementContent", "announcementTitle", "audienceScope", "authorId", "authorName", "classIds", "createdAt", "id", "isItAssetAnnouncement", "isItImportantAnnouncement", "updatedAt" ],
         "type" : "object"
       },
       "ApplyOmrSubmissionRequest" : {
@@ -219,6 +223,9 @@
             "nullable" : true,
             "type" : "integer"
           },
+          "rosterAccuracy" : {
+            "type" : "string"
+          },
           "showCorrectAnswers" : {
             "type" : "boolean"
           },
@@ -261,12 +268,13 @@
             "type" : "string"
           }
         },
-        "required" : [ "attachments", "classId", "createdAt", "dueDate", "evaluationMode", "examName", "id", "linkedExamId", "maxScore", "showCorrectAnswers", "showGrade", "showPassFail", "showQuestionResults", "showScore", "status", "submissionMode", "targetClassIds", "targetStudentIds", "updatedAt" ],
+        "required" : [ "attachments", "classId", "createdAt", "dueDate", "evaluationMode", "examName", "id", "linkedExamId", "maxScore", "rosterAccuracy", "showCorrectAnswers", "showGrade", "showPassFail", "showQuestionResults", "showScore", "status", "submissionMode", "targetClassIds", "targetStudentIds", "updatedAt" ],
         "type" : "object"
       },
       "AssignmentStudentGradeResponse" : {
         "properties" : {
           "examCategory" : {
+            "nullable" : true,
             "type" : "string"
           },
           "grade" : {
@@ -295,6 +303,10 @@
             "nullable" : true,
             "type" : "integer"
           },
+          "recipientId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
           "resultId" : {
             "format" : "int64",
             "nullable" : true,
@@ -307,6 +319,7 @@
           },
           "studentId" : {
             "format" : "int64",
+            "nullable" : true,
             "type" : "integer"
           },
           "studentName" : {
@@ -322,7 +335,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "examCategory", "grade", "isPassed", "isRegistered", "percentile", "phoneNumber", "rank", "resultId", "score", "studentId", "studentName", "submissionStatus", "submittedAt" ],
+        "required" : [ "examCategory", "grade", "isPassed", "isRegistered", "percentile", "phoneNumber", "rank", "recipientId", "resultId", "score", "studentId", "studentName", "submissionStatus", "submittedAt" ],
         "type" : "object"
       },
       "AssignmentSubmissionResultResponse" : {
@@ -357,12 +370,17 @@
       },
       "AssignmentSubmissionStatusResponse" : {
         "properties" : {
+          "recipientId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
           "status" : {
             "enum" : [ "PENDING", "SUBMITTED", "GRADED", "RETURNED" ],
             "type" : "string"
           },
           "studentId" : {
             "format" : "int64",
+            "nullable" : true,
             "type" : "integer"
           },
           "studentName" : {
@@ -376,7 +394,7 @@
             "nullable" : true
           }
         },
-        "required" : [ "status", "studentId", "studentName", "submission" ],
+        "required" : [ "recipientId", "status", "studentId", "studentName", "submission" ],
         "type" : "object"
       },
       "AttractiveDistractor" : {
@@ -952,6 +970,10 @@
             "type" : "string"
           },
           "announcementTitle" : {
+            "type" : "string"
+          },
+          "audienceScope" : {
+            "enum" : [ "ALL", "TARGETED", "LEGACY_UNSPECIFIED" ],
             "type" : "string"
           },
           "authorId" : {
@@ -5775,6 +5797,10 @@
               "type" : "string"
             },
             "type" : "array"
+          },
+          "audienceScope" : {
+            "enum" : [ "ALL", "TARGETED", "LEGACY_UNSPECIFIED" ],
+            "type" : "string"
           },
           "classIds" : {
             "items" : {
