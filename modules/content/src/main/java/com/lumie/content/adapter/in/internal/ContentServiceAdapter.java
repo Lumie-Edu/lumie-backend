@@ -6,6 +6,7 @@ import com.lumie.content.application.service.AnnouncementCommandService;
 import com.lumie.content.application.service.AnnouncementQueryService;
 import com.lumie.content.application.service.QnaQueryService;
 import com.lumie.content.api.ContentService;
+import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,8 @@ public class ContentServiceAdapter implements ContentService {
     public String createAnnouncement(Long authorId, String title, String content,
                                      boolean isImportant, boolean isAsset) {
         CreateAnnouncementRequest request = new CreateAnnouncementRequest(
-                authorId, title, content, isAsset, isImportant, null, null);
+                authorId, title, content, isAsset, isImportant, null, null,
+                AnnouncementAudienceScope.ALL);
         AnnouncementResponse response = announcementCommandService.createAnnouncement(request);
         return "Announcement created successfully: " + response.announcementTitle();
     }

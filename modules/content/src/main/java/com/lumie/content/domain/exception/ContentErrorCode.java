@@ -22,7 +22,8 @@ public enum ContentErrorCode implements ErrorCode {
 
     // 400 Bad Request
     INVALID_DATE_RANGE("CONTENT_403", "Invalid date range", 400),
-    INVALID_CLASS_TARGET("CONTENT_405", "Invalid class target", 400);
+    INVALID_CLASS_TARGET("CONTENT_405", "Invalid class target", 400),
+    INVALID_ANNOUNCEMENT_AUDIENCE("CONTENT_406", "Invalid announcement audience", 400);
 
     private final String code;
     private final String message;

@@ -1,6 +1,7 @@
 package com.lumie.lecture.application.service;
 
 import com.lumie.common.auth.CurrentStudentResolver;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.lecture.domain.vo.LectureTargets;
 import com.lumie.lecture.application.dto.response.LectureResponse;
 import com.lumie.lecture.application.dto.response.WatchResponse;
@@ -41,6 +42,7 @@ public class LectureQueryService {
     public Page<LectureResponse> findAll(Long classId, Long teacherId,
                                           LocalDate startDate, LocalDate endDate,
                                           String search, Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         LectureSearchCriteria criteria = new LectureSearchCriteria(
                 classId, teacherId,
                 startDate, endDate, search
@@ -50,14 +52,12 @@ public class LectureQueryService {
         Map<Long, List<Long>> classIdsByLecture = loadClassIds(lectures.getContent());
         return lectures.map(lecture -> LectureResponse.from(
                 lecture,
-                LectureTargets.primaryFirst(
-                        classIdsByLecture.getOrDefault(lecture.getId(), List.of()),
-                        lecture.getClassId()
-                )
+                LectureTargets.canonical(classIdsByLecture.getOrDefault(lecture.getId(), List.of()))
         ));
     }
 
     public LectureResponse findById(Long id) {
+        AuthorizationGuard.requireStaff();
         Lecture lecture = lectureRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(LectureErrorCode.LECTURE_NOT_FOUND));
         return LectureResponse.from(lecture, classIdsForResponse(lecture));
@@ -132,7 +132,7 @@ public class LectureQueryService {
         List<Long> classIds = targetRepository.findByLectureIdOrderByClassIdAsc(lecture.getId()).stream()
                 .map(target -> target.getClassId())
                 .toList();
-        return LectureTargets.primaryFirst(classIds, lecture.getClassId());
+        return LectureTargets.canonical(classIds);
     }
 
 

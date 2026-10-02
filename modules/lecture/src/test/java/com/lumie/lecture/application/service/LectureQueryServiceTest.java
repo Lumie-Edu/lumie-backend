@@ -1,6 +1,7 @@
 package com.lumie.lecture.application.service;
 
 import com.lumie.classroom.api.ClassService;
+import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.UserContextHolder;
@@ -85,6 +86,28 @@ class LectureQueryServiceTest {
         assertThatThrownBy(() -> queryService.getWatchUrls(1L, 4L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(LectureErrorCode.LECTURE_NOT_VISIBLE_TO_CLASS));
+    }
+
+    @Test
+    void getWatchUrls_doesNotUseCompatibilityClassAfterLastTargetIsRemoved() throws Exception {
+        Lecture lecture = studentLecture(1L);
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(100L)))
+                .willReturn(studentList(50L));
+        given(classService.isStudentEnrolledInClass("test-tenant", 50L, 2L)).willReturn(true);
+        given(lectureRepository.findById(1L)).willReturn(Optional.of(lecture));
+        given(targetRepository.findByLectureIdOrderByClassIdAsc(1L)).willReturn(List.of());
+
+        assertThatThrownBy(() -> queryService.getWatchUrls(1L, 2L))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(LectureErrorCode.LECTURE_NOT_VISIBLE_TO_CLASS));
+    }
+
+    @Test
+    void studentCannotReadStaffLectureDetailToBypassTargetVisibility() {
+        UserContextHolder.setUserRole(Role.STUDENT);
+
+        assertThatThrownBy(() -> queryService.findById(1L))
+                .isInstanceOf(BusinessException.class);
     }
 
     @Test

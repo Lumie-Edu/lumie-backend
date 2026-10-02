@@ -47,10 +47,7 @@ public class LectureServiceAdapter implements LectureService {
                 lectures.getContent().stream()
                         .map(lecture -> toData(
                                 lecture,
-                                LectureTargets.primaryFirst(
-                                        classIdsByLecture.getOrDefault(lecture.getId(), List.of()),
-                                        lecture.getClassId()
-                                )
+                                LectureTargets.canonical(classIdsByLecture.getOrDefault(lecture.getId(), List.of()))
                         ))
                         .toList(),
                 lectures.getTotalElements(),
@@ -66,7 +63,7 @@ public class LectureServiceAdapter implements LectureService {
     private LectureData toData(Lecture lecture, List<Long> classIds) {
         return new LectureData(
                 lecture.getId(),
-                classIds.isEmpty() ? lecture.getClassId() : classIds.get(0),
+                classIds.isEmpty() ? null : classIds.get(0),
                 classIds,
                 lecture.getTeacherId(),
                 lecture.getTitle(),
@@ -81,7 +78,7 @@ public class LectureServiceAdapter implements LectureService {
         List<Long> classIds = targetRepository.findByLectureIdOrderByClassIdAsc(lecture.getId()).stream()
                 .map(LectureClassTarget::getClassId)
                 .toList();
-        return LectureTargets.primaryFirst(classIds, lecture.getClassId());
+        return LectureTargets.canonical(classIds);
     }
 
     private Map<Long, List<Long>> loadClassIds(List<Lecture> lectures) {

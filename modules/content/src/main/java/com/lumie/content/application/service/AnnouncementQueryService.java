@@ -9,6 +9,7 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.domain.entity.Announcement;
 import com.lumie.content.domain.entity.AnnouncementClassTarget;
+import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import com.lumie.staff.api.StaffService;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
@@ -64,8 +65,8 @@ public class AnnouncementQueryService {
         List<Announcement> announcements = visibleClassIds == null
                 ? announcementRepository.findByIsItImportantAnnouncementTrue()
                 : visibleClassIds.isEmpty()
-                        ? announcementRepository.findImportantVisibleWithoutClassTargets()
-                        : announcementRepository.findImportantVisibleByClassTargets(visibleClassIds);
+                        ? announcementRepository.findImportantAcademyWide()
+                        : announcementRepository.findImportantVisibleToClasses(visibleClassIds);
         Map<Long, String> authorNames = resolveAuthorNames(announcements);
         Map<Long, List<Long>> classIdsByAnnouncementId = resolveClassTargets(announcements);
         return announcements.stream()
@@ -87,7 +88,7 @@ public class AnnouncementQueryService {
         List<Long> classIds = classTargetRepository.findByAnnouncementId(id).stream()
                 .map(AnnouncementClassTarget::getClassId)
                 .toList();
-        ensureVisibleToCurrentUser(classIds);
+        ensureVisibleToCurrentUser(announcement.getAudienceScope(), classIds);
 
         if (isStudentUser()) {
             Long userId = UserContextHolder.getRequiredUserId();
@@ -127,7 +128,8 @@ public class AnnouncementQueryService {
     }
 
     public boolean canUserViewAnnouncement(Long id, String role, Long userId) {
-        if (!announcementRepository.existsById(id)) {
+        Announcement announcement = announcementRepository.findById(id).orElse(null);
+        if (announcement == null) {
             return false;
         }
 
@@ -135,7 +137,7 @@ public class AnnouncementQueryService {
                 .map(AnnouncementClassTarget::getClassId)
                 .toList();
         Role parsedRole = role == null ? null : Role.valueOf(role);
-        return isVisibleToUser(classIds, parsedRole, userId);
+        return isVisibleToUser(announcement.getAudienceScope(), classIds, parsedRole, userId);
     }
 
     private List<Long> responseClassIds(List<Long> classIds) {
@@ -154,33 +156,40 @@ public class AnnouncementQueryService {
 
         if (visibleClassIds.isEmpty()) {
             return isAsset != null
-                    ? announcementRepository.findVisibleWithoutClassTargetsByIsAsset(isAsset, pageable)
-                    : announcementRepository.findVisibleWithoutClassTargets(pageable);
+                    ? announcementRepository.findAcademyWideByIsAsset(isAsset, pageable)
+                    : announcementRepository.findAcademyWide(pageable);
         }
 
         return isAsset != null
-                ? announcementRepository.findVisibleByClassTargetsAndIsAsset(isAsset, visibleClassIds, pageable)
-                : announcementRepository.findVisibleByClassTargets(visibleClassIds, pageable);
+                ? announcementRepository.findVisibleToClassesByIsAsset(isAsset, visibleClassIds, pageable)
+                : announcementRepository.findVisibleToClasses(visibleClassIds, pageable);
     }
 
-    private void ensureVisibleToCurrentUser(List<Long> classIds) {
-        if (isVisibleToCurrentUser(classIds)) {
+    private void ensureVisibleToCurrentUser(AnnouncementAudienceScope scope, List<Long> classIds) {
+        if (isVisibleToCurrentUser(scope, classIds)) {
             return;
         }
 
         throw new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND);
     }
 
-    private boolean isVisibleToCurrentUser(List<Long> classIds) {
-        return isVisibleToUser(classIds, UserContextHolder.getUserRole(), UserContextHolder.getUserId());
+    private boolean isVisibleToCurrentUser(AnnouncementAudienceScope scope, List<Long> classIds) {
+        return isVisibleToUser(scope, classIds, UserContextHolder.getUserRole(), UserContextHolder.getUserId());
     }
 
-    private boolean isVisibleToUser(List<Long> classIds, Role role, Long userId) {
+    private boolean isVisibleToUser(AnnouncementAudienceScope scope, List<Long> classIds,
+                                    Role role, Long userId) {
         if (role == null) {
             return false;
         }
-        if (role != Role.STUDENT || classIds.isEmpty()) {
+        if (role != Role.STUDENT) {
             return true;
+        }
+        if (scope == AnnouncementAudienceScope.ALL) {
+            return true;
+        }
+        if (scope != AnnouncementAudienceScope.TARGETED || classIds.isEmpty()) {
+            return false;
         }
         if (userId == null) {
             return false;
