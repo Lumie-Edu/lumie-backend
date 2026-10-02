@@ -104,6 +104,36 @@ class AssignmentCommandServiceTest {
         }
 
         @Test
+        @DisplayName("반에 등록되지 않은 학생도 직접 대상 과제를 받을 수 있다")
+        void createAssignment_directStudentWithoutClass() {
+            CreateAssignmentRequest request = new CreateAssignmentRequest(
+                    null, futureDueDate(), 100, null, null,
+                    "EXAM_MANUAL", "EXAM_AUTO", examRequest(),
+                    List.of(), List.of(42L),
+                    null, null, null, null, null);
+
+            given(studentService.getStudentsByIds("test-tenant", List.of(42L)))
+                    .willReturn(new StudentService.StudentListData(
+                            List.of(new StudentService.StudentData(
+                                    42L, 142L, "학생", null, true, null, null)),
+                            1, 0, 1));
+            given(examService.createExamForAssignment(any(), any())).willReturn(77L);
+            given(assignmentRepository.save(any(Assignment.class))).willAnswer(inv -> {
+                Assignment entity = inv.getArgument(0);
+                ReflectionTestUtils.setField(entity, "id", 1L);
+                return entity;
+            });
+            given(targetRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
+
+            AssignmentResponse response = commandService.createAssignment(request);
+
+            assertThat(response.classId()).isNull();
+            assertThat(response.targetStudentIds()).containsExactly(42L);
+            verify(classService, never()).getEnrolledClassesForStudents(any(), any());
+            verify(recipientService).snapshotRecipients("test-tenant", 1L, List.of(), List.of(42L));
+        }
+
+        @Test
         @DisplayName("EXAM_MANUAL 생성은 inline exam payload를 우선해 전용 시험을 만든다")
         void createAssignment_examManualCreatesDedicatedExam() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
@@ -344,6 +374,7 @@ class AssignmentCommandServiceTest {
                     42L, null, null, Map.of("1", "2", "2", "3"));
 
             given(assignmentRepository.findById(1L)).willReturn(Optional.of(assignment));
+            given(recipientService.eligibleRecipientId(1L, 42L)).willReturn(Optional.of(100L));
             given(submissionRepository.existsByAssignmentIdAndStudentId(1L, 42L)).willReturn(false);
             given(examService.gradeManualAnswers(any(), eq(10L), eq(42L), eq(Map.of("1", "2", "2", "3"))))
                     .willReturn(manualGradeResult());
@@ -367,6 +398,7 @@ class AssignmentCommandServiceTest {
         void createSubmission_duplicate_throwsException() throws Exception {
             Assignment assignment = buildAssignment(1L);
             given(assignmentRepository.findById(1L)).willReturn(Optional.of(assignment));
+            given(recipientService.eligibleRecipientId(1L, 42L)).willReturn(Optional.of(100L));
             given(submissionRepository.existsByAssignmentIdAndStudentId(1L, 42L)).willReturn(true);
 
             assertThatThrownBy(() -> commandService.createSubmission(1L,
@@ -393,7 +425,7 @@ class AssignmentCommandServiceTest {
                             1,
                             0,
                             1));
-            given(recipientService.isRecipient(1L, 42L)).willReturn(true);
+            given(recipientService.eligibleRecipientId(1L, 42L)).willReturn(Optional.of(100L));
             given(submissionRepository.findFirstByAssignmentIdAndStudentId(1L, 42L))
                     .willReturn(Optional.empty());
             given(examService.gradeManualAnswers(any(), eq(10L), eq(42L), eq(Map.of("1", "2", "2", "3"))))
@@ -432,7 +464,7 @@ class AssignmentCommandServiceTest {
                             1,
                             0,
                             1));
-            given(recipientService.isRecipient(1L, 42L)).willReturn(true);
+            given(recipientService.eligibleRecipientId(1L, 42L)).willReturn(Optional.of(100L));
             given(submissionRepository.findFirstByAssignmentIdAndStudentId(1L, 42L))
                     .willReturn(Optional.of(existing));
 

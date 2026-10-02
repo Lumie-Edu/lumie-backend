@@ -28,6 +28,9 @@ public interface AssignmentSubmissionRepository extends JpaRepository<Assignment
 
     boolean existsByAssignmentIdAndStudentId(Long assignmentId, Long studentId);
 
+    @Query("select distinct submission.assignmentId from AssignmentSubmission submission where submission.studentId = :studentId")
+    List<Long> findAssignmentIdsByStudentId(@Param("studentId") Long studentId);
+
     @Query("SELECT s.status, COUNT(s) FROM AssignmentSubmission s GROUP BY s.status")
     List<Object[]> countGroupedByStatus();
 

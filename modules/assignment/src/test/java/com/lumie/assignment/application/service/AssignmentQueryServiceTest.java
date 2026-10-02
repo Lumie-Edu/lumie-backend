@@ -3,13 +3,15 @@ package com.lumie.assignment.application.service;
 import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.dto.response.AssignmentSubmissionStatusResponse;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
+import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort;
+import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort.Targets;
 import com.lumie.assignment.domain.entity.Assignment;
+import com.lumie.assignment.domain.entity.AssignmentRecipient;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
 import com.lumie.assignment.domain.repository.AssignmentRecipientRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
-import com.lumie.assignment.domain.repository.AssignmentTargetRepository;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.EvaluationMode;
@@ -49,8 +51,9 @@ class AssignmentQueryServiceTest {
 
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private AssignmentSubmissionRepository submissionRepository;
-    @Mock private AssignmentTargetRepository targetRepository;
+    @Mock private AssignmentAudienceReadPort audienceReadPort;
     @Mock private AssignmentRecipientRepository recipientRepository;
+    @Mock private AssignmentRecipientService recipientService;
     @Mock private ClassService classService;
     @Mock private StudentService studentService;
     @Mock private ExamService examService;
@@ -62,6 +65,8 @@ class AssignmentQueryServiceTest {
     void getAssignment_success() throws Exception {
         Assignment entity = buildAssignment(1L);
         given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
+        given(audienceReadPort.findByAssignmentId(1L))
+                .willReturn(new Targets(List.of(1L), List.of()));
 
         AssignmentResponse response = queryService.getAssignment(1L);
 
@@ -87,6 +92,8 @@ class AssignmentQueryServiceTest {
         Page<Assignment> page = new PageImpl<>(List.of(entity), pageable, 1);
 
         given(assignmentRepository.findAll(any(AssignmentSearchCriteria.class), eq(pageable))).willReturn(page);
+        given(audienceReadPort.findByAssignmentIds(List.of(1L)))
+                .willReturn(java.util.Map.of(1L, new Targets(List.of(1L), List.of())));
 
         Page<AssignmentResponse> response = queryService.listAssignments(1L, null, pageable);
 
@@ -119,6 +126,8 @@ class AssignmentQueryServiceTest {
         Page<Assignment> page = new PageImpl<>(List.of(entity), pageable, 1);
 
         given(assignmentRepository.findAll(any(AssignmentSearchCriteria.class), eq(pageable))).willReturn(page);
+        given(audienceReadPort.findByAssignmentIds(List.of(1L)))
+                .willReturn(java.util.Map.of(1L, new Targets(List.of(1L), List.of())));
 
         Page<AssignmentResponse> response = queryService.listAssignments(1L, null, pageable);
 
@@ -134,6 +143,8 @@ class AssignmentQueryServiceTest {
         Page<Assignment> page = new PageImpl<>(List.of(entity), pageable, 1);
 
         given(assignmentRepository.findByTargetClassId(1L, pageable)).willReturn(page);
+        given(audienceReadPort.findByAssignmentIds(List.of(1L)))
+                .willReturn(java.util.Map.of(1L, new Targets(List.of(1L), List.of())));
 
         Page<AssignmentResponse> response = queryService.getAssignmentsByClass(1L, pageable);
 
@@ -173,7 +184,9 @@ class AssignmentQueryServiceTest {
         setField(submission, "id", 10L);
 
         given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
-        given(recipientRepository.findStudentIdsByAssignmentId(1L)).willReturn(List.of(42L));
+        AssignmentRecipient recipient = AssignmentRecipient.create(1L, 42L);
+        setField(recipient, "id", 100L);
+        given(recipientRepository.findByAssignmentId(1L)).willReturn(List.of(recipient));
         given(submissionRepository.findAllByAssignmentId(1L)).willReturn(List.of(submission));
         given(studentService.getStudentsByIds("test-tenant", List.of(42L)))
                 .willReturn(new StudentService.StudentListData(
@@ -230,7 +243,7 @@ class AssignmentQueryServiceTest {
                         1,
                         0,
                         1));
-        given(recipientRepository.findAssignmentIdsByStudentId(42L)).willReturn(List.of(1L, 2L));
+        given(recipientService.findEligibleAssignmentIds(42L)).willReturn(List.of(1L, 2L));
         given(assignmentRepository.findByIdIn(List.of(1L, 2L))).willReturn(List.of(activeAssignment, closedAssignment));
         given(examService.getExamForAssignment(any(), eq(10L))).willReturn(Optional.of(examData()));
 
@@ -239,6 +252,32 @@ class AssignmentQueryServiceTest {
 
             assertThat(response).extracting(AssignmentResponse::status)
                     .containsExactly(AssignmentStatus.ACTIVE, AssignmentStatus.CLOSED);
+        } finally {
+            UserContextHolder.clear();
+        }
+    }
+
+    @Test
+    @DisplayName("삭제된 반에만 속한 수신자는 기존 제출만 조회하고 다시 제출할 수 없다")
+    void getCurrentStudentAssignment_afterLastSourceRemovedIsReadOnly() throws Exception {
+        UserContextHolder.setUserId(7L);
+        Assignment assignment = buildAssignment(1L);
+        AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
+        submission.submit("기존 제출", List.of());
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(7L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(
+                                42L, 7L, "김루미", null, true, null, null)), 1, 0, 1));
+        given(assignmentRepository.findById(1L)).willReturn(Optional.of(assignment));
+        given(submissionRepository.findFirstByAssignmentIdAndStudentId(1L, 42L))
+                .willReturn(Optional.of(submission));
+        given(examService.getResultsForAssignment("test-tenant", 10L)).willReturn(java.util.Map.of());
+
+        try {
+            var detail = queryService.getCurrentStudentAssignment(1L);
+            assertThat(detail.canSubmit()).isFalse();
+            assertThat(detail.submission()).isNotNull();
+            assertThat(detail.submission().content()).isEqualTo("기존 제출");
         } finally {
             UserContextHolder.clear();
         }

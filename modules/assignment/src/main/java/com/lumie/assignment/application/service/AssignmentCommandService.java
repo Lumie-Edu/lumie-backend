@@ -72,7 +72,7 @@ public class AssignmentCommandService {
         requireExamManualWorkflow(submissionMode, evaluationMode, linkedExamId);
 
         Assignment entity = Assignment.create(
-            legacyClassId(slug, targetClassIds, targetStudentIds),
+            legacyClassId(targetClassIds),
             request.dueDate(),
             request.maxScore(),
             request.attachments(),
@@ -90,11 +90,12 @@ public class AssignmentCommandService {
 
         Assignment saved = assignmentRepository.save(entity);
         List<AssignmentTarget> targets = replaceTargets(saved.getId(), targetClassIds, targetStudentIds);
+        targetRepository.flush();
         recipientService.snapshotRecipients(slug, saved.getId(), targetClassIds, targetStudentIds);
 
         log.info("Assignment created: {} targets(classes={}, students={})",
                 saved.getId(), targetClassIds.size(), targetStudentIds.size());
-        return AssignmentResponse.from(saved, targets, examName(slug, saved.getLinkedExamId()));
+        return AssignmentResponse.from(saved, targets, examName(slug, saved.getLinkedExamId()), "EXACT");
     }
 
     public AssignmentResponse updateAssignment(Long id, UpdateAssignmentRequest request) {
@@ -112,6 +113,11 @@ public class AssignmentCommandService {
         List<Long> targetStudentIds = request.targetStudentIds() != null
                 ? normalizeIds(request.targetStudentIds())
                 : targetIds(existingTargets, AssignmentTargetType.STUDENT);
+        if (targetUpdateRequested &&
+                (!Set.copyOf(targetClassIds).equals(Set.copyOf(targetIds(existingTargets, AssignmentTargetType.CLASS)))
+                        || !Set.copyOf(targetStudentIds).equals(Set.copyOf(targetIds(existingTargets, AssignmentTargetType.STUDENT))))) {
+            throw new BusinessException(AssignmentErrorCode.TARGET_IMMUTABLE);
+        }
         validateTargets(slug, targetClassIds, targetStudentIds);
 
         SubmissionMode submissionMode = request.submissionMode() != null
@@ -137,7 +143,7 @@ public class AssignmentCommandService {
 
         entity.updateInfo(dueDate, maxScore, attachments);
         entity.updateWorkflow(
-                legacyClassId(slug, targetClassIds, targetStudentIds),
+                legacyClassId(targetClassIds),
                 submissionMode,
                 evaluationMode,
                 true,
@@ -150,15 +156,11 @@ public class AssignmentCommandService {
         entity.closeIfOverdue(now);
 
         Assignment saved = assignmentRepository.save(entity);
-        List<AssignmentTarget> targets = targetUpdateRequested
-                ? replaceTargets(saved.getId(), targetClassIds, targetStudentIds)
-                : existingTargets;
-        if (targetUpdateRequested) {
-            recipientService.snapshotRecipients(slug, saved.getId(), targetClassIds, targetStudentIds);
-        }
+        List<AssignmentTarget> targets = existingTargets;
 
         log.info("Assignment updated: {}", saved.getId());
-        return AssignmentResponse.from(saved, targets, examName(slug, saved.getLinkedExamId()));
+        return AssignmentResponse.from(saved, targets, examName(slug, saved.getLinkedExamId()),
+                recipientService.rosterAccuracy(saved.getId()));
     }
 
     public void deleteAssignment(Long id) {
@@ -180,12 +182,16 @@ public class AssignmentCommandService {
             throw new BusinessException(AssignmentErrorCode.ASSIGNMENT_CLOSED);
         }
 
+        Long recipientId = recipientService.eligibleRecipientId(assignmentId, request.studentId())
+                .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_VISIBLE));
+
         if (submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, request.studentId())) {
             throw new BusinessException(AssignmentErrorCode.DUPLICATE_SUBMISSION,
                 "Student %d has already submitted for assignment %d".formatted(request.studentId(), assignmentId));
         }
 
-        AssignmentSubmission submission = AssignmentSubmission.create(assignmentId, request.studentId());
+        AssignmentSubmission submission = AssignmentSubmission.createForRecipient(
+                assignmentId, request.studentId(), recipientId);
         var result = examService.gradeManualAnswers(
                 TenantContextHolder.getRequiredTenant(),
                 assignment.getLinkedExamId(),
@@ -210,15 +216,15 @@ public class AssignmentCommandService {
         }
 
         Long studentId = currentStudentId();
-        if (!isTargetedToStudent(assignmentId, studentId)) {
-            throw new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_VISIBLE);
-        }
+        Long recipientId = recipientService.eligibleRecipientId(assignmentId, studentId)
+                .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_VISIBLE));
 
         if (submissionRepository.findFirstByAssignmentIdAndStudentId(assignmentId, studentId).isPresent()) {
             throw new BusinessException(AssignmentErrorCode.DUPLICATE_SUBMISSION,
                     "Student %d has already submitted for assignment %d".formatted(studentId, assignmentId));
         }
-        AssignmentSubmission submission = AssignmentSubmission.create(assignmentId, studentId);
+        AssignmentSubmission submission = AssignmentSubmission.createForRecipient(
+                assignmentId, studentId, recipientId);
 
         List<AssignmentQuestionResultResponse> questionResults = List.of();
         if (request.answers() == null || request.answers().isEmpty()) {
@@ -364,10 +370,6 @@ public class AssignmentCommandService {
         ));
     }
 
-    private boolean isTargetedToStudent(Long assignmentId, Long studentId) {
-        return recipientService.isRecipient(assignmentId, studentId);
-    }
-
     private Long currentStudentId() {
         return CurrentStudentResolver.requireStudentId(studentService, AssignmentErrorCode.STUDENT_NOT_FOUND);
     }
@@ -437,14 +439,8 @@ public class AssignmentCommandService {
                 .toList();
     }
 
-    private Long legacyClassId(String slug, List<Long> classIds, List<Long> studentIds) {
-        return classIds.stream()
-                .findFirst()
-                .orElseGet(() -> classService.getEnrolledClassesForStudents(slug, studentIds).stream()
-                        .findFirst()
-                        .map(ClassService.EnrolledClassData::classId)
-                        .orElseThrow(() -> new BusinessException(AssignmentErrorCode.CLASS_NOT_FOUND,
-                                "Individual assignment targets must have at least one enrolled class")));
+    private Long legacyClassId(List<Long> classIds) {
+        return classIds.isEmpty() ? null : classIds.get(0);
     }
 
     private Boolean defaultBoolean(Boolean value, boolean defaultValue) {

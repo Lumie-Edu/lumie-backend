@@ -1,10 +1,9 @@
 package com.lumie.assignment.domain.repository;
 
 import com.lumie.assignment.domain.entity.Assignment;
-import com.lumie.assignment.domain.entity.AssignmentTarget;
+import com.lumie.assignment.domain.entity.AssignmentClassTarget;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
-import com.lumie.assignment.domain.vo.AssignmentTargetType;
 import com.lumie.assignment.domain.vo.SubmissionMode;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -30,15 +29,11 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>,
             select distinct assignment
             from Assignment assignment
             where assignment.submissionMode = com.lumie.assignment.domain.vo.SubmissionMode.EXAM_MANUAL
-              and (
-                assignment.classId = :classId
-                or exists (
+              and exists (
                 select target.id
-                from AssignmentTarget target
+                from AssignmentClassTarget target
                 where target.assignmentId = assignment.id
-                  and target.targetType = com.lumie.assignment.domain.vo.AssignmentTargetType.CLASS
-                  and target.targetId = :classId
-                )
+                  and target.classId = :classId
               )
             """)
     Page<Assignment> findByTargetClassId(@Param("classId") Long classId, Pageable pageable);
@@ -48,12 +43,11 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>,
     @Query("""
             select distinct assignment
             from Assignment assignment
-            join AssignmentTarget target on target.assignmentId = assignment.id
+            join AssignmentClassTarget target on target.assignmentId = assignment.id
             where assignment.status = com.lumie.assignment.domain.vo.AssignmentStatus.ACTIVE
               and assignment.dueDate > :now
               and assignment.submissionMode = com.lumie.assignment.domain.vo.SubmissionMode.EXAM_MANUAL
-              and target.targetType = com.lumie.assignment.domain.vo.AssignmentTargetType.CLASS
-              and target.targetId = :classId
+              and target.classId = :classId
             """)
     List<Assignment> findActiveByTargetClassId(@Param("classId") Long classId, @Param("now") Instant now);
 
@@ -101,17 +95,13 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>,
             predicates.add(cb.equal(root.get("submissionMode"), SubmissionMode.EXAM_MANUAL));
             if (criteria.classId() != null) {
                 Subquery<Long> targetExists = query.subquery(Long.class);
-                Root<AssignmentTarget> target = targetExists.from(AssignmentTarget.class);
+                Root<AssignmentClassTarget> target = targetExists.from(AssignmentClassTarget.class);
                 targetExists.select(target.get("id"));
                 targetExists.where(
                         cb.equal(target.get("assignmentId"), root.get("id")),
-                        cb.equal(target.get("targetType"), AssignmentTargetType.CLASS),
-                        cb.equal(target.get("targetId"), criteria.classId())
+                        cb.equal(target.get("classId"), criteria.classId())
                 );
-                predicates.add(cb.or(
-                        cb.equal(root.get("classId"), criteria.classId()),
-                        cb.exists(targetExists)
-                ));
+                predicates.add(cb.exists(targetExists));
             }
             if (criteria.status() != null) {
                 if (criteria.status() == AssignmentStatus.ACTIVE) {

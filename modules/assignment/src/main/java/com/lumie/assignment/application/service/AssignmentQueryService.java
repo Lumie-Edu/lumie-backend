@@ -9,17 +9,17 @@ import com.lumie.assignment.application.dto.response.AssignmentStudentGradeRespo
 import com.lumie.assignment.application.dto.response.ExamAssignmentResponse;
 import com.lumie.assignment.application.dto.response.StudentAssignmentDetailResponse;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
+import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort;
+import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort.Targets;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
-import com.lumie.assignment.domain.entity.AssignmentTarget;
+import com.lumie.assignment.domain.entity.AssignmentRecipient;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
 import com.lumie.assignment.domain.repository.AssignmentRecipientRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
-import com.lumie.assignment.domain.repository.AssignmentTargetRepository;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
-import com.lumie.assignment.domain.vo.AssignmentTargetType;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.assignment.domain.vo.SubmissionMode;
@@ -51,8 +51,9 @@ public class AssignmentQueryService {
 
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
-    private final AssignmentTargetRepository targetRepository;
+    private final AssignmentAudienceReadPort audienceReadPort;
     private final AssignmentRecipientRepository recipientRepository;
+    private final AssignmentRecipientService recipientService;
     private final ClassService classService;
     private final StudentService studentService;
     private final ExamService examService;
@@ -63,7 +64,7 @@ public class AssignmentQueryService {
         Assignment assignment = assignmentRepository.findById(id)
             .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
                 "Assignment not found with id: %d".formatted(id)));
-        return toAssignmentResponse(assignment, targetRepository.findByAssignmentId(id));
+        return toAssignmentResponse(assignment, audienceReadPort.findByAssignmentId(id));
     }
 
     public Page<AssignmentResponse> listAssignments(Long classId, AssignmentStatus status,
@@ -71,23 +72,27 @@ public class AssignmentQueryService {
         Instant now = Instant.now();
         AssignmentSearchCriteria criteria = new AssignmentSearchCriteria(classId, status, now);
         Page<Assignment> page = assignmentRepository.findAll(criteria, pageable);
-        Map<Long, List<AssignmentTarget>> targetsByAssignment = targetsByAssignment(page.getContent());
+        Map<Long, Targets> targetsByAssignment = targetsByAssignment(page.getContent());
+        Set<Long> unverifiedIds = unverifiedRosterIds(page.getContent());
         return page.map(assignment -> assignmentResponse(
                 assignment,
-                targetsByAssignment.getOrDefault(assignment.getId(), List.of()),
+                targetsByAssignment.getOrDefault(assignment.getId(), emptyTargets()),
                 examName(assignment),
-                now));
+                now,
+                rosterAccuracy(assignment.getId(), unverifiedIds)));
     }
 
     public Page<AssignmentResponse> getAssignmentsByClass(Long classId, Pageable pageable) {
         Page<Assignment> page = assignmentRepository.findByTargetClassId(classId, pageable);
-        Map<Long, List<AssignmentTarget>> targetsByAssignment = targetsByAssignment(page.getContent());
+        Map<Long, Targets> targetsByAssignment = targetsByAssignment(page.getContent());
+        Set<Long> unverifiedIds = unverifiedRosterIds(page.getContent());
         Instant now = Instant.now();
         return page.map(assignment -> assignmentResponse(
                 assignment,
-                targetsByAssignment.getOrDefault(assignment.getId(), List.of()),
+                targetsByAssignment.getOrDefault(assignment.getId(), emptyTargets()),
                 examName(assignment),
-                now));
+                now,
+                rosterAccuracy(assignment.getId(), unverifiedIds)));
     }
 
     public Page<SubmissionResponse> getSubmissions(Long assignmentId, Pageable pageable) {
@@ -104,10 +109,19 @@ public class AssignmentQueryService {
                         "Assignment not found with id: %d".formatted(assignmentId)));
 
         String slug = TenantContextHolder.getRequiredTenant();
-        Set<Long> studentIds = new LinkedHashSet<>(recipientRepository.findStudentIdsByAssignmentId(assignmentId));
+        List<AssignmentRecipient> recipients = recipientRepository.findByAssignmentId(assignmentId);
+        Set<Long> studentIds = recipients.stream()
+                .map(AssignmentRecipient::getStudentId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        Map<Long, AssignmentSubmission> submissionsByStudent = submissionRepository.findAllByAssignmentId(assignmentId)
-                .stream()
+        List<AssignmentSubmission> submissions = submissionRepository.findAllByAssignmentId(assignmentId);
+        Map<Long, AssignmentSubmission> submissionsByRecipient = submissions.stream()
+                .filter(submission -> submission.getRecipientId() != null)
+                .collect(Collectors.toMap(AssignmentSubmission::getRecipientId,
+                        submission -> submission, (left, right) -> right));
+        Map<Long, AssignmentSubmission> legacySubmissionsByStudent = submissions.stream()
+                .filter(submission -> submission.getRecipientId() == null)
                 .filter(submission -> submission.getStudentId() != null)
                 .collect(Collectors.toMap(
                         AssignmentSubmission::getStudentId,
@@ -124,14 +138,23 @@ public class AssignmentQueryService {
                                 (left, right) -> left));
 
         var results = currentResults(assignmentId);
-        return studentIds.stream()
-                .map(studentId -> {
-                    AssignmentSubmission submission = submissionsByStudent.get(studentId);
+        return recipients.stream()
+                .map(recipient -> {
+                    Long studentId = recipient.getStudentId();
+                    AssignmentSubmission submission = submissionsByRecipient.get(recipient.getId());
+                    if (submission == null && studentId != null) {
+                        submission = legacySubmissionsByStudent.get(studentId);
+                    }
+                    var result = submission == null ? null : results.get(submission.getExamResultId());
                     return new AssignmentSubmissionStatusResponse(
+                            recipient.getId(),
                             studentId,
-                            studentNamesById.get(studentId),
+                            studentId != null && studentNamesById.containsKey(studentId)
+                                    ? studentNamesById.get(studentId) : "삭제된 학생",
                             submission != null ? submission.getStatus() : SubmissionStatus.PENDING,
-                            submission != null ? SubmissionResponse.from(submission, results.get(submission.getExamResultId())) : null);
+                            submission == null ? null : result == null
+                                    || !java.util.Objects.equals(submission.getStudentId(), result.studentId())
+                                    ? SubmissionResponse.from(submission) : SubmissionResponse.from(submission, result));
                 })
                 .toList();
     }
@@ -142,13 +165,18 @@ public class AssignmentQueryService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND));
         String slug = TenantContextHolder.getRequiredTenant();
-        List<Long> recipientIds = recipientRepository.findStudentIdsByAssignmentId(assignmentId);
-        if (recipientIds.isEmpty()) {
+        List<AssignmentRecipient> recipients = recipientRepository.findByAssignmentId(assignmentId);
+        if (recipients.isEmpty()) {
             return Page.empty(pageable);
         }
-        var students = studentService.getStudentsByIds(slug, recipientIds).students().stream()
+        List<Long> studentIds = recipients.stream().map(AssignmentRecipient::getStudentId)
+                .filter(java.util.Objects::nonNull).distinct().toList();
+        var students = (studentIds.isEmpty() ? List.<StudentService.StudentData>of()
+                : studentService.getStudentsByIds(slug, studentIds).students()).stream()
                 .collect(Collectors.toMap(StudentService.StudentData::id, student -> student));
-        var enrolledClasses = classService.getEnrolledClassesForStudents(slug, recipientIds);
+        var enrolledClasses = studentIds.isEmpty()
+                ? List.<ClassService.EnrolledClassData>of()
+                : classService.getEnrolledClassesForStudents(slug, studentIds);
         Set<Long> activeEnrollmentIds = enrolledClasses.stream()
                 .map(ClassService.EnrolledClassData::studentId)
                 .collect(Collectors.toSet());
@@ -159,11 +187,30 @@ public class AssignmentQueryService {
         var gradesByStudent = examService.getStudentGradesForAssignment(slug, assignment.getLinkedExamId()).stream()
                 .filter(grade -> grade.studentId() != null)
                 .collect(Collectors.toMap(ExamService.StudentGradeData::studentId, grade -> grade, (left, right) -> left));
-        List<AssignmentStudentGradeResponse> rows = recipientIds.stream()
-                .filter(studentId -> classId == null || classRecipientIds.contains(studentId))
-                .filter(studentId -> hasActiveEnrollment == null || activeEnrollmentIds.contains(studentId) == hasActiveEnrollment)
-                .filter(studentId -> isActive == null || (students.get(studentId) != null && students.get(studentId).isActive() == isActive))
-                .map(studentId -> toAssignmentStudentGrade(students.get(studentId), gradesByStudent.get(studentId)))
+        List<AssignmentSubmission> submissions = submissionRepository.findAllByAssignmentId(assignmentId);
+        Map<Long, AssignmentSubmission> submissionsByRecipient = submissions.stream()
+                .filter(submission -> submission.getRecipientId() != null)
+                .collect(Collectors.toMap(AssignmentSubmission::getRecipientId,
+                        submission -> submission, (left, right) -> right));
+        Map<Long, AssignmentSubmission> legacyByStudent = submissions.stream()
+                .filter(submission -> submission.getRecipientId() == null && submission.getStudentId() != null)
+                .collect(Collectors.toMap(AssignmentSubmission::getStudentId,
+                        submission -> submission, (left, right) -> right));
+        List<AssignmentStudentGradeResponse> rows = recipients.stream()
+                .filter(recipient -> classId == null || classRecipientIds.contains(recipient.getStudentId()))
+                .filter(recipient -> hasActiveEnrollment == null
+                        || activeEnrollmentIds.contains(recipient.getStudentId()) == hasActiveEnrollment)
+                .filter(recipient -> isActive == null
+                        || (students.get(recipient.getStudentId()) != null
+                            && students.get(recipient.getStudentId()).isActive() == isActive))
+                .map(recipient -> {
+                    AssignmentSubmission submission = submissionsByRecipient.get(recipient.getId());
+                    if (submission == null && recipient.getStudentId() != null) {
+                        submission = legacyByStudent.get(recipient.getStudentId());
+                    }
+                    return toAssignmentStudentGrade(recipient, students.get(recipient.getStudentId()),
+                            submission == null ? null : gradesByStudent.get(recipient.getStudentId()), submission);
+                })
                 .filter(row -> submitted == null || (row.submissionStatus() != SubmissionStatus.PENDING) == submitted)
                 .sorted(assignmentGradeComparator(pageable.getSort()))
                 .toList();
@@ -171,15 +218,30 @@ public class AssignmentQueryService {
     }
 
     private AssignmentStudentGradeResponse toAssignmentStudentGrade(
-            StudentService.StudentData student, ExamService.StudentGradeData grade) {
+            AssignmentRecipient recipient, StudentService.StudentData student,
+            ExamService.StudentGradeData grade, AssignmentSubmission submission) {
         if (student == null) {
-            throw new BusinessException(AssignmentErrorCode.STUDENT_NOT_FOUND);
+            return new AssignmentStudentGradeResponse(recipient.getId(), null, null, false,
+                    "삭제된 학생", submission == null ? null : submission.getScore(), null, null, null,
+                    submission != null && submission.getPassed() != null ? "PASS_FAIL" : null,
+                    submission == null ? null : submission.getPassed(),
+                    submission == null ? null : submission.getSubmittedAt(),
+                    submission == null ? null : submission.getExamResultId(),
+                    submission == null ? SubmissionStatus.PENDING : submission.getStatus());
         }
-        if (grade == null) {
-            return new AssignmentStudentGradeResponse(student.id(), student.studentPhone(), true, student.studentName(),
+        if (submission == null) {
+            return new AssignmentStudentGradeResponse(recipient.getId(), student.id(), student.studentPhone(),
+                    true, student.studentName(),
                     null, null, null, null, null, null, null, null, SubmissionStatus.PENDING);
         }
-        return new AssignmentStudentGradeResponse(grade.studentId(), grade.phoneNumber(), grade.isRegistered(),
+        if (grade == null) {
+            return new AssignmentStudentGradeResponse(recipient.getId(), student.id(), student.studentPhone(),
+                    true, student.studentName(), submission.getScore(), null, null, null,
+                    submission.getPassed() != null ? "PASS_FAIL" : null,
+                    submission.getPassed(), submission.getSubmittedAt(), submission.getExamResultId(),
+                    submission.getStatus());
+        }
+        return new AssignmentStudentGradeResponse(recipient.getId(), grade.studentId(), grade.phoneNumber(), grade.isRegistered(),
                 grade.studentName(), grade.score(), grade.rank(), grade.percentile(), grade.grade(),
                 grade.examCategory(), grade.isPassed(), Instant.parse(grade.submittedAt()), grade.resultId(),
                 SubmissionStatus.GRADED);
@@ -212,7 +274,8 @@ public class AssignmentQueryService {
 
     public List<AssignmentResponse> getCurrentStudentAssignments() {
         Long studentId = currentStudentId();
-        List<Long> visibleAssignmentIds = recipientRepository.findAssignmentIdsByStudentId(studentId);
+        Set<Long> visibleAssignmentIds = new LinkedHashSet<>(recipientService.findEligibleAssignmentIds(studentId));
+        visibleAssignmentIds.addAll(submissionRepository.findAssignmentIdsByStudentId(studentId));
         if (visibleAssignmentIds.isEmpty()) {
             return List.of();
         }
@@ -225,10 +288,11 @@ public class AssignmentQueryService {
                         .comparing(Assignment::getDueDate, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(Assignment::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
-        Map<Long, List<AssignmentTarget>> targetsByAssignment = targetsByAssignment(assignments);
+        Set<Long> unverifiedIds = unverifiedRosterIds(assignments);
         Instant now = Instant.now();
         return assignments.stream()
-                .map(assignment -> studentAssignmentResponse(assignment, examName(assignment), now))
+                .map(assignment -> studentAssignmentResponse(assignment, examName(assignment), now,
+                        rosterAccuracy(assignment.getId(), unverifiedIds)))
                 .toList();
     }
 
@@ -238,15 +302,14 @@ public class AssignmentQueryService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_FOUND,
                         "Assignment not found with id: %d".formatted(assignmentId)));
-        if (!recipientRepository.existsByAssignmentIdAndStudentId(assignmentId, studentId)) {
-            throw new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_VISIBLE);
-        }
-
-        List<AssignmentTarget> targets = targetRepository.findByAssignmentId(assignmentId);
         AssignmentSubmission submission = submissionRepository
                 .findFirstByAssignmentIdAndStudentId(assignmentId, studentId)
                 .orElse(null);
-        ExamAssignmentResponse exam = assignment.getSubmissionMode() == SubmissionMode.EXAM_MANUAL
+        boolean eligible = recipientService.canSubmit(assignmentId, studentId);
+        if (!eligible && submission == null) {
+            throw new BusinessException(AssignmentErrorCode.ASSIGNMENT_NOT_VISIBLE);
+        }
+        ExamAssignmentResponse exam = eligible && assignment.getSubmissionMode() == SubmissionMode.EXAM_MANUAL
                 ? examService.getExamForAssignment(TenantContextHolder.getRequiredTenant(), assignment.getLinkedExamId())
                         .map(this::toExamResponse)
                         .orElse(null)
@@ -254,22 +317,23 @@ public class AssignmentQueryService {
 
         return new StudentAssignmentDetailResponse(
                 studentAssignmentResponse(assignment, exam != null ? exam.name() : examName(assignment)),
-                assignment.getStatus() == AssignmentStatus.ACTIVE,
+                effectiveStatus(assignment, Instant.now()) == AssignmentStatus.ACTIVE && eligible,
                 submission != null ? studentSubmissionResponse(assignment, submission) : null,
                 exam,
                 existingQuestionResults(assignment, submission)
         );
     }
 
-    private AssignmentResponse toAssignmentResponse(Assignment assignment, List<AssignmentTarget> targets) {
-        return assignmentResponse(assignment, targets, examName(assignment), Instant.now());
+    private AssignmentResponse toAssignmentResponse(Assignment assignment, Targets targets) {
+        return assignmentResponse(assignment, targets, examName(assignment), Instant.now(),
+                recipientService.rosterAccuracy(assignment.getId()));
     }
 
     private AssignmentResponse assignmentResponse(
-            Assignment assignment, List<AssignmentTarget> targets, String examName, Instant now) {
+            Assignment assignment, Targets targets, String examName, Instant now, String rosterAccuracy) {
         return new AssignmentResponse(
                 assignment.getId(),
-                assignment.getClassId(),
+                targets.firstClassId(),
                 assignment.getDueDate(),
                 assignment.getMaxScore(),
                 assignment.getAttachments(),
@@ -278,29 +342,26 @@ public class AssignmentQueryService {
                 assignment.getEvaluationMode(),
                 assignment.getLinkedExamId(),
                 examName,
-                targets.stream()
-                        .filter(target -> target.getTargetType() == AssignmentTargetType.CLASS)
-                        .map(AssignmentTarget::getTargetId)
-                        .toList(),
-                targets.stream()
-                        .filter(target -> target.getTargetType() == AssignmentTargetType.STUDENT)
-                        .map(AssignmentTarget::getTargetId)
-                        .toList(),
+                targets.classIds(),
+                targets.studentIds(),
                 assignment.isShowScore(),
                 assignment.isShowPassFail(),
                 assignment.isShowGrade(),
                 assignment.isShowQuestionResults(),
                 assignment.isShowCorrectAnswers(),
+                rosterAccuracy,
                 assignment.getCreatedAt(),
                 assignment.getUpdatedAt()
         );
     }
 
     private AssignmentResponse studentAssignmentResponse(Assignment assignment, String examName) {
-        return studentAssignmentResponse(assignment, examName, Instant.now());
+        return studentAssignmentResponse(assignment, examName, Instant.now(),
+                recipientService.rosterAccuracy(assignment.getId()));
     }
 
-    private AssignmentResponse studentAssignmentResponse(Assignment assignment, String examName, Instant now) {
+    private AssignmentResponse studentAssignmentResponse(Assignment assignment, String examName,
+                                                         Instant now, String rosterAccuracy) {
         return new AssignmentResponse(
                 assignment.getId(),
                 null,
@@ -319,6 +380,7 @@ public class AssignmentQueryService {
                 assignment.isShowGrade(),
                 assignment.isShowQuestionResults(),
                 assignment.isShowCorrectAnswers(),
+                rosterAccuracy,
                 assignment.getCreatedAt(),
                 assignment.getUpdatedAt()
         );
@@ -344,20 +406,40 @@ public class AssignmentQueryService {
         return CurrentStudentResolver.requireStudentId(studentService, AssignmentErrorCode.STUDENT_NOT_FOUND);
     }
 
-    private Map<Long, List<AssignmentTarget>> targetsByAssignment(List<Assignment> assignments) {
+    private Map<Long, Targets> targetsByAssignment(List<Assignment> assignments) {
         List<Long> assignmentIds = assignments.stream()
                 .map(Assignment::getId)
                 .toList();
         if (assignmentIds.isEmpty()) {
             return Map.of();
         }
-        return targetRepository.findByAssignmentIdIn(assignmentIds).stream()
-                .collect(Collectors.groupingBy(AssignmentTarget::getAssignmentId));
+        return audienceReadPort.findByAssignmentIds(assignmentIds);
+    }
+
+    private Set<Long> unverifiedRosterIds(List<Assignment> assignments) {
+        List<Long> ids = assignments.stream().map(Assignment::getId).toList();
+        if (ids.isEmpty()) {
+            return Set.of();
+        }
+        return recipientRepository.findByAssignmentIdIn(ids).stream()
+                .filter(recipient -> !"EXACT".equals(recipient.getSourceProvenance()))
+                .map(recipient -> recipient.getAssignmentId())
+                .collect(Collectors.toSet());
+    }
+
+    private static String rosterAccuracy(Long assignmentId, Set<Long> unverifiedIds) {
+        return unverifiedIds.contains(assignmentId) ? "UNVERIFIED" : "EXACT";
+    }
+
+    private static Targets emptyTargets() {
+        return new Targets(List.of(), List.of());
     }
 
     private SubmissionResponse studentSubmissionResponse(Assignment assignment, AssignmentSubmission submission) {
-        var current = SubmissionResponse.from(submission,
-                currentResults(assignment.getId()).get(submission.getExamResultId()));
+        var result = currentResults(assignment.getId()).get(submission.getExamResultId());
+        var current = result == null || !java.util.Objects.equals(submission.getStudentId(), result.studentId())
+                ? SubmissionResponse.from(submission)
+                : SubmissionResponse.from(submission, result);
         return new SubmissionResponse(
                 submission.getId(),
                 submission.getAssignmentId(),

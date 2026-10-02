@@ -21,7 +21,8 @@ public enum AssignmentErrorCode implements ErrorCode {
     INVALID_SUBMISSION("ASSIGNMENT_012", "Invalid assignment submission", 400),
     EXAM_NOT_FOUND("ASSIGNMENT_013", "Linked exam not found", 404),
     ASSIGNMENT_NOT_VISIBLE("ASSIGNMENT_014", "Assignment is not visible to current student", 404),
-    DUE_DATE_REQUIRED("ASSIGNMENT_015", "Assignment due date is required", 400);
+    DUE_DATE_REQUIRED("ASSIGNMENT_015", "Assignment due date is required", 400),
+    TARGET_IMMUTABLE("ASSIGNMENT_016", "Assignment targets cannot change after creation", 409);
 
     private final String code;
     private final String message;

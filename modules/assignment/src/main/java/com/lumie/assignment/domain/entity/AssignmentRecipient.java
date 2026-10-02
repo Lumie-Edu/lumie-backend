@@ -33,9 +33,13 @@ public class AssignmentRecipient extends TenantScopedEntity {
     @Column(name = "student_id", nullable = false, updatable = false)
     private Long studentId;
 
+    @Column(name = "source_provenance", nullable = false, updatable = false)
+    private String sourceProvenance;
+
     private AssignmentRecipient(Long assignmentId, Long studentId) {
         this.assignmentId = assignmentId;
         this.studentId = studentId;
+        this.sourceProvenance = "EXACT";
     }
 
     public static AssignmentRecipient create(Long assignmentId, Long studentId) {

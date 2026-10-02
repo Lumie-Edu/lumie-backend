@@ -40,6 +40,9 @@ public class AssignmentSubmission extends TenantScopedEntity {
     @Column(name = "student_id")
     private Long studentId;
 
+    @Column(name = "recipient_id", updatable = false)
+    private Long recipientId;
+
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
@@ -105,6 +108,12 @@ public class AssignmentSubmission extends TenantScopedEntity {
                 .studentId(studentId)
                 .status(SubmissionStatus.PENDING)
                 .build();
+    }
+
+    public static AssignmentSubmission createForRecipient(Long assignmentId, Long studentId, Long recipientId) {
+        AssignmentSubmission submission = create(assignmentId, studentId);
+        submission.recipientId = recipientId;
+        return submission;
     }
 
     public void submit(String content, List<Long> attachments) {

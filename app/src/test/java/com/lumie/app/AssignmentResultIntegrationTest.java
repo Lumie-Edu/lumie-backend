@@ -107,6 +107,22 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
         });
     }
 
+    @Test
+    void deletingLastTargetClassClosesAssignmentButPreservesSubmission() {
+        withinTenant(() -> {
+            var ids = seed();
+            Long assignmentId = submissions.findById(ids.submission()).orElseThrow().getAssignmentId();
+            Long classId = assignments.findById(assignmentId).orElseThrow().getClassId();
+
+            transactions.executeWithoutResult(status -> jdbc.update("DELETE FROM classes WHERE id = ?", classId));
+
+            var assignment = assignments.findById(assignmentId).orElseThrow();
+            assertThat(assignment.getStatus()).isEqualTo(AssignmentStatus.CLOSED);
+            assertThat(assignment.getClassId()).isNull();
+            assertThat(submissions.existsById(ids.submission())).isTrue();
+        });
+    }
+
     private Ids seed() {
         return transactions.execute(status -> {
             Long classId = jdbc.queryForObject(

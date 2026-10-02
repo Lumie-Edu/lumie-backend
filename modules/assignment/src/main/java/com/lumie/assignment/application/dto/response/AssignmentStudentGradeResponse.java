@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 
 public record AssignmentStudentGradeResponse(
+        Long recipientId,
+        @Schema(nullable = true)
         Long studentId,
         @Schema(nullable = true) String phoneNumber,
         boolean isRegistered,
@@ -13,7 +15,7 @@ public record AssignmentStudentGradeResponse(
         @Schema(nullable = true) Integer rank,
         @Schema(nullable = true) Double percentile,
         @Schema(nullable = true) Integer grade,
-        String examCategory,
+        @Schema(nullable = true) String examCategory,
         @Schema(nullable = true) Boolean isPassed,
         @Schema(nullable = true) Instant submittedAt,
         @Schema(nullable = true) Long resultId,

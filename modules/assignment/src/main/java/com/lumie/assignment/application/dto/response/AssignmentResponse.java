@@ -30,6 +30,7 @@ public record AssignmentResponse(
     boolean showGrade,
     boolean showQuestionResults,
     boolean showCorrectAnswers,
+    String rosterAccuracy,
     Instant createdAt,
     Instant updatedAt
 ) {
@@ -38,7 +39,19 @@ public record AssignmentResponse(
                               Instant createdAt, Instant updatedAt) {
         this(id, classId, dueDate, maxScore, attachments, status,
                 SubmissionMode.EXAM_MANUAL, EvaluationMode.EXAM_AUTO, null, null, List.of(), List.of(),
-                true, true, false, true, false, createdAt, updatedAt);
+                true, true, false, true, false, "UNVERIFIED", createdAt, updatedAt);
+    }
+
+    public AssignmentResponse(Long id, Long classId, Instant dueDate, Integer maxScore,
+                              List<Long> attachments, AssignmentStatus status,
+                              SubmissionMode submissionMode, EvaluationMode evaluationMode,
+                              Long linkedExamId, String examName, List<Long> targetClassIds,
+                              List<Long> targetStudentIds, boolean showScore, boolean showPassFail,
+                              boolean showGrade, boolean showQuestionResults, boolean showCorrectAnswers,
+                              Instant createdAt, Instant updatedAt) {
+        this(id, classId, dueDate, maxScore, attachments, status, submissionMode, evaluationMode,
+                linkedExamId, examName, targetClassIds, targetStudentIds, showScore, showPassFail,
+                showGrade, showQuestionResults, showCorrectAnswers, "UNVERIFIED", createdAt, updatedAt);
     }
 
     public static AssignmentResponse from(Assignment entity) {
@@ -50,6 +63,11 @@ public record AssignmentResponse(
     }
 
     public static AssignmentResponse from(Assignment entity, List<AssignmentTarget> targets, String examName) {
+        return from(entity, targets, examName, "UNVERIFIED");
+    }
+
+    public static AssignmentResponse from(Assignment entity, List<AssignmentTarget> targets,
+                                          String examName, String rosterAccuracy) {
         return new AssignmentResponse(
             entity.getId(),
             entity.getClassId(),
@@ -74,6 +92,7 @@ public record AssignmentResponse(
             entity.isShowGrade(),
             entity.isShowQuestionResults(),
             entity.isShowCorrectAnswers(),
+            rosterAccuracy,
             entity.getCreatedAt(),
             entity.getUpdatedAt()
         );
