@@ -1,11 +1,13 @@
 package com.lumie.content.application.service;
 
 import com.lumie.classroom.api.ClassService;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.content.application.dto.request.CreateAnnouncementRequest;
 import com.lumie.content.application.dto.request.UpdateAnnouncementRequest;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
 import com.lumie.content.domain.entity.Announcement;
 import com.lumie.content.domain.entity.AnnouncementClassTarget;
+import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.content.domain.exception.ContentErrorCode;
@@ -36,7 +38,10 @@ public class AnnouncementCommandService {
 
     @Transactional
     public AnnouncementResponse createAnnouncement(CreateAnnouncementRequest request) {
+        AuthorizationGuard.requireStaff();
         log.info("Creating announcement: {}", request.announcementTitle());
+        List<Long> requestedClassIds = normalizeClassIds(request.classIds());
+        AnnouncementAudienceScope audienceScope = createScope(request.audienceScope(), requestedClassIds);
         List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("announcement", request.temporaryAttachments());
 
         try {
@@ -45,11 +50,12 @@ public class AnnouncementCommandService {
                 request.announcementTitle(),
                 request.announcementContent(),
                 request.isItAssetAnnouncement(),
-                request.isItImportantAnnouncement()
+                request.isItImportantAnnouncement(),
+                audienceScope
         );
 
         Announcement saved = announcementRepository.save(announcement);
-        List<Long> classIds = replaceClassTargets(saved.getId(), request.classIds());
+        List<Long> classIds = replaceClassTargets(saved.getId(), requestedClassIds);
         fileService.attachPreparedFiles("announcement", saved.getId(), preparedFiles);
         announcementRepository.flush();
         log.info("Announcement created with id: {}", saved.getId());
@@ -63,6 +69,7 @@ public class AnnouncementCommandService {
 
     @Transactional
     public AnnouncementResponse updateAnnouncement(Long id, UpdateAnnouncementRequest request) {
+        AuthorizationGuard.requireStaff();
         log.info("Updating announcement: {}", id);
         List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("announcement", request.temporaryAttachments());
 
@@ -70,20 +77,28 @@ public class AnnouncementCommandService {
         Announcement announcement = announcementRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.ANNOUNCEMENT_NOT_FOUND));
 
+        List<Long> classIds = request.classIds() == null
+                ? classTargetRepository.findByAnnouncementId(id).stream()
+                        .map(AnnouncementClassTarget::getClassId)
+                        .toList()
+                : normalizeClassIds(request.classIds());
+        AnnouncementAudienceScope audienceScope = updateScope(
+                announcement.getAudienceScope(), request.audienceScope(),
+                request.classIds() != null, classIds);
+
         announcement.update(
                 request.announcementTitle(),
                 request.announcementContent(),
                 request.isItAssetAnnouncement(),
                 request.isItImportantAnnouncement()
         );
+        announcement.changeAudienceScope(audienceScope);
 
         fileService.reconcilePreparedDirectFiles("announcement", id, request.attachmentFileIds(), preparedFiles);
 
-        List<Long> classIds = request.classIds() == null
-                ? classTargetRepository.findByAnnouncementId(id).stream()
-                        .map(AnnouncementClassTarget::getClassId)
-                        .toList()
-                : replaceClassTargets(id, request.classIds());
+        if (request.classIds() != null || audienceScope == AnnouncementAudienceScope.ALL) {
+            classIds = replaceClassTargets(id, audienceScope == AnnouncementAudienceScope.ALL ? List.of() : classIds);
+        }
         Announcement updated = announcementRepository.save(announcement);
         announcementRepository.flush();
         log.info("Announcement updated: {}", updated.getId());
@@ -97,6 +112,7 @@ public class AnnouncementCommandService {
 
     @Transactional
     public void deleteAnnouncement(Long id) {
+        AuthorizationGuard.requireStaff();
         log.info("Deleting announcement: {}", id);
 
         if (!announcementRepository.existsById(id)) {
@@ -121,6 +137,39 @@ public class AnnouncementCommandService {
                     .toList());
         }
         return classIds;
+    }
+
+    private AnnouncementAudienceScope createScope(AnnouncementAudienceScope requested, List<Long> classIds) {
+        if (requested == null) {
+            return classIds.isEmpty() ? AnnouncementAudienceScope.LEGACY_UNSPECIFIED
+                    : AnnouncementAudienceScope.TARGETED;
+        }
+        validateScope(requested, classIds);
+        return requested;
+    }
+
+    private AnnouncementAudienceScope updateScope(AnnouncementAudienceScope current,
+                                                   AnnouncementAudienceScope requested,
+                                                   boolean targetsProvided, List<Long> classIds) {
+        if (requested != null) {
+            validateScope(requested, requested == AnnouncementAudienceScope.ALL ? List.of() : classIds);
+            if (requested == AnnouncementAudienceScope.ALL && !classIds.isEmpty() && targetsProvided) {
+                throw new BusinessException(ContentErrorCode.INVALID_ANNOUNCEMENT_AUDIENCE);
+            }
+            return requested;
+        }
+        if (targetsProvided && !classIds.isEmpty()) {
+            return AnnouncementAudienceScope.TARGETED;
+        }
+        return current;
+    }
+
+    private void validateScope(AnnouncementAudienceScope scope, List<Long> classIds) {
+        if (scope == AnnouncementAudienceScope.LEGACY_UNSPECIFIED
+                || (scope == AnnouncementAudienceScope.ALL && !classIds.isEmpty())
+                || (scope == AnnouncementAudienceScope.TARGETED && classIds.isEmpty())) {
+            throw new BusinessException(ContentErrorCode.INVALID_ANNOUNCEMENT_AUDIENCE);
+        }
     }
 
     private void validateClassTargets(List<Long> classIds) {

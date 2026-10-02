@@ -6,6 +6,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.domain.entity.Announcement;
 import com.lumie.content.domain.entity.AnnouncementClassTarget;
+import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
 import com.lumie.content.domain.repository.AnnouncementReadRepository;
 import com.lumie.content.domain.repository.AnnouncementRepository;
@@ -83,7 +84,8 @@ class AnnouncementQueryServiceTest {
 
     @Test
     void visibilityLookupUsesTheRequestedStudentRatherThanTheCurrentActor() {
-        given(announcementRepository.existsById(9L)).willReturn(true);
+        given(announcementRepository.findById(9L)).willReturn(Optional.of(
+                announcement(9L, 1L, AnnouncementAudienceScope.TARGETED)));
         given(classTargetRepository.findByAnnouncementId(9L))
                 .willReturn(List.of(AnnouncementClassTarget.create(9L, 7L)));
         given(studentService.getStudentsByUserIds("test-tenant", List.of(200L)))
@@ -98,8 +100,24 @@ class AnnouncementQueryServiceTest {
         assertThat(queryService.canUserViewAnnouncement(9L, "STUDENT", 200L)).isTrue();
     }
 
+    @Test
+    void unknownOrTargetlessRestrictedAnnouncementDoesNotBecomePublic() {
+        given(announcementRepository.findById(9L)).willReturn(Optional.of(
+                announcement(9L, 1L, AnnouncementAudienceScope.LEGACY_UNSPECIFIED)));
+        given(announcementRepository.findById(10L)).willReturn(Optional.of(
+                announcement(10L, 1L, AnnouncementAudienceScope.TARGETED)));
+
+        assertThat(queryService.canUserViewAnnouncement(9L, "STUDENT", 200L)).isFalse();
+        assertThat(queryService.canUserViewAnnouncement(10L, "STUDENT", 200L)).isFalse();
+        assertThat(queryService.canUserViewAnnouncement(9L, "OWNER", 200L)).isTrue();
+    }
+
     private static Announcement announcement(Long id, Long authorId) {
-        Announcement announcement = Announcement.create(authorId, "공지", "내용", false, false);
+        return announcement(id, authorId, AnnouncementAudienceScope.ALL);
+    }
+
+    private static Announcement announcement(Long id, Long authorId, AnnouncementAudienceScope scope) {
+        Announcement announcement = Announcement.create(authorId, "공지", "내용", false, false, scope);
         ReflectionTestUtils.setField(announcement, "id", id);
         return announcement;
     }

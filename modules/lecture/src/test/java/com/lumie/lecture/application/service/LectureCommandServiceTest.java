@@ -13,6 +13,7 @@ import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.entity.LectureClassTarget;
 import com.lumie.lecture.domain.repository.LectureClassTargetRepository;
 import com.lumie.lecture.domain.repository.LectureRepository;
+import com.lumie.lecture.domain.vo.LectureVisibility;
 import com.lumie.staff.api.StaffService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -155,8 +156,26 @@ class LectureCommandServiceTest {
         LectureResponse response = commandService.update(1L, request);
 
         assertThat(response.title()).isEqualTo("변경 제목");
-        assertThat(response.classIds()).containsExactly(999L);
+        assertThat(response.classIds()).isEmpty();
         verifyNoInteractions(classService);
+    }
+
+    @Test
+    void targetlessStudentLectureRemainsEditableByStaffWithoutBecomingVisible() throws Exception {
+        Lecture lecture = Lecture.create(999L, 10L, "기존 제목", null,
+                "https://www.youtube.com/watch?v=abc123", LectureVisibility.STUDENT, null);
+        ReflectionTestUtils.setField(lecture, "id", 1L);
+        UpdateLectureRequest request = new UpdateLectureRequest(
+                null, null, "변경 제목", null, null, null, null);
+        given(lectureRepository.findById(1L)).willReturn(Optional.of(lecture));
+        given(targetRepository.findClassIdsByLectureIdOrderByClassIdAsc(1L)).willReturn(List.of());
+        given(lectureRepository.save(lecture)).willReturn(lecture);
+
+        LectureResponse response = commandService.update(1L, request);
+
+        assertThat(response.title()).isEqualTo("변경 제목");
+        assertThat(response.classId()).isNull();
+        assertThat(response.classIds()).isEmpty();
     }
 
     @Test

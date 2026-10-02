@@ -2,9 +2,12 @@ package com.lumie.content.application.service;
 
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.common.auth.Role;
 import com.lumie.content.application.dto.request.CreateAnnouncementRequest;
 import com.lumie.content.application.dto.request.UpdateAnnouncementRequest;
 import com.lumie.content.domain.entity.Announcement;
+import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
 import com.lumie.content.domain.repository.AnnouncementRepository;
 import com.lumie.file.api.FileService;
@@ -23,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
@@ -42,11 +46,13 @@ class AnnouncementCommandServiceTest {
     @BeforeEach
     void setUpTenant() {
         TenantContextHolder.setTenant("test-tenant");
+        UserContextHolder.setUserRole(Role.OWNER);
     }
 
     @AfterEach
     void tearDownTenant() {
         TenantContextHolder.clear();
+        UserContextHolder.clear();
     }
 
     @Test
@@ -59,7 +65,8 @@ class AnnouncementCommandServiceTest {
                 false,
                 false,
                 null,
-                List.of()
+                List.of(),
+                AnnouncementAudienceScope.ALL
         );
         given(announcementRepository.save(any(Announcement.class))).willAnswer(invocation -> {
             Announcement announcement = invocation.getArgument(0);
@@ -72,6 +79,7 @@ class AnnouncementCommandServiceTest {
         var response = commandService.createAnnouncement(request);
 
         assertThat(response.authorName()).isEqualTo("원장");
+        assertThat(response.audienceScope()).isEqualTo(AnnouncementAudienceScope.ALL);
     }
 
     @Test
@@ -122,14 +130,37 @@ class AnnouncementCommandServiceTest {
         var response = commandService.updateAnnouncement(1L, request);
 
         assertThat(response.classIds()).containsExactly(10L, 20L);
+        assertThat(response.audienceScope()).isEqualTo(AnnouncementAudienceScope.TARGETED);
         var inOrder = inOrder(classTargetRepository);
         inOrder.verify(classTargetRepository).deleteByAnnouncementId(1L);
         inOrder.verify(classTargetRepository).flush();
         inOrder.verify(classTargetRepository).saveAll(anyList());
     }
 
+    @Test
+    void explicitAllAudienceCannotKeepClassTargets() {
+        CreateAnnouncementRequest request = new CreateAnnouncementRequest(
+                900L, "공지", "내용", false, false, null, List.of(10L),
+                AnnouncementAudienceScope.ALL);
+
+        assertThatThrownBy(() -> commandService.createAnnouncement(request))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+    }
+
+    @Test
+    void studentCannotChangeAnnouncementAudience() {
+        UserContextHolder.setUserRole(Role.STUDENT);
+        CreateAnnouncementRequest request = new CreateAnnouncementRequest(
+                900L, "공지", "내용", false, false, null, List.of(),
+                AnnouncementAudienceScope.ALL);
+
+        assertThatThrownBy(() -> commandService.createAnnouncement(request))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+    }
+
     private static Announcement announcement(Long id, Long authorId) {
-        Announcement announcement = Announcement.create(authorId, "공지", "내용", false, false);
+        Announcement announcement = Announcement.create(authorId, "공지", "내용", false, false,
+                AnnouncementAudienceScope.LEGACY_UNSPECIFIED);
         ReflectionTestUtils.setField(announcement, "id", id);
         return announcement;
     }

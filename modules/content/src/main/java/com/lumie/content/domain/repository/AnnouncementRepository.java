@@ -19,59 +19,49 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
 
     @Query("""
             SELECT a FROM Announcement a
-            WHERE NOT EXISTS (
-                SELECT 1 FROM AnnouncementClassTarget target
-                WHERE target.announcementId = a.id
-            )
+            WHERE a.audienceScope = com.lumie.content.domain.vo.AnnouncementAudienceScope.ALL
             ORDER BY a.isItImportantAnnouncement DESC, a.createdAt DESC
             """)
-    Page<Announcement> findVisibleWithoutClassTargets(Pageable pageable);
+    Page<Announcement> findAcademyWide(Pageable pageable);
 
     @Query("""
             SELECT DISTINCT a FROM Announcement a
             WHERE (
-                NOT EXISTS (
-                    SELECT 1 FROM AnnouncementClassTarget target
-                    WHERE target.announcementId = a.id
-                )
-                OR EXISTS (
+                a.audienceScope = com.lumie.content.domain.vo.AnnouncementAudienceScope.ALL
+                OR (a.audienceScope = com.lumie.content.domain.vo.AnnouncementAudienceScope.TARGETED
+                AND EXISTS (
                     SELECT 1 FROM AnnouncementClassTarget target
                     WHERE target.announcementId = a.id
                       AND target.classId IN :classIds
-                )
+                ))
             )
             ORDER BY a.isItImportantAnnouncement DESC, a.createdAt DESC
             """)
-    Page<Announcement> findVisibleByClassTargets(@Param("classIds") List<Long> classIds, Pageable pageable);
+    Page<Announcement> findVisibleToClasses(@Param("classIds") List<Long> classIds, Pageable pageable);
 
     @Query("""
             SELECT a FROM Announcement a
             WHERE a.isItAssetAnnouncement = :isAsset
-              AND NOT EXISTS (
-                  SELECT 1 FROM AnnouncementClassTarget target
-                  WHERE target.announcementId = a.id
-              )
+              AND a.audienceScope = com.lumie.content.domain.vo.AnnouncementAudienceScope.ALL
             ORDER BY a.isItImportantAnnouncement DESC, a.createdAt DESC
             """)
-    Page<Announcement> findVisibleWithoutClassTargetsByIsAsset(@Param("isAsset") Boolean isAsset, Pageable pageable);
+    Page<Announcement> findAcademyWideByIsAsset(@Param("isAsset") Boolean isAsset, Pageable pageable);
 
     @Query("""
             SELECT DISTINCT a FROM Announcement a
             WHERE a.isItAssetAnnouncement = :isAsset
               AND (
-                  NOT EXISTS (
-                      SELECT 1 FROM AnnouncementClassTarget target
-                      WHERE target.announcementId = a.id
-                  )
-                  OR EXISTS (
+                  a.audienceScope = com.lumie.content.domain.vo.AnnouncementAudienceScope.ALL
+                  OR (a.audienceScope = com.lumie.content.domain.vo.AnnouncementAudienceScope.TARGETED
+                  AND EXISTS (
                       SELECT 1 FROM AnnouncementClassTarget target
                       WHERE target.announcementId = a.id
                         AND target.classId IN :classIds
-                  )
+                  ))
               )
             ORDER BY a.isItImportantAnnouncement DESC, a.createdAt DESC
             """)
-    Page<Announcement> findVisibleByClassTargetsAndIsAsset(
+    Page<Announcement> findVisibleToClassesByIsAsset(
             @Param("isAsset") Boolean isAsset,
             @Param("classIds") List<Long> classIds,
             Pageable pageable);
@@ -79,31 +69,26 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
     @Query("""
             SELECT a FROM Announcement a
             WHERE a.isItImportantAnnouncement = true
-              AND NOT EXISTS (
-                  SELECT 1 FROM AnnouncementClassTarget target
-                  WHERE target.announcementId = a.id
-              )
+              AND a.audienceScope = com.lumie.content.domain.vo.AnnouncementAudienceScope.ALL
             ORDER BY a.createdAt DESC
             """)
-    List<Announcement> findImportantVisibleWithoutClassTargets();
+    List<Announcement> findImportantAcademyWide();
 
     @Query("""
             SELECT DISTINCT a FROM Announcement a
             WHERE a.isItImportantAnnouncement = true
               AND (
-                  NOT EXISTS (
-                      SELECT 1 FROM AnnouncementClassTarget target
-                      WHERE target.announcementId = a.id
-                  )
-                  OR EXISTS (
+                  a.audienceScope = com.lumie.content.domain.vo.AnnouncementAudienceScope.ALL
+                  OR (a.audienceScope = com.lumie.content.domain.vo.AnnouncementAudienceScope.TARGETED
+                  AND EXISTS (
                       SELECT 1 FROM AnnouncementClassTarget target
                       WHERE target.announcementId = a.id
                         AND target.classId IN :classIds
-                  )
+                  ))
               )
             ORDER BY a.createdAt DESC
             """)
-    List<Announcement> findImportantVisibleByClassTargets(@Param("classIds") List<Long> classIds);
+    List<Announcement> findImportantVisibleToClasses(@Param("classIds") List<Long> classIds);
 
     List<Announcement> findByIsItImportantAnnouncementTrue();
 }

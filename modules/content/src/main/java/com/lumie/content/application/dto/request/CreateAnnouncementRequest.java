@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 import com.lumie.file.api.TemporaryAttachment;
+import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 
 public record CreateAnnouncementRequest(
         @NotNull(message = "Author ID is required")
@@ -22,6 +23,14 @@ public record CreateAnnouncementRequest(
 
         List<TemporaryAttachment> temporaryAttachments,
 
-        List<Long> classIds
+        List<Long> classIds,
+
+        AnnouncementAudienceScope audienceScope
 ) {
+    public CreateAnnouncementRequest(Long authorId, String announcementTitle, String announcementContent,
+                                     Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement,
+                                     List<TemporaryAttachment> temporaryAttachments, List<Long> classIds) {
+        this(authorId, announcementTitle, announcementContent, isItAssetAnnouncement,
+                isItImportantAnnouncement, temporaryAttachments, classIds, null);
+    }
 }

@@ -24,9 +24,8 @@ public interface LectureRepository extends JpaRepository<Lecture, Long>,
     @Query("""
             SELECT DISTINCT l
             FROM Lecture l
-            LEFT JOIN LectureClassTarget t ON t.lecture = l AND t.classId = :classId
-            WHERE (t.id IS NOT NULL OR l.classId = :classId)
-              AND l.visibility = 'STUDENT'
+            JOIN LectureClassTarget t ON t.lecture = l AND t.classId = :classId
+            WHERE l.visibility = 'STUDENT'
             """)
     Page<Lecture> findVisibleByTargetClassId(@Param("classId") Long classId, Pageable pageable);
 
@@ -45,10 +44,7 @@ public interface LectureRepository extends JpaRepository<Lecture, Long>,
                                 cb.equal(target.get("lecture").get("id"), root.get("id")),
                                 cb.equal(target.get("classId"), criteria.classId())
                         );
-                predicates.add(cb.or(
-                        cb.exists(targetSubquery),
-                        cb.equal(root.get("classId"), criteria.classId())
-                ));
+                predicates.add(cb.exists(targetSubquery));
                 query.distinct(true);
             }
             if (criteria.teacherId() != null) {

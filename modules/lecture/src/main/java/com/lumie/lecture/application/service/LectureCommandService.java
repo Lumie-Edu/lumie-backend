@@ -67,7 +67,7 @@ public class LectureCommandService {
         Lecture saved = lectureRepository.save(lecture);
         syncTargets(saved, classIds);
 
-        return LectureResponse.from(saved, classIdsForResponse(saved.getId(), saved.getClassId()));
+        return LectureResponse.from(saved, classIdsForResponse(saved.getId()));
     }
 
     public LectureResponse update(Long id, UpdateLectureRequest request) {
@@ -78,7 +78,7 @@ public class LectureCommandService {
                 ? LectureVisibility.valueOf(request.visibility()) : null;
         LectureVisibility effectiveVisibility = visibility != null ? visibility : lecture.getVisibility();
         boolean targetsProvided = request.classId() != null || request.classIds() != null;
-        List<Long> currentClassIds = classIdsForResponse(lecture.getId(), lecture.getClassId());
+        List<Long> currentClassIds = classIdsForResponse(lecture.getId());
         List<Long> classIds = targetsProvided
                 ? normalizeClassIds(request.classId(), request.classIds())
                 : currentClassIds;
@@ -87,7 +87,7 @@ public class LectureCommandService {
         requireCanManageLecture(tenantSlug, lecture.getTeacherId());
         if (targetsChanged) {
             validateTargets(tenantSlug, effectiveVisibility, classIds, lecture.getTeacherId());
-        } else {
+        } else if (lecture.getVisibility() != LectureVisibility.STUDENT) {
             validateTargetPresence(effectiveVisibility, classIds);
         }
 
@@ -99,7 +99,7 @@ public class LectureCommandService {
         }
 
         Lecture saved = lectureRepository.save(lecture);
-        return LectureResponse.from(saved, classIdsForResponse(saved.getId(), saved.getClassId()));
+        return LectureResponse.from(saved, classIdsForResponse(saved.getId()));
     }
 
     public void delete(Long id) {
@@ -160,9 +160,9 @@ public class LectureCommandService {
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
     }
 
-    private List<Long> classIdsForResponse(Long lectureId, Long fallbackClassId) {
+    private List<Long> classIdsForResponse(Long lectureId) {
         List<Long> classIds = targetRepository.findClassIdsByLectureIdOrderByClassIdAsc(lectureId);
-        return LectureTargets.primaryFirst(classIds, fallbackClassId);
+        return LectureTargets.canonical(classIds);
     }
 
     private static List<Long> normalizeClassIds(Long classId, List<Long> classIds) {

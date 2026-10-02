@@ -1,6 +1,7 @@
 package com.lumie.content.application.dto.response;
 
 import com.lumie.content.domain.entity.Announcement;
+import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
@@ -16,7 +17,8 @@ public record AnnouncementResponse(
         @Schema(nullable = true) Boolean isItImportantAnnouncement,
         Instant createdAt,
         Instant updatedAt,
-        List<Long> classIds
+        List<Long> classIds,
+        AnnouncementAudienceScope audienceScope
 ) {
     public static AnnouncementResponse from(Announcement announcement) {
         return from(announcement, null, List.of());
@@ -37,7 +39,8 @@ public record AnnouncementResponse(
                 announcement.getIsItImportantAnnouncement(),
                 announcement.getCreatedAt(),
                 announcement.getUpdatedAt(),
-                classIds == null ? List.of() : classIds
+                classIds == null ? List.of() : classIds,
+                announcement.getAudienceScope()
         );
     }
 }

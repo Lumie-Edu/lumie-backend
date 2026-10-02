@@ -1,6 +1,7 @@
 package com.lumie.content.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
+import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -36,24 +37,32 @@ public class Announcement extends TenantScopedEntity {
     @Column(name = "is_it_important_announcement", nullable = false)
     private Boolean isItImportantAnnouncement;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "audience_scope", nullable = false, length = 32)
+    private AnnouncementAudienceScope audienceScope;
+
     @Builder
     private Announcement(Long authorId, String announcementTitle, String announcementContent,
-                         Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement) {
+                         Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement,
+                         AnnouncementAudienceScope audienceScope) {
         this.authorId = authorId;
         this.announcementTitle = announcementTitle;
         this.announcementContent = announcementContent;
         this.isItAssetAnnouncement = isItAssetAnnouncement != null ? isItAssetAnnouncement : false;
         this.isItImportantAnnouncement = isItImportantAnnouncement != null ? isItImportantAnnouncement : false;
+        this.audienceScope = audienceScope;
     }
 
     public static Announcement create(Long authorId, String announcementTitle, String announcementContent,
-                                       Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement) {
+                                      Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement,
+                                      AnnouncementAudienceScope audienceScope) {
         return Announcement.builder()
                 .authorId(authorId)
                 .announcementTitle(announcementTitle)
                 .announcementContent(announcementContent)
                 .isItAssetAnnouncement(isItAssetAnnouncement)
                 .isItImportantAnnouncement(isItImportantAnnouncement)
+                .audienceScope(audienceScope)
                 .build();
     }
 
@@ -79,5 +88,9 @@ public class Announcement extends TenantScopedEntity {
 
     public void unmarkImportant() {
         this.isItImportantAnnouncement = false;
+    }
+
+    public void changeAudienceScope(AnnouncementAudienceScope audienceScope) {
+        this.audienceScope = audienceScope;
     }
 }

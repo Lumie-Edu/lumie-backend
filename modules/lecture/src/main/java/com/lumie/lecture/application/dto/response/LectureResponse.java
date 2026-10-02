@@ -23,14 +23,13 @@ public record LectureResponse(
         Instant updatedAt
 ) {
     public static LectureResponse from(Lecture lecture) {
-        List<Long> classIds = lecture.getClassId() == null ? List.of() : List.of(lecture.getClassId());
-        return from(lecture, classIds);
+        return from(lecture, List.of());
     }
 
     public static LectureResponse from(Lecture lecture, List<Long> classIds) {
         return new LectureResponse(
                 lecture.getId(),
-                classIds == null || classIds.isEmpty() ? lecture.getClassId() : classIds.get(0),
+                classIds == null || classIds.isEmpty() ? null : classIds.get(0),
                 classIds == null ? List.of() : classIds,
                 lecture.getTeacherId(),
                 lecture.getTitle(),
