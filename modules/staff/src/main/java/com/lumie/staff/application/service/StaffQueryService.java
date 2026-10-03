@@ -44,9 +44,10 @@ public class StaffQueryService {
     }
 
     public Page<StaffResponse> getAllStaff(StaffFilterRequest filter, Pageable pageable) {
-        Page<Staff> page = (filter != null && hasAnyFilter(filter))
-                ? staffRepository.search(filter.isActive(), filter.search(), pageable)
-                : staffRepository.findAll(pageable);
+        Page<Staff> page = staffRepository.search(
+                filter == null ? null : filter.isActive(),
+                filter == null ? null : filter.search(),
+                pageable);
         Map<Long, String> seeds = avatarSeedsFor(page.getContent());
         return page.map(s -> StaffResponse.from(s, seeds.get(s.getUserId())));
     }
@@ -75,7 +76,4 @@ public class StaffQueryService {
         return staffRepository.existsByUserLoginId(userLoginId);
     }
 
-    private boolean hasAnyFilter(StaffFilterRequest filter) {
-        return filter.isActive() != null || (filter.search() != null && !filter.search().isBlank());
-    }
 }
