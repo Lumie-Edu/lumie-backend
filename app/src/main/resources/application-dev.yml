@@ -16,3 +16,11 @@ session:
   csrf-allowed-origins:
     - http://localhost:3000
     - http://joossameng.localhost:3000
+
+lumie:
+  cors:
+    allowed-origins:
+      - https://lumie-edu.com
+      - https://dev.lumie-edu.com
+      - http://localhost:3000
+      - http://joossameng.localhost:3000
