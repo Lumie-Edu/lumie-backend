@@ -16,11 +16,11 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Persists PG audit log entries in a SEPARATE transaction (REQUIRES_NEW).
+ * Persists external billing call audit entries in a SEPARATE transaction (REQUIRES_NEW).
  * This ensures audit records survive even if the outer transaction rolls back.
  *
- * <p>Usage: call {@code log(...)} both before (request) and after (response) each PG call.
- * The caller (TossPaymentClient or service) is responsible for constructing the payload map.
+ * <p>Usage: call {@code log(...)} both before (request) and after (response) each provider call.
+ * The caller is responsible for constructing a redacted payload map.
  */
 @Slf4j
 @Service
@@ -34,13 +34,13 @@ public class PaymentTransactionLogger {
      * Persists one audit record. Uses REQUIRES_NEW so it commits independently.
      *
      * @param tenantId        nullable for platform-level transactions
-     * @param type            type of PG call
-     * @param direction       REQUEST (before PG call), RESPONSE (after PG call), or WEBHOOK (inbound)
+     * @param type            type of external call
+     * @param direction       REQUEST (before call), RESPONSE (after call), or WEBHOOK (inbound)
      * @param idempotencyKey  nullable
      * @param ownerEntity     entity class name, e.g. "Invoice"
      * @param ownerId         entity ID, nullable
-     * @param payloadMap      raw PG request/response payload
-     * @param httpStatus      HTTP status returned by PG (or null for request-side log)
+     * @param payloadMap      redacted request/response details
+     * @param httpStatus      HTTP status when available (null for SDK calls)
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public PaymentTransaction log(Long tenantId, TransactionType type,
@@ -49,6 +49,7 @@ public class PaymentTransactionLogger {
                                    String ownerEntity, Long ownerId,
                                    Map<String, Object> payloadMap,
                                    Integer httpStatus) {
+        validateNewAuditOwner(type, ownerEntity);
         JsonNode pgPayload = objectMapper.valueToTree(payloadMap);
         PaymentTransaction tx = PaymentTransaction.builder()
                 .transactionId(UUID.randomUUID().toString())
@@ -66,5 +67,18 @@ public class PaymentTransactionLogger {
         log.debug("PaymentTransaction logged: id={}, type={}, owner={}/{}, httpStatus={}",
                 saved.getId(), type, ownerEntity, ownerId, httpStatus);
         return saved;
+    }
+
+    private static void validateNewAuditOwner(TransactionType type, String ownerEntity) {
+        boolean supported = switch (type) {
+            case SUBSCRIPTION_CHARGE, SUBSCRIPTION_REFUND ->
+                    "Invoice".equals(ownerEntity) || "Subscription".equals(ownerEntity);
+            case ALIMTALK_RECHARGE -> "AlimtalkCredit".equals(ownerEntity);
+            case BILLING_KEY_ISSUE, BILLING_KEY_REVOKE -> "BillingKey".equals(ownerEntity);
+            case TAX_INVOICE_ISSUE -> "TaxInvoice".equals(ownerEntity);
+        };
+        if (!supported) {
+            throw new IllegalArgumentException("Unsupported billing audit owner for " + type + ": " + ownerEntity);
+        }
     }
 }

@@ -54,7 +54,7 @@ class ExamServiceAdapterTest {
     private ExamServiceAdapter examServiceAdapter;
 
     @Test
-    void assignmentResultKeepsStoredAbsoluteGradeAndUnknownHistory() {
+    void assignmentResultCalculatesAbsoluteGradeForStoredAndUnstoredHistory() {
         Exam exam = ExamFixtures.aGradedExam();
         ExamResult stored = ExamFixtures.anExamResult(exam, 1L, 60);
         stored.assignGrade(7);
@@ -65,8 +65,8 @@ class ExamServiceAdapterTest {
 
         Map<Long, ExamService.AssignmentResultData> results = examServiceAdapter.getResultsForAssignment("tenant-a", 1L);
 
-        assertThat(results.get(11L).grade()).isEqualTo(7);
-        assertThat(results.get(12L).grade()).isNull();
+        assertThat(results.get(11L).grade()).isEqualTo(4);
+        assertThat(results.get(12L).grade()).isEqualTo(4);
     }
 
     @Test

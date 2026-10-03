@@ -16,7 +16,7 @@ public record StudentResultSummaryResponse(
         int score,
         @Schema(nullable = true) Integer grade,
         ExamCategory examCategory,
-        boolean isPassed,
+        @Schema(nullable = true) Boolean isPassed,
         List<StudentClassSummary> classes
 ) {
     public record StudentClassSummary(

@@ -341,6 +341,7 @@ public class ResultController {
     public ResponseEntity<QuestionResultResponse> updateQuestionAnswer(
             @PathVariable Long id,
             @Valid @RequestBody UpdateQuestionAnswerRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         QuestionResultResponse response = resultCommandService.updateQuestionAnswer(id, request);
         return ResponseEntity.ok(response);
     }
@@ -349,6 +350,7 @@ public class ResultController {
     public ResponseEntity<Void> deleteResult(
             @PathVariable Long examId,
             @PathVariable Long resultId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         resultCommandService.deleteResult(examId, resultId);
         return ResponseEntity.noContent().build();
     }

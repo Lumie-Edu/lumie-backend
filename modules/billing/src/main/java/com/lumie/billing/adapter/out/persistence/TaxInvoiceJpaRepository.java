@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface TaxInvoiceJpaRepository extends JpaRepository<TaxInvoice, Long> {
 
-    Optional<TaxInvoice> findByInvoiceId(Long invoiceId);
+    Optional<TaxInvoice> findTopByInvoiceIdOrderByIdDesc(Long invoiceId);
 
     List<TaxInvoice> findByTenantId(Long tenantId);
 

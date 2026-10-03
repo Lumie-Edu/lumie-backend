@@ -21,6 +21,5 @@ include(
     "modules:lecture",
     "modules:ai",
     "modules:notification",
-    "modules:file",
-    "modules:tuition"
+    "modules:file"
 )

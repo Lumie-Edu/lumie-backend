@@ -16,7 +16,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Append-only audit log for every PG call (request + response).
+ * Append-only audit log for payment gateway and tax-invoice provider calls.
  *
  * <p>Intentionally immutable after creation:
  * <ul>
@@ -61,7 +61,7 @@ public class PaymentTransaction {
     @Column(name = "idempotency_key", length = 64)
     private String idempotencyKey;
 
-    /** Domain entity name owning this transaction (e.g. "Invoice", "AlimtalkCredit"). */
+    /** Domain entity name owning this audit record. Historical names remain readable. */
     @Column(name = "owner_entity", length = 50)
     private String ownerEntity;
 

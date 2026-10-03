@@ -14,7 +14,7 @@ public class SchedulerConfig implements SchedulingConfigurer {
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(2);
-        scheduler.setThreadNamePrefix("ai-scheduler-");
+        scheduler.setThreadNamePrefix("lumie-scheduler-");
         scheduler.initialize();
         taskRegistrar.setTaskScheduler(scheduler);
     }

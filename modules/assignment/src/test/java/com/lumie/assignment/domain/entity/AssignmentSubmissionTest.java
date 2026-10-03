@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,28 +39,28 @@ class AssignmentSubmissionTest {
     }
 
     @Test
-    @DisplayName("grade() 호출 시 상태가 GRADED로 변경되고 점수와 피드백이 설정된다")
-    void grade_statusChangesToGraded() {
+    @DisplayName("연결 시험 결과 제출 시 공식 점수와 합불을 투영한다")
+    void submitExam_projectsOfficialResult() {
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-        submission.submit("답안", null);
-
-        submission.grade(85, "잘했습니다.");
+        submission.submitExam(Map.of("1", "2"), 30L, 8, true, null);
 
         assertThat(submission.getStatus()).isEqualTo(SubmissionStatus.GRADED);
-        assertThat(submission.getScore()).isEqualTo(85);
-        assertThat(submission.getFeedback()).isEqualTo("잘했습니다.");
+        assertThat(submission.getExamResultId()).isEqualTo(30L);
+        assertThat(submission.getScore()).isEqualTo(8);
+        assertThat(submission.getPassed()).isTrue();
         assertThat(submission.getGradedAt()).isNotNull();
     }
 
     @Test
-    @DisplayName("returnToStudent() 호출 시 상태가 RETURNED로 변경된다")
-    void returnToStudent_statusChangesToReturned() {
+    @DisplayName("공식 결과 변경 시 과제 투영을 갱신한다")
+    void synchronizeExamResult_updatesProjection() {
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-        submission.submit("답안", null);
+        submission.submitExam(Map.of("1", "2"), 30L, 8, true, null);
 
-        submission.returnToStudent("다시 제출해주세요.");
+        submission.synchronizeExamResult(Map.of("1", "1"), 4, false, null);
 
-        assertThat(submission.getStatus()).isEqualTo(SubmissionStatus.RETURNED);
-        assertThat(submission.getFeedback()).isEqualTo("다시 제출해주세요.");
+        assertThat(submission.getAnswers()).containsEntry("1", "1");
+        assertThat(submission.getScore()).isEqualTo(4);
+        assertThat(submission.getPassed()).isFalse();
     }
 }

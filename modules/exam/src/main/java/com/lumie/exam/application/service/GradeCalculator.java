@@ -26,8 +26,8 @@ public class GradeCalculator {
     private static final int[] FIVE_GRADE_ABSOLUTE_SCORE_THRESHOLDS = {90, 80, 60, 40, 0};
 
     /**
-     * 등급제 절대평가만 등급을 저장한다. 상대평가는 조회 시 계산하고
-     * P/NP는 커트라인으로 합불을 판정하므로 등급을 저장하지 않는다.
+     * 새로 채점한 절대평가 결과의 등급을 저장한다. 상대평가는 조회 시 계산하고,
+     * 과거 P/NP sentinel 등급은 검증된 이관 전까지 이 메서드에서 지우지 않는다.
      */
     public void calculateAndAssignGradeIfAbsolute(Exam exam, ExamResult result) {
         if (exam.getCategory() == ExamCategory.GRADED &&
@@ -102,7 +102,8 @@ public class GradeCalculator {
             GradeScale scale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
             return calculateRelativeGrade(result.getTotalScore(), allScores, scale);
         }
-        return result.getGrade();
+        GradeScale scale = exam.getGradeScale() != null ? exam.getGradeScale() : GradeScale.NINE_GRADE;
+        return getGradeFromScore(result.getTotalScore(), scale);
     }
 
     // 통계 조회용 메서드들

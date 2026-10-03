@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface TaxInvoicePersistencePort {
     TaxInvoice save(TaxInvoice taxInvoice);
     Optional<TaxInvoice> findById(Long id);
-    Optional<TaxInvoice> findByInvoiceId(Long invoiceId);
+    Optional<TaxInvoice> findLatestByInvoiceId(Long invoiceId);
     List<TaxInvoice> findByTenantId(Long tenantId);
     List<TaxInvoice> findByIssueStatus(TaxInvoiceIssueStatus status);
 }

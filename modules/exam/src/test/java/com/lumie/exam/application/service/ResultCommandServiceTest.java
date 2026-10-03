@@ -566,7 +566,7 @@ class ResultCommandServiceTest {
     }
 
     @Test
-    void gradeManualAnswers_returnsPersistedAbsoluteGrade() {
+    void gradeManualAnswers_returnsCurrentAbsoluteGrade() {
         Long examId = 1L;
         Long studentId = 100L;
         Exam exam = buildExam();
@@ -582,7 +582,7 @@ class ResultCommandServiceTest {
         ExamService.ManualGradeResult response = resultCommandService.gradeManualAnswers(
                 examId, studentId, Map.of("1", "1"));
 
-        assertThat(response.grade()).isEqualTo(7);
+        assertThat(response.grade()).isEqualTo(2);
         verify(resultRepository, never()).findByExamId(examId);
     }
 

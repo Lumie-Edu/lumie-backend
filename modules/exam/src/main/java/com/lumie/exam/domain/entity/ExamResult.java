@@ -138,7 +138,9 @@ public class ExamResult extends TenantScopedEntity {
                 .collect(java.util.stream.Collectors.toMap(OmrQuestionUpdate::questionNumber, u -> u));
 
         this.totalScore = newTotalScore;
-        this.grade = null;
+        if (!this.exam.isPassFail()) {
+            this.grade = null;
+        }
         for (QuestionResult existing : this.questionResults) {
             OmrQuestionUpdate update = updateMap.get(existing.getQuestionNumber());
             if (update == null) {
@@ -165,7 +167,9 @@ public class ExamResult extends TenantScopedEntity {
         this.totalScore = this.questionResults.stream()
                 .mapToInt(QuestionResult::getEarnedScore)
                 .sum();
-        this.grade = null;
+        if (!this.exam.isPassFail()) {
+            this.grade = null;
+        }
 
         return target;
     }

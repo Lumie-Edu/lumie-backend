@@ -39,7 +39,7 @@ class ClassComparisonQueryServiceTest {
     private static final Long EXAM_ID = 1L;
 
     @Test
-    void classDistributionUsesStoredAbsoluteGrade() {
+    void classDistributionUsesCurrentRawScoreForAbsoluteGrade() {
         Exam exam = ExamFixtures.aGradedExam();
         ExamResult result = ExamFixtures.anExamResult(exam, 100L, 60);
         result.assignGrade(7);
@@ -51,7 +51,7 @@ class ClassComparisonQueryServiceTest {
         ClassComparisonResponse response = service.getClassComparison(EXAM_ID);
 
         assertThat(response.classes().getFirst().gradeDistribution())
-                .extracting(ClassComparisonResponse.GradeBucket::grade).containsExactly(7);
+                .extracting(ClassComparisonResponse.GradeBucket::grade).containsExactly(4);
     }
 
 

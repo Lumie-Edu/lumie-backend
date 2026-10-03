@@ -2,6 +2,8 @@ package com.lumie.exam.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.GradeScale;
+import com.lumie.exam.domain.vo.GradingType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -33,6 +35,14 @@ public class ExamTemplate extends TenantScopedEntity {
     @Column(name = "category", nullable = false, length = 20)
     private ExamCategory category;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grading_type", length = 20)
+    private GradingType gradingType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grade_scale", length = 20)
+    private GradeScale gradeScale;
+
     @Column(name = "total_questions", nullable = false)
     private Integer totalQuestions;
 
@@ -48,38 +58,53 @@ public class ExamTemplate extends TenantScopedEntity {
     private Integer passScore;
 
     @Builder
-    private ExamTemplate(String name, ExamCategory category, Integer totalQuestions,
+    private ExamTemplate(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
+                         Integer totalQuestions,
                          Map<String, Integer> questionScores, Map<String, String> questionTypes,
                          Integer passScore) {
         this.name = name;
         this.category = category;
+        this.gradingType = gradingType;
+        this.gradeScale = gradeScale;
         this.totalQuestions = totalQuestions;
         this.questionScores = questionScores;
         this.questionTypes = questionTypes;
         this.passScore = passScore;
     }
 
-    public static ExamTemplate create(String name, ExamCategory category, Integer totalQuestions,
+    public static ExamTemplate create(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
+                                      Integer totalQuestions,
                                       Map<String, Integer> questionScores, Map<String, String> questionTypes,
                                       Integer passScore) {
+        ExamCategory effectiveCategory = category != null ? category : ExamCategory.GRADED;
         return ExamTemplate.builder()
                 .name(name)
-                .category(category != null ? category : ExamCategory.GRADED)
+                .category(effectiveCategory)
+                .gradingType(effectiveCategory == ExamCategory.GRADED ? gradingType : null)
+                .gradeScale(effectiveCategory == ExamCategory.GRADED ? gradeScale : null)
                 .totalQuestions(totalQuestions)
                 .questionScores(questionScores)
                 .questionTypes(questionTypes)
-                .passScore(passScore)
+                .passScore(effectiveCategory == ExamCategory.PASS_FAIL ? passScore : null)
                 .build();
     }
 
-    public void update(String name, ExamCategory category, Integer totalQuestions,
+    public void update(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
+                       Integer totalQuestions,
                        Map<String, Integer> questionScores, Map<String, String> questionTypes,
                        Integer passScore) {
+        boolean categoryChanged = category != null && category != this.category;
         if (name != null && !name.isBlank()) {
             this.name = name;
         }
         if (category != null) {
             this.category = category;
+        }
+        if (gradingType != null) {
+            this.gradingType = gradingType;
+        }
+        if (gradeScale != null) {
+            this.gradeScale = gradeScale;
         }
         if (totalQuestions != null) {
             this.totalQuestions = totalQuestions;
@@ -92,6 +117,12 @@ public class ExamTemplate extends TenantScopedEntity {
         }
         if (passScore != null) {
             this.passScore = passScore;
+        }
+        if (categoryChanged && this.category == ExamCategory.PASS_FAIL) {
+            this.gradingType = null;
+            this.gradeScale = null;
+        } else if (categoryChanged) {
+            this.passScore = null;
         }
     }
 

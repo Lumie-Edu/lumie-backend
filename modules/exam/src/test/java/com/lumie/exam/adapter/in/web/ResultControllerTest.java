@@ -12,6 +12,7 @@ import com.lumie.exam.application.service.OmrUploadTelemetryService;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
 import com.lumie.exam.application.dto.request.OmrUploadTelemetryRequest;
+import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
 import com.lumie.exam.application.service.StudentGradeQueryService;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.common.idempotency.IdempotencyService;
@@ -140,6 +141,31 @@ class ResultControllerTest {
             .hasMessageContaining("INSTRUCTOR role required");
 
         then(examExportService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("학생은 문항 답안 정정을 할 수 없다")
+    void updateQuestionAnswer_rejectsStudentRole() {
+        UserContextHolder.setUserRole(Role.STUDENT);
+
+        assertThatThrownBy(() -> controller.updateQuestionAnswer(
+                17L, new UpdateQuestionAnswerRequest("2")))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("INSTRUCTOR role required");
+
+        then(resultCommandService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("학생은 시험 결과를 삭제할 수 없다")
+    void deleteResult_rejectsStudentRole() {
+        UserContextHolder.setUserRole(Role.STUDENT);
+
+        assertThatThrownBy(() -> controller.deleteResult(55L, 17L))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("INSTRUCTOR role required");
+
+        then(resultCommandService).shouldHaveNoInteractions();
     }
 
     @Test

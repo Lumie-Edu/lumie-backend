@@ -21,7 +21,6 @@ import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.AssignmentTargetType;
 import com.lumie.assignment.domain.vo.EvaluationMode;
 import com.lumie.assignment.domain.vo.SubmissionMode;
-import com.lumie.assignment.domain.vo.SubmissionStatus;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -264,47 +263,8 @@ public class AssignmentCommandService {
             throw new BusinessException(AssignmentErrorCode.SUBMISSION_NOT_FOUND,
                 "Submission not found with id: %d".formatted(submissionId));
         }
-        if (assignment.getEvaluationMode() == EvaluationMode.EXAM_AUTO) {
-            throw new BusinessException(AssignmentErrorCode.INVALID_SUBMISSION,
-                    "Exam-linked assignments are graded automatically");
-        }
-
-        if (request.status() != null && parseSubmissionStatus(request.status()) == SubmissionStatus.RETURNED) {
-            submission.returnToStudent(request.feedback());
-        } else {
-            gradeTextSubmission(assignment.getEvaluationMode(), submission, request);
-        }
-
-        AssignmentSubmission saved = submissionRepository.save(submission);
-
-        log.info("Submission {} updated for assignment: {}", submissionId, assignmentId);
-        return SubmissionResponse.from(saved);
-    }
-
-    private void gradeTextSubmission(EvaluationMode evaluationMode, AssignmentSubmission submission,
-                                     UpdateSubmissionRequest request) {
-        switch (evaluationMode) {
-            case PASS_FAIL -> {
-                if (request.passed() == null) {
-                    throw new BusinessException(AssignmentErrorCode.INVALID_SUBMISSION, "Pass/fail result is required");
-                }
-                submission.gradePassFail(request.passed(), request.feedback());
-            }
-            case GRADE -> {
-                if (request.gradeValue() == null || request.gradeValue().isBlank()) {
-                    throw new BusinessException(AssignmentErrorCode.INVALID_SUBMISSION, "Grade value is required");
-                }
-                submission.gradeValue(request.gradeValue(), request.feedback());
-            }
-            case SCORE -> {
-                if (request.score() == null) {
-                    throw new BusinessException(AssignmentErrorCode.INVALID_SUBMISSION, "Score is required");
-                }
-                submission.grade(request.score(), request.feedback());
-            }
-            case EXAM_AUTO -> throw new BusinessException(AssignmentErrorCode.INVALID_SUBMISSION,
-                    "Exam-linked assignments are graded automatically");
-        }
+        throw new BusinessException(AssignmentErrorCode.INVALID_SUBMISSION,
+                "Assignment results come from the linked exam; correct a student's answer instead");
     }
 
     private List<AssignmentTarget> replaceTargets(Long assignmentId, List<Long> classIds, List<Long> studentIds) {
@@ -489,11 +449,4 @@ public class AssignmentCommandService {
         }
     }
 
-    private SubmissionStatus parseSubmissionStatus(String status) {
-        try {
-            return SubmissionStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException(AssignmentErrorCode.INVALID_STATUS, "Invalid submission status: " + status);
-        }
-    }
 }

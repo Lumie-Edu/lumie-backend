@@ -21,7 +21,7 @@ public record QuestionResultResponse(
                 result.getSelectedChoice(),
                 exam.getCorrectAnswerForQuestion(result.getQuestionNumber()),
                 result.getIsCorrect(),
-                result.getScore(),
+                exam.getScoreForQuestion(result.getQuestionNumber()),
                 result.getEarnedScore(),
                 exam.getQuestionType(result.getQuestionNumber())
         );

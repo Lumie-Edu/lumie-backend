@@ -63,14 +63,14 @@ class ResultQueryServiceTest {
     }
 
     @Test
-    void examResultsKeepTheStoredAbsoluteGrade() {
+    void examResultsCalculateAbsoluteGradeFromRawScore() {
         Exam exam = ExamFixtures.aGradedExam();
         org.springframework.test.util.ReflectionTestUtils.setField(exam, "id", 5L);
         ExamResult result = ExamResult.createForUnregistered(exam, "01011112222", 65);
         result.assignGrade(7);
         given(resultRepository.findByExamId(5L)).willReturn(List.of(result));
 
-        assertThat(resultQueryService.getExamResults(5L).get(0).grade()).isEqualTo(7);
+        assertThat(resultQueryService.getExamResults(5L).get(0).grade()).isEqualTo(4);
     }
 
     @Test

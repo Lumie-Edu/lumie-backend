@@ -3,15 +3,26 @@ package com.lumie.exam.application.service;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
 import com.lumie.exam.application.dto.request.UpdateExamRequest;
 import com.lumie.exam.application.dto.response.ExamResponse;
+import com.lumie.exam.api.ExamResultChangedEvent;
+import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.domain.entity.Exam;
+import com.lumie.exam.domain.entity.ExamResult;
+import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +32,7 @@ public class ExamCommandService {
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
     private final GradeCalculator gradeCalculator;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ExamResponse createExam(CreateExamRequest request) {
@@ -43,7 +55,7 @@ public class ExamCommandService {
     }
 
     private Exam createExamEntity(CreateExamRequest request) {
-        return Exam.create(
+        Exam exam = Exam.create(
                 request.name(),
                 request.category(),
                 request.gradingType(),
@@ -54,10 +66,12 @@ public class ExamCommandService {
                 request.questionTypes(),
                 request.passScore()
         );
+        requirePassScore(exam.getCategory(), exam.getPassScore(), exam.calculateTotalPossibleScore());
+        return exam;
     }
 
     private Exam createAssignmentExamEntity(CreateExamRequest request) {
-        return Exam.createForAssignment(
+        Exam exam = Exam.createForAssignment(
                 request.name(),
                 request.category(),
                 request.gradingType(),
@@ -68,6 +82,8 @@ public class ExamCommandService {
                 request.questionTypes(),
                 request.passScore()
         );
+        requirePassScore(exam.getCategory(), exam.getPassScore(), exam.calculateTotalPossibleScore());
+        return exam;
     }
 
     @Transactional
@@ -76,6 +92,31 @@ public class ExamCommandService {
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
+
+        List<ExamResult> existingResults = resultRepository.findByExamId(examId);
+        if (!existingResults.isEmpty() && (
+                changed(request.totalQuestions(), exam.getTotalQuestions())
+                || changed(request.correctAnswers(), exam.getCorrectAnswers())
+                || changed(request.questionScores(), exam.getQuestionScores())
+                || changed(request.questionTypes(), exam.getQuestionTypes()))) {
+            throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,
+                    "Cannot change answer keys, question scores, types or count after results exist");
+        }
+
+        ExamCategory effectiveCategory = request.category() != null ? request.category() : exam.getCategory();
+        if (effectiveCategory == ExamCategory.PASS_FAIL) {
+            Integer effectivePassScore = request.passScore() != null ? request.passScore() : exam.getPassScore();
+            int effectiveMaxScore = request.questionScores() != null
+                    ? request.questionScores().values().stream().mapToInt(Integer::intValue).sum()
+                    : exam.calculateTotalPossibleScore();
+            requirePassScore(ExamCategory.PASS_FAIL, effectivePassScore, effectiveMaxScore);
+        }
+
+        boolean gradingConfigurationChanged = changed(request.gradingType(), exam.getGradingType())
+                || changed(request.gradeScale(), exam.getGradeScale())
+                || changed(request.category(), exam.getCategory())
+                || changed(request.passScore(), exam.getPassScore());
+        ExamCategory previousCategory = exam.getCategory();
 
         exam.update(
                 request.name(),
@@ -90,14 +131,41 @@ public class ExamCommandService {
         );
 
         Exam updatedExam = examRepository.save(exam);
-        if (request.gradingType() != null || request.gradeScale() != null || request.category() != null
-                || request.passScore() != null) {
-            resultRepository.findByExamId(examId).forEach(result ->
-                    gradeCalculator.calculateAndAssignGradeIfAbsolute(updatedExam, result));
+        if (gradingConfigurationChanged) {
+            List<Integer> scores = existingResults.stream().map(result -> result.getTotalScore()).toList();
+            for (var result : existingResults) {
+                // Legacy PNP grade sentinels have not yet been provenance-migrated.
+                // A cutoff/config edit must not erase those historical values.
+                if (previousCategory != ExamCategory.PASS_FAIL) {
+                    gradeCalculator.calculateAndAssignGradeIfAbsolute(updatedExam, result);
+                }
+                if (updatedExam.getSource() != ExamSource.ASSIGNMENT) {
+                    continue;
+                }
+                Map<String, String> answers = new LinkedHashMap<>();
+                result.getQuestionResults().forEach(question -> answers.put(
+                        String.valueOf(question.getQuestionNumber()), question.getSelectedChoice()));
+                eventPublisher.publishEvent(new ExamResultChangedEvent(
+                        TenantContextHolder.getTenantId(), examId, result.getId(), answers,
+                        result.getTotalScore(), updatedExam.isPassFail() ? result.passStatus() : null,
+                        gradeCalculator.resolveStoredOrRelativeGrade(updatedExam, result, scores)));
+            }
         }
 
         log.info("Exam updated: {}", updatedExam.getId());
         return ExamResponse.from(updatedExam);
+    }
+
+    private static boolean changed(Object requested, Object current) {
+        return requested != null && !Objects.equals(requested, current);
+    }
+
+    private static void requirePassScore(ExamCategory category, Integer passScore, int totalPossibleScore) {
+        if (category == ExamCategory.PASS_FAIL
+                && (passScore == null || passScore < 1 || passScore > totalPossibleScore)) {
+            throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,
+                    "PASS_FAIL exams require a pass score within the possible score range");
+        }
     }
 
     @Transactional

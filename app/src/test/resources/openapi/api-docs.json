@@ -1234,6 +1234,14 @@
             "enum" : [ "GRADED", "PASS_FAIL" ],
             "type" : "string"
           },
+          "gradeScale" : {
+            "enum" : [ "NINE_GRADE", "FIVE_GRADE" ],
+            "type" : "string"
+          },
+          "gradingType" : {
+            "enum" : [ "RELATIVE", "ABSOLUTE" ],
+            "type" : "string"
+          },
           "name" : {
             "type" : "string"
           },
@@ -1913,6 +1921,16 @@
             "format" : "date-time",
             "type" : "string"
           },
+          "gradeScale" : {
+            "enum" : [ "NINE_GRADE", "FIVE_GRADE" ],
+            "nullable" : true,
+            "type" : "string"
+          },
+          "gradingType" : {
+            "enum" : [ "RELATIVE", "ABSOLUTE" ],
+            "nullable" : true,
+            "type" : "string"
+          },
           "id" : {
             "format" : "int64",
             "type" : "integer"
@@ -1953,7 +1971,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "category", "createdAt", "id", "name", "passScore", "questionScores", "questionTypes", "totalPossibleScore", "totalQuestions", "updatedAt" ],
+        "required" : [ "category", "createdAt", "gradeScale", "gradingType", "id", "name", "passScore", "questionScores", "questionTypes", "totalPossibleScore", "totalQuestions", "updatedAt" ],
         "type" : "object"
       },
       "FailedItem" : {
@@ -4966,6 +4984,7 @@
             "type" : "integer"
           },
           "isPassed" : {
+            "nullable" : true,
             "type" : "boolean"
           },
           "isRegistered" : {
@@ -5171,6 +5190,7 @@
             "type" : "boolean"
           },
           "isPassed" : {
+            "nullable" : true,
             "type" : "boolean"
           },
           "isRegistered" : {
@@ -5971,6 +5991,14 @@
         "properties" : {
           "category" : {
             "enum" : [ "GRADED", "PASS_FAIL" ],
+            "type" : "string"
+          },
+          "gradeScale" : {
+            "enum" : [ "NINE_GRADE", "FIVE_GRADE" ],
+            "type" : "string"
+          },
+          "gradingType" : {
+            "enum" : [ "RELATIVE", "ABSOLUTE" ],
             "type" : "string"
           },
           "name" : {

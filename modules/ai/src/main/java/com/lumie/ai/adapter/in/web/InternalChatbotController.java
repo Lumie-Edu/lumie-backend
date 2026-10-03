@@ -45,7 +45,7 @@ public class InternalChatbotController {
 
     /** Write tools the worker is allowed to invoke after user confirmation. */
     private static final Set<String> ALLOWED_TOOLS = Set.of(
-            "create_announcement", "send_sms", "send_telegram", "schedule_task");
+            "create_announcement", "send_sms", "send_telegram");
 
     private final GeneralQueryTool generalQueryTool;
     private final ToolRegistry toolRegistry;

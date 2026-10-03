@@ -296,11 +296,15 @@ public class ExamSummaryStatisticsService {
         return buckets;
     }
 
-    private record PassFailStats(double passRate, int passCount, int failCount) {}
+    private record PassFailStats(Double passRate, Integer passCount, Integer failCount) {}
 
     private PassFailStats calculatePassFailStats(Exam exam, List<ExamResult> results) {
         if (exam.getCategory() != ExamCategory.PASS_FAIL || results.isEmpty()) {
-            return new PassFailStats(0.0, 0, 0);
+            return new PassFailStats(null, null, null);
+        }
+        if (exam.getPassScore() == null) {
+            // Historical missing cutoffs require reconciliation; they are not failures.
+            return new PassFailStats(null, null, null);
         }
         int passCount = (int) results.stream().filter(ExamResult::isPassed).count();
         int failCount = results.size() - passCount;

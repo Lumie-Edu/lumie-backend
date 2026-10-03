@@ -26,7 +26,7 @@ public interface ExamService {
 
     record StudentGradeData(Long resultId, Long studentId, String phoneNumber, boolean isRegistered,
                             String studentName, int score, int rank, double percentile, Integer grade,
-                            String examCategory, boolean isPassed, String submittedAt) {}
+                            String examCategory, Boolean isPassed, String submittedAt) {}
 
     record ExamAssignmentData(
             Long id,

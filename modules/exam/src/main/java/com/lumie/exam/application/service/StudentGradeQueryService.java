@@ -125,7 +125,7 @@ public class StudentGradeQueryService {
                             Math.round(percentile * 10) / 10.0,
                             grade,
                             exam.getCategory(),
-                            result.isPassed(),
+                            exam.isPassFail() ? result.passStatus() : Boolean.FALSE,
                             result.getCreatedAt(),
                             result.getId()
                     );
@@ -160,7 +160,9 @@ public class StudentGradeQueryService {
         if (comparator == null) comparator = Comparator.comparingInt(StudentGradeResponse::rank);
         if (category == ExamCategory.PASS_FAIL) {
             comparator = comparator
-                    .thenComparing(Comparator.comparing(StudentGradeResponse::isPassed).reversed())
+                    .thenComparing(Comparator.comparing(
+                            StudentGradeResponse::isPassed,
+                            Comparator.nullsFirst(Comparator.naturalOrder())).reversed())
                     .thenComparing(Comparator.comparingInt(StudentGradeResponse::score).reversed());
         }
         return comparator;
@@ -195,7 +197,7 @@ public class StudentGradeQueryService {
                             result.getTotalScore(),
                             gradeCalculator.resolveStoredOrRelativeGrade(exam, result, allScores),
                             exam.getCategory(),
-                            result.isPassed(),
+                            exam.isPassFail() ? result.passStatus() : Boolean.FALSE,
                             classes
                     );
                 })

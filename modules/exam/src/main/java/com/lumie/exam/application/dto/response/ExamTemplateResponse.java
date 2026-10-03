@@ -2,6 +2,8 @@ package com.lumie.exam.application.dto.response;
 
 import com.lumie.exam.domain.entity.ExamTemplate;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.GradeScale;
+import com.lumie.exam.domain.vo.GradingType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
@@ -11,6 +13,8 @@ public record ExamTemplateResponse(
         Long id,
         String name,
         ExamCategory category,
+        @Schema(nullable = true) GradingType gradingType,
+        @Schema(nullable = true) GradeScale gradeScale,
         Integer totalQuestions,
         Integer totalPossibleScore,
         Map<String, Integer> questionScores,
@@ -24,6 +28,8 @@ public record ExamTemplateResponse(
                 template.getId(),
                 template.getName(),
                 template.getCategory(),
+                template.getGradingType(),
+                template.getGradeScale(),
                 template.getTotalQuestions(),
                 template.calculateTotalPossibleScore(),
                 template.getQuestionScores(),

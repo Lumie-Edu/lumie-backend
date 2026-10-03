@@ -28,7 +28,7 @@ class GradeProjectionTest {
     private final StatisticsCalculator statisticsCalculator = new StatisticsCalculator();
 
     @Test
-    void examDistributionUsesStoredAbsoluteGradeEvenWhenCurrentScoreSuggestsAnotherGrade() {
+    void examDistributionUsesCurrentRawScoreInsteadOfStoredAbsoluteGrade() {
         Exam exam = ExamFixtures.aGradedExam();
         ExamResult result = ExamFixtures.anExamResult(exam, 1L, 60);
         result.assignGrade(7);
@@ -38,7 +38,7 @@ class GradeProjectionTest {
         ExamStatisticsResponse response = service.buildExamStatistics(exam, List.of(result));
 
         assertThat(response.gradeDistribution()).extracting(ExamStatisticsResponse.GradeDistribution::grade)
-                .containsExactly(7);
+                .containsExactly(4);
     }
 
     @Test
@@ -62,7 +62,7 @@ class GradeProjectionTest {
     }
 
     @Test
-    void stabilityHistoryLeavesUnknownGradeNullInsteadOfZero() {
+    void stabilityHistoryCalculatesAbsoluteGradeFromRawScore() {
         Exam exam = ExamFixtures.aGradedExam();
         ReflectionTestUtils.setField(exam, "id", 1L);
         ExamResult result = ExamFixtures.anExamResult(exam, 1L, 60);
@@ -72,7 +72,7 @@ class GradeProjectionTest {
                 1L, List.of(result), statisticsCalculator, gradeCalculator, Map.of());
 
         assertThat(response.scoreHistory()).singleElement().extracting(StabilityIndexResponse.ScoreHistory::grade)
-                .isNull();
+                .isEqualTo(4);
     }
 
     @Test
@@ -112,7 +112,7 @@ class GradeProjectionTest {
     }
 
     @Test
-    void stabilityHistoryKeepsStoredAbsoluteGrade() {
+    void stabilityHistoryUsesCurrentRawScoreInsteadOfStoredAbsoluteGrade() {
         Exam exam = ExamFixtures.aGradedExam();
         ReflectionTestUtils.setField(exam, "id", 3L);
         ExamResult result = ExamFixtures.anExamResult(exam, 1L, 60);
@@ -123,7 +123,7 @@ class GradeProjectionTest {
                 1L, List.of(result), statisticsCalculator, gradeCalculator, Map.of());
 
         assertThat(response.scoreHistory()).singleElement()
-                .extracting(StabilityIndexResponse.ScoreHistory::grade).isEqualTo(7);
+                .extracting(StabilityIndexResponse.ScoreHistory::grade).isEqualTo(4);
     }
 
     @Test

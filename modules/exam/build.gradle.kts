@@ -26,6 +26,7 @@ dependencies {
     testImplementation("org.testcontainers:rabbitmq")
     testImplementation(testFixtures(project(":libs:common")))
     testImplementation(testFixtures(project(":modules:exam")))
+    testImplementation("org.postgresql:postgresql")
 
     // Test fixtures — ExamFixtures uses Exam/ExamResult/QuestionResult from this module's main.
     // JPA API needed because Exam/ExamResult are @Entity classes (jakarta.persistence on classpath).

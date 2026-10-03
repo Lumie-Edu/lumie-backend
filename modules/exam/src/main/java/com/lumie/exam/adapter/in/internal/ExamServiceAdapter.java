@@ -57,7 +57,7 @@ public class ExamServiceAdapter implements ExamService {
                         String.valueOf(question.getQuestionNumber()), question.getSelectedChoice()));
                 Integer grade = gradeCalculator.resolveStoredOrRelativeGrade(exam, result, scores);
                 data.put(result.getId(), new AssignmentResultData(result.getStudentId(), answers,
-                        result.getTotalScore(), exam.isPassFail() ? result.isPassed() : null, grade));
+                        result.getTotalScore(), exam.isPassFail() ? result.passStatus() : null, grade));
             }
             return data;
         });

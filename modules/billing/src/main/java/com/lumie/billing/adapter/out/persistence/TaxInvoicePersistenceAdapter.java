@@ -26,8 +26,8 @@ public class TaxInvoicePersistenceAdapter implements TaxInvoicePersistencePort {
     }
 
     @Override
-    public Optional<TaxInvoice> findByInvoiceId(Long invoiceId) {
-        return taxInvoiceJpaRepository.findByInvoiceId(invoiceId);
+    public Optional<TaxInvoice> findLatestByInvoiceId(Long invoiceId) {
+        return taxInvoiceJpaRepository.findTopByInvoiceIdOrderByIdDesc(invoiceId);
     }
 
     @Override

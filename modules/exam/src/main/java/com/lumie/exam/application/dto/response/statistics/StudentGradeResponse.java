@@ -15,7 +15,7 @@ public record StudentGradeResponse(
         double percentile,
         @Schema(nullable = true) Integer grade,
         ExamCategory examCategory,
-        boolean isPassed,
+        @Schema(nullable = true) Boolean isPassed,
         Instant submittedAt,
         Long resultId
 ) {}

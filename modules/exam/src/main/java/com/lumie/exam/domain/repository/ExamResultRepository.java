@@ -127,18 +127,43 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
         """, nativeQuery = true)
     ResultAggregateRow aggregateResults();
 
-    /** (gradeScale, grade) -> count across the tenant. Scale comes from the exam. */
+    /** Current academic-grade buckets, derived from raw scores rather than historical stored grades. */
     @Query(value = """
-        SELECT e.grade_scale AS "gradeScale",
-               r.grade       AS grade,
-               COUNT(*)      AS cnt
-          FROM exam_results r
-          JOIN exams e ON e.id = r.exam_id
-         WHERE r.grade IS NOT NULL
-           AND r.grade > 0
-           AND e.category = 'GRADED'
-           AND e.source = 'EXAM_MANAGEMENT'
-         GROUP BY e.grade_scale, r.grade
+        WITH ranked AS (
+            SELECT COALESCE(e.grade_scale, 'NINE_GRADE') AS grade_scale,
+                   e.grading_type,
+                   r.total_score,
+                   (RANK() OVER (PARTITION BY r.exam_id ORDER BY r.total_score DESC) - 1)
+                       * 100.0 / COUNT(*) OVER (PARTITION BY r.exam_id) AS percentile
+              FROM exam_results r
+              JOIN exams e ON e.id = r.exam_id
+             WHERE e.category = 'GRADED'
+               AND e.source = 'EXAM_MANAGEMENT'
+        ), graded AS (
+            SELECT grade_scale,
+                   CASE
+                     WHEN grading_type = 'RELATIVE' AND grade_scale = 'FIVE_GRADE' THEN
+                       CASE WHEN percentile < 10 THEN 1 WHEN percentile < 35 THEN 2
+                            WHEN percentile < 65 THEN 3 WHEN percentile < 90 THEN 4 ELSE 5 END
+                     WHEN grading_type = 'RELATIVE' THEN
+                       CASE WHEN percentile < 4 THEN 1 WHEN percentile < 11 THEN 2
+                            WHEN percentile < 23 THEN 3 WHEN percentile < 40 THEN 4
+                            WHEN percentile < 60 THEN 5 WHEN percentile < 77 THEN 6
+                            WHEN percentile < 89 THEN 7 WHEN percentile < 96 THEN 8 ELSE 9 END
+                     WHEN grade_scale = 'FIVE_GRADE' THEN
+                       CASE WHEN total_score >= 90 THEN 1 WHEN total_score >= 80 THEN 2
+                            WHEN total_score >= 60 THEN 3 WHEN total_score >= 40 THEN 4 ELSE 5 END
+                     ELSE
+                       CASE WHEN total_score >= 90 THEN 1 WHEN total_score >= 80 THEN 2
+                            WHEN total_score >= 70 THEN 3 WHEN total_score >= 60 THEN 4
+                            WHEN total_score >= 50 THEN 5 WHEN total_score >= 40 THEN 6
+                            WHEN total_score >= 30 THEN 7 WHEN total_score >= 20 THEN 8 ELSE 9 END
+                   END AS grade
+              FROM ranked
+        )
+        SELECT grade_scale AS "gradeScale", grade AS grade, COUNT(*)::integer AS cnt
+          FROM graded
+         GROUP BY grade_scale, grade
         """, nativeQuery = true)
     List<GradeBucketRow> aggregateGradeBuckets();
 

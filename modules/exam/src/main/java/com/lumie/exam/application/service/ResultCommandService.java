@@ -216,7 +216,7 @@ public class ResultCommandService {
                 String.valueOf(question.getQuestionNumber()), question.getSelectedChoice()));
         eventPublisher.publishEvent(new ExamResultChangedEvent(
                 TenantContextHolder.getTenantId(), saved.getExam().getId(), saved.getId(),
-                answers, saved.getTotalScore(), saved.getExam().isPassFail() ? saved.isPassed() : null,
+                answers, saved.getTotalScore(), saved.getExam().isPassFail() ? saved.passStatus() : null,
                 toManualGradeResult(saved, saved.getExam(), saved.getStudentId()).grade()));
         return QuestionResultResponse.from(refreshed, saved.getExam());
     }
@@ -453,7 +453,7 @@ public class ResultCommandService {
                 result.getTotalScore(),
                 exam.calculateTotalPossibleScore(),
                 grade,
-                exam.isPassFail() ? result.isPassed() : null,
+                exam.isPassFail() ? result.passStatus() : null,
                 questionResults
         );
     }

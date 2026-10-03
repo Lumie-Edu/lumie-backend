@@ -129,27 +129,6 @@ public class AssignmentSubmission extends TenantScopedEntity {
         this.status = SubmissionStatus.SUBMITTED;
     }
 
-    public void grade(Integer score, String feedback) {
-        this.score = score;
-        this.feedback = feedback;
-        this.gradedAt = Instant.now();
-        this.status = SubmissionStatus.GRADED;
-    }
-
-    public void gradePassFail(Boolean passed, String feedback) {
-        this.passed = passed;
-        this.feedback = feedback;
-        this.gradedAt = Instant.now();
-        this.status = SubmissionStatus.GRADED;
-    }
-
-    public void gradeValue(String gradeValue, String feedback) {
-        this.gradeValue = gradeValue;
-        this.feedback = feedback;
-        this.gradedAt = Instant.now();
-        this.status = SubmissionStatus.GRADED;
-    }
-
     public void submitExam(Map<String, String> answers, Long examResultId,
                            Integer score, Boolean passed, String gradeValue) {
         this.content = null;
@@ -163,11 +142,6 @@ public class AssignmentSubmission extends TenantScopedEntity {
         this.submittedAt = now;
         this.gradedAt = now;
         this.status = SubmissionStatus.GRADED;
-    }
-
-    public void returnToStudent(String feedback) {
-        this.feedback = feedback;
-        this.status = SubmissionStatus.RETURNED;
     }
 
     public void synchronizeExamResult(Map<String, String> answers, Integer score,

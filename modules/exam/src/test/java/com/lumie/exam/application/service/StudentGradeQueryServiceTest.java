@@ -78,7 +78,7 @@ class StudentGradeQueryServiceTest {
     }
 
     /** PASS_FAIL exam; students scoring >= passScore return isPassed()=true. */
-    private Exam passFailExam(int passScore) {
+    private Exam passFailExam(Integer passScore) {
         Map<String, String> correctAnswers = new LinkedHashMap<>();
         Map<String, Integer> questionScores = new LinkedHashMap<>();
         Map<String, String> questionTypes   = new LinkedHashMap<>();
@@ -108,7 +108,7 @@ class StudentGradeQueryServiceTest {
     }
 
     @Test
-    void absoluteGradeUsesTheStoredValueInListAndSummary() {
+    void absoluteGradeUsesRawScoreInListAndSummary() {
         Exam exam = gradedExam();
         ExamResult result = ExamResult.create(exam, 1L, 65);
         result.assignGrade(7);
@@ -119,8 +119,8 @@ class StudentGradeQueryServiceTest {
         given(classService.getEnrolledClassesForStudents(anyString(), anyList())).willReturn(List.of());
 
         assertThat(service.getStudentGrades(EXAM_ID, PageRequest.of(0, 10))
-                .getContent().get(0).grade()).isEqualTo(7);
-        assertThat(service.getStudentResultSummaries(EXAM_ID).get(0).grade()).isEqualTo(7);
+                .getContent().get(0).grade()).isEqualTo(4);
+        assertThat(service.getStudentResultSummaries(EXAM_ID).get(0).grade()).isEqualTo(4);
     }
 
     @Test
@@ -411,6 +411,19 @@ class StudentGradeQueryServiceTest {
     // ---------------------------------------------------------------------------
     // PASS_FAIL secondary tiebreaker
     // ---------------------------------------------------------------------------
+
+    @Test
+    void missingHistoricalCutoffIsUnknownNotFailed() {
+        Exam exam = passFailExam(null);
+        List<ExamResult> results = List.of(ExamResult.create(exam, 1L, 70));
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        stubStudentService(results);
+        given(classService.getEnrolledClassesForStudents(anyString(), anyList())).willReturn(List.of());
+
+        assertThat(service.getStudentGrades(EXAM_ID, Pageable.unpaged()).getContent().get(0).isPassed()).isNull();
+        assertThat(service.getStudentResultSummaries(EXAM_ID).get(0).isPassed()).isNull();
+    }
 
     @Test
     @DisplayName("getStudentGrades: PASS_FAIL 시험에서 합격자 그룹이 불합격자 그룹보다 앞에 위치한다")
