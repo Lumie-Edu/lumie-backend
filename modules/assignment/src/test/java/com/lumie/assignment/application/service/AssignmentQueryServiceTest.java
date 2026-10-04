@@ -157,7 +157,7 @@ class AssignmentQueryServiceTest {
         given(assignmentRepository.findById(1L)).willReturn(Optional.of(buildAssignment(1L)));
         stubCurrentResults();
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10, false, "9");
+        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10);
         setField(submission, "id", 10L);
 
         Pageable pageable = PageRequest.of(0, 20);
@@ -172,6 +172,27 @@ class AssignmentQueryServiceTest {
         assertThat(response.getContent().get(0).score()).isEqualTo(100);
         assertThat(response.getContent().get(0).answers()).containsEntry("1", "2");
         assertThat(response.getContent().get(0).gradeValue()).isEqualTo("1");
+        assertThat(response.getContent().get(0).passed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("공식 결과가 없는 과거 제출은 답안·점수를 보존하고 판정은 비운다")
+    void getSubmissions_missingOfficialResult_preservesSubmissionWithoutVerdict() throws Exception {
+        given(assignmentRepository.findById(1L)).willReturn(Optional.of(buildAssignment(1L)));
+        given(examService.getResultsForAssignment(eq("test-tenant"), any()))
+                .willReturn(java.util.Map.of());
+        AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
+        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10);
+        Pageable pageable = PageRequest.of(0, 20);
+        given(submissionRepository.findByAssignmentId(1L, pageable))
+                .willReturn(new PageImpl<>(List.of(submission), pageable, 1));
+
+        SubmissionResponse response = queryService.getSubmissions(1L, pageable).getContent().get(0);
+
+        assertThat(response.answers()).containsEntry("1", "1");
+        assertThat(response.score()).isEqualTo(10);
+        assertThat(response.passed()).isNull();
+        assertThat(response.gradeValue()).isNull();
     }
 
     @Test
@@ -180,7 +201,7 @@ class AssignmentQueryServiceTest {
         stubCurrentResults();
         Assignment entity = buildAssignment(1L);
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10, false, "9");
+        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10);
         setField(submission, "id", 10L);
 
         given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
@@ -210,7 +231,7 @@ class AssignmentQueryServiceTest {
         given(assignmentRepository.findById(1L)).willReturn(Optional.of(buildAssignment(1L)));
         stubCurrentResults();
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10, false, "9");
+        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10);
         setField(submission, "id", 10L);
 
         Pageable pageable = PageRequest.of(0, 20);
@@ -221,6 +242,26 @@ class AssignmentQueryServiceTest {
         Page<SubmissionResponse> response = queryService.getStudentSubmissions(1L, 42L, pageable);
 
         assertThat(response.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("학생별 과거 제출도 공식 결과가 없으면 판정을 만들지 않는다")
+    void getStudentSubmissions_missingOfficialResult_hasNoVerdict() throws Exception {
+        given(assignmentRepository.findById(1L)).willReturn(Optional.of(buildAssignment(1L)));
+        given(examService.getResultsForAssignment(eq("test-tenant"), any()))
+                .willReturn(java.util.Map.of());
+        AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
+        submission.submitExam(java.util.Map.of("1", "1"), 90L, 10);
+        Pageable pageable = PageRequest.of(0, 20);
+        given(submissionRepository.findByAssignmentIdAndStudentId(1L, 42L, pageable))
+                .willReturn(new PageImpl<>(List.of(submission), pageable, 1));
+
+        SubmissionResponse response = queryService.getStudentSubmissions(1L, 42L, pageable)
+                .getContent().get(0);
+
+        assertThat(response.score()).isEqualTo(10);
+        assertThat(response.passed()).isNull();
+        assertThat(response.gradeValue()).isNull();
     }
 
     private void stubCurrentResults() {
@@ -294,7 +335,6 @@ class AssignmentQueryServiceTest {
 
     private Assignment buildAssignment(Long id, AssignmentStatus status, Instant dueDate) throws Exception {
         Assignment entity = Assignment.create(
-                1L,
                 dueDate,
                 100,
                 null,

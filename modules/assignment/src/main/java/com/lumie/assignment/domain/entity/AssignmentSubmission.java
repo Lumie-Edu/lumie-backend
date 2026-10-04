@@ -62,12 +62,6 @@ public class AssignmentSubmission extends TenantScopedEntity {
     @Column(name = "score")
     private Integer score;
 
-    @Column(name = "passed")
-    private Boolean passed;
-
-    @Column(name = "grade_value", length = 30)
-    private String gradeValue;
-
     @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
 
@@ -84,8 +78,8 @@ public class AssignmentSubmission extends TenantScopedEntity {
     @Builder
     private AssignmentSubmission(Long assignmentId, Long studentId, String content,
                                 List<Long> attachments, Map<String, String> answers,
-                                Long examResultId, Integer score, Boolean passed,
-                                String gradeValue, String feedback, Instant submittedAt,
+                                Long examResultId, Integer score,
+                                String feedback, Instant submittedAt,
                                 Instant gradedAt, SubmissionStatus status) {
         this.assignmentId = assignmentId;
         this.studentId = studentId;
@@ -94,8 +88,6 @@ public class AssignmentSubmission extends TenantScopedEntity {
         this.answers = answers;
         this.examResultId = examResultId;
         this.score = score;
-        this.passed = passed;
-        this.gradeValue = gradeValue;
         this.feedback = feedback;
         this.submittedAt = submittedAt;
         this.gradedAt = gradedAt;
@@ -124,32 +116,24 @@ public class AssignmentSubmission extends TenantScopedEntity {
         this.submittedAt = Instant.now();
         this.gradedAt = null;
         this.score = null;
-        this.passed = null;
-        this.gradeValue = null;
         this.status = SubmissionStatus.SUBMITTED;
     }
 
-    public void submitExam(Map<String, String> answers, Long examResultId,
-                           Integer score, Boolean passed, String gradeValue) {
+    public void submitExam(Map<String, String> answers, Long examResultId, Integer score) {
         this.content = null;
         this.attachments = null;
         this.answers = answers;
         this.examResultId = examResultId;
         this.score = score;
-        this.passed = passed;
-        this.gradeValue = gradeValue;
         Instant now = Instant.now();
         this.submittedAt = now;
         this.gradedAt = now;
         this.status = SubmissionStatus.GRADED;
     }
 
-    public void synchronizeExamResult(Map<String, String> answers, Integer score,
-                                      Boolean passed, Integer grade) {
+    public void synchronizeExamResult(Map<String, String> answers, Integer score) {
         this.answers = answers;
         this.score = score;
-        this.passed = passed;
-        this.gradeValue = grade == null ? null : String.valueOf(grade);
     }
 
     @Converter

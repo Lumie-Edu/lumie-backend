@@ -8,8 +8,10 @@ import com.lumie.assignment.application.dto.request.UpdateSubmissionRequest;
 import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.dto.response.AssignmentSubmissionResultResponse;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
+import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort;
+import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort.Targets;
+import com.lumie.assignment.application.port.out.AssignmentAudienceWritePort;
 import com.lumie.assignment.domain.entity.Assignment;
-import com.lumie.assignment.domain.entity.AssignmentTarget;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.common.test.ReflectionTestUtils;
 import com.lumie.common.test.TenantContextExtension;
@@ -17,9 +19,7 @@ import com.lumie.classroom.api.ClassService;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
-import com.lumie.assignment.domain.repository.AssignmentTargetRepository;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
-import com.lumie.assignment.domain.vo.AssignmentTargetType;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.UserContextHolder;
@@ -44,6 +44,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith({MockitoExtension.class, TenantContextExtension.class})
@@ -52,7 +53,8 @@ class AssignmentCommandServiceTest {
 
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private AssignmentSubmissionRepository submissionRepository;
-    @Mock private AssignmentTargetRepository targetRepository;
+    @Mock private AssignmentAudienceReadPort audienceReadPort;
+    @Mock private AssignmentAudienceWritePort audienceWritePort;
     @Mock private AssignmentRecipientService recipientService;
     @Mock private ClassService classService;
     @Mock private StudentService studentService;
@@ -94,13 +96,14 @@ class AssignmentCommandServiceTest {
                         ReflectionTestUtils.setField(entity, "id", 1L);
                         return entity;
                     });
-            given(targetRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
 
             AssignmentResponse response = commandService.createAssignment(request);
 
             assertThat(response.status()).isEqualTo(AssignmentStatus.ACTIVE);
             assertThat(response.linkedExamId()).isEqualTo(77L);
-            verify(recipientService).snapshotRecipients("test-tenant", 1L, List.of(1L), List.of());
+            var order = inOrder(audienceWritePort, recipientService);
+            order.verify(audienceWritePort).createTargets(1L, List.of(1L), List.of());
+            order.verify(recipientService).snapshotRecipients("test-tenant", 1L, List.of(1L), List.of());
         }
 
         @Test
@@ -123,7 +126,6 @@ class AssignmentCommandServiceTest {
                 ReflectionTestUtils.setField(entity, "id", 1L);
                 return entity;
             });
-            given(targetRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
 
             AssignmentResponse response = commandService.createAssignment(request);
 
@@ -174,7 +176,6 @@ class AssignmentCommandServiceTest {
                         ReflectionTestUtils.setField(entity, "id", 1L);
                         return entity;
                     });
-            given(targetRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
 
             AssignmentResponse response = commandService.createAssignment(request);
 
@@ -218,7 +219,6 @@ class AssignmentCommandServiceTest {
                         ReflectionTestUtils.setField(entity, "id", 1L);
                         return entity;
                     });
-            given(targetRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
 
             AssignmentResponse response = commandService.createAssignment(request);
 
@@ -264,10 +264,7 @@ class AssignmentCommandServiceTest {
 
             given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
             given(assignmentRepository.save(any(Assignment.class))).willAnswer(inv -> inv.getArgument(0));
-            given(targetRepository.findByAssignmentId(1L)).willReturn(List.of(classTarget(1L)));
-            given(classService.getClass(any(), eq(1L)))
-                    .willReturn(Optional.of(new ClassService.ClassData(
-                            1L, "수학반", null, null, null, null, null, null, null)));
+            given(audienceReadPort.findByAssignmentId(1L)).willReturn(classTarget(1L));
             given(examService.getExamForAssignment(any(), eq(10L))).willReturn(Optional.of(examData()));
 
             AssignmentResponse response = commandService.updateAssignment(1L, request);
@@ -284,18 +281,14 @@ class AssignmentCommandServiceTest {
 
             given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
             given(assignmentRepository.save(any(Assignment.class))).willAnswer(inv -> inv.getArgument(0));
-            given(targetRepository.findByAssignmentId(1L)).willReturn(List.of(classTarget(1L)));
-            given(classService.getClass(any(), eq(1L)))
-                    .willReturn(Optional.of(new ClassService.ClassData(
-                            1L, "수학반", null, null, null, null, null, null, null)));
+            given(audienceReadPort.findByAssignmentId(1L)).willReturn(classTarget(1L));
             given(examService.getExamForAssignment(any(), eq(10L))).willReturn(Optional.of(examData()));
 
             AssignmentResponse response = commandService.updateAssignment(1L, request);
 
             assertThat(response.status()).isEqualTo(AssignmentStatus.CLOSED);
             assertThat(response.targetClassIds()).containsExactly(1L);
-            verify(targetRepository, never()).deleteByAssignmentId(1L);
-            verify(targetRepository, never()).saveAll(any());
+            verify(audienceWritePort, never()).createTargets(any(), any(), any());
         }
 
         @Test
@@ -308,14 +301,46 @@ class AssignmentCommandServiceTest {
 
             given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
             given(assignmentRepository.save(any(Assignment.class))).willAnswer(inv -> inv.getArgument(0));
-            given(targetRepository.findByAssignmentId(1L)).willReturn(List.of(classTarget(1L)));
-            given(classService.getClass(any(), eq(1L))).willReturn(Optional.of(new ClassService.ClassData(
-                    1L, "수학반", null, null, null, null, null, null, null)));
+            given(audienceReadPort.findByAssignmentId(1L)).willReturn(classTarget(1L));
             given(examService.getExamForAssignment(any(), eq(10L))).willReturn(Optional.of(examData()));
 
             AssignmentResponse response = commandService.updateAssignment(1L, request);
 
             assertThat(response.status()).isEqualTo(AssignmentStatus.ACTIVE);
+        }
+
+        @Test
+        @DisplayName("대상 반 삭제 뒤에도 남은 과제의 마감일을 수정할 수 있다")
+        void updateAssignment_deletedTargets_allowsMetadataChange() throws Exception {
+            Assignment entity = buildAssignment(1L);
+            UpdateAssignmentRequest request = new UpdateAssignmentRequest(
+                    Instant.now().plusSeconds(3_600), null, null, null);
+            given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
+            given(assignmentRepository.save(any(Assignment.class))).willAnswer(inv -> inv.getArgument(0));
+            given(audienceReadPort.findByAssignmentId(1L)).willReturn(new Targets(List.of(), List.of()));
+            given(examService.getExamForAssignment(any(), eq(10L))).willReturn(Optional.of(examData()));
+
+            AssignmentResponse response = commandService.updateAssignment(1L, request);
+
+            assertThat(response.targetClassIds()).isEmpty();
+            verify(audienceWritePort, never()).createTargets(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("생성 후 대상 반 변경은 거부한다")
+        void updateAssignment_targetChangeIsRejected() throws Exception {
+            Assignment entity = buildAssignment(1L);
+            UpdateAssignmentRequest request = new UpdateAssignmentRequest(
+                    null, null, null, null, null, null, List.of(2L), null,
+                    null, null, null, null, null);
+            given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
+            given(audienceReadPort.findByAssignmentId(1L)).willReturn(classTarget(1L));
+
+            assertThatThrownBy(() -> commandService.updateAssignment(1L, request))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(AssignmentErrorCode.TARGET_IMMUTABLE));
+            verify(audienceWritePort, never()).createTargets(any(), any(), any());
         }
 
         @Test
@@ -336,10 +361,7 @@ class AssignmentCommandServiceTest {
                     null, null, null, "INVALID");
 
             given(assignmentRepository.findById(1L)).willReturn(Optional.of(entity));
-            given(targetRepository.findByAssignmentId(1L)).willReturn(List.of(classTarget(1L)));
-            given(classService.getClass(any(), eq(1L)))
-                    .willReturn(Optional.of(new ClassService.ClassData(
-                            1L, "수학반", null, null, null, null, null, null, null)));
+            given(audienceReadPort.findByAssignmentId(1L)).willReturn(classTarget(1L));
 
             assertThatThrownBy(() -> commandService.updateAssignment(1L, request))
                     .isInstanceOf(BusinessException.class);
@@ -391,6 +413,8 @@ class AssignmentCommandServiceTest {
             assertThat(response.status()).isEqualTo(SubmissionStatus.GRADED);
             assertThat(response.answers()).containsEntry("1", "2");
             assertThat(response.examResultId()).isEqualTo(500L);
+            assertThat(response.score()).isEqualTo(100);
+            assertThat(response.passed()).isTrue();
         }
 
         @Test
@@ -444,6 +468,7 @@ class AssignmentCommandServiceTest {
                 assertThat(response.questionResults()).hasSize(1);
                 assertThat(response.questionResults().get(0).questionType()).isEqualTo("객관식");
                 assertThat(response.questionResults().get(0).correctAnswer()).isNull();
+                assertThat(response.submission().passed()).isTrue();
             } finally {
                 UserContextHolder.clear();
             }
@@ -519,7 +544,6 @@ class AssignmentCommandServiceTest {
 
     private Assignment buildAssignment(Long id) throws Exception {
         Assignment entity = Assignment.create(
-                1L,
                 futureDueDate(),
                 100,
                 null,
@@ -540,8 +564,8 @@ class AssignmentCommandServiceTest {
         return Instant.parse("2099-04-15T23:59:00Z");
     }
 
-    private AssignmentTarget classTarget(Long classId) {
-        return AssignmentTarget.create(1L, AssignmentTargetType.CLASS, classId);
+    private Targets classTarget(Long classId) {
+        return new Targets(List.of(classId), List.of());
     }
 
     private com.lumie.assignment.application.dto.request.CreateAssignmentExamRequest examRequest() {

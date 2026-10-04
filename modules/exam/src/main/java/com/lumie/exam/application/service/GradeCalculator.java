@@ -25,10 +25,7 @@ public class GradeCalculator {
     // 5등급제 절대평가 점수 기준
     private static final int[] FIVE_GRADE_ABSOLUTE_SCORE_THRESHOLDS = {90, 80, 60, 40, 0};
 
-    /**
-     * 새로 채점한 절대평가 결과의 등급을 저장한다. 상대평가는 조회 시 계산하고,
-     * 과거 P/NP sentinel 등급은 검증된 이관 전까지 이 메서드에서 지우지 않는다.
-     */
+    /** 새 절대평가 결과의 학업 등급만 저장한다. 상대평가 등급은 조회 시 계산하고 P/NP에는 학업 등급을 부여하지 않는다. */
     public void calculateAndAssignGradeIfAbsolute(Exam exam, ExamResult result) {
         if (exam.getCategory() == ExamCategory.GRADED &&
                    exam.getGradingType() == GradingType.ABSOLUTE) {

@@ -1,8 +1,7 @@
 package com.lumie.assignment.application.dto.response;
 
 import com.lumie.assignment.domain.entity.Assignment;
-import com.lumie.assignment.domain.entity.AssignmentTarget;
-import com.lumie.assignment.domain.vo.AssignmentTargetType;
+import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort.Targets;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.EvaluationMode;
 import com.lumie.assignment.domain.vo.SubmissionMode;
@@ -55,22 +54,22 @@ public record AssignmentResponse(
     }
 
     public static AssignmentResponse from(Assignment entity) {
-        return from(entity, List.of());
+        return from(entity, new Targets(List.of(), List.of()));
     }
 
-    public static AssignmentResponse from(Assignment entity, List<AssignmentTarget> targets) {
+    public static AssignmentResponse from(Assignment entity, Targets targets) {
         return from(entity, targets, null);
     }
 
-    public static AssignmentResponse from(Assignment entity, List<AssignmentTarget> targets, String examName) {
+    public static AssignmentResponse from(Assignment entity, Targets targets, String examName) {
         return from(entity, targets, examName, "UNVERIFIED");
     }
 
-    public static AssignmentResponse from(Assignment entity, List<AssignmentTarget> targets,
+    public static AssignmentResponse from(Assignment entity, Targets targets,
                                           String examName, String rosterAccuracy) {
         return new AssignmentResponse(
             entity.getId(),
-            entity.getClassId(),
+            targets.firstClassId(),
             entity.getDueDate(),
             entity.getMaxScore(),
             entity.getAttachments(),
@@ -79,14 +78,8 @@ public record AssignmentResponse(
             entity.getEvaluationMode(),
             entity.getLinkedExamId(),
             examName,
-            targets.stream()
-                    .filter(target -> target.getTargetType() == AssignmentTargetType.CLASS)
-                    .map(AssignmentTarget::getTargetId)
-                    .toList(),
-            targets.stream()
-                    .filter(target -> target.getTargetType() == AssignmentTargetType.STUDENT)
-                    .map(AssignmentTarget::getTargetId)
-                    .toList(),
+            targets.classIds(),
+            targets.studentIds(),
             entity.isShowScore(),
             entity.isShowPassFail(),
             entity.isShowGrade(),

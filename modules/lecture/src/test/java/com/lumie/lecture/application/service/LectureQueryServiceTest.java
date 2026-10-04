@@ -169,7 +169,7 @@ class LectureQueryServiceTest {
     }
 
     private static Lecture studentLecture(Long lectureId) throws Exception {
-        Lecture lecture = Lecture.create(2L, 10L, "수업 영상", null,
+        Lecture lecture = Lecture.create(10L, "수업 영상", null,
                 "https://www.youtube.com/watch?v=abc123", LectureVisibility.STUDENT, null);
         ReflectionTestUtils.setField(lecture, "id", lectureId);
         return lecture;

@@ -112,13 +112,17 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
         withinTenant(() -> {
             var ids = seed();
             Long assignmentId = submissions.findById(ids.submission()).orElseThrow().getAssignmentId();
-            Long classId = assignments.findById(assignmentId).orElseThrow().getClassId();
+            Long classId = jdbc.queryForObject(
+                    "SELECT class_id FROM assignment_class_targets WHERE assignment_id = ?",
+                    Long.class, assignmentId);
 
             transactions.executeWithoutResult(status -> jdbc.update("DELETE FROM classes WHERE id = ?", classId));
 
             var assignment = assignments.findById(assignmentId).orElseThrow();
             assertThat(assignment.getStatus()).isEqualTo(AssignmentStatus.CLOSED);
-            assertThat(assignment.getClassId()).isNull();
+            assertThat(jdbc.queryForObject(
+                    "SELECT count(*) FROM assignment_class_targets WHERE assignment_id = ?",
+                    Integer.class, assignmentId)).isZero();
             assertThat(submissions.existsById(ids.submission())).isTrue();
         });
     }
@@ -133,11 +137,13 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
             var result = ExamResult.create(exam, null, 0);
             result.addQuestionResult(QuestionResult.create(1, "1", "2", 100));
             result = results.saveAndFlush(result);
-            var assignment = assignments.save(Assignment.create(classId, Instant.now().plusSeconds(3600), 100, null,
+            var assignment = assignments.saveAndFlush(Assignment.create(Instant.now().plusSeconds(3600), 100, null,
                     AssignmentStatus.ACTIVE, SubmissionMode.EXAM_MANUAL, EvaluationMode.EXAM_AUTO, exam.getId(),
                     true, true, false, true, false));
+            jdbc.update("INSERT INTO assignment_class_targets (assignment_id, class_id, tenant_id) VALUES (?, ?, 1)",
+                    assignment.getId(), classId);
             var submission = AssignmentSubmission.create(assignment.getId(), null);
-            submission.submitExam(Map.of("1", "1"), result.getId(), 0, false, "9");
+            submission.submitExam(Map.of("1", "1"), result.getId(), 0);
             submission = submissions.saveAndFlush(submission);
             return new Ids(exam.getId(), result.getId(), submission.getId(), result.getQuestionResults().get(0).getId());
         });

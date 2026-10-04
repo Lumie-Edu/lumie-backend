@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/** Reads the tenant-safe target relations; legacy targets remain a rollout writer only. */
+/** Reads the tenant-safe typed target relations. */
 public interface AssignmentAudienceReadPort {
 
     Map<Long, Targets> findByAssignmentIds(Collection<Long> assignmentIds);

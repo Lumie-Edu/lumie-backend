@@ -10,15 +10,15 @@ import com.lumie.assignment.application.dto.response.AssignmentQuestionResultRes
 import com.lumie.assignment.application.dto.response.AssignmentResponse;
 import com.lumie.assignment.application.dto.response.AssignmentSubmissionResultResponse;
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
+import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort;
+import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort.Targets;
+import com.lumie.assignment.application.port.out.AssignmentAudienceWritePort;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
-import com.lumie.assignment.domain.entity.AssignmentTarget;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
 import com.lumie.assignment.domain.repository.AssignmentRepository;
 import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
-import com.lumie.assignment.domain.repository.AssignmentTargetRepository;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
-import com.lumie.assignment.domain.vo.AssignmentTargetType;
 import com.lumie.assignment.domain.vo.EvaluationMode;
 import com.lumie.assignment.domain.vo.SubmissionMode;
 import com.lumie.classroom.api.ClassService;
@@ -32,10 +32,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -46,7 +46,8 @@ public class AssignmentCommandService {
 
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
-    private final AssignmentTargetRepository targetRepository;
+    private final AssignmentAudienceReadPort audienceReadPort;
+    private final AssignmentAudienceWritePort audienceWritePort;
     private final AssignmentRecipientService recipientService;
     private final ClassService classService;
     private final StudentService studentService;
@@ -71,7 +72,6 @@ public class AssignmentCommandService {
         requireExamManualWorkflow(submissionMode, evaluationMode, linkedExamId);
 
         Assignment entity = Assignment.create(
-            legacyClassId(targetClassIds),
             request.dueDate(),
             request.maxScore(),
             request.attachments(),
@@ -88,13 +88,13 @@ public class AssignmentCommandService {
         entity.closeIfOverdue(Instant.now());
 
         Assignment saved = assignmentRepository.save(entity);
-        List<AssignmentTarget> targets = replaceTargets(saved.getId(), targetClassIds, targetStudentIds);
-        targetRepository.flush();
+        audienceWritePort.createTargets(saved.getId(), targetClassIds, targetStudentIds);
         recipientService.snapshotRecipients(slug, saved.getId(), targetClassIds, targetStudentIds);
 
         log.info("Assignment created: {} targets(classes={}, students={})",
                 saved.getId(), targetClassIds.size(), targetStudentIds.size());
-        return AssignmentResponse.from(saved, targets, examName(slug, saved.getLinkedExamId()), "EXACT");
+        return AssignmentResponse.from(saved, new Targets(targetClassIds, targetStudentIds),
+                examName(slug, saved.getLinkedExamId()), "EXACT");
     }
 
     public AssignmentResponse updateAssignment(Long id, UpdateAssignmentRequest request) {
@@ -103,22 +103,20 @@ public class AssignmentCommandService {
                 "Assignment not found with id: %d".formatted(id)));
 
         String slug = TenantContextHolder.getRequiredTenant();
-        List<AssignmentTarget> existingTargets = targetRepository.findByAssignmentId(id);
+        Targets existingTargets = audienceReadPort.findByAssignmentId(id);
         boolean targetUpdateRequested = request.targetClassIds() != null || request.targetStudentIds() != null;
 
         List<Long> targetClassIds = request.targetClassIds() != null
                 ? normalizeIds(request.targetClassIds())
-                : targetIds(existingTargets, AssignmentTargetType.CLASS);
+                : existingTargets.classIds();
         List<Long> targetStudentIds = request.targetStudentIds() != null
                 ? normalizeIds(request.targetStudentIds())
-                : targetIds(existingTargets, AssignmentTargetType.STUDENT);
+                : existingTargets.studentIds();
         if (targetUpdateRequested &&
-                (!Set.copyOf(targetClassIds).equals(Set.copyOf(targetIds(existingTargets, AssignmentTargetType.CLASS)))
-                        || !Set.copyOf(targetStudentIds).equals(Set.copyOf(targetIds(existingTargets, AssignmentTargetType.STUDENT))))) {
+                (!Set.copyOf(targetClassIds).equals(Set.copyOf(existingTargets.classIds()))
+                        || !Set.copyOf(targetStudentIds).equals(Set.copyOf(existingTargets.studentIds())))) {
             throw new BusinessException(AssignmentErrorCode.TARGET_IMMUTABLE);
         }
-        validateTargets(slug, targetClassIds, targetStudentIds);
-
         SubmissionMode submissionMode = request.submissionMode() != null
                 ? parseSubmissionMode(request.submissionMode())
                 : entity.getSubmissionMode();
@@ -142,7 +140,6 @@ public class AssignmentCommandService {
 
         entity.updateInfo(dueDate, maxScore, attachments);
         entity.updateWorkflow(
-                legacyClassId(targetClassIds),
                 submissionMode,
                 evaluationMode,
                 true,
@@ -155,10 +152,9 @@ public class AssignmentCommandService {
         entity.closeIfOverdue(now);
 
         Assignment saved = assignmentRepository.save(entity);
-        List<AssignmentTarget> targets = existingTargets;
 
         log.info("Assignment updated: {}", saved.getId());
-        return AssignmentResponse.from(saved, targets, examName(slug, saved.getLinkedExamId()),
+        return AssignmentResponse.from(saved, existingTargets, examName(slug, saved.getLinkedExamId()),
                 recipientService.rosterAccuracy(saved.getId()));
     }
 
@@ -196,13 +192,12 @@ public class AssignmentCommandService {
                 assignment.getLinkedExamId(),
                 request.studentId(),
                 request.answers());
-        submission.submitExam(request.answers(), result.examResultId(), result.totalScore(),
-                result.passed(), result.grade() != null ? String.valueOf(result.grade()) : null);
+        submission.submitExam(request.answers(), result.examResultId(), result.totalScore());
 
         AssignmentSubmission saved = submissionRepository.save(submission);
 
         log.info("Submission created: {} for assignment: {}", saved.getId(), assignmentId);
-        return SubmissionResponse.from(saved);
+        return SubmissionResponse.from(saved, officialResult(result, request.answers()));
     }
 
     public AssignmentSubmissionResultResponse submitCurrentStudent(Long assignmentId, SubmitAssignmentRequest request) {
@@ -234,13 +229,12 @@ public class AssignmentCommandService {
                 assignment.getLinkedExamId(),
                 studentId,
                 request.answers());
-        submission.submitExam(request.answers(), result.examResultId(), result.totalScore(),
-                result.passed(), result.grade() != null ? String.valueOf(result.grade()) : null);
+        submission.submitExam(request.answers(), result.examResultId(), result.totalScore());
         questionResults = filteredQuestionResults(assignment, result.questionResults());
 
         AssignmentSubmission saved = submissionRepository.save(submission);
         return new AssignmentSubmissionResultResponse(
-                studentSubmissionResponse(assignment, saved),
+                studentSubmissionResponse(assignment, saved, officialResult(result, request.answers())),
                 assignment.isShowScore(),
                 assignment.isShowPassFail(),
                 assignment.isShowGrade(),
@@ -265,14 +259,6 @@ public class AssignmentCommandService {
         }
         throw new BusinessException(AssignmentErrorCode.INVALID_SUBMISSION,
                 "Assignment results come from the linked exam; correct a student's answer instead");
-    }
-
-    private List<AssignmentTarget> replaceTargets(Long assignmentId, List<Long> classIds, List<Long> studentIds) {
-        targetRepository.deleteByAssignmentId(assignmentId);
-        List<AssignmentTarget> targets = new ArrayList<>();
-        classIds.forEach(classId -> targets.add(AssignmentTarget.create(assignmentId, AssignmentTargetType.CLASS, classId)));
-        studentIds.forEach(studentId -> targets.add(AssignmentTarget.create(assignmentId, AssignmentTargetType.STUDENT, studentId)));
-        return targetRepository.saveAll(targets);
     }
 
     private void validateTargets(String slug, List<Long> classIds, List<Long> studentIds) {
@@ -334,18 +320,26 @@ public class AssignmentCommandService {
         return CurrentStudentResolver.requireStudentId(studentService, AssignmentErrorCode.STUDENT_NOT_FOUND);
     }
 
-    private SubmissionResponse studentSubmissionResponse(Assignment assignment, AssignmentSubmission submission) {
+    private static ExamService.AssignmentResultData officialResult(
+            ExamService.ManualGradeResult result, Map<String, String> answers) {
+        return new ExamService.AssignmentResultData(result.studentId(), answers,
+                result.totalScore(), result.passed(), result.grade());
+    }
+
+    private SubmissionResponse studentSubmissionResponse(Assignment assignment, AssignmentSubmission submission,
+                                                         ExamService.AssignmentResultData result) {
+        SubmissionResponse current = SubmissionResponse.from(submission, result);
         return new SubmissionResponse(
                 submission.getId(),
                 submission.getAssignmentId(),
                 submission.getStudentId(),
                 submission.getContent(),
                 submission.getAttachments(),
-                submission.getAnswers(),
+                current.answers(),
                 submission.getExamResultId(),
-                assignment.isShowScore() ? submission.getScore() : null,
-                assignment.isShowPassFail() ? submission.getPassed() : null,
-                assignment.isShowGrade() ? submission.getGradeValue() : null,
+                assignment.isShowScore() ? current.score() : null,
+                assignment.isShowPassFail() ? current.passed() : null,
+                assignment.isShowGrade() ? current.gradeValue() : null,
                 submission.getFeedback(),
                 submission.getSubmittedAt(),
                 submission.getGradedAt(),
@@ -389,18 +383,6 @@ public class AssignmentCommandService {
                 .filter(id -> id != null && id > 0)
                 .distinct()
                 .toList();
-    }
-
-    private List<Long> targetIds(List<AssignmentTarget> targets, AssignmentTargetType type) {
-        return targets.stream()
-                .filter(target -> target.getTargetType() == type)
-                .map(AssignmentTarget::getTargetId)
-                .distinct()
-                .toList();
-    }
-
-    private Long legacyClassId(List<Long> classIds) {
-        return classIds.isEmpty() ? null : classIds.get(0);
     }
 
     private Boolean defaultBoolean(Boolean value, boolean defaultValue) {

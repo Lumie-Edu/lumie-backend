@@ -55,7 +55,6 @@ public class LectureCommandService {
         validateTargets(tenantSlug, visibility, classIds, teacherId);
 
         Lecture lecture = Lecture.create(
-                firstClassId(classIds),
                 teacherId,
                 request.title(),
                 request.description(),
@@ -94,7 +93,6 @@ public class LectureCommandService {
         lecture.update(request.title(), request.description(), request.youtubeUrl(), visibility, request.lectureDate());
 
         if (targetsChanged) {
-            lecture.updatePrimaryClassId(firstClassId(classIds));
             syncTargets(lecture, classIds);
         }
 
@@ -177,10 +175,5 @@ public class LectureCommandService {
         }
         return List.copyOf(deduplicated);
     }
-
-    private static Long firstClassId(List<Long> classIds) {
-        return classIds.isEmpty() ? null : classIds.get(0);
-    }
-
 
 }

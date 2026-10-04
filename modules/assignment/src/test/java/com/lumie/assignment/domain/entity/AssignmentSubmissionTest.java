@@ -39,15 +39,14 @@ class AssignmentSubmissionTest {
     }
 
     @Test
-    @DisplayName("연결 시험 결과 제출 시 공식 점수와 합불을 투영한다")
+    @DisplayName("연결 시험 결과 제출 시 공식 답안과 점수만 투영한다")
     void submitExam_projectsOfficialResult() {
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-        submission.submitExam(Map.of("1", "2"), 30L, 8, true, null);
+        submission.submitExam(Map.of("1", "2"), 30L, 8);
 
         assertThat(submission.getStatus()).isEqualTo(SubmissionStatus.GRADED);
         assertThat(submission.getExamResultId()).isEqualTo(30L);
         assertThat(submission.getScore()).isEqualTo(8);
-        assertThat(submission.getPassed()).isTrue();
         assertThat(submission.getGradedAt()).isNotNull();
     }
 
@@ -55,12 +54,11 @@ class AssignmentSubmissionTest {
     @DisplayName("공식 결과 변경 시 과제 투영을 갱신한다")
     void synchronizeExamResult_updatesProjection() {
         AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
-        submission.submitExam(Map.of("1", "2"), 30L, 8, true, null);
+        submission.submitExam(Map.of("1", "2"), 30L, 8);
 
-        submission.synchronizeExamResult(Map.of("1", "1"), 4, false, null);
+        submission.synchronizeExamResult(Map.of("1", "1"), 4);
 
         assertThat(submission.getAnswers()).containsEntry("1", "1");
         assertThat(submission.getScore()).isEqualTo(4);
-        assertThat(submission.getPassed()).isFalse();
     }
 }

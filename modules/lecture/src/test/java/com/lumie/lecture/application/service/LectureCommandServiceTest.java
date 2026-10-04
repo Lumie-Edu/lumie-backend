@@ -137,7 +137,7 @@ class LectureCommandServiceTest {
     @Test
     @DisplayName("대상 수업을 변경하지 않는 수정은 기존 class target 존재 여부를 재검증하지 않는다")
     void update_withoutTargetChange_doesNotRevalidateExistingTargets() throws Exception {
-        Lecture lecture = Lecture.create(999L, 10L, "기존 제목", null,
+        Lecture lecture = Lecture.create(10L, "기존 제목", null,
                 "https://www.youtube.com/watch?v=abc123", null, null);
         ReflectionTestUtils.setField(lecture, "id", 1L);
         UpdateLectureRequest request = new UpdateLectureRequest(
@@ -162,7 +162,7 @@ class LectureCommandServiceTest {
 
     @Test
     void targetlessStudentLectureRemainsEditableByStaffWithoutBecomingVisible() throws Exception {
-        Lecture lecture = Lecture.create(999L, 10L, "기존 제목", null,
+        Lecture lecture = Lecture.create(10L, "기존 제목", null,
                 "https://www.youtube.com/watch?v=abc123", LectureVisibility.STUDENT, null);
         ReflectionTestUtils.setField(lecture, "id", 1L);
         UpdateLectureRequest request = new UpdateLectureRequest(
@@ -181,7 +181,7 @@ class LectureCommandServiceTest {
     @Test
     @DisplayName("동일한 대상 수업으로 수정하면 target을 삭제하거나 재생성하지 않는다")
     void update_sameTargetClasses_doesNotResyncTargets() throws Exception {
-        Lecture lecture = Lecture.create(2L, 10L, "기존 제목", null,
+        Lecture lecture = Lecture.create(10L, "기존 제목", null,
                 "https://www.youtube.com/watch?v=abc123", null, null);
         ReflectionTestUtils.setField(lecture, "id", 1L);
         UpdateLectureRequest request = new UpdateLectureRequest(

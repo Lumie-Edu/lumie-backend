@@ -23,7 +23,7 @@ public class AssignmentExamResultListener {
     public void onChanged(ExamResultChangedEvent event) {
         requireTenant(event.tenantId());
         persistence.findByResult(event.resultId()).forEach(submission ->
-                submission.synchronizeExamResult(event.answers(), event.score(), event.passed(), event.grade()));
+                submission.synchronizeExamResult(event.answers(), event.score()));
     }
 
     @EventListener

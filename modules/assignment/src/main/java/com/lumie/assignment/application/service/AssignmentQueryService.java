@@ -99,7 +99,7 @@ public class AssignmentQueryService {
         lifecycleService.closeOverdueAssignment(assignmentId);
         var results = currentResults(assignmentId);
         return submissionRepository.findByAssignmentId(assignmentId, pageable)
-            .map(submission -> SubmissionResponse.from(submission, results.get(submission.getExamResultId())));
+            .map(submission -> responseWithOfficialResult(submission, results.get(submission.getExamResultId())));
     }
 
     public List<AssignmentSubmissionStatusResponse> getSubmissionStatuses(Long assignmentId) {
@@ -222,10 +222,13 @@ public class AssignmentQueryService {
             AssignmentRecipient recipient, StudentService.StudentData student,
             ExamService.StudentGradeData grade, AssignmentSubmission submission) {
         if (student == null) {
+            Integer score = grade != null ? Integer.valueOf(grade.score())
+                    : submission == null ? null : submission.getScore();
             return new AssignmentStudentGradeResponse(recipient.getId(), null, null, false,
-                    "삭제된 학생", submission == null ? null : submission.getScore(), null, null, null,
-                    submission != null && submission.getPassed() != null ? "PASS_FAIL" : null,
-                    submission == null ? null : submission.getPassed(),
+                    "삭제된 학생", score,
+                    null, null, grade == null ? null : grade.grade(),
+                    grade == null ? null : grade.examCategory(),
+                    grade == null ? null : grade.isPassed(),
                     submission == null ? null : submission.getSubmittedAt(),
                     submission == null ? null : submission.getExamResultId(),
                     submission == null ? SubmissionStatus.PENDING : submission.getStatus());
@@ -238,8 +241,7 @@ public class AssignmentQueryService {
         if (grade == null) {
             return new AssignmentStudentGradeResponse(recipient.getId(), student.id(), student.studentPhone(),
                     true, student.studentName(), submission.getScore(), null, null, null,
-                    submission.getPassed() != null ? "PASS_FAIL" : null,
-                    submission.getPassed(), submission.getSubmittedAt(), submission.getExamResultId(),
+                    null, null, submission.getSubmittedAt(), submission.getExamResultId(),
                     submission.getStatus());
         }
         return new AssignmentStudentGradeResponse(recipient.getId(), grade.studentId(), grade.phoneNumber(), grade.isRegistered(),
@@ -270,7 +272,7 @@ public class AssignmentQueryService {
         lifecycleService.closeOverdueAssignment(assignmentId);
         var results = currentResults(assignmentId);
         return submissionRepository.findByAssignmentIdAndStudentId(assignmentId, studentId, pageable)
-            .map(submission -> SubmissionResponse.from(submission, results.get(submission.getExamResultId())));
+            .map(submission -> responseWithOfficialResult(submission, results.get(submission.getExamResultId())));
     }
 
     public List<AssignmentResponse> getCurrentStudentAssignments() {
@@ -439,9 +441,7 @@ public class AssignmentQueryService {
     private SubmissionResponse studentSubmissionResponse(Assignment assignment, AssignmentSubmission submission) {
         var result = submission.getExamResultId() == null ? null
                 : currentResults(assignment.getId()).get(submission.getExamResultId());
-        var current = result == null || !java.util.Objects.equals(submission.getStudentId(), result.studentId())
-                ? SubmissionResponse.from(submission)
-                : SubmissionResponse.from(submission, result);
+        var current = responseWithOfficialResult(submission, result);
         return new SubmissionResponse(
                 submission.getId(),
                 submission.getAssignmentId(),
@@ -460,6 +460,14 @@ public class AssignmentQueryService {
                 submission.getCreatedAt(),
                 submission.getUpdatedAt()
         );
+    }
+
+    private static SubmissionResponse responseWithOfficialResult(
+            AssignmentSubmission submission, ExamService.AssignmentResultData result) {
+        if (result == null || !java.util.Objects.equals(submission.getStudentId(), result.studentId())) {
+            return SubmissionResponse.from(submission);
+        }
+        return SubmissionResponse.from(submission, result);
     }
 
     private ExamAssignmentResponse toExamResponse(ExamService.ExamAssignmentData exam) {

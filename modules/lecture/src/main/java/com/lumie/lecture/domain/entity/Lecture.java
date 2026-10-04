@@ -24,9 +24,6 @@ public class Lecture extends TenantScopedEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
-    @Column(name = "class_id")
-    private Long classId;
-
     @Column(name = "teacher_id")
     private Long teacherId;
 
@@ -47,10 +44,9 @@ public class Lecture extends TenantScopedEntity {
     private LocalDate lectureDate;
 
     @Builder
-    private Lecture(Long classId, Long teacherId, String title,
+    private Lecture(Long teacherId, String title,
                     String description, String youtubeUrl,
                     LectureVisibility visibility, LocalDate lectureDate) {
-        this.classId = classId;
         this.teacherId = teacherId;
         this.title = title;
         this.description = description;
@@ -59,11 +55,10 @@ public class Lecture extends TenantScopedEntity {
         this.lectureDate = lectureDate;
     }
 
-    public static Lecture create(Long classId, Long teacherId,
+    public static Lecture create(Long teacherId,
                                   String title, String description, String youtubeUrl,
                                   LectureVisibility visibility, LocalDate lectureDate) {
         return Lecture.builder()
-                .classId(classId)
                 .teacherId(teacherId)
                 .title(title)
                 .description(description)
@@ -90,10 +85,6 @@ public class Lecture extends TenantScopedEntity {
         if (lectureDate != null) {
             this.lectureDate = lectureDate;
         }
-    }
-
-    public void updatePrimaryClassId(Long classId) {
-        this.classId = classId;
     }
 
     public boolean isVisibleToStudents() {

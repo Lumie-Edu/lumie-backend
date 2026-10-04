@@ -62,7 +62,7 @@ class AssignmentRecipientServiceTest {
 
     @Test
     void newEnrollmentAddsOnlyToOpenClassAssignments() throws Exception {
-        Assignment assignment = Assignment.create(10L, Instant.now().plusSeconds(3_600), 100, null,
+        Assignment assignment = Assignment.create(Instant.now().plusSeconds(3_600), 100, null,
                 AssignmentStatus.ACTIVE, SubmissionMode.EXAM_MANUAL, EvaluationMode.EXAM_AUTO, 5L,
                 true, true, false, true, false);
         org.springframework.test.util.ReflectionTestUtils.setField(assignment, "id", 7L);

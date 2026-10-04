@@ -31,9 +31,6 @@ public class Assignment extends TenantScopedEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
-    @Column(name = "class_id")
-    private Long classId;
-
     @Column(name = "due_date", nullable = false)
     private Instant dueDate;
 
@@ -76,7 +73,7 @@ public class Assignment extends TenantScopedEntity {
     private boolean showCorrectAnswers;
 
     @Builder
-    private Assignment(Long classId, Instant dueDate, Integer maxScore,
+    private Assignment(Instant dueDate, Integer maxScore,
                        List<Long> attachments, AssignmentStatus status,
                        SubmissionMode submissionMode, EvaluationMode evaluationMode,
                        Long linkedExamId, Boolean showScore, Boolean showPassFail,
@@ -84,7 +81,6 @@ public class Assignment extends TenantScopedEntity {
         if (dueDate == null) {
             throw new BusinessException(AssignmentErrorCode.DUE_DATE_REQUIRED);
         }
-        this.classId = classId;
         this.dueDate = dueDate;
         this.maxScore = maxScore;
         this.attachments = attachments;
@@ -99,19 +95,18 @@ public class Assignment extends TenantScopedEntity {
         this.showCorrectAnswers = showCorrectAnswers != null ? showCorrectAnswers : false;
     }
 
-    public static Assignment create(Long classId, Instant dueDate, Integer maxScore, List<Long> attachments) {
-        return create(classId, dueDate, maxScore, attachments,
+    public static Assignment create(Instant dueDate, Integer maxScore, List<Long> attachments) {
+        return create(dueDate, maxScore, attachments,
                 AssignmentStatus.ACTIVE, SubmissionMode.EXAM_MANUAL, EvaluationMode.EXAM_AUTO, null,
                 true, true, false, true, false);
     }
 
-    public static Assignment create(Long classId, Instant dueDate, Integer maxScore, List<Long> attachments,
+    public static Assignment create(Instant dueDate, Integer maxScore, List<Long> attachments,
                                     AssignmentStatus status,
                                     SubmissionMode submissionMode, EvaluationMode evaluationMode,
                                     Long linkedExamId, Boolean showScore, Boolean showPassFail,
                                     Boolean showGrade, Boolean showQuestionResults, Boolean showCorrectAnswers) {
         return Assignment.builder()
-                .classId(classId)
                 .dueDate(dueDate)
                 .maxScore(maxScore)
                 .attachments(attachments)
@@ -136,11 +131,10 @@ public class Assignment extends TenantScopedEntity {
         this.attachments = attachments;
     }
 
-    public void updateWorkflow(Long classId, SubmissionMode submissionMode, EvaluationMode evaluationMode,
+    public void updateWorkflow(SubmissionMode submissionMode, EvaluationMode evaluationMode,
                                Boolean showScore, Boolean showPassFail,
                                Boolean showGrade, Boolean showQuestionResults, Boolean showCorrectAnswers,
                                AssignmentStatus status) {
-        this.classId = classId;
         this.submissionMode = submissionMode;
         this.evaluationMode = evaluationMode;
         this.showScore = Boolean.TRUE.equals(showScore);

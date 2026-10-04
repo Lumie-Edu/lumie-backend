@@ -400,16 +400,12 @@ class MigrationsRlsIntegrationTest {
     void assignmentExamConstraintsRejectInvalidLinksAndAllowIndependentExams() throws Exception {
         long tenantA = 910_001L;
         long tenantB = 910_002L;
-        long classA = 920_001L;
-        long classB = 920_002L;
         long independentExam = 930_001L;
         long assignmentExam = 930_002L;
         long otherTenantExam = 930_003L;
 
         try (Connection admin = adminConnection();
              Statement st = admin.createStatement()) {
-            insertClass(st, classA, tenantA);
-            insertClass(st, classB, tenantB);
             insertExam(st, independentExam, tenantA, "independent-exam");
             insertExam(st, assignmentExam, tenantA, "assignment-exam");
             insertExam(st, otherTenantExam, tenantB, "other-tenant-exam");
@@ -424,20 +420,20 @@ class MigrationsRlsIntegrationTest {
                         .isZero();
             }
 
-            assertThatThrownBy(() -> insertAssignment(st, classA, tenantA, null))
+            assertThatThrownBy(() -> insertAssignment(st, tenantA, null))
                     .as("an assignment without an exam is rejected")
                     .isInstanceOf(SQLException.class)
                     .satisfies(error -> assertThat(((SQLException) error).getSQLState())
                             .isEqualTo("23502"));
 
-            insertAssignment(st, classA, tenantA, assignmentExam);
-            assertThatThrownBy(() -> insertAssignment(st, classA, tenantA, assignmentExam))
+            insertAssignment(st, tenantA, assignmentExam);
+            assertThatThrownBy(() -> insertAssignment(st, tenantA, assignmentExam))
                     .as("the same exam cannot back two assignments for one tenant")
                     .isInstanceOf(SQLException.class)
                     .satisfies(error -> assertThat(((SQLException) error).getSQLState())
                             .isEqualTo("23505"));
 
-            assertThatThrownBy(() -> insertAssignment(st, classA, tenantA, otherTenantExam))
+            assertThatThrownBy(() -> insertAssignment(st, tenantA, otherTenantExam))
                     .as("an assignment cannot reference another tenant's exam")
                     .isInstanceOf(SQLException.class)
                     .satisfies(error -> assertThat(((SQLException) error).getSQLState())
@@ -584,12 +580,6 @@ class MigrationsRlsIntegrationTest {
         }
     }
 
-    private static void insertClass(Statement statement, long classId, long tenantId) throws Exception {
-        statement.executeUpdate(
-                "INSERT INTO classes (id, name, tenant_id) VALUES ("
-                + classId + ", 'assignment-constraint-class-" + classId + "', " + tenantId + ")");
-    }
-
     private static void insertExam(Statement statement, long examId, long tenantId, String name)
             throws Exception {
         statement.executeUpdate(
@@ -598,11 +588,11 @@ class MigrationsRlsIntegrationTest {
                 + tenantId + ")");
     }
 
-    private static void insertAssignment(Statement statement, long classId, long tenantId, Long examId)
+    private static void insertAssignment(Statement statement, long tenantId, Long examId)
             throws Exception {
         statement.executeUpdate(
-                "INSERT INTO assignments (class_id, due_date, tenant_id, linked_exam_id) "
-                + "VALUES (" + classId + ", now() + interval '1 day', " + tenantId + ", "
+                "INSERT INTO assignments (due_date, tenant_id, linked_exam_id) "
+                + "VALUES (now() + interval '1 day', " + tenantId + ", "
                 + (examId == null ? "null" : examId) + ")");
     }
 

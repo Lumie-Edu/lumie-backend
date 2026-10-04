@@ -33,4 +33,11 @@ public class AssignmentStudentTarget extends TenantScopedEntity {
 
     @Column(name = "student_id", nullable = false, updatable = false)
     private Long studentId;
+
+    public static AssignmentStudentTarget create(Long assignmentId, Long studentId) {
+        AssignmentStudentTarget target = new AssignmentStudentTarget();
+        target.assignmentId = assignmentId;
+        target.studentId = studentId;
+        return target;
+    }
 }

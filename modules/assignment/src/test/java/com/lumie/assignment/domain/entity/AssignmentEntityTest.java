@@ -21,11 +21,10 @@ class AssignmentEntityTest {
     @DisplayName("create() 호출 시 기본 상태는 ACTIVE이다")
     void create_defaultStatusIsActive() {
         Assignment entity = Assignment.create(
-                1L, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
+                LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
                 100, List.of(1L, 2L));
 
         assertThat(entity.getStatus()).isEqualTo(AssignmentStatus.ACTIVE);
-        assertThat(entity.getClassId()).isEqualTo(1L);
         assertThat(entity.getMaxScore()).isEqualTo(100);
         assertThat(entity.getAttachments()).containsExactly(1L, 2L);
         assertThat(entity.isShowScore()).isTrue();
@@ -96,7 +95,7 @@ class AssignmentEntityTest {
     @DisplayName("closeIfOverdue()는 마감 시간이 지난 ACTIVE 과제를 CLOSED로 변경한다")
     void closeIfOverdue_overdueActive_closes() {
         Assignment entity = Assignment.create(
-                1L, Instant.parse("2026-04-15T23:59:00Z"),
+                Instant.parse("2026-04-15T23:59:00Z"),
                 100, null);
 
         boolean changed = entity.closeIfOverdue(Instant.parse("2026-04-16T00:00:00Z"));
@@ -109,7 +108,7 @@ class AssignmentEntityTest {
     @DisplayName("closeIfOverdue()는 마감 전 ACTIVE 과제를 변경하지 않는다")
     void closeIfOverdue_futureActive_keepsActive() {
         Assignment entity = Assignment.create(
-                1L, Instant.parse("2026-04-15T23:59:00Z"),
+                Instant.parse("2026-04-15T23:59:00Z"),
                 100, null);
 
         boolean changed = entity.closeIfOverdue(Instant.parse("2026-04-15T23:58:59Z"));
@@ -120,7 +119,7 @@ class AssignmentEntityTest {
 
     private Assignment buildEntity() {
         return Assignment.create(
-                1L, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
+                LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
                 100, null);
     }
 }

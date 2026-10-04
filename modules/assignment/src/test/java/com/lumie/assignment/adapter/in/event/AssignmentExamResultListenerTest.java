@@ -26,14 +26,13 @@ class AssignmentExamResultListenerTest {
     @Test
     void answerCorrectionPreservesSubmissionTimeAndSynchronizesScore() {
         var submission = AssignmentSubmission.create(1L, 5L);
-        submission.submitExam(Map.of("1", "1"), 7L, 0, false, "9");
+        submission.submitExam(Map.of("1", "1"), 7L, 0);
         var submittedAt = submission.getSubmittedAt();
         given(persistence.findByResult(7L)).willReturn(List.of(submission));
         listener.onChanged(new ExamResultChangedEvent(TenantContextHolder.getTenantId(), 3L, 7L,
                 Map.of("1", "2"), 100, true, 1));
         assertThat(submission.getScore()).isEqualTo(100);
         assertThat(submission.getAnswers()).containsEntry("1", "2");
-        assertThat(submission.getGradeValue()).isEqualTo("1");
         assertThat(submission.getSubmittedAt()).isEqualTo(submittedAt);
     }
 
