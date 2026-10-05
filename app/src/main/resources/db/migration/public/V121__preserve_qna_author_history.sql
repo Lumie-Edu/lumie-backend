@@ -5,8 +5,8 @@
 --   1. Deploy a Q&A reader that safely handles a deleted board author
 --      (qna_user_id = null) before an identity deletion can exercise the
 --      new ON DELETE SET NULL behavior.
---   2. Confirm the application rejects student-authored comments before
---      adding a later validated student_id IS NULL check constraint.
+--   2. Roll out the staff-only comment API fully. This migration fails if a
+--      concurrent legacy writer creates a student-authored comment.
 --   3. Apply this migration to preserve board and staff-comment history when
 --      their user identities are deleted, while enforcing tenant-safe links.
 --
@@ -54,6 +54,15 @@ begin
     ) then
         raise exception
             'cannot preserve Q&A board history: found an unexpected missing or cross-tenant board author';
+    end if;
+
+    if exists (
+        select 1
+        from qna_comments comment
+        where comment.student_id is not null
+    ) then
+        raise exception
+            'cannot preserve Q&A comment history: student-authored comments remain after the staff-only API rollout';
     end if;
 end $$;
 
@@ -144,7 +153,7 @@ begin
     end if;
 end $$;
 
--- Do not add CHECK (student_id is null) here. The schema inventory has no
--- existing student-authored comments, but the current runtime still exposes a
--- student-comment write path. Add the validated check only after that path is
--- removed or rejected server-side.
+-- Do not add CHECK (student_id is null) or drop student_id here. Apply this
+-- migration only after the staff-only API is fully rolled out; the preflight
+-- above detects any legacy or concurrent student-comment write without
+-- changing the preserved schema shape.
