@@ -4,6 +4,7 @@ import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.api.ContentService;
+import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
@@ -13,6 +14,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
@@ -68,5 +72,21 @@ class FileMetadataLookupServiceTest {
         UserContextHolder.setUserRole(Role.INSTRUCTOR);
 
         lookup.requireAccess(EntityType.TEXTBOOK, null);
+    }
+
+    @Test
+    void studentCannotDownloadTextbookEvenWithItsFileId() {
+        UUID fileId = UUID.randomUUID();
+        FileMetadata textbook = FileMetadata.createWithId(fileId, EntityType.TEXTBOOK, null,
+                "textbook.pdf", "application/pdf", 123L, "textbook/object", null);
+        textbook.markUploadCompleted();
+        UserContextHolder.setUserRole(Role.STUDENT);
+        UserContextHolder.setUserId(42L);
+        when(repository.findById(fileId)).thenReturn(Optional.of(textbook));
+
+        assertThatThrownBy(() -> lookup.getAuthorizedDownloadMetadata(fileId))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        org.assertj.core.api.Assertions.assertThat(exception.getErrorCode())
+                                .isEqualTo(FileErrorCode.ACCESS_DENIED));
     }
 }

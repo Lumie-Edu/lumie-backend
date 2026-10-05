@@ -36,6 +36,17 @@ public class GradeCalculator {
         // 상대평가는 grade를 null로 유지 (조회 시 계산)
     }
 
+    /** 평가 설정 변경 시 기존 점수는 유지하고 저장 학업 등급만 현재 설정에 맞춘다. */
+    public void reconcileStoredGrade(Exam exam, ExamResult result) {
+        if (exam.getCategory() == ExamCategory.GRADED
+                && exam.getGradingType() == GradingType.ABSOLUTE) {
+            calculateAndAssignGradeIfAbsolute(exam, result);
+        } else {
+            // P/NP에는 학업 등급이 없고 상대평가 등급은 조회 시 현재 점수 분포로 계산한다.
+            result.assignGrade(null);
+        }
+    }
+
     /**
      * 상대평가 등급 계산 (조회용 - 저장하지 않음)
      */

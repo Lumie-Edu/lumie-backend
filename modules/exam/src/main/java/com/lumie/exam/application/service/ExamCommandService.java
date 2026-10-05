@@ -116,8 +116,6 @@ public class ExamCommandService {
                 || changed(request.gradeScale(), exam.getGradeScale())
                 || changed(request.category(), exam.getCategory())
                 || changed(request.passScore(), exam.getPassScore());
-        ExamCategory previousCategory = exam.getCategory();
-
         exam.update(
                 request.name(),
                 request.category(),
@@ -134,11 +132,7 @@ public class ExamCommandService {
         if (gradingConfigurationChanged) {
             List<Integer> scores = existingResults.stream().map(result -> result.getTotalScore()).toList();
             for (var result : existingResults) {
-                // Legacy PNP grade sentinels have not yet been provenance-migrated.
-                // A cutoff/config edit must not erase those historical values.
-                if (previousCategory != ExamCategory.PASS_FAIL) {
-                    gradeCalculator.calculateAndAssignGradeIfAbsolute(updatedExam, result);
-                }
+                gradeCalculator.reconcileStoredGrade(updatedExam, result);
                 if (updatedExam.getSource() != ExamSource.ASSIGNMENT) {
                     continue;
                 }

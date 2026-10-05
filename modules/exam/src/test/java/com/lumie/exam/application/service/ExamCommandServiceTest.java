@@ -60,13 +60,76 @@ class ExamCommandServiceTest {
                 null, null, null, null, 7));
 
         assertThat(exam.getPassScore()).isEqualTo(7);
-        assertThat(result.getGrade()).isEqualTo(-1);
+        assertThat(result.getGrade()).isNull();
         ArgumentCaptor<ExamResultChangedEvent> events = ArgumentCaptor.forClass(ExamResultChangedEvent.class);
         verify(eventPublisher).publishEvent(events.capture());
         assertThat(events.getValue().passed()).isFalse();
         assertThat(events.getValue().score()).isEqualTo(6);
         assertThat(events.getValue().answers()).containsEntry("1", "1");
         assertThat(events.getValue().grade()).isNull();
+    }
+
+    @Test
+    void switchingFromPassFailToAbsoluteGradeUsesExistingScoreWithoutRegradingAnswers() {
+        Exam exam = passFailExam();
+        ExamResult result = ExamResult.create(exam, 7L, 6);
+        result.assignGrade(-1);
+        QuestionResult question = QuestionResult.create(1, "1", "1", 6);
+        result.addQuestionResult(question);
+        when(examRepository.findById(1L)).thenReturn(Optional.of(exam));
+        when(resultRepository.findByExamId(1L)).thenReturn(List.of(result));
+        when(examRepository.save(exam)).thenReturn(exam);
+
+        service.updateExam(1L, new UpdateExamRequest(null, ExamCategory.GRADED, null, null,
+                null, null, null, null, null));
+
+        assertThat(result.getGrade()).isEqualTo(9);
+        assertThat(result.getTotalScore()).isEqualTo(6);
+        assertThat(question.getSelectedChoice()).isEqualTo("1");
+        assertThat(question.getEarnedScore()).isEqualTo(6);
+    }
+
+    @Test
+    void switchingFromAbsoluteGradeToPassFailClearsStoredGradeWithoutRegradingAnswers() {
+        Exam exam = gradedExam();
+        ExamResult result = ExamResult.create(exam, 7L, 90);
+        result.assignGrade(1);
+        QuestionResult question = QuestionResult.create(1, "1", "1", 90);
+        result.addQuestionResult(question);
+        when(examRepository.findById(1L)).thenReturn(Optional.of(exam));
+        when(resultRepository.findByExamId(1L)).thenReturn(List.of(result));
+        when(examRepository.save(exam)).thenReturn(exam);
+
+        service.updateExam(1L, new UpdateExamRequest(null, ExamCategory.PASS_FAIL, null, null,
+                null, null, null, null, 80));
+
+        assertThat(result.getGrade()).isNull();
+        assertThat(result.passStatus()).isTrue();
+        assertThat(result.getTotalScore()).isEqualTo(90);
+        assertThat(question.getSelectedChoice()).isEqualTo("1");
+        assertThat(question.getEarnedScore()).isEqualTo(90);
+    }
+
+    @Test
+    void switchingToRelativeGradeClearsStoredAbsoluteGradeAndComputesOnRead() {
+        Exam exam = gradedExam();
+        ExamResult high = ExamResult.create(exam, 7L, 90);
+        ExamResult low = ExamResult.create(exam, 8L, 60);
+        high.assignGrade(1);
+        low.assignGrade(4);
+        when(examRepository.findById(1L)).thenReturn(Optional.of(exam));
+        when(resultRepository.findByExamId(1L)).thenReturn(List.of(high, low));
+        when(examRepository.save(exam)).thenReturn(exam);
+
+        service.updateExam(1L, new UpdateExamRequest(null, null, GradingType.RELATIVE, null,
+                null, null, null, null, null));
+
+        assertThat(high.getGrade()).isNull();
+        assertThat(low.getGrade()).isNull();
+        assertThat(high.getTotalScore()).isEqualTo(90);
+        assertThat(low.getTotalScore()).isEqualTo(60);
+        assertThat(gradeCalculator.resolveStoredOrRelativeGrade(exam, high, List.of(90, 60))).isEqualTo(1);
+        assertThat(gradeCalculator.resolveStoredOrRelativeGrade(exam, low, List.of(90, 60))).isEqualTo(5);
     }
 
     @Test
@@ -112,5 +175,11 @@ class ExamCommandServiceTest {
         return Exam.createForAssignment("PNP", ExamCategory.PASS_FAIL, GradingType.ABSOLUTE,
                 GradeScale.NINE_GRADE, 1, Map.of("1", "1"), Map.of("1", 10),
                 Map.of("1", "CHOICE"), 5);
+    }
+
+    private Exam gradedExam() {
+        return Exam.createForAssignment("Graded", ExamCategory.GRADED, GradingType.ABSOLUTE,
+                GradeScale.NINE_GRADE, 1, Map.of("1", "1"), Map.of("1", 100),
+                Map.of("1", "CHOICE"), 80);
     }
 }
