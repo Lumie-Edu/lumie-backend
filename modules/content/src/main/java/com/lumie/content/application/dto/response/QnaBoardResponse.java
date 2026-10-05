@@ -7,7 +7,7 @@ import java.time.Instant;
 
 public record QnaBoardResponse(
         Long id,
-        Long qnaUserId,
+        @Schema(nullable = true) Long qnaUserId,
         @Schema(nullable = true) String qnaUserName,
         String qnaTitle,
         Boolean isAnswered,

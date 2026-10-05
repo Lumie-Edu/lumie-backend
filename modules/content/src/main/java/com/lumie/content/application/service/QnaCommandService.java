@@ -11,6 +11,8 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.repository.QnaBoardRepository;
 import com.lumie.content.domain.repository.QnaCommentRepository;
+import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.api.FileService;
 import com.lumie.file.api.PreparedTemporaryFile;
 import lombok.RequiredArgsConstructor;
@@ -92,17 +94,14 @@ public class QnaCommandService {
 
     @Transactional
     public QnaCommentResponse addComment(Long qnaId, CreateCommentRequest request) {
+        AuthorizationGuard.requireStaff();
         log.info("Adding comment to Q&A: {}", qnaId);
 
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(qnaId)
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
 
-        QnaComment comment;
-        if (request.userId() != null) {
-            comment = QnaComment.createByStaff(qnaBoard, request.userId(), request.commentContent());
-        } else {
-            comment = QnaComment.createByStudent(qnaBoard, request.studentId(), request.commentContent());
-        }
+        QnaComment comment = QnaComment.createByStaff(
+                qnaBoard, UserContextHolder.getRequiredUserId(), request.commentContent());
 
         qnaBoard.addComment(comment);
         QnaComment saved = qnaCommentRepository.save(comment);
@@ -114,6 +113,7 @@ public class QnaCommandService {
 
     @Transactional
     public void deleteComment(Long qnaId, Long commentId) {
+        AuthorizationGuard.requireStaff();
         log.info("Deleting comment {} from Q&A: {}", commentId, qnaId);
 
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(qnaId)
@@ -126,10 +126,7 @@ public class QnaCommandService {
         qnaCommentRepository.deleteById(commentId);
         qnaBoard.getComments().removeIf(c -> c.getId().equals(commentId));
 
-        boolean stillHasStaffComment = qnaBoard.getComments().stream()
-                .anyMatch(c -> c.getUserId() != null);
-
-        if (!stillHasStaffComment) {
+        if (!qnaBoard.hasStaffComment()) {
             qnaBoard.markAsUnanswered();
             qnaBoardRepository.save(qnaBoard);
         }

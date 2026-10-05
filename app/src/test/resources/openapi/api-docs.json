@@ -1137,14 +1137,6 @@
         "properties" : {
           "commentContent" : {
             "type" : "string"
-          },
-          "studentId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "userId" : {
-            "format" : "int64",
-            "type" : "integer"
           }
         },
         "required" : [ "commentContent" ],
@@ -3562,6 +3554,7 @@
           },
           "qnaUserId" : {
             "format" : "int64",
+            "nullable" : true,
             "type" : "integer"
           },
           "qnaUserName" : {
@@ -3645,6 +3638,7 @@
           },
           "qnaUserId" : {
             "format" : "int64",
+            "nullable" : true,
             "type" : "integer"
           },
           "qnaUserName" : {

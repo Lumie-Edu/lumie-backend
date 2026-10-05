@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class QnaQueryService {
 
     private static final String DELETED_STUDENT_NAME = "삭제된 학생";
-    private static final String DELETED_STAFF_NAME = "삭제된 직원";
+    private static final String DELETED_STAFF_NAME = "삭제된 선생님";
 
     private final QnaBoardRepository qnaBoardRepository;
     private final StudentService studentService;
@@ -77,12 +77,14 @@ public class QnaQueryService {
         }
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
-        String userName = studentService.getStudentsByUserIds(tenantSlug, List.of(qnaBoard.getQnaUserId()))
-                .students()
-                .stream()
-                .findFirst()
-                .map(StudentService.StudentData::studentName)
-                .orElse(DELETED_STUDENT_NAME);
+        String userName = qnaBoard.getQnaUserId() == null
+                ? DELETED_STUDENT_NAME
+                : studentService.getStudentsByUserIds(tenantSlug, List.of(qnaBoard.getQnaUserId()))
+                        .students()
+                        .stream()
+                        .findFirst()
+                        .map(StudentService.StudentData::studentName)
+                        .orElse(DELETED_STUDENT_NAME);
 
         List<Long> userIds = qnaBoard.getComments().stream()
                 .map(c -> c.getUserId())
@@ -111,18 +113,20 @@ public class QnaQueryService {
             return false;
         }
         return qnaBoardRepository.findById(qnaId)
-                .map(qna -> Role.valueOf(role) != Role.STUDENT || qna.getQnaUserId().equals(userId))
+                .map(qna -> Role.valueOf(role) != Role.STUDENT
+                        || (qna.getQnaUserId() != null && qna.getQnaUserId().equals(userId)))
                 .orElse(false);
     }
 
     private Page<QnaBoardResponse> enrichWithUserNames(Page<QnaBoard> page) {
         List<Long> userIds = page.getContent().stream()
                 .map(QnaBoard::getQnaUserId)
+                .filter(java.util.Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
 
         if (userIds.isEmpty()) {
-            return page.map(qna -> QnaBoardResponse.from(qna, null));
+            return page.map(qna -> QnaBoardResponse.from(qna, DELETED_STUDENT_NAME));
         }
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();

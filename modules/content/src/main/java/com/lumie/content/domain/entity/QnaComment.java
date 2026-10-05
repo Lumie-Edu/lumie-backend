@@ -31,19 +31,10 @@ public class QnaComment extends TenantScopedEntity {
     private String commentContent;
 
     @Builder
-    private QnaComment(QnaBoard qnaBoard, Long studentId, Long userId, String commentContent) {
+    private QnaComment(QnaBoard qnaBoard, Long userId, String commentContent) {
         this.qnaBoard = qnaBoard;
-        this.studentId = studentId;
         this.userId = userId;
         this.commentContent = commentContent;
-    }
-
-    public static QnaComment createByStudent(QnaBoard qnaBoard, Long studentId, String commentContent) {
-        return QnaComment.builder()
-                .qnaBoard(qnaBoard)
-                .studentId(studentId)
-                .commentContent(commentContent)
-                .build();
     }
 
     public static QnaComment createByStaff(QnaBoard qnaBoard, Long userId, String commentContent) {
@@ -55,7 +46,7 @@ public class QnaComment extends TenantScopedEntity {
     }
 
     public boolean isStaffComment() {
-        return this.userId != null;
+        return this.studentId == null;
     }
 
     public boolean isStudentComment() {

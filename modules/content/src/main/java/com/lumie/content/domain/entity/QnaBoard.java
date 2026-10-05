@@ -21,7 +21,7 @@ public class QnaBoard extends TenantScopedEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "qna_user_id", nullable = false)
+    @Column(name = "qna_user_id")
     private Long qnaUserId;
 
     @Column(name = "qna_title", nullable = false, length = 200)
@@ -82,13 +82,13 @@ public class QnaBoard extends TenantScopedEntity {
 
     public void addComment(QnaComment comment) {
         this.comments.add(comment);
-        if (!this.isAnswered && comment.getUserId() != null) {
+        if (!this.isAnswered && comment.isStaffComment()) {
             this.markAsAnswered();
         }
     }
 
     public boolean hasStaffComment() {
-        return comments.stream().anyMatch(c -> c.getUserId() != null);
+        return comments.stream().anyMatch(QnaComment::isStaffComment);
     }
 
     public void markAsReadByAuthor() {

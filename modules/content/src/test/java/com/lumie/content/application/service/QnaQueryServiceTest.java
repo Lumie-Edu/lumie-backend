@@ -23,6 +23,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("QnaQueryService 테스트")
@@ -58,7 +59,7 @@ class QnaQueryServiceTest {
     }
 
     @Test
-    @DisplayName("상세에서 삭제된 학생 작성자와 삭제된 직원 댓글 작성자를 구분한다")
+    @DisplayName("상세에서 삭제된 학생 작성자와 삭제된 선생님 댓글 작성자를 구분한다")
     void getQna_deletedStudentAndStaffNames() {
         QnaBoard qna = qna(1L, 100L);
         qna.addComment(QnaComment.createByStaff(qna, 900L, "답변"));
@@ -70,7 +71,80 @@ class QnaQueryServiceTest {
         var response = queryService.getQna(1L);
 
         assertThat(response.qnaUserName()).isEqualTo("삭제된 학생");
-        assertThat(response.comments().get(0).staffName()).isEqualTo("삭제된 직원");
+        assertThat(response.comments().get(0).staffName()).isEqualTo("삭제된 선생님");
+    }
+
+    @Test
+    void getQna_deletedStaffReferenceKeepsReplyAndTeacherPlaceholder() {
+        QnaBoard qna = qna(1L, 100L);
+        QnaComment reply = QnaComment.createByStaff(qna, 900L, "답변 본문");
+        ReflectionTestUtils.setField(reply, "userId", null);
+        qna.addComment(reply);
+        given(qnaBoardRepository.findByIdWithComments(1L)).willReturn(Optional.of(qna));
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(100L)))
+                .willReturn(emptyStudents());
+
+        var response = queryService.getQna(1L);
+
+        assertThat(response.comments().get(0).staffName()).isEqualTo("삭제된 선생님");
+        assertThat(response.comments().get(0).commentContent()).isEqualTo("답변 본문");
+        verifyNoInteractions(staffService);
+    }
+
+    @Test
+    void getQna_legacyStudentCommentIsNotNamedAsDeletedTeacher() {
+        QnaBoard qna = qna(1L, 100L);
+        QnaComment comment = QnaComment.createByStaff(qna, 900L, "옛 학생 댓글");
+        ReflectionTestUtils.setField(comment, "userId", null);
+        ReflectionTestUtils.setField(comment, "studentId", 30L);
+        qna.addComment(comment);
+        given(qnaBoardRepository.findByIdWithComments(1L)).willReturn(Optional.of(qna));
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(100L)))
+                .willReturn(emptyStudents());
+
+        var response = queryService.getQna(1L);
+
+        assertThat(response.comments().get(0).studentId()).isEqualTo(30L);
+        assertThat(response.comments().get(0).staffName()).isNull();
+        assertThat(response.comments().get(0).commentContent()).isEqualTo("옛 학생 댓글");
+        verifyNoInteractions(staffService);
+    }
+
+    @Test
+    void getQna_nullAuthorIdKeepsContentAndDeletedStudentPlaceholder() {
+        QnaBoard qna = qna(1L, 100L);
+        ReflectionTestUtils.setField(qna, "qnaUserId", null);
+        given(qnaBoardRepository.findByIdWithComments(1L)).willReturn(Optional.of(qna));
+
+        var response = queryService.getQna(1L);
+
+        assertThat(response.qnaUserId()).isNull();
+        assertThat(response.qnaUserName()).isEqualTo("삭제된 학생");
+        assertThat(response.qnaContent()).isEqualTo("내용");
+        verifyNoInteractions(studentService, staffService);
+    }
+
+    @Test
+    void listQnas_allDeletedAuthorsStillHavePlaceholder() {
+        QnaBoard qna = qna(1L, 100L);
+        ReflectionTestUtils.setField(qna, "qnaUserId", null);
+        var pageable = PageRequest.of(0, 20);
+        given(qnaBoardRepository.search(null, null, null, pageable))
+                .willReturn(new PageImpl<>(List.of(qna), pageable, 1));
+
+        var response = queryService.listQnas(null, null, pageable);
+
+        assertThat(response.getContent().get(0).qnaUserName()).isEqualTo("삭제된 학생");
+        verifyNoInteractions(studentService, staffService);
+    }
+
+    @Test
+    void studentCannotViewQnaWithDeletedAuthor() {
+        QnaBoard qna = qna(1L, 100L);
+        ReflectionTestUtils.setField(qna, "qnaUserId", null);
+        given(qnaBoardRepository.findById(1L)).willReturn(Optional.of(qna));
+
+        assertThat(queryService.canUserViewQna(1L, "STUDENT", 100L)).isFalse();
     }
 
     @Test
