@@ -405,6 +405,100 @@ class MigrationsRlsIntegrationTest {
     }
 
     @Test
+    void historicalConstraintsAreValidatedAndOnlyCompositeJobExamLinksRemain() throws Exception {
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement();
+             ResultSet constraints = st.executeQuery("""
+                     SELECT conname, convalidated, pg_get_constraintdef(oid) AS definition
+                     FROM pg_constraint
+                     WHERE conname IN (
+                         'exam_results_current_submission_fkey',
+                         'payment_transactions_type_owner_check',
+                         'omr_grading_jobs_exam_id_fkey',
+                         'omr_grading_jobs_exam_tenant_fkey',
+                         'report_generation_jobs_exam_id_fkey',
+                         'report_generation_jobs_exam_tenant_fkey'
+                     )
+                     """)) {
+            var definitions = new java.util.HashMap<String, String>();
+            while (constraints.next()) {
+                assertThat(constraints.getBoolean("convalidated"))
+                        .as("validated constraint: %s", constraints.getString("conname"))
+                        .isTrue();
+                definitions.put(constraints.getString("conname"),
+                        constraints.getString("definition"));
+            }
+
+            assertThat(definitions).containsKeys(
+                    "exam_results_current_submission_fkey",
+                    "payment_transactions_type_owner_check",
+                    "omr_grading_jobs_exam_tenant_fkey",
+                    "report_generation_jobs_exam_tenant_fkey");
+            assertThat(definitions).doesNotContainKeys(
+                    "omr_grading_jobs_exam_id_fkey",
+                    "report_generation_jobs_exam_id_fkey");
+            assertThat(definitions.get("exam_results_current_submission_fkey"))
+                    .contains("FOREIGN KEY (current_submission_id, tenant_id)")
+                    .contains("ON DELETE SET NULL (current_submission_id)");
+            assertThat(definitions.get("omr_grading_jobs_exam_tenant_fkey"))
+                    .contains("FOREIGN KEY (exam_id, tenant_id)")
+                    .contains("ON DELETE RESTRICT");
+            assertThat(definitions.get("report_generation_jobs_exam_tenant_fkey"))
+                    .contains("FOREIGN KEY (exam_id, tenant_id)")
+                    .contains("ON DELETE CASCADE");
+        }
+    }
+
+    @Test
+    void compositeJobExamLinksRejectCrossTenantWritesAndRetainDeletePolicies() throws Exception {
+        long tenantA = 910_130L;
+        long tenantB = 910_131L;
+        long omrExamId = 930_130L;
+        long reportExamId = 930_131L;
+
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement()) {
+            admin.setAutoCommit(false);
+            try {
+                insertExam(st, omrExamId, tenantA, "erd130-omr-exam");
+                insertExam(st, reportExamId, tenantA, "erd130-report-exam");
+
+                var wrongTenant = admin.setSavepoint();
+                assertThatThrownBy(() -> st.executeUpdate(
+                        "INSERT INTO omr_grading_jobs "
+                        + "(exam_id, tenant_slug, total_images, tenant_id) VALUES ("
+                        + omrExamId + ", 'erd130', 1, " + tenantB + ")"))
+                        .isInstanceOf(SQLException.class)
+                        .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                                .isEqualTo("23503"));
+                admin.rollback(wrongTenant);
+
+                long omrJobId = insertReturningId(st,
+                        "INSERT INTO omr_grading_jobs "
+                        + "(exam_id, tenant_slug, total_images, tenant_id) VALUES ("
+                        + omrExamId + ", 'erd130', 1, " + tenantA + ") RETURNING id");
+                var restrictedDelete = admin.setSavepoint();
+                assertThatThrownBy(() -> st.executeUpdate(
+                        "DELETE FROM exams WHERE id = " + omrExamId))
+                        .isInstanceOf(SQLException.class)
+                        .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                                .isEqualTo("23001"));
+                admin.rollback(restrictedDelete);
+                assertThat(countById(st, "omr_grading_jobs", omrJobId)).isEqualTo(1);
+
+                long reportJobId = insertReturningId(st,
+                        "INSERT INTO report_generation_jobs "
+                        + "(exam_id, tenant_slug, tenant_id) VALUES ("
+                        + reportExamId + ", 'erd130', " + tenantA + ") RETURNING id");
+                st.executeUpdate("DELETE FROM exams WHERE id = " + reportExamId);
+                assertThat(countById(st, "report_generation_jobs", reportJobId)).isZero();
+            } finally {
+                admin.rollback();
+            }
+        }
+    }
+
+    @Test
     void erd14RejectsCrossTenantLinksAndCascadesOwnedHistory() throws Exception {
         long tenantA = 910_101L;
         long tenantB = 910_102L;
