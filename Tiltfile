@@ -141,11 +141,6 @@ spec:
             secretKeyRef:
               name: lumie-dev-internal-secrets
               key: LUMIE_INTERNAL_HMAC_SECRET
-        - name: LEGACY_JWT_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: lumie-dev-jwt-secrets
-              key: JWT_SECRET_KEY
         - name: MINIO_ACCESS_KEY
           valueFrom:
             secretKeyRef:

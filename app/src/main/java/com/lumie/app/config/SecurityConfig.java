@@ -5,7 +5,6 @@ import com.lumie.common.exception.ProblemResponseWriter;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.auth.adapter.in.security.SessionAuthenticationFilter;
 import com.lumie.auth.adapter.in.security.SameOriginCsrfFilter;
-import com.lumie.auth.adapter.in.security.LegacyJwtMigrationFilter;
 import com.lumie.tenant.adapter.in.web.HostTenantFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -27,7 +26,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
 
     private final SessionAuthenticationFilter sessionAuthenticationFilter;
-    private final LegacyJwtMigrationFilter legacyJwtMigrationFilter;
     private final SameOriginCsrfFilter sameOriginCsrfFilter;
     private final HostTenantFilter hostTenantFilter;
     private final InternalHmacAuthFilter internalHmacAuthFilter;
@@ -45,7 +43,6 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC, jakarta.servlet.DispatcherType.FORWARD, jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers("/v1/register/owner").permitAll()
                         .requestMatchers("/v1/login").permitAll()
-                        .requestMatchers("/v1/auth/migrate-legacy-session").permitAll()
                         .requestMatchers("/tenant-root").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
@@ -65,8 +62,7 @@ public class SecurityConfig {
                                 problems.write(request, response, 403, CommonErrorCode.FORBIDDEN.getCode(), "Forbidden"))
                 )
                 .addFilterBefore(hostTenantFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(legacyJwtMigrationFilter, HostTenantFilter.class)
-                .addFilterAfter(sessionAuthenticationFilter, LegacyJwtMigrationFilter.class)
+                .addFilterAfter(sessionAuthenticationFilter, HostTenantFilter.class)
                 .addFilterBefore(sameOriginCsrfFilter, SessionAuthenticationFilter.class)
                 .addFilterBefore(internalHmacAuthFilter, SessionAuthenticationFilter.class);
 
