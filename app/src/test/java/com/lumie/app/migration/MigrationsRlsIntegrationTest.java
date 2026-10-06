@@ -482,6 +482,152 @@ class MigrationsRlsIntegrationTest {
     }
 
     @Test
+    void remainingTenantLinksUseValidatedCompositeKeysAndPreserveDeletionRules() throws Exception {
+        record Link(String child, String reference, String parent, String deleteAction) {}
+
+        var links = java.util.List.of(
+                new Link("announcements", "author_id", "users", "n"),
+                new Link("assignment_submissions", "assignment_id", "assignments", "c"),
+                new Link("assignment_submissions", "student_id", "students", "n"),
+                new Link("class_enrollments", "class_id", "classes", "c"),
+                new Link("class_enrollments", "student_id", "students", "n"),
+                new Link("classes", "teacher_id", "staff", "n"),
+                new Link("exam_results", "exam_id", "exams", "c"),
+                new Link("exam_results", "omr_grading_job_id", "omr_grading_jobs", "n"),
+                new Link("exam_results", "student_id", "students", "n"),
+                new Link("file_metadata", "folder_id", "textbook_folders", "r"),
+                new Link("invoices", "subscription_id", "subscriptions", "r"),
+                new Link("lectures", "teacher_id", "staff", "n"),
+                new Link("qna_comments", "qna_id", "qna_boards", "c"),
+                new Link("sms_messages", "template_id", "sms_templates", "n"),
+                new Link("sms_messages", "sender_id", "staff", "n"),
+                new Link("staff", "user_id", "users", "c"),
+                new Link("staff_permissions", "staff_id", "staff", "c"),
+                new Link("students", "user_id", "users", "c"),
+                new Link("subscriptions", "billing_key_id", "billing_keys", "n"),
+                new Link("tax_invoices", "invoice_id", "invoices", "r"),
+                new Link("textbook_folders", "parent_id", "textbook_folders", "r")
+        );
+
+        try (Connection admin = adminConnection();
+             PreparedStatement constraints = admin.prepareStatement("""
+                     SELECT convalidated, confdeltype, pg_get_constraintdef(oid) AS definition
+                     FROM pg_constraint
+                     WHERE contype = 'f'
+                       AND conrelid = ?::regclass
+                       AND confrelid = ?::regclass
+                     """)) {
+            for (Link link : links) {
+                constraints.setString(1, link.child());
+                constraints.setString(2, link.parent());
+                boolean found = false;
+                try (ResultSet rows = constraints.executeQuery()) {
+                    String expected = "FOREIGN KEY (" + link.reference() + ", tenant_id) "
+                            + "REFERENCES " + link.parent() + "(id, tenant_id)";
+                    while (rows.next()) {
+                        String definition = rows.getString("definition");
+                        if (!definition.startsWith(expected)) {
+                            continue;
+                        }
+                        found = true;
+                        assertThat(rows.getBoolean("convalidated"))
+                                .as("validated same-tenant link: %s.%s", link.child(), link.reference())
+                                .isTrue();
+                        assertThat(rows.getString("confdeltype"))
+                                .as("unchanged delete action: %s.%s", link.child(), link.reference())
+                                .isEqualTo(link.deleteAction());
+                        if ("n".equals(link.deleteAction())) {
+                            assertThat(definition)
+                                    .as("tenant_id must survive parent deletion: %s.%s",
+                                            link.child(), link.reference())
+                                    .contains("ON DELETE SET NULL (" + link.reference() + ")");
+                        }
+                    }
+                }
+                assertThat(found)
+                        .as("same-tenant link exists: %s.%s -> %s",
+                                link.child(), link.reference(), link.parent())
+                        .isTrue();
+            }
+        }
+    }
+
+    @Test
+    void tenantLinkConstraintsRejectCrossTenantWritesAndKeepHistoryDeletionBehavior() throws Exception {
+        long tenantA = 910_127L;
+        long tenantB = 910_128L;
+        String parentFolder = java.util.UUID.randomUUID().toString();
+        String childFolder = java.util.UUID.randomUUID().toString();
+
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement()) {
+            admin.setAutoCommit(false);
+            try {
+                long authorId = insertReturningId(st,
+                        "INSERT INTO users (user_login_id, password_hash, name, role, tenant_id) "
+                        + "VALUES ('erd-link-author', 'test', 'Author', 'INSTRUCTOR', "
+                        + tenantA + ") RETURNING id");
+
+                var wrongAuthor = admin.setSavepoint();
+                assertThatThrownBy(() -> st.executeUpdate(
+                        "INSERT INTO announcements "
+                        + "(announcement_title, announcement_content, audience_scope, author_id, tenant_id) "
+                        + "VALUES ('Wrong tenant', 'test', 'ALL', " + authorId + ", " + tenantB + ")"))
+                        .isInstanceOf(SQLException.class)
+                        .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                                .isEqualTo("23503"));
+                admin.rollback(wrongAuthor);
+
+                long noticeId = insertReturningId(st,
+                        "INSERT INTO announcements "
+                        + "(announcement_title, announcement_content, audience_scope, author_id, tenant_id) "
+                        + "VALUES ('Same tenant', 'test', 'ALL', " + authorId + ", " + tenantA
+                        + ") RETURNING id");
+                st.executeUpdate("DELETE FROM users WHERE id = " + authorId);
+                try (ResultSet notice = st.executeQuery(
+                        "SELECT author_id, tenant_id FROM announcements WHERE id = " + noticeId)) {
+                    assertThat(notice.next()).isTrue();
+                    assertThat(notice.getObject("author_id")).isNull();
+                    assertThat(notice.getLong("tenant_id")).isEqualTo(tenantA);
+                }
+
+                st.executeUpdate("INSERT INTO textbook_folders (id, name, tenant_id) "
+                        + "VALUES ('" + parentFolder + "', 'Parent', " + tenantA + ")");
+                var wrongFolder = admin.setSavepoint();
+                assertThatThrownBy(() -> st.executeUpdate(
+                        "INSERT INTO textbook_folders (id, name, parent_id, tenant_id) "
+                        + "VALUES ('" + childFolder + "', 'Wrong tenant', '"
+                        + parentFolder + "', " + tenantB + ")"))
+                        .isInstanceOf(SQLException.class)
+                        .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                                .isEqualTo("23503"));
+                admin.rollback(wrongFolder);
+
+                st.executeUpdate("INSERT INTO textbook_folders (id, name, parent_id, tenant_id) "
+                        + "VALUES ('" + childFolder + "', 'Child', '"
+                        + parentFolder + "', " + tenantA + ")");
+                var restrictedParent = admin.setSavepoint();
+                assertThatThrownBy(() -> st.executeUpdate(
+                        "DELETE FROM textbook_folders WHERE id = '" + parentFolder + "'"))
+                        .isInstanceOf(SQLException.class)
+                        .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                                .isEqualTo("23001"));
+                admin.rollback(restrictedParent);
+
+                long classId = 930_127L;
+                insertClass(st, classId, tenantA, "History class");
+                long enrollmentId = insertReturningId(st,
+                        "INSERT INTO class_enrollments (class_id, student_id, tenant_id) "
+                        + "VALUES (" + classId + ", null, " + tenantA + ") RETURNING id");
+                st.executeUpdate("DELETE FROM classes WHERE id = " + classId);
+                assertThat(countById(st, "class_enrollments", enrollmentId)).isZero();
+            } finally {
+                admin.rollback();
+            }
+        }
+    }
+
+    @Test
     void assignmentsRequireOneDedicatedExamPerTenant() throws Exception {
         try (Connection admin = adminConnection();
              Statement st = admin.createStatement();
@@ -703,6 +849,13 @@ class MigrationsRlsIntegrationTest {
                 "INSERT INTO exams (id, name, total_questions, correct_answers, question_scores, tenant_id) "
                 + "VALUES (" + examId + ", '" + name + "', 1, '[1]'::jsonb, '[1]'::jsonb, "
                 + tenantId + ")");
+    }
+
+    private static void insertClass(Statement statement, long classId, long tenantId, String name)
+            throws Exception {
+        statement.executeUpdate(
+                "INSERT INTO classes (id, name, tenant_id) VALUES (" + classId + ", '"
+                + name + "', " + tenantId + ")");
     }
 
     private static long insertReturningId(Statement statement, String sql) throws Exception {
