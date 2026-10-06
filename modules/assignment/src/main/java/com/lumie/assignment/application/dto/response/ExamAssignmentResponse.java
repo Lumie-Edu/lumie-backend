@@ -6,7 +6,7 @@ public record ExamAssignmentResponse(
     Long id,
     String name,
     String category,
-    String gradingType,
+    @Schema(nullable = true) String gradingType,
     @Schema(nullable = true)
     String gradeScale,
     int totalQuestions,

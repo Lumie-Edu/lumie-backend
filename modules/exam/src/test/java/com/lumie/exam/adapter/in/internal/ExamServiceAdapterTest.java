@@ -134,6 +134,19 @@ class ExamServiceAdapterTest {
     }
 
     @Test
+    void passFailAssignmentExamHasNoAcademicGradingSettings() {
+        Exam exam = Exam.create("PNP", ExamCategory.PASS_FAIL, GradingType.RELATIVE,
+                GradeScale.FIVE_GRADE, 1, Map.of("1", "1"), Map.of("1", 10), Map.of("1", "단답"), 6);
+        given(examRepository.findById(1L)).willReturn(Optional.of(exam));
+
+        ExamService.ExamAssignmentData data = examServiceAdapter.getExamForAssignment("tenant-a", 1L).orElseThrow();
+
+        assertThat(data.gradingType()).isNull();
+        assertThat(data.gradeScale()).isNull();
+        assertThat(data.passScore()).isEqualTo(6);
+    }
+
+    @Test
     @DisplayName("수동 채점은 command service 결과를 그대로 전달한다")
     void gradeManualAnswers_delegatesToCommandService() {
         ExamService.ManualGradeResult expected = new ExamService.ManualGradeResult(

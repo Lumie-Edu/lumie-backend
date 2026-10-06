@@ -41,7 +41,7 @@ public class Exam extends TenantScopedEntity {
     private ExamCategory category;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "grading_type", nullable = false, length = 20)
+    @Column(name = "grading_type", length = 20)
     private GradingType gradingType;
 
     @Enumerated(EnumType.STRING)
@@ -112,8 +112,10 @@ public class Exam extends TenantScopedEntity {
         return Exam.builder()
                 .name(name)
                 .category(effectiveCategory)
-                .gradingType(gradingType != null ? gradingType : GradingType.ABSOLUTE)
-                .gradeScale(gradeScale != null ? gradeScale : GradeScale.NINE_GRADE)
+                .gradingType(effectiveCategory == ExamCategory.GRADED
+                        ? (gradingType != null ? gradingType : GradingType.ABSOLUTE) : null)
+                .gradeScale(effectiveCategory == ExamCategory.GRADED
+                        ? (gradeScale != null ? gradeScale : GradeScale.NINE_GRADE) : null)
                 .totalQuestions(totalQuestions)
                 .correctAnswers(correctAnswers)
                 .questionScores(questionScores)

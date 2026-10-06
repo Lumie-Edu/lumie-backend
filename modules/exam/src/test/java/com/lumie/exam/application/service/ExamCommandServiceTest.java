@@ -109,10 +109,11 @@ class ExamCommandServiceTest {
     }
 
     @Test
-    void passFailExamDoesNotExposeDormantAcademicSettings() {
+    void passFailExamDoesNotStoreOrExposeAcademicSettings() {
         Exam exam = passFailExam();
 
-        assertThat(exam.getGradingType()).isEqualTo(GradingType.ABSOLUTE);
+        assertThat(exam.getGradingType()).isNull();
+        assertThat(exam.getGradeScale()).isNull();
         assertThat(ExamResponse.from(exam).gradingType()).isNull();
         assertThat(ExamResponse.from(exam).gradeScale()).isNull();
         assertThat(ExamResponse.from(exam).passScore()).isEqualTo(5);
@@ -125,6 +126,16 @@ class ExamCommandServiceTest {
         assertThat(exam.getPassScore()).isNull();
         assertThat(ExamResponse.from(exam).passScore()).isNull();
         assertThat(ExamResponse.from(exam).gradingType()).isEqualTo(GradingType.ABSOLUTE);
+    }
+
+    @Test
+    void gradedExamWithoutConfigurationUsesServerDefaults() {
+        Exam exam = Exam.create("등급제", ExamCategory.GRADED, null, null,
+                1, Map.of("1", "1"), Map.of("1", 10), Map.of("1", "CHOICE"), 5);
+
+        assertThat(exam.getGradingType()).isEqualTo(GradingType.ABSOLUTE);
+        assertThat(exam.getGradeScale()).isEqualTo(GradeScale.NINE_GRADE);
+        assertThat(exam.getPassScore()).isNull();
     }
 
     @Test

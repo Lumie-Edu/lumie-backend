@@ -1592,6 +1592,7 @@
             "type" : "string"
           },
           "gradingType" : {
+            "nullable" : true,
             "type" : "string"
           },
           "id" : {

@@ -80,8 +80,10 @@ public class ExamTemplate extends TenantScopedEntity {
         return ExamTemplate.builder()
                 .name(name)
                 .category(effectiveCategory)
-                .gradingType(effectiveCategory == ExamCategory.GRADED ? gradingType : null)
-                .gradeScale(effectiveCategory == ExamCategory.GRADED ? gradeScale : null)
+                .gradingType(effectiveCategory == ExamCategory.GRADED
+                        ? (gradingType != null ? gradingType : GradingType.ABSOLUTE) : null)
+                .gradeScale(effectiveCategory == ExamCategory.GRADED
+                        ? (gradeScale != null ? gradeScale : GradeScale.NINE_GRADE) : null)
                 .totalQuestions(totalQuestions)
                 .questionScores(questionScores)
                 .questionTypes(questionTypes)

@@ -9,6 +9,7 @@ import com.lumie.exam.domain.repository.ExamTemplateRepository;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
+import com.lumie.common.test.ReflectionTestUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -40,12 +41,15 @@ class ExamTemplateCommandServiceTest {
     }
 
     @Test
-    void newGradedTemplateWithoutConfigurationIsRejected() {
-        assertThatThrownBy(() -> service.create(new CreateExamTemplateRequest("구형", ExamCategory.GRADED,
-                null, null, 1, Map.of("1", 10), null, null)))
-                .isInstanceOfSatisfying(BusinessException.class,
-                        error -> assertThat(error.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA));
-        verify(repository, never()).save(any());
+    void newGradedTemplateWithoutConfigurationUsesServerDefaults() {
+        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = service.create(new CreateExamTemplateRequest("기본 등급제", ExamCategory.GRADED,
+                null, null, 1, Map.of("1", 10), null, null));
+
+        assertThat(response.gradingType()).isEqualTo(GradingType.ABSOLUTE);
+        assertThat(response.gradeScale()).isEqualTo(GradeScale.NINE_GRADE);
+        assertThat(response.passScore()).isNull();
     }
 
     @Test
@@ -55,6 +59,18 @@ class ExamTemplateCommandServiceTest {
                 .isInstanceOfSatisfying(BusinessException.class,
                         error -> assertThat(error.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA));
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void newPassFailTemplateClearsAcademicSettings() {
+        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = service.create(new CreateExamTemplateRequest("PNP", ExamCategory.PASS_FAIL,
+                GradingType.RELATIVE, GradeScale.FIVE_GRADE, 1, Map.of("1", 10), null, 6));
+
+        assertThat(response.gradingType()).isNull();
+        assertThat(response.gradeScale()).isNull();
+        assertThat(response.passScore()).isEqualTo(6);
     }
 
     @Test
@@ -76,9 +92,11 @@ class ExamTemplateCommandServiceTest {
     }
 
     @Test
-    void legacyTemplateNameChangeDoesNotInventConfiguration() {
+    void legacyTemplateNameChangeDoesNotInventConfiguration() throws Exception {
         ExamTemplate legacy = ExamTemplate.create("기존", ExamCategory.GRADED,
                 null, null, 1, Map.of("1", 10), null, null);
+        ReflectionTestUtils.setField(legacy, "gradingType", null);
+        ReflectionTestUtils.setField(legacy, "gradeScale", null);
         when(repository.findById(1L)).thenReturn(Optional.of(legacy));
         when(repository.save(legacy)).thenReturn(legacy);
 

@@ -155,7 +155,7 @@ public class ExamServiceAdapter implements ExamService {
                 exam.getId(),
                 exam.getName(),
                 exam.getCategory().name(),
-                exam.getGradingType().name(),
+                exam.getGradingType() != null ? exam.getGradingType().name() : null,
                 exam.getGradeScale() != null ? exam.getGradeScale().name() : null,
                 exam.getTotalQuestions(),
                 exam.calculateTotalPossibleScore(),

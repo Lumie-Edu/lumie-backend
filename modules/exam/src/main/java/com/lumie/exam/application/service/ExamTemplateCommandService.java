@@ -28,9 +28,6 @@ public class ExamTemplateCommandService {
     public ExamTemplateResponse create(CreateExamTemplateRequest request) {
         log.info("Creating exam template: {}", request.name());
 
-        validateConfiguration(request.category(), request.gradingType(), request.gradeScale(),
-                request.passScore(), request.questionScores());
-
         ExamTemplate template = ExamTemplate.create(
                 request.name(),
                 request.category(),
@@ -41,6 +38,8 @@ public class ExamTemplateCommandService {
                 request.questionTypes(),
                 request.passScore()
         );
+        validateConfiguration(template.getCategory(), template.getGradingType(), template.getGradeScale(),
+                template.getPassScore(), template.getQuestionScores());
 
         ExamTemplate saved = examTemplateRepository.save(template);
 
