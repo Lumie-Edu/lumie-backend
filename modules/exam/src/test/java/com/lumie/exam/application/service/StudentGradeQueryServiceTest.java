@@ -124,6 +124,24 @@ class StudentGradeQueryServiceTest {
     }
 
     @Test
+    void gradedResultsHaveNoPassFailStatusInListAndSummary() throws Exception {
+        Exam exam = gradedExam();
+        List<ExamResult> results = List.of(ExamResult.create(exam, 1L, 65));
+        given(examRepository.findById(EXAM_ID)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamId(EXAM_ID)).willReturn(results);
+        stubStudentService(results);
+        given(classService.getEnrolledClassesForStudents(anyString(), anyList())).willReturn(List.of());
+
+        for (GradingType gradingType : List.of(GradingType.ABSOLUTE, GradingType.RELATIVE)) {
+            ReflectionTestUtils.setField(exam, "gradingType", gradingType);
+            assertThat(service.getStudentGrades(EXAM_ID, Pageable.unpaged())
+                    .getContent().get(0).isPassed()).isNull();
+            assertThat(service.getStudentResultSummaries(EXAM_ID)
+                    .get(0).isPassed()).isNull();
+        }
+    }
+
+    @Test
     void relativeGradeUsesTheSameCohortInListAndSummary() throws Exception {
         Exam exam = gradedExam();
         ReflectionTestUtils.setField(exam, "gradingType", GradingType.RELATIVE);

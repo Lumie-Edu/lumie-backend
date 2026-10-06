@@ -4,6 +4,7 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.api.ExamResultChangedEvent;
 import com.lumie.exam.application.dto.request.UpdateExamRequest;
+import com.lumie.exam.application.dto.response.ExamResponse;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
@@ -70,44 +71,84 @@ class ExamCommandServiceTest {
     }
 
     @Test
-    void switchingFromPassFailToAbsoluteGradeUsesExistingScoreWithoutRegradingAnswers() {
+    void changingPassFailExamToGradedIsRejectedWithoutChangingResults() {
         Exam exam = passFailExam();
         ExamResult result = ExamResult.create(exam, 7L, 6);
         result.assignGrade(-1);
         QuestionResult question = QuestionResult.create(1, "1", "1", 6);
         result.addQuestionResult(question);
         when(examRepository.findById(1L)).thenReturn(Optional.of(exam));
-        when(resultRepository.findByExamId(1L)).thenReturn(List.of(result));
-        when(examRepository.save(exam)).thenReturn(exam);
 
-        service.updateExam(1L, new UpdateExamRequest(null, ExamCategory.GRADED, null, null,
-                null, null, null, null, null));
+        assertThatThrownBy(() -> service.updateExam(1L, new UpdateExamRequest(null, ExamCategory.GRADED, null, null,
+                null, null, null, null, null)))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA));
 
-        assertThat(result.getGrade()).isEqualTo(9);
+        assertThat(exam.getCategory()).isEqualTo(ExamCategory.PASS_FAIL);
+        assertThat(result.getGrade()).isEqualTo(-1);
         assertThat(result.getTotalScore()).isEqualTo(6);
         assertThat(question.getSelectedChoice()).isEqualTo("1");
         assertThat(question.getEarnedScore()).isEqualTo(6);
+        verifyNoInteractions(resultRepository, eventPublisher);
+        verify(examRepository, never()).save(any());
     }
 
     @Test
-    void switchingFromAbsoluteGradeToPassFailClearsStoredGradeWithoutRegradingAnswers() {
+    void changingGradedExamToPassFailIsRejectedWithoutResults() {
         Exam exam = gradedExam();
-        ExamResult result = ExamResult.create(exam, 7L, 90);
-        result.assignGrade(1);
-        QuestionResult question = QuestionResult.create(1, "1", "1", 90);
-        result.addQuestionResult(question);
         when(examRepository.findById(1L)).thenReturn(Optional.of(exam));
-        when(resultRepository.findByExamId(1L)).thenReturn(List.of(result));
-        when(examRepository.save(exam)).thenReturn(exam);
 
-        service.updateExam(1L, new UpdateExamRequest(null, ExamCategory.PASS_FAIL, null, null,
-                null, null, null, null, 80));
+        assertThatThrownBy(() -> service.updateExam(1L, new UpdateExamRequest(null, ExamCategory.PASS_FAIL, null, null,
+                null, null, null, null, 80)))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA));
 
-        assertThat(result.getGrade()).isNull();
-        assertThat(result.passStatus()).isTrue();
-        assertThat(result.getTotalScore()).isEqualTo(90);
-        assertThat(question.getSelectedChoice()).isEqualTo("1");
-        assertThat(question.getEarnedScore()).isEqualTo(90);
+        assertThat(exam.getCategory()).isEqualTo(ExamCategory.GRADED);
+        verifyNoInteractions(resultRepository, eventPublisher);
+        verify(examRepository, never()).save(any());
+    }
+
+    @Test
+    void passFailExamDoesNotExposeDormantAcademicSettings() {
+        Exam exam = passFailExam();
+
+        assertThat(exam.getGradingType()).isEqualTo(GradingType.ABSOLUTE);
+        assertThat(ExamResponse.from(exam).gradingType()).isNull();
+        assertThat(ExamResponse.from(exam).gradeScale()).isNull();
+        assertThat(ExamResponse.from(exam).passScore()).isEqualTo(5);
+    }
+
+    @Test
+    void gradedExamDoesNotStoreOrExposePassFailCutoff() {
+        Exam exam = gradedExam();
+
+        assertThat(exam.getPassScore()).isNull();
+        assertThat(ExamResponse.from(exam).passScore()).isNull();
+        assertThat(ExamResponse.from(exam).gradingType()).isEqualTo(GradingType.ABSOLUTE);
+    }
+
+    @Test
+    void passFailAcademicSettingsUpdateIsRejected() {
+        Exam exam = passFailExam();
+        when(examRepository.findById(1L)).thenReturn(Optional.of(exam));
+
+        assertThatThrownBy(() -> service.updateExam(1L, new UpdateExamRequest(null, null, GradingType.RELATIVE,
+                null, null, null, null, null, null)))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA));
+        verify(examRepository, never()).save(any());
+    }
+
+    @Test
+    void gradedPassFailCutoffUpdateIsRejected() {
+        Exam exam = gradedExam();
+        when(examRepository.findById(1L)).thenReturn(Optional.of(exam));
+
+        assertThatThrownBy(() -> service.updateExam(1L, new UpdateExamRequest(null, null, null,
+                null, null, null, null, null, 80)))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA));
+        verify(examRepository, never()).save(any());
     }
 
     @Test

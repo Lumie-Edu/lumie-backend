@@ -1,6 +1,8 @@
 package com.lumie.exam.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.vo.GradeScale;
@@ -106,16 +108,17 @@ public class Exam extends TenantScopedEntity {
                                Integer totalQuestions, Map<String, String> correctAnswers,
                                Map<String, Integer> questionScores, Map<String, String> questionTypes,
                                Integer passScore, ExamSource source) {
+        ExamCategory effectiveCategory = category != null ? category : ExamCategory.GRADED;
         return Exam.builder()
                 .name(name)
-                .category(category != null ? category : ExamCategory.GRADED)
+                .category(effectiveCategory)
                 .gradingType(gradingType != null ? gradingType : GradingType.ABSOLUTE)
                 .gradeScale(gradeScale != null ? gradeScale : GradeScale.NINE_GRADE)
                 .totalQuestions(totalQuestions)
                 .correctAnswers(correctAnswers)
                 .questionScores(questionScores)
                 .questionTypes(questionTypes)
-                .passScore(passScore)
+                .passScore(effectiveCategory == ExamCategory.PASS_FAIL ? passScore : null)
                 .source(source)
                 .build();
     }
@@ -123,6 +126,10 @@ public class Exam extends TenantScopedEntity {
     public void update(String name, ExamCategory category, GradingType gradingType, GradeScale gradeScale,
                        Integer totalQuestions, Map<String, String> correctAnswers, Map<String, Integer> questionScores,
                        Map<String, String> questionTypes, Integer passScore) {
+        if (category != null && category != this.category) {
+            throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,
+                    "Cannot change an exam category after creation");
+        }
         if (name != null && !name.isBlank()) {
             this.name = name;
         }

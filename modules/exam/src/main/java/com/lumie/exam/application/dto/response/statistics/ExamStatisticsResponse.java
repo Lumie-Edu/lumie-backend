@@ -11,8 +11,8 @@ public record ExamStatisticsResponse(
         Long examId,
         String examName,
         ExamCategory examCategory,
-        GradingType gradingType,                            // non-null: defaults to ABSOLUTE (Exam.grading_type NOT NULL)
-        @Schema(nullable = true) GradeScale gradeScale,     // null for PASS_FAIL / ABSOLUTE
+        @Schema(nullable = true) GradingType gradingType,   // null for PASS_FAIL
+        @Schema(nullable = true) GradeScale gradeScale,     // null for PASS_FAIL
         int participantCount,
         double average,
         int highest,

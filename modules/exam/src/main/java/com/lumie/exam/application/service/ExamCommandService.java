@@ -93,6 +93,19 @@ public class ExamCommandService {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
+        if (changed(request.category(), exam.getCategory())) {
+            throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,
+                    "Cannot change an exam category after creation");
+        }
+        if (exam.isPassFail() && (request.gradingType() != null || request.gradeScale() != null)) {
+            throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,
+                    "PASS_FAIL exams do not use academic grading settings");
+        }
+        if (!exam.isPassFail() && request.passScore() != null) {
+            throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA,
+                    "GRADED exams do not use a pass score");
+        }
+
         List<ExamResult> existingResults = resultRepository.findByExamId(examId);
         if (!existingResults.isEmpty() && (
                 changed(request.totalQuestions(), exam.getTotalQuestions())

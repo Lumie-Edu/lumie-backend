@@ -30,7 +30,7 @@ public record ExamFullResponse(
                 exam.getQuestionScores(),
                 exam.getQuestionTypes(),
                 exam.calculateTotalPossibleScore(),
-                exam.getPassScore(),
+                exam.isPassFail() ? exam.getPassScore() : null,
                 exam.getCreatedAt(),
                 exam.getUpdatedAt()
         );

@@ -95,7 +95,9 @@ public class ExamSummaryStatisticsService {
             List<ExamResult> allExamResults) {
         if (results.isEmpty()) {
             return new ExamStatisticsResponse(
-                    exam.getId(), exam.getName(), exam.getCategory(), exam.getGradingType(), exam.getGradeScale(),
+                    exam.getId(), exam.getName(), exam.getCategory(),
+                    exam.isPassFail() ? null : exam.getGradingType(),
+                    exam.isPassFail() ? null : exam.getGradeScale(),
                     0, 0.0, 0, 0, 0.0,
                     null, null, null,
                     Collections.emptyList(), Collections.emptyList(),
@@ -131,7 +133,9 @@ public class ExamSummaryStatisticsService {
         List<ExamStatisticsResponse.TopIncorrectQuestion> topIncorrectQuestions = calculateExamTopIncorrect(exam, results);
 
         return new ExamStatisticsResponse(
-                exam.getId(), exam.getName(), exam.getCategory(), exam.getGradingType(), exam.getGradeScale(),
+                exam.getId(), exam.getName(), exam.getCategory(),
+                exam.isPassFail() ? null : exam.getGradingType(),
+                exam.isPassFail() ? null : exam.getGradeScale(),
                 results.size(),
                 Math.round(average * 10) / 10.0, highest, lowest,
                 Math.round(stdDev * 10) / 10.0,

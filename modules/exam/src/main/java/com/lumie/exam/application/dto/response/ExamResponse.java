@@ -12,7 +12,7 @@ public record ExamResponse(
         Long id,
         String name,
         ExamCategory category,
-        GradingType gradingType,
+        @Schema(nullable = true) GradingType gradingType,
         @Schema(nullable = true) GradeScale gradeScale,
         Integer totalQuestions,
         Integer totalPossibleScore,
@@ -25,11 +25,11 @@ public record ExamResponse(
                 exam.getId(),
                 exam.getName(),
                 exam.getCategory(),
-                exam.getGradingType(),
-                exam.getGradeScale(),
+                exam.isPassFail() ? null : exam.getGradingType(),
+                exam.isPassFail() ? null : exam.getGradeScale(),
                 exam.getTotalQuestions(),
                 exam.calculateTotalPossibleScore(),
-                exam.getPassScore(),
+                exam.isPassFail() ? exam.getPassScore() : null,
                 exam.getCreatedAt(),
                 exam.getUpdatedAt()
         );

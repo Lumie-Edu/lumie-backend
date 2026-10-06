@@ -125,7 +125,7 @@ public class StudentGradeQueryService {
                             Math.round(percentile * 10) / 10.0,
                             grade,
                             exam.getCategory(),
-                            exam.isPassFail() ? result.passStatus() : Boolean.FALSE,
+                            result.passStatus(),
                             result.getCreatedAt(),
                             result.getId()
                     );
@@ -197,7 +197,7 @@ public class StudentGradeQueryService {
                             result.getTotalScore(),
                             gradeCalculator.resolveStoredOrRelativeGrade(exam, result, allScores),
                             exam.getCategory(),
-                            exam.isPassFail() ? result.passStatus() : Boolean.FALSE,
+                            result.passStatus(),
                             classes
                     );
                 })

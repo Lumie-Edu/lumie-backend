@@ -1719,6 +1719,7 @@
           },
           "gradingType" : {
             "enum" : [ "RELATIVE", "ABSOLUTE" ],
+            "nullable" : true,
             "type" : "string"
           },
           "id" : {
@@ -1850,6 +1851,7 @@
           },
           "gradingType" : {
             "enum" : [ "RELATIVE", "ABSOLUTE" ],
+            "nullable" : true,
             "type" : "string"
           },
           "highest" : {
