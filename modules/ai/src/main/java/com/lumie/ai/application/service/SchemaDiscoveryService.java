@@ -46,7 +46,7 @@ public class SchemaDiscoveryService {
                   AND tc.table_schema = kcu.table_schema
                   AND tc.constraint_type = 'PRIMARY KEY'
                 WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
-                  AND t.table_name NOT IN ('flyway_schema_history')
+                  AND t.table_name NOT IN ('flyway_schema_history', 'textbooks')
                 ORDER BY t.table_name, c.ordinal_position
                 """);
 
