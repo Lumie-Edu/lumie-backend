@@ -365,6 +365,123 @@ class MigrationsRlsIntegrationTest {
     }
 
     @Test
+    void erd14HistoryConstraintsAreValidatedAndRetainCascadeDeletion() throws Exception {
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement();
+             ResultSet constraints = st.executeQuery("""
+                     SELECT conname, convalidated, pg_get_constraintdef(oid) AS definition
+                     FROM pg_constraint
+                     WHERE conrelid IN ('question_results'::regclass,
+                                        'ai_conversations'::regclass,
+                                        'ai_chat_messages'::regclass)
+                       AND contype = 'f'
+                     """)) {
+            var definitions = new java.util.HashMap<String, String>();
+            while (constraints.next()) {
+                assertThat(constraints.getBoolean("convalidated"))
+                        .as("validated FK: %s", constraints.getString("conname"))
+                        .isTrue();
+                definitions.put(constraints.getString("conname"),
+                        constraints.getString("definition"));
+            }
+
+            assertThat(definitions).containsKeys(
+                    "question_results_exam_result_tenant_fkey",
+                    "ai_conversations_user_tenant_fkey",
+                    "ai_chat_messages_conversation_tenant_fkey");
+            assertThat(definitions).doesNotContainKeys(
+                    "question_results_exam_result_id_fkey",
+                    "ai_chat_messages_conversation_id_fkey");
+            assertThat(definitions.get("question_results_exam_result_tenant_fkey"))
+                    .contains("FOREIGN KEY (exam_result_id, tenant_id)")
+                    .contains("REFERENCES exam_results(id, tenant_id) ON DELETE CASCADE");
+            assertThat(definitions.get("ai_conversations_user_tenant_fkey"))
+                    .contains("FOREIGN KEY (user_id, tenant_id)")
+                    .contains("REFERENCES users(id, tenant_id) ON DELETE CASCADE");
+            assertThat(definitions.get("ai_chat_messages_conversation_tenant_fkey"))
+                    .contains("FOREIGN KEY (conversation_id, tenant_id)")
+                    .contains("REFERENCES ai_conversations(id, tenant_id) ON DELETE CASCADE");
+        }
+    }
+
+    @Test
+    void erd14RejectsCrossTenantLinksAndCascadesOwnedHistory() throws Exception {
+        long tenantA = 910_101L;
+        long tenantB = 910_102L;
+        long examId = 930_101L;
+
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement()) {
+            admin.setAutoCommit(false);
+            try {
+                insertExam(st, examId, tenantA, "erd14-exam");
+                long resultId = insertReturningId(st,
+                        "INSERT INTO exam_results (exam_id, total_score, tenant_id) "
+                        + "VALUES (" + examId + ", 0, " + tenantA + ") RETURNING id");
+
+                var wrongQuestion = admin.setSavepoint();
+                assertThatThrownBy(() -> st.executeUpdate(
+                        "INSERT INTO question_results "
+                        + "(exam_result_id, question_number, is_correct, score, tenant_id) "
+                        + "VALUES (" + resultId + ", 1, false, 0, " + tenantB + ")"))
+                        .isInstanceOf(SQLException.class)
+                        .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                                .isEqualTo("23503"));
+                admin.rollback(wrongQuestion);
+
+                long questionId = insertReturningId(st,
+                        "INSERT INTO question_results "
+                        + "(exam_result_id, question_number, is_correct, score, tenant_id) "
+                        + "VALUES (" + resultId + ", 1, false, 0, " + tenantA + ") "
+                        + "RETURNING id");
+                st.executeUpdate("DELETE FROM exam_results WHERE id = " + resultId);
+                assertThat(countById(st, "question_results", questionId)).isZero();
+
+                long userId = insertReturningId(st,
+                        "INSERT INTO users "
+                        + "(user_login_id, password_hash, name, role, tenant_id) "
+                        + "VALUES ('erd14-fk-owner', 'test', 'Owner', 'INSTRUCTOR', "
+                        + tenantA + ") RETURNING id");
+
+                var wrongConversation = admin.setSavepoint();
+                assertThatThrownBy(() -> st.executeUpdate(
+                        "INSERT INTO ai_conversations (user_id, tenant_id) "
+                        + "VALUES (" + userId + ", " + tenantB + ")"))
+                        .isInstanceOf(SQLException.class)
+                        .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                                .isEqualTo("23503"));
+                admin.rollback(wrongConversation);
+
+                long conversationId = insertReturningId(st,
+                        "INSERT INTO ai_conversations (user_id, tenant_id) "
+                        + "VALUES (" + userId + ", " + tenantA + ") RETURNING id");
+
+                var wrongMessage = admin.setSavepoint();
+                assertThatThrownBy(() -> st.executeUpdate(
+                        "INSERT INTO ai_chat_messages "
+                        + "(conversation_id, role, content, tenant_id) "
+                        + "VALUES (" + conversationId + ", 'USER', 'test', "
+                        + tenantB + ")"))
+                        .isInstanceOf(SQLException.class)
+                        .satisfies(error -> assertThat(((SQLException) error).getSQLState())
+                                .isEqualTo("23503"));
+                admin.rollback(wrongMessage);
+
+                long messageId = insertReturningId(st,
+                        "INSERT INTO ai_chat_messages "
+                        + "(conversation_id, role, content, tenant_id) "
+                        + "VALUES (" + conversationId + ", 'USER', 'test', "
+                        + tenantA + ") RETURNING id");
+                st.executeUpdate("DELETE FROM users WHERE id = " + userId);
+                assertThat(countById(st, "ai_conversations", conversationId)).isZero();
+                assertThat(countById(st, "ai_chat_messages", messageId)).isZero();
+            } finally {
+                admin.rollback();
+            }
+        }
+    }
+
+    @Test
     void assignmentsRequireOneDedicatedExamPerTenant() throws Exception {
         try (Connection admin = adminConnection();
              Statement st = admin.createStatement();
@@ -586,6 +703,21 @@ class MigrationsRlsIntegrationTest {
                 "INSERT INTO exams (id, name, total_questions, correct_answers, question_scores, tenant_id) "
                 + "VALUES (" + examId + ", '" + name + "', 1, '[1]'::jsonb, '[1]'::jsonb, "
                 + tenantId + ")");
+    }
+
+    private static long insertReturningId(Statement statement, String sql) throws Exception {
+        try (ResultSet result = statement.executeQuery(sql)) {
+            assertThat(result.next()).isTrue();
+            return result.getLong(1);
+        }
+    }
+
+    private static long countById(Statement statement, String table, long id) throws Exception {
+        try (ResultSet result = statement.executeQuery(
+                "SELECT count(*) FROM " + table + " WHERE id = " + id)) {
+            assertThat(result.next()).isTrue();
+            return result.getLong(1);
+        }
     }
 
     private static void insertAssignment(Statement statement, long tenantId, Long examId)
