@@ -19,8 +19,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * context and compares it (normalized) to a committed snapshot. A BE controller/DTO
  * change that alters the contract fails this test until the snapshot is regenerated —
  * the explicit, reviewable update that keeps the spec honest. This is the BE half of the
- * codegen drift defense; the FE {@code nextjs-ci} gate is the consumer half (generated
- * client must match the committed openapi.json).
+ * codegen drift defense; FE CI compares this golden with its openapi.json, then
+ * verifies that generated clients match that frontend snapshot.
  *
  * <p>Regenerate after an intended contract change:
  * {@code ./gradlew :app:test --tests '*OpenApiSnapshotTest' -DupdateOpenApiSnapshot=true}
@@ -51,11 +51,15 @@ class OpenApiSnapshotTest extends FullContextTestBase {
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         final String current = normalize(raw);
 
-        if (Boolean.getBoolean("updateOpenApiSnapshot") || Files.notExists(SNAPSHOT)) {
+        if (Boolean.getBoolean("updateOpenApiSnapshot")) {
             Files.createDirectories(SNAPSHOT.getParent());
             Files.writeString(SNAPSHOT, current, StandardCharsets.UTF_8);
             return;
         }
+
+        assertThat(Files.exists(SNAPSHOT))
+                .as("The committed OpenAPI snapshot is missing; regenerate it explicitly.")
+                .isTrue();
 
         final String committed = normalize(Files.readString(SNAPSHOT, StandardCharsets.UTF_8));
         assertThat(current)

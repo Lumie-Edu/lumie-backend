@@ -48,6 +48,8 @@ refactored persistence access should use `application/port/out` plus
 `adapter/out/persistence`; existing `domain/repository` Spring Data
 interfaces are legacy tolerated and should migrate opportunistically.
 
+When adding a new module, register it in `settings.gradle.kts` and match the build configuration of the closest existing module.
+
 ## Persistence boundary
 
 - `domain/entity/**` may use `jakarta.persistence` and Hibernate mapping annotations.
@@ -60,6 +62,15 @@ interfaces are legacy tolerated and should migrate opportunistically.
 ## Multi-tenancy
 
 Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NOT NULL`, enforced by `FORCE ROW LEVEL SECURITY` against the `lumie_app` runtime role. When crossing tenants in adapters, use `TenantContextHolder.withinContext(slug, tenantId, action)` — `setTenant` alone leaves rows invisible. See `../.codex/knowledge/ARCHITECTURE_INTENT.md` "Multi-tenancy" for the full mechanism (aspect ordering, RabbitListener path, known costs).
+
+## Review focus
+
+- Trace tenant context through changed HTTP, async, messaging, callback, and cross-tenant adapter boundaries; inspect the actual transaction and RLS path.
+- Compare changed controllers, DTOs, events, and consumers for contract drift. Check that controllers delegate to application services and use typed responses.
+- Check that RabbitMQ publication cannot happen before commit and that external HTTP does not hold an open transaction.
+- Inspect association-heavy list queries and changed foreign keys for concrete N+1 or indexing risks; read the query and migration before claiming an index is missing.
+- Check query-service read-only transactions, scheduler locking, and async boundaries for long request work on affected paths.
+- Route changed Flyway SQL to `backend-migration-reviewer` in addition to general code review.
 
 ## Inter-module / external
 
@@ -85,4 +96,4 @@ Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NO
 
 ## Agents
 
-`backend-scaffolder` · `backend-reviewer` · `backend-migration-author` (Flyway scaffold) · `backend-migration-reviewer` (read-only Flyway diff review) · `backend-test-orchestrator` (per-module Gradle test + JaCoCo coverage gate) · `backend-performance-monitor` (static N+1 / tx-scope-HTTP / missing-index analysis).
+The main agent implements backend changes and runs affected Gradle checks only during explicit Verify or an active Loop's Verify phase. `code-reviewer` covers code and semantic performance risks; `backend-migration-reviewer` separately reviews Flyway SQL when Review is requested or reached.

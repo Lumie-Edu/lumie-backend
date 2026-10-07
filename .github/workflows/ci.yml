@@ -3,6 +3,7 @@ name: Backend CI
 on:
   push:
     branches:
+      - develop
       - main
   workflow_dispatch:
 
@@ -48,6 +49,7 @@ jobs:
     timeout-minutes: 30
     needs:
       - test
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
