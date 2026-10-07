@@ -2,6 +2,7 @@ import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryHtmlReportRenderer
 import com.github.jk1.license.render.JsonReportRenderer
 import net.ltgt.gradle.errorprone.errorprone
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 import org.gradle.testing.jacoco.tasks.JacocoReport
 
@@ -112,9 +113,13 @@ subprojects {
         }
     }
 
+    val testSourceSet = extensions.getByType<SourceSetContainer>().getByName("test")
     tasks.register<Test>("integrationTest") {
         description = "Runs @Tag(\"integration\") tests (TestContainers + Spring boot slice)."
         group = "verification"
+        testClassesDirs = testSourceSet.output.classesDirs
+        classpath = testSourceSet.runtimeClasspath
+        dependsOn(tasks.named("testClasses"))
         useJUnitPlatform { includeTags("integration") }
         shouldRunAfter("test")
     }

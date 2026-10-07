@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -42,6 +44,31 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew check --no-daemon --console=plain
+
+      - name: Select Flyway integration check
+        id: flyway
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          run=false
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [ -z "$BEFORE" ] ||
+             [ "$BEFORE" = 0000000000000000000000000000000000000000 ]; then
+            run=true
+          elif ! git cat-file -e "${BEFORE}^{commit}"; then
+            run=true
+          elif ! git diff --quiet "$BEFORE" "$GITHUB_SHA" -- \
+             'app/src/main/resources/db/migration/public/*.sql' \
+             'app/src/test/java/com/lumie/app/migration/MigrationsRlsIntegrationTest.java' \
+             'app/src/main/resources/application.yaml' \
+             'app/build.gradle.kts' 'build.gradle.kts' \
+             'gradle/libs.versions.toml'; then
+            run=true
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
+      - name: Apply Flyway chain and check RLS on PostgreSQL
+        if: steps.flyway.outputs.run == 'true'
+        run: ./gradlew :app:integrationTest --tests '*MigrationsRlsIntegrationTest' --no-daemon --console=plain
 
   build-push:
     name: Build and push ARM image
