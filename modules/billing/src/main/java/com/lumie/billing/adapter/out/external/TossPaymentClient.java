@@ -29,7 +29,7 @@ import java.util.Map;
  * Live Toss Payments integration for subscription billing.
  *
  * <p>All methods in this class MUST be called OUTSIDE {@code @Transactional} boundaries
- * (see HARD_RULES_CROSS: "Wrap external HTTP calls OUTSIDE @Transactional boundaries").
+ * (see backend AGENTS.md: external HTTP calls stay outside transactions).
  *
  * <p>HTTP 4xx/5xx responses are converted to {@link BillingException}(TOSS_API_ERROR)
  * with the Toss {@code code} and {@code message} fields embedded in the exception message.

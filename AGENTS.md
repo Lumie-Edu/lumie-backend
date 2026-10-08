@@ -116,7 +116,7 @@ Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NO
 
 ## References
 
-- Cross-cutting rules: `../.codex/knowledge/HARD_RULES_CROSS.md`
+- Workspace hard rules: `../AGENTS.md`
 - Architecture intent: `../.codex/knowledge/ARCHITECTURE_INTENT.md`
 - Domain glossary: `../.codex/knowledge/DOMAIN_GLOSSARY.md`
 

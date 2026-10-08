@@ -181,7 +181,7 @@ class MigrationsRlsIntegrationTest {
              Statement st = admin.createStatement()) {
             st.execute("CREATE ROLE " + APP_ROLE
                     + " LOGIN PASSWORD '" + APP_ROLE_PASSWORD + "' NOSUPERUSER NOBYPASSRLS");
-            // Mirror the prod lumie_app privilege set (HARD_RULES_CROSS:
+            // Mirror the prod lumie_app privilege set (workspace AGENTS.md:
             // SELECT,INSERT,UPDATE,DELETE) so the role is a faithful stand-in.
             st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON classes TO " + APP_ROLE);
             st.execute("GRANT USAGE ON SEQUENCE classes_id_seq TO " + APP_ROLE);
