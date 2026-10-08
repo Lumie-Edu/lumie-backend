@@ -32,7 +32,7 @@ import java.util.Map;
  * {@code ALTER TABLE ... RENAME}. The migrator DataSource shares the
  * primary URL/driver but overrides user/password from
  * {@code spring.flyway.user/password}, so migrations run as the
- * privileged role per HARD_RULES_CROSS while runtime traffic stays on
+ * privileged role per workspace AGENTS.md while runtime traffic stays on
  * {@code lumie_app}.
  */
 @Configuration
@@ -57,7 +57,7 @@ public class RoutingDataSourceConfig {
      * Migrator-credential DataSource for Flyway. Inherits URL/driver from
      * the primary properties (same host/db/port as runtime) but binds
      * {@code spring.flyway.user/password} so DDL runs as the privileged
-     * role per HARD_RULES_CROSS. Not pooled — Flyway opens at most one
+     * role per workspace AGENTS.md. Not pooled — Flyway opens at most one
      * connection at boot.
      */
     @Bean

@@ -1,7 +1,6 @@
 # Lumie backend (Java/Spring) forbidden patterns — SSOT.
 #
-# Used by: Verify, backend-reviewer, anti-pattern-tripwire,
-#          backend-scaffolder self-verify.
+# Used during explicit Verify; code-reviewer may consume its findings.
 # Do NOT duplicate these regex strings anywhere else. Add new patterns here only.
 #
 # Schema:
