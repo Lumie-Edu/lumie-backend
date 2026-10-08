@@ -128,21 +128,31 @@ jobs:
             exit 1
           fi
 
-          workdir="$(mktemp -d)"
-          git clone --depth=1 "https://x-access-token:${TAG_REPO_TOKEN}@github.com/${TAG_REPO}.git" "${workdir}"
-          mkdir -p "${workdir}/$(dirname "${TAG_FILE}")"
-          cat > "${workdir}/${TAG_FILE}" <<EOF
+          for attempt in 1 2 3 4 5; do
+            workdir="$(mktemp -d)"
+            git clone --depth=1 "https://x-access-token:${TAG_REPO_TOKEN}@github.com/${TAG_REPO}.git" "${workdir}"
+            mkdir -p "${workdir}/$(dirname "${TAG_FILE}")"
+            cat > "${workdir}/${TAG_FILE}" <<EOF
           common:
             image:
               tag: "${IMAGE_TAG}"
           EOF
 
-          cd "${workdir}"
-          git config user.name "Lumie CI"
-          git config user.email "ci@lumie-edu.com"
-          git add "${TAG_FILE}"
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m "CI(images): update lumie-backend tag"
-          git push
+            git -C "${workdir}" config user.name "Lumie CI"
+            git -C "${workdir}" config user.email "ci@lumie-edu.com"
+            git -C "${workdir}" add "${TAG_FILE}"
+            if git -C "${workdir}" diff --cached --quiet; then
+              rm -rf "${workdir}"
+              exit 0
+            fi
+            git -C "${workdir}" commit -m "CI(images): update lumie-backend tag"
+            if git -C "${workdir}" push; then
+              rm -rf "${workdir}"
+              exit 0
+            fi
+            rm -rf "${workdir}"
+            sleep "$((attempt * 2))"
+          done
+
+          echo "::error::Failed to update ${TAG_FILE} after retries."
+          exit 1
