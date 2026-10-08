@@ -96,4 +96,4 @@ Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NO
 
 ## Agents
 
-The main agent implements backend changes and runs affected Gradle checks only during explicit Verify or an active Loop's Verify phase. `code-reviewer` covers code and semantic performance risks; `backend-migration-reviewer` separately reviews Flyway SQL when Review is requested or reached.
+The main agent implements backend changes and runs affected Gradle checks only during explicit Verify. `code-reviewer` covers code and semantic performance risks; `backend-migration-reviewer` separately reviews Flyway SQL when Review is requested.
