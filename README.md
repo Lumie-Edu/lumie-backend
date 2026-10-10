@@ -30,7 +30,7 @@ Modular monolith with pragmatic hexagonal boundaries per module. Each module und
 The backend runs on the dev k3s cluster (not locally). Stateful services (Postgres, RabbitMQ, Redis, MinIO) are deployed via Tilt. Run from the workspace root:
 
 ```bash
-bash .github/tilt-up.sh   # opens SSH tunnel to k3s API, then runs tilt up
+bash lumie-devops/tilt-up.sh   # opens SSH tunnel to k3s API, then runs tilt up
 ```
 
 The frontend runs locally at `http://localhost:3000` and proxies `/api/v1/*` to `https://dev.lumie-infra.com`.
