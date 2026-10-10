@@ -5219,6 +5219,19 @@
       },
       "StudentUpdateRequest" : {
         "properties" : {
+          "classIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "loginId" : {
+            "maxLength" : 50,
+            "minLength" : 4,
+            "pattern" : "^[a-zA-Z0-9_]+$",
+            "type" : "string"
+          },
           "name" : {
             "type" : "string"
           },

@@ -28,6 +28,8 @@ public interface ClassService {
 
     void dropActiveEnrollmentsForStudent(String tenantSlug, Long studentId);
 
+    void replaceStudentEnrollments(String tenantSlug, Long studentId, Collection<Long> classIds);
+
     boolean hasAssignedClasses(String tenantSlug, Long staffId);
 
     record EnrolledClassData(Long classId, String className, Long studentId) {}
