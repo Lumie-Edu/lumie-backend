@@ -121,6 +121,13 @@ public class StudentCommandService {
         );
 
         Student updated = studentRepository.save(student);
+        if (request.loginId() != null && !request.loginId().isBlank()
+                && !request.loginId().equals(student.getUserLoginId())) {
+            changeStudentLoginId(id, request.loginId());
+        }
+        if (request.classIds() != null) {
+            classService.replaceStudentEnrollments(tenantSlug, id, request.classIds());
+        }
         if ((request.name() != null || request.phone() != null)
                 && !authService.updateIdentity(student.getUserId(), request.name(),
                         PhoneNumberUtils.toDigits(request.phone()), null)) {

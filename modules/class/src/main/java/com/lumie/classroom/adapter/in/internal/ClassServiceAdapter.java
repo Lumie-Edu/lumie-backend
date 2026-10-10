@@ -127,6 +127,12 @@ public class ClassServiceAdapter implements ClassService {
     }
 
     @Override
+    public void replaceStudentEnrollments(String tenantSlug, Long studentId, Collection<Long> classIds) {
+        TenantContextHolder.withinContext(tenantSlug, null,
+                () -> classCommandService.replaceStudentEnrollments(studentId, classIds));
+    }
+
+    @Override
     public boolean hasAssignedClasses(String tenantSlug, Long staffId) {
         return TenantContextHolder.withinContext(tenantSlug, () ->
                 classQueryService.hasAssignedClasses(staffId)

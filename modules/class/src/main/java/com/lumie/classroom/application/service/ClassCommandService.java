@@ -23,7 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -190,6 +193,37 @@ public class ClassCommandService {
         enrollmentRepository.saveAll(enrollments);
 
         log.info("Dropped {} active enrollments for student: {}", enrollments.size(), studentId);
+    }
+
+    public void replaceStudentEnrollments(Long studentId, Collection<Long> classIds) {
+        if (classIds.stream().anyMatch(classId -> classId == null || classId <= 0)) {
+            throw new BusinessException(ClassErrorCode.CLASS_NOT_FOUND,
+                    "Selected class IDs must be positive");
+        }
+        Set<Long> desiredClassIds = new HashSet<>(classIds);
+        List<ClassEntity> desiredClasses = classRepository.findAllById(desiredClassIds);
+        if (desiredClasses.size() != desiredClassIds.size()) {
+            throw new BusinessException(ClassErrorCode.CLASS_NOT_FOUND,
+                    "One or more selected classes were not found");
+        }
+
+        Set<Long> enrolledClassIds = enrollmentRepository
+                .findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED).stream()
+                .map(enrollment -> enrollment.getClassEntity().getId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        for (Long classId : enrolledClassIds) {
+            if (!desiredClassIds.contains(classId)) {
+                enrollmentRepository.findByClassEntityIdAndStudentId(classId, studentId)
+                        .ifPresent(enrollmentRepository::delete);
+            }
+        }
+
+        for (Long classId : desiredClassIds) {
+            if (!enrolledClassIds.contains(classId)) {
+                enrollStudents(classId, new EnrollStudentsRequest(List.of(studentId)));
+            }
+        }
     }
 
     private void validateNoScheduleOverlap(Long teacherId, SchedulePattern newPattern, Long excludeClassId) {
