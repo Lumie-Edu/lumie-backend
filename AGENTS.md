@@ -88,7 +88,7 @@ CREATE POLICY tenant_isolation ON foo
 
 ## Multi-tenancy
 
-Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NOT NULL`, enforced by `FORCE ROW LEVEL SECURITY` against the `lumie_app` runtime role. When crossing tenants in adapters, use `TenantContextHolder.withinContext(slug, tenantId, action)` — `setTenant` alone leaves rows invisible. See `../.codex/knowledge/ARCHITECTURE_INTENT.md` "Multi-tenancy" for the full mechanism (aspect ordering, RabbitListener path, known costs).
+Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NOT NULL`, enforced by `FORCE ROW LEVEL SECURITY` against the `lumie_app` runtime role. When crossing tenants in adapters, use `TenantContextHolder.withinContext(slug, tenantId, action)` — `setTenant` alone leaves rows invisible. See `../.codex/.charter/fragments/lumie/architecture.md` and `../.codex/.charter/fragments/lumie/cross-repo-invariants.md` for the product-level rules; this file owns backend implementation details.
 
 ## Review focus
 
@@ -117,8 +117,9 @@ Postgres RLS-based isolation: every tenant-scoped table has `tenant_id BIGINT NO
 ## References
 
 - Workspace hard rules: `../AGENTS.md`
-- Architecture intent: `../.codex/knowledge/ARCHITECTURE_INTENT.md`
-- Domain glossary: `../.codex/knowledge/DOMAIN_GLOSSARY.md`
+- Architecture principles: `../.codex/.charter/fragments/lumie/architecture.md`
+- Cross-repository invariants: `../.codex/.charter/fragments/lumie/cross-repo-invariants.md`
+- Domain glossary: `../.codex/.charter/fragments/lumie/domain-language.md`
 
 ## Agents
 

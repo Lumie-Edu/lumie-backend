@@ -87,5 +87,5 @@ Configuration cache is enabled (`org.gradle.configuration-cache=true`) — incre
 
 - `AGENTS.md` — Codex conventions and command references (not for human contributors)
 - `modules/<module>/` — each module is self-contained; no per-module READMEs exist yet
-- `../.codex/knowledge/ARCHITECTURE_INTENT.md` — reasoning behind architectural decisions
+- `../.codex/.charter/fragments/lumie/architecture.md` — Lumie architecture principles
 - Workspace `../AGENTS.md` — cross-repo rules and full repo map
