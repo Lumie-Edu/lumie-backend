@@ -191,6 +191,31 @@ class MigrationsRlsIntegrationTest {
     }
 
     @Test
+    void readOnlyChatbotRetiresConfirmedActionSchema() throws Exception {
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement();
+             ResultSet rs = st.executeQuery("""
+                     SELECT to_regclass('public.ai_confirmed_actions') IS NULL AS actions_removed,
+                            to_regclass('public.idx_ai_chat_messages_id_tenant_id') IS NULL AS action_index_removed,
+                            to_regclass('public.idx_sms_messages_tenant_source_action') IS NULL AS sms_index_removed,
+                            NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns
+                                 WHERE table_schema = 'public' AND table_name = 'sms_messages'
+                                   AND column_name = 'source_action_id'
+                            ) AS sms_column_removed,
+                            (SELECT count(*) FROM flyway_schema_history
+                              WHERE version IN ('132', '133', '134') AND success) AS migration_count
+                     """)) {
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getBoolean("actions_removed")).isTrue();
+            assertThat(rs.getBoolean("action_index_removed")).isTrue();
+            assertThat(rs.getBoolean("sms_index_removed")).isTrue();
+            assertThat(rs.getBoolean("sms_column_removed")).isTrue();
+            assertThat(rs.getInt("migration_count")).isEqualTo(3);
+        }
+    }
+
+    @Test
     void rlsHidesRowsFromOtherTenantsForRestrictedRole() throws Exception {
         try (Connection conn = appRoleConnection()) {
             conn.setAutoCommit(true);
