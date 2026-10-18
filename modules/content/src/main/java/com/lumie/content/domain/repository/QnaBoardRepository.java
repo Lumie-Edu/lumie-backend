@@ -53,4 +53,22 @@ public interface QnaBoardRepository extends JpaRepository<QnaBoard, Long>, JpaSp
         };
         return findAll(spec, pageable);
     }
+
+    default Page<QnaBoard> searchByUser(Long qnaUserId, String keyword, Boolean isAnswered, Pageable pageable) {
+        Specification<QnaBoard> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("qnaUserId"), qnaUserId));
+            if (isAnswered != null) {
+                predicates.add(cb.equal(root.get("isAnswered"), isAnswered));
+            }
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.toLowerCase(Locale.ROOT) + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("qnaTitle")), pattern),
+                        cb.like(cb.lower(root.get("qnaContent")), pattern)));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return findAll(spec, pageable);
+    }
 }

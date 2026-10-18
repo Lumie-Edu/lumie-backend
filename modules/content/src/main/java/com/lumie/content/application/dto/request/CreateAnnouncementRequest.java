@@ -1,14 +1,15 @@
 package com.lumie.content.application.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 
 public record CreateAnnouncementRequest(
-        @NotNull(message = "Author ID is required")
+        // Accepted temporarily for old clients, but never used as the author.
+        @Schema(hidden = true)
         Long authorId,
 
         @NotBlank(message = "Title is required")

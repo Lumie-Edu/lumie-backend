@@ -976,10 +976,6 @@
             "enum" : [ "ALL", "TARGETED", "LEGACY_UNSPECIFIED" ],
             "type" : "string"
           },
-          "authorId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
           "classIds" : {
             "items" : {
               "format" : "int64",
@@ -1000,7 +996,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "announcementContent", "announcementTitle", "authorId" ],
+        "required" : [ "announcementContent", "announcementTitle" ],
         "type" : "object"
       },
       "CreateAssignmentExamRequest" : {
@@ -1307,10 +1303,6 @@
           "qnaTitle" : {
             "type" : "string"
           },
-          "qnaUserId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
           "temporaryAttachments" : {
             "items" : {
               "$ref" : "#/components/schemas/TemporaryAttachment"
@@ -1318,7 +1310,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "qnaContent", "qnaTitle", "qnaUserId" ],
+        "required" : [ "qnaContent", "qnaTitle" ],
         "type" : "object"
       },
       "CreateReviewRequest" : {
@@ -14525,6 +14517,181 @@
           }
         },
         "tags" : [ "textbook-folder-controller" ]
+      }
+    },
+    "/v1/qna/me" : {
+      "get" : {
+        "operationId" : "listMyQnas",
+        "parameters" : [ {
+            "in" : "query",
+            "name" : "keyword",
+            "required" : false,
+            "schema" : {
+              "type" : "string"
+            }
+          }, {
+            "in" : "query",
+            "name" : "isAnswered",
+            "required" : false,
+            "schema" : {
+              "type" : "boolean"
+            }
+          }, {
+            "description" : "Zero-based page index (0..N)",
+            "in" : "query",
+            "name" : "page",
+            "required" : false,
+            "schema" : {
+              "format" : "int32",
+              "minimum" : 0,
+              "type" : "integer"
+            }
+          }, {
+            "description" : "The size of the page to be returned",
+            "in" : "query",
+            "name" : "size",
+            "required" : false,
+            "schema" : {
+              "format" : "int32",
+              "minimum" : 1,
+              "type" : "integer"
+            }
+          }, {
+            "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "in" : "query",
+            "name" : "sort",
+            "required" : false,
+            "schema" : {
+              "items" : {
+                "type" : "string"
+              },
+              "type" : "array"
+            }
+          } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseQnaBoardResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "qna-controller" ],
+        "summary" : "List Q&As for the current student"
+      },
+      "post" : {
+        "operationId" : "createMyQna",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateQnaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QnaBoardResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "qna-controller" ],
+        "summary" : "Create a Q&A for the current student"
+      }
+    },
+    "/v1/qna/me/{id}" : {
+      "get" : {
+        "operationId" : "getMyQna",
+        "parameters" : [ {
+            "in" : "path",
+            "name" : "id",
+            "required" : true,
+            "schema" : {
+              "format" : "int64",
+              "type" : "integer"
+            }
+          } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QnaDetailResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "qna-controller" ],
+        "summary" : "Get a Q&A owned by the current student"
+      },
+      "patch" : {
+        "operationId" : "updateMyQna",
+        "parameters" : [ {
+            "in" : "path",
+            "name" : "id",
+            "required" : true,
+            "schema" : {
+              "format" : "int64",
+              "type" : "integer"
+            }
+          } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateQnaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QnaBoardResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "qna-controller" ],
+        "summary" : "Update a Q&A owned by the current student"
+      },
+      "delete" : {
+        "operationId" : "deleteMyQna",
+        "parameters" : [ {
+            "in" : "path",
+            "name" : "id",
+            "required" : true,
+            "schema" : {
+              "format" : "int64",
+              "type" : "integer"
+            }
+          } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "tags" : [ "qna-controller" ],
+        "summary" : "Delete a Q&A owned by the current student"
       }
     }
   }

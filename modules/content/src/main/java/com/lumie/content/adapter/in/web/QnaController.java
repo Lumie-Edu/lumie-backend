@@ -39,6 +39,39 @@ public class QnaController {
         return ResponseEntity.ok(PageResponse.from(queryService.listQnas(keyword, isAnswered, pageable)));
     }
 
+    @GetMapping("/me")
+    @AllowedSortFields({"createdAt"})
+    public ResponseEntity<PageResponse<QnaBoardResponse>> listMyQnas(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Boolean isAnswered,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(PageResponse.from(queryService.listMyQnas(keyword, isAnswered, pageable)));
+    }
+
+    @GetMapping("/me/{id}")
+    public ResponseEntity<QnaDetailResponse> getMyQna(@PathVariable Long id) {
+        return ResponseEntity.ok(queryService.getMyQna(id));
+    }
+
+    @PostMapping("/me")
+    public ResponseEntity<QnaBoardResponse> createMyQna(@Valid @RequestBody CreateQnaRequest request) {
+        QnaBoardResponse response = commandService.createQna(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PatchMapping("/me/{id}")
+    public ResponseEntity<QnaBoardResponse> updateMyQna(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateQnaRequest request) {
+        return ResponseEntity.ok(commandService.updateMyQna(id, request));
+    }
+
+    @DeleteMapping("/me/{id}")
+    public ResponseEntity<Void> deleteMyQna(@PathVariable Long id) {
+        commandService.deleteMyQna(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/statistics/unanswered-overdue")
     public ResponseEntity<QnaUnansweredOverdueResponse> getUnansweredOverdueStatistics(
             @RequestParam(defaultValue = "24") long thresholdHours) {
