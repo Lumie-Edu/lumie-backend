@@ -347,6 +347,7 @@ public class ResultController {
     }
 
     @DeleteMapping("/exams/{examId}/results/{resultId}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteResult(
             @PathVariable Long examId,
             @PathVariable Long resultId) {
@@ -397,6 +398,8 @@ public class ResultController {
     }
 
     @GetMapping(value = "/exams/results/export.csv", produces = "text/csv;charset=UTF-8")
+    @ApiResponse(responseCode = "200", description = "CSV export", content =
+            @Content(mediaType = "text/csv;charset=UTF-8", schema = @Schema(type = "string", format = "binary")))
     public ResponseEntity<StreamingResponseBody> exportResultsCsv() {
         AuthorizationGuard.requireOwner();
         String filename = "%s_grades_%s.csv".formatted(
@@ -412,6 +415,8 @@ public class ResultController {
     }
 
     @GetMapping(value = "/exams/{examId}/results/export.csv", produces = "text/csv;charset=UTF-8")
+    @ApiResponse(responseCode = "200", description = "CSV export", content =
+            @Content(mediaType = "text/csv;charset=UTF-8", schema = @Schema(type = "string", format = "binary")))
     @AllowedSortFields({StudentGradeQueryService.SORT_FIELD_RANK, StudentGradeQueryService.SORT_FIELD_TOTAL_SCORE})
     public ResponseEntity<StreamingResponseBody> exportExamResultsCsv(
             @PathVariable Long examId,

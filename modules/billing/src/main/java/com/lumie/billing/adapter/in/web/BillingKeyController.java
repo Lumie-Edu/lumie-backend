@@ -1,5 +1,6 @@
 package com.lumie.billing.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.billing.application.dto.request.RegisterBillingKeyRequest;
 import com.lumie.billing.application.dto.response.BillingKeyResponse;
 import com.lumie.billing.application.service.BillingKeyCommandService;
@@ -28,6 +29,7 @@ public class BillingKeyController {
     private final IdempotencyService idempotencyService;
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<BillingKeyResponse> registerBillingKey(
             @Valid @RequestBody RegisterBillingKeyRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
@@ -53,6 +55,7 @@ public class BillingKeyController {
     }
 
     @DeleteMapping("/{billingKeyId}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> revokeBillingKey(
             @PathVariable Long billingKeyId,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {

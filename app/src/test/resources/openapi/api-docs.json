@@ -1,5 +1,77 @@
 {
   "components" : {
+    "responses" : {
+      "BadRequest" : {
+        "content" : {
+          "application/problem+json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/ProblemDetail"
+            }
+          }
+        },
+        "description" : "400 Invalid input or validation failure"
+      },
+      "Conflict" : {
+        "content" : {
+          "application/problem+json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/ProblemDetail"
+            }
+          }
+        },
+        "description" : "409 Resource or optimistic lock conflict"
+      },
+      "Forbidden" : {
+        "content" : {
+          "application/problem+json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/ProblemDetail"
+            }
+          }
+        },
+        "description" : "403 Insufficient role or access"
+      },
+      "InternalError" : {
+        "content" : {
+          "application/problem+json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/ProblemDetail"
+            }
+          }
+        },
+        "description" : "500 Unexpected server failure"
+      },
+      "NotFound" : {
+        "content" : {
+          "application/problem+json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/ProblemDetail"
+            }
+          }
+        },
+        "description" : "404 Resource not found"
+      },
+      "Unauthorized" : {
+        "content" : {
+          "application/problem+json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/ProblemDetail"
+            }
+          }
+        },
+        "description" : "401 Missing or expired session"
+      },
+      "Unprocessable" : {
+        "content" : {
+          "application/problem+json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/ProblemDetail"
+            }
+          }
+        },
+        "description" : "422 Business rule violation"
+      }
+    },
     "schemas" : {
       "AiCommentaryResponse" : {
         "properties" : {
@@ -3474,7 +3546,12 @@
         "type" : "object"
       },
       "ProblemDetail" : {
+        "additionalProperties" : true,
+        "description" : "RFC 9457 error. Extra fields include tenantSlug when available and violations for request validation errors.",
         "properties" : {
+          "code" : {
+            "type" : "string"
+          },
           "detail" : {
             "type" : "string"
           },
@@ -3482,15 +3559,13 @@
             "format" : "uri",
             "type" : "string"
           },
-          "properties" : {
-            "additionalProperties" : {
-              "type" : "object"
-            },
-            "type" : "object"
-          },
           "status" : {
             "format" : "int32",
             "type" : "integer"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
           },
           "title" : {
             "type" : "string"
@@ -3500,7 +3575,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "detail", "instance", "properties", "status", "title", "type" ],
+        "required" : [ "code", "detail", "instance", "status", "timestamp", "title", "type" ],
         "type" : "object"
       },
       "PublicTenantResponse" : {
@@ -4698,16 +4773,6 @@
         "required" : [ "category", "content", "createdAt", "id", "name", "updatedAt" ],
         "type" : "object"
       },
-      "SseEmitter" : {
-        "properties" : {
-          "timeout" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "timeout" ],
-        "type" : "object"
-      },
       "StabilityIndexResponse" : {
         "properties" : {
           "averageScore" : {
@@ -4868,9 +4933,6 @@
             "type" : "string"
           }
         },
-        "type" : "object"
-      },
-      "StreamingResponseBody" : {
         "type" : "object"
       },
       "Student" : {
@@ -6308,10 +6370,18 @@
         "required" : [ "description", "lectureId", "title", "visibility", "youtubeUrl" ],
         "type" : "object"
       }
+    },
+    "securitySchemes" : {
+      "sessionCookie" : {
+        "description" : "Opaque browser session cookie; development uses lumie_session.",
+        "in" : "cookie",
+        "name" : "__Host-lumie_session",
+        "type" : "apiKey"
+      }
     }
   },
   "info" : {
-    "description" : "REST API for the Lumie K-12 academy SaaS monolith.",
+    "description" : "REST API for the Lumie K-12 academy SaaS monolith. Protected browser routes use an HttpOnly session cookie. Validation, authentication, authorization, business, and unexpected errors use application/problem+json with top-level code and timestamp. The development cookie name is lumie_session; production uses __Host-lumie_session. Some operations apply additional role and ownership checks.",
     "title" : "Lumie Backend API",
     "version" : "v1"
   },
@@ -6333,7 +6403,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ConversationIdResponse"
                 }
@@ -6384,7 +6454,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HistoryResponse"
                 }
@@ -6412,7 +6482,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MessageIdResponse"
                 }
@@ -6440,7 +6510,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ToolResultResponse"
                 }
@@ -6468,7 +6538,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MessageIdResponse"
                 }
@@ -6494,7 +6564,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SchemaResponse"
                 }
@@ -6530,7 +6600,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ToolResultResponse"
                 }
@@ -6565,7 +6635,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/DownloadGrant"
                 }
@@ -6610,7 +6680,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/UploadGrant"
                 }
@@ -6637,7 +6707,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamFullResponse"
                 }
@@ -6674,7 +6744,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ReportBatchDataResponse"
                 }
@@ -6701,7 +6771,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamStatisticsResponse"
                 }
@@ -6728,7 +6798,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/QuestionResultResponse"
@@ -6758,7 +6828,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StudentData"
                 }
@@ -6793,7 +6863,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StudentRankResponse"
                 }
@@ -6820,7 +6890,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/ExamResultResponse"
@@ -6850,7 +6920,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StabilityIndexResponse"
                 }
@@ -6897,7 +6967,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AlimtalkCreditResponse"
                 }
@@ -6923,7 +6993,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AlimtalkCreditResponse"
                 }
@@ -6957,7 +7027,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AlimtalkCreditResponse"
                 }
@@ -6993,7 +7063,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AlimtalkCreditResponse"
                 }
@@ -7050,7 +7120,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseAnnouncementResponse"
                 }
@@ -7074,15 +7144,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AnnouncementResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "announcement-controller" ]
@@ -7094,7 +7164,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/AnnouncementResponse"
@@ -7122,8 +7192,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "announcement-controller" ]
@@ -7142,7 +7212,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AnnouncementResponse"
                 }
@@ -7177,7 +7247,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AnnouncementResponse"
                 }
@@ -7204,7 +7274,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "type" : "string"
@@ -7273,7 +7343,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseAssignmentResponse"
                 }
@@ -7297,15 +7367,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AssignmentResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "assignment-controller" ]
@@ -7357,7 +7427,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseAssignmentResponse"
                 }
@@ -7375,7 +7445,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/AssignmentResponse"
@@ -7405,7 +7475,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AssignmentDashboardResponse"
                 }
@@ -7463,7 +7533,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseSubmissionResponse"
                 }
@@ -7496,15 +7566,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SubmissionResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "assignment-submission-controller" ]
@@ -7525,7 +7595,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/AssignmentSubmissionStatusResponse"
@@ -7594,7 +7664,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseSubmissionResponse"
                 }
@@ -7639,7 +7709,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SubmissionResponse"
                 }
@@ -7664,8 +7734,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "assignment-controller" ]
@@ -7684,7 +7754,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AssignmentResponse"
                 }
@@ -7719,7 +7789,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AssignmentResponse"
                 }
@@ -7746,7 +7816,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StudentAssignmentDetailResponse"
                 }
@@ -7783,7 +7853,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AssignmentSubmissionResultResponse"
                 }
@@ -7870,7 +7940,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseAssignmentStudentGradeResponse"
                 }
@@ -7888,7 +7958,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/BillingKeyResponse"
@@ -7923,15 +7993,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/BillingKeyResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "billing-key-controller" ]
@@ -7943,7 +8013,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/BillingKeyResponse"
                 }
@@ -7975,8 +8045,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "billing-key-controller" ]
@@ -7988,7 +8058,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/BillingConfigResponse"
                 }
@@ -8024,7 +8094,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SubscribeResponse"
                 }
@@ -8052,7 +8122,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChatReplyResponse"
                 }
@@ -8088,7 +8158,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChatReplyResponse"
                 }
@@ -8118,11 +8188,11 @@
             "content" : {
               "text/event-stream" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/SseEmitter"
+                  "type" : "string"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Server-sent chat events"
           }
         },
         "tags" : [ "chat-controller" ]
@@ -8181,7 +8251,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseClassResponse"
                 }
@@ -8205,15 +8275,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ClassResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "class-controller" ]
@@ -8257,7 +8327,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseClassResponse"
                 }
@@ -8275,7 +8345,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ClassDashboardResponse"
                 }
@@ -8333,7 +8403,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseClassResponse"
                 }
@@ -8391,7 +8461,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseClassResponse"
                 }
@@ -8449,7 +8519,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseClassEnrollmentResponse"
                 }
@@ -8482,9 +8552,9 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/ClassEnrollmentResponse"
@@ -8493,7 +8563,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "class-enrollment-controller" ]
@@ -8520,8 +8590,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "class-enrollment-controller" ]
@@ -8548,8 +8618,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "class-enrollment-controller" ]
@@ -8586,7 +8656,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ClassEnrollmentResponse"
                 }
@@ -8611,8 +8681,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "class-controller" ]
@@ -8631,7 +8701,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ClassResponse"
                 }
@@ -8666,7 +8736,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ClassResponse"
                 }
@@ -8716,7 +8786,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseConversationSummaryResponse"
                 }
@@ -8741,8 +8811,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "conversation-controller" ]
@@ -8761,7 +8831,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ConversationDetailResponse"
                 }
@@ -8779,7 +8849,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/ExamQuestionTypeResponse"
@@ -8808,7 +8878,7 @@
         "responses" : {
           "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamQuestionTypeResponse"
                 }
@@ -8818,7 +8888,7 @@
           },
           "403" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ProblemDetail"
                 }
@@ -8828,7 +8898,7 @@
           },
           "409" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ProblemDetail"
                 }
@@ -8858,7 +8928,7 @@
           },
           "403" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ProblemDetail"
                 }
@@ -8868,7 +8938,7 @@
           },
           "404" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ProblemDetail"
                 }
@@ -8896,7 +8966,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/TopStudentMonthlyResponse"
@@ -8949,7 +9019,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseExamTemplateResponse"
                 }
@@ -8973,15 +9043,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamTemplateResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "exam-template-controller" ]
@@ -9000,8 +9070,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "exam-template-controller" ]
@@ -9020,7 +9090,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamTemplateResponse"
                 }
@@ -9055,7 +9125,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamTemplateResponse"
                 }
@@ -9105,7 +9175,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseExamResponse"
                 }
@@ -9129,15 +9199,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "exam-controller" ]
@@ -9151,11 +9221,12 @@
             "content" : {
               "text/csv;charset=UTF-8" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/StreamingResponseBody"
+                  "format" : "binary",
+                  "type" : "string"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "CSV export"
           }
         },
         "tags" : [ "result-controller" ]
@@ -9176,7 +9247,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AiCommentaryResponse"
                 }
@@ -9211,7 +9282,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AiCommentaryResponse"
                 }
@@ -9245,7 +9316,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AiCommentaryResponse"
                 }
@@ -9272,7 +9343,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/OmrJobStatusResponse"
@@ -9310,7 +9381,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OmrJobStatusResponse"
                 }
@@ -9345,7 +9416,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/ExamResultResponse"
@@ -9383,7 +9454,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/OmrSubmissionResponse"
@@ -9413,7 +9484,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/OmrSubmissionResponse"
@@ -9468,7 +9539,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OmrSubmissionResponse"
                 }
@@ -9549,7 +9620,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OmrSubmissionResponse"
                 }
@@ -9601,7 +9672,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OmrSubmissionResponse"
                 }
@@ -9656,7 +9727,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OmrSubmissionReconciliationPreviewResponse"
                 }
@@ -9728,7 +9799,7 @@
         "responses" : {
           "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OmrSubmissionResponse"
                 }
@@ -9818,15 +9889,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "202" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/JobAcceptedResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Accepted"
           }
         },
         "tags" : [ "report-controller" ]
@@ -9855,7 +9926,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ReportJobStatusResponse"
                 }
@@ -9918,7 +9989,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/ExamResultResponse"
@@ -9983,11 +10054,12 @@
             "content" : {
               "text/csv;charset=UTF-8" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/StreamingResponseBody"
+                  "format" : "binary",
+                  "type" : "string"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "CSV export"
           }
         },
         "tags" : [ "result-controller" ]
@@ -10039,7 +10111,7 @@
         "responses" : {
           "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamResultResponse"
                 }
@@ -10083,7 +10155,7 @@
         "responses" : {
           "202" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/JobAcceptedResponse"
                 }
@@ -10137,7 +10209,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OmrPresignResponse"
                 }
@@ -10200,8 +10272,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "result-controller" ]
@@ -10276,7 +10348,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamResultResponse"
                 }
@@ -10311,8 +10383,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "exam-controller" ]
@@ -10331,7 +10403,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamResponse"
                 }
@@ -10366,7 +10438,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamResponse"
                 }
@@ -10393,7 +10465,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamFullResponse"
                 }
@@ -10444,7 +10516,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/FileMetadataResponse"
@@ -10475,7 +10547,7 @@
         "responses" : {
           "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/FileMetadataResponse"
@@ -10506,7 +10578,7 @@
         "responses" : {
           "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TemporaryObjectUploadResponse"
                 }
@@ -10531,8 +10603,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "file-controller" ]
@@ -10551,7 +10623,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/FileMetadataResponse"
                 }
@@ -10606,7 +10678,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/FileDownloaderResponse"
@@ -10698,7 +10770,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseLectureResponse"
                 }
@@ -10724,7 +10796,7 @@
         "responses" : {
           "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/LectureResponse"
                 }
@@ -10782,7 +10854,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseLectureResponse"
                 }
@@ -10817,7 +10889,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/WatchResponse"
                 }
@@ -10862,7 +10934,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/LectureResponse"
                 }
@@ -10897,7 +10969,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/LectureResponse"
                 }
@@ -10925,7 +10997,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AuthResponse"
                 }
@@ -10934,6 +11006,7 @@
             "description" : "OK"
           }
         },
+        "security" : [ ],
         "tags" : [ "auth-controller" ]
       }
     },
@@ -10941,8 +11014,8 @@
       "post" : {
         "operationId" : "logout",
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "auth-controller" ]
@@ -10952,8 +11025,8 @@
       "post" : {
         "operationId" : "logoutAll",
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "auth-controller" ]
@@ -10965,7 +11038,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/UserResponse"
                 }
@@ -10991,7 +11064,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/UserResponse"
                 }
@@ -11017,8 +11090,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "auth-controller" ]
@@ -11038,8 +11111,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "auth-controller" ]
@@ -11049,8 +11122,8 @@
       "delete" : {
         "operationId" : "revokeOtherSessions",
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "auth-controller" ]
@@ -11060,7 +11133,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/SessionResponse"
@@ -11087,8 +11160,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "auth-controller" ]
@@ -11118,7 +11191,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/InvoiceResponse"
                 }
@@ -11168,7 +11241,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseInvoiceResponse"
                 }
@@ -11225,7 +11298,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseInvoiceResponse"
                 }
@@ -11243,7 +11316,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/PermissionResponse"
@@ -11264,7 +11337,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "additionalProperties" : {
                     "items" : {
@@ -11288,7 +11361,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/PlanResponse"
@@ -11317,7 +11390,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PlanResponse"
                 }
@@ -11331,6 +11404,7 @@
     },
     "/v1/qna" : {
       "get" : {
+        "description" : "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).",
         "operationId" : "listQnas",
         "parameters" : [ {
           "in" : "query",
@@ -11381,7 +11455,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseQnaBoardResponse"
                 }
@@ -11393,6 +11467,7 @@
         "tags" : [ "qna-controller" ]
       },
       "post" : {
+        "description" : "Requires the STUDENT role. The author is derived from the session.",
         "operationId" : "createQna",
         "requestBody" : {
           "content" : {
@@ -11405,9 +11480,188 @@
           "required" : true
         },
         "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QnaBoardResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "qna-controller" ]
+      }
+    },
+    "/v1/qna/me" : {
+      "get" : {
+        "description" : "Requires the STUDENT role.",
+        "operationId" : "listMyQnas",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "keyword",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "isAnswered",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "description" : "Zero-based page index (0..N)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The size of the page to be returned",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseQnaBoardResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List Q&As for the current student",
+        "tags" : [ "qna-controller" ]
+      },
+      "post" : {
+        "description" : "Requires the STUDENT role.",
+        "operationId" : "createMyQna",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateQnaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QnaBoardResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Create a Q&A for the current student",
+        "tags" : [ "qna-controller" ]
+      }
+    },
+    "/v1/qna/me/{id}" : {
+      "delete" : {
+        "description" : "Requires the student owner.",
+        "operationId" : "deleteMyQna",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete a Q&A owned by the current student",
+        "tags" : [ "qna-controller" ]
+      },
+      "get" : {
+        "description" : "Requires the student owner.",
+        "operationId" : "getMyQna",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QnaDetailResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Get a Q&A owned by the current student",
+        "tags" : [ "qna-controller" ]
+      },
+      "patch" : {
+        "description" : "Requires the student owner.",
+        "operationId" : "updateMyQna",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateQnaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/QnaBoardResponse"
                 }
@@ -11416,11 +11670,13 @@
             "description" : "OK"
           }
         },
+        "summary" : "Update a Q&A owned by the current student",
         "tags" : [ "qna-controller" ]
       }
     },
     "/v1/qna/statistics/unanswered-overdue" : {
       "get" : {
+        "description" : "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).",
         "operationId" : "getUnansweredOverdueStatistics",
         "parameters" : [ {
           "in" : "query",
@@ -11435,7 +11691,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/QnaUnansweredOverdueResponse"
                 }
@@ -11449,6 +11705,7 @@
     },
     "/v1/qna/unanswered" : {
       "get" : {
+        "description" : "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).",
         "operationId" : "listUnansweredQnas",
         "parameters" : [ {
           "description" : "Zero-based page index (0..N)",
@@ -11485,7 +11742,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseQnaBoardResponse"
                 }
@@ -11499,6 +11756,7 @@
     },
     "/v1/qna/user/{qnaUserId}" : {
       "get" : {
+        "description" : "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).",
         "operationId" : "listQnasByUser",
         "parameters" : [ {
           "in" : "path",
@@ -11543,7 +11801,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseQnaBoardResponse"
                 }
@@ -11557,6 +11815,7 @@
     },
     "/v1/qna/{id}" : {
       "delete" : {
+        "description" : "Requires the student owner or a staff role.",
         "operationId" : "deleteQna",
         "parameters" : [ {
           "in" : "path",
@@ -11568,13 +11827,14 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "qna-controller" ]
       },
       "get" : {
+        "description" : "Requires the student owner or a staff role.",
         "operationId" : "getQna",
         "parameters" : [ {
           "in" : "path",
@@ -11588,7 +11848,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/QnaDetailResponse"
                 }
@@ -11600,6 +11860,7 @@
         "tags" : [ "qna-controller" ]
       },
       "patch" : {
+        "description" : "Requires the student owner or a staff role.",
         "operationId" : "updateQna",
         "parameters" : [ {
           "in" : "path",
@@ -11623,7 +11884,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/QnaBoardResponse"
                 }
@@ -11637,6 +11898,7 @@
     },
     "/v1/qna/{id}/comments" : {
       "post" : {
+        "description" : "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).",
         "operationId" : "addComment",
         "parameters" : [ {
           "in" : "path",
@@ -11658,15 +11920,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/QnaCommentResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "qna-controller" ]
@@ -11674,6 +11936,7 @@
     },
     "/v1/qna/{qnaId}/comments/{commentId}" : {
       "delete" : {
+        "description" : "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).",
         "operationId" : "deleteComment",
         "parameters" : [ {
           "in" : "path",
@@ -11693,8 +11956,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "qna-controller" ]
@@ -11725,7 +11988,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/QuestionResultResponse"
                 }
@@ -11751,17 +12014,18 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AuthResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
+        "security" : [ ],
         "tags" : [ "auth-controller" ]
       }
     },
@@ -11816,7 +12080,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/QuestionResultResponse"
@@ -11869,7 +12133,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseReviewResponse"
                 }
@@ -11893,15 +12157,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ReviewResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "review-controller" ]
@@ -11913,7 +12177,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ReviewPopupSettingResponse"
                 }
@@ -11939,7 +12203,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ReviewPopupSettingResponse"
                 }
@@ -11964,8 +12228,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "review-controller" ]
@@ -11973,6 +12237,7 @@
     },
     "/v1/sms-templates" : {
       "get" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "listTemplates",
         "parameters" : [ {
           "description" : "Zero-based page index (0..N)",
@@ -12009,7 +12274,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseSmsTemplateResponse"
                 }
@@ -12021,6 +12286,7 @@
         "tags" : [ "sms-template-controller" ]
       },
       "post" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "createTemplate",
         "requestBody" : {
           "content" : {
@@ -12033,15 +12299,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsTemplateResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "sms-template-controller" ]
@@ -12049,6 +12315,7 @@
     },
     "/v1/sms-templates/{id}" : {
       "delete" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "deleteTemplate",
         "parameters" : [ {
           "in" : "path",
@@ -12060,13 +12327,14 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "sms-template-controller" ]
       },
       "patch" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "updateTemplate",
         "parameters" : [ {
           "in" : "path",
@@ -12090,7 +12358,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsTemplateResponse"
                 }
@@ -12104,6 +12372,7 @@
     },
     "/v1/sms/history" : {
       "get" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "listMessages",
         "parameters" : [ {
           "in" : "query",
@@ -12171,7 +12440,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseSmsMessageResponse"
                 }
@@ -12185,6 +12454,7 @@
     },
     "/v1/sms/history/{id}" : {
       "get" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "getMessage",
         "parameters" : [ {
           "in" : "path",
@@ -12198,7 +12468,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsMessageResponse"
                 }
@@ -12212,6 +12482,7 @@
     },
     "/v1/sms/history/{id}/cancel" : {
       "post" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "cancelScheduled",
         "parameters" : [ {
           "in" : "path",
@@ -12225,7 +12496,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsMessageResponse"
                 }
@@ -12239,11 +12510,12 @@
     },
     "/v1/sms/recipient-groups" : {
       "get" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "listRecipientGroups",
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/SmsRecipientGroupSummaryResponse"
@@ -12258,6 +12530,7 @@
         "tags" : [ "sms-controller" ]
       },
       "post" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "createRecipientGroup",
         "parameters" : [ {
           "in" : "header",
@@ -12280,7 +12553,7 @@
         "responses" : {
           "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsRecipientGroupResponse"
                 }
@@ -12294,6 +12567,7 @@
     },
     "/v1/sms/recipient-groups/{id}" : {
       "get" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "getRecipientGroup",
         "parameters" : [ {
           "in" : "path",
@@ -12307,7 +12581,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsRecipientGroupResponse"
                 }
@@ -12321,6 +12595,7 @@
     },
     "/v1/sms/send" : {
       "post" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "sendSms",
         "parameters" : [ {
           "in" : "header",
@@ -12343,7 +12618,7 @@
         "responses" : {
           "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsMessageResponse"
                 }
@@ -12357,6 +12632,7 @@
     },
     "/v1/sms/send/class/{classId}" : {
       "post" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "sendToClass",
         "parameters" : [ {
           "in" : "path",
@@ -12387,7 +12663,7 @@
         "responses" : {
           "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsMessageResponse"
                 }
@@ -12401,11 +12677,12 @@
     },
     "/v1/sms/sender-setting" : {
       "get" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "getSenderSetting",
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsSenderSettingResponse"
                 }
@@ -12417,6 +12694,7 @@
         "tags" : [ "sms-sender-setting-controller" ]
       },
       "put" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "upsertSenderSetting",
         "requestBody" : {
           "content" : {
@@ -12431,7 +12709,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsSenderSettingResponse"
                 }
@@ -12445,11 +12723,12 @@
     },
     "/v1/sms/sender-setting/status" : {
       "get" : {
+        "description" : "Requires OWNER, MANAGER, or INSTRUCTOR at the security filter; individual operations may require a stricter role.",
         "operationId" : "getSenderSettingStatus",
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SmsSenderSettingStatusResponse"
                 }
@@ -12513,7 +12792,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseStaffResponse"
                 }
@@ -12537,15 +12816,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StaffResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "staff-controller" ]
@@ -12557,7 +12836,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StaffDashboardResponse"
                 }
@@ -12582,8 +12861,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "staff-controller" ]
@@ -12602,7 +12881,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StaffResponse"
                 }
@@ -12637,7 +12916,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StaffResponse"
                 }
@@ -12662,8 +12941,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "staff-controller" ]
@@ -12694,7 +12973,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeLoginIdResponse"
                 }
@@ -12719,8 +12998,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "staff-controller" ]
@@ -12739,8 +13018,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "staff-controller" ]
@@ -12759,8 +13038,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "staff-controller" ]
@@ -12781,7 +13060,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/StaffPermissionResponse"
@@ -12830,7 +13109,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/DashboardStatisticsResponse"
                 }
@@ -12848,7 +13127,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/RecentCompletedExamResponse"
@@ -12900,7 +13179,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamStatisticsResponse"
                 }
@@ -12949,7 +13228,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChoiceDistributionResponse"
                 }
@@ -12998,7 +13277,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ClassComparisonResponse"
                 }
@@ -13078,7 +13357,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseStudentGradeResponse"
                 }
@@ -13127,7 +13406,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ItemAnalysisResponse"
                 }
@@ -13154,7 +13433,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/StudentResultSummaryResponse"
@@ -13184,7 +13463,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/NormalizedScoreResponse"
                 }
@@ -13219,7 +13498,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StudentRankResponse"
                 }
@@ -13246,7 +13525,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StabilityIndexResponse"
                 }
@@ -13273,7 +13552,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TypeGrowthTrendResponse"
                 }
@@ -13353,7 +13632,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseStudentResponse"
                 }
@@ -13377,15 +13656,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StudentResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "student-controller" ]
@@ -13405,15 +13684,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "207" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/BatchOperationResult"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Multi-Status"
           }
         },
         "tags" : [ "student-controller" ]
@@ -13433,15 +13712,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "207" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/BatchOperationResult"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Multi-Status"
           }
         },
         "tags" : [ "student-controller" ]
@@ -13461,15 +13740,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "207" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/BatchOperationResult"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Multi-Status"
           }
         },
         "tags" : [ "student-controller" ]
@@ -13505,7 +13784,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/BulkImportResult"
                 }
@@ -13525,11 +13804,12 @@
             "content" : {
               "text/csv;charset=UTF-8" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/StreamingResponseBody"
+                  "format" : "binary",
+                  "type" : "string"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "CSV export"
           }
         },
         "tags" : [ "student-controller" ]
@@ -13541,7 +13821,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/ExamResultResponse"
@@ -13562,7 +13842,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/DropoutSummaryResponse"
                 }
@@ -13590,7 +13870,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/EnrollmentTrendResponse"
                 }
@@ -13615,8 +13895,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "student-controller" ]
@@ -13635,7 +13915,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StudentResponse"
                 }
@@ -13670,7 +13950,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StudentResponse"
                 }
@@ -13695,8 +13975,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "student-controller" ]
@@ -13727,7 +14007,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeLoginIdResponse"
                 }
@@ -13752,8 +14032,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "student-controller" ]
@@ -13772,8 +14052,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "student-controller" ]
@@ -13794,7 +14074,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/ExamResultResponse"
@@ -13831,15 +14111,15 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SubscriptionResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created"
           }
         },
         "tags" : [ "subscription-controller" ]
@@ -13864,8 +14144,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "subscription-controller" ]
@@ -13883,7 +14163,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SubscriptionResponse"
                 }
@@ -13924,7 +14204,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SubscriptionResponse"
                 }
@@ -13957,7 +14237,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SubscriptionResponse"
                 }
@@ -13990,7 +14270,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/InvoiceResponse"
                 }
@@ -14033,7 +14313,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/QuotaCheckResponse"
                 }
@@ -14051,7 +14331,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/TenantResponse"
@@ -14080,7 +14360,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PublicTenantResponse"
                 }
@@ -14089,6 +14369,7 @@
             "description" : "OK"
           }
         },
+        "security" : [ ],
         "tags" : [ "tenant-controller" ]
       }
     },
@@ -14123,7 +14404,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TenantResponse"
                 }
@@ -14157,7 +14438,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TenantResponse"
                 }
@@ -14193,7 +14474,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TenantResponse"
                 }
@@ -14219,7 +14500,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TenantResponse"
                 }
@@ -14253,6 +14534,7 @@
             "description" : "OK"
           }
         },
+        "security" : [ ],
         "tags" : [ "tenant-controller" ]
       },
       "post" : {
@@ -14284,7 +14566,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TenantResponse"
                 }
@@ -14310,7 +14592,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TenantResponse"
                 }
@@ -14344,7 +14626,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TenantResponse"
                 }
@@ -14371,7 +14653,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "items" : {
                     "$ref" : "#/components/schemas/TextbookFolderResponse"
@@ -14400,7 +14682,7 @@
         "responses" : {
           "201" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TextbookFolderResponse"
                 }
@@ -14445,7 +14727,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TextbookFolderResponse"
                 }
@@ -14480,7 +14762,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TextbookFolderResponse"
                 }
@@ -14507,7 +14789,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/TextbookFolderPathResponse"
                 }
@@ -14518,181 +14800,9 @@
         },
         "tags" : [ "textbook-folder-controller" ]
       }
-    },
-    "/v1/qna/me" : {
-      "get" : {
-        "operationId" : "listMyQnas",
-        "parameters" : [ {
-            "in" : "query",
-            "name" : "keyword",
-            "required" : false,
-            "schema" : {
-              "type" : "string"
-            }
-          }, {
-            "in" : "query",
-            "name" : "isAnswered",
-            "required" : false,
-            "schema" : {
-              "type" : "boolean"
-            }
-          }, {
-            "description" : "Zero-based page index (0..N)",
-            "in" : "query",
-            "name" : "page",
-            "required" : false,
-            "schema" : {
-              "format" : "int32",
-              "minimum" : 0,
-              "type" : "integer"
-            }
-          }, {
-            "description" : "The size of the page to be returned",
-            "in" : "query",
-            "name" : "size",
-            "required" : false,
-            "schema" : {
-              "format" : "int32",
-              "minimum" : 1,
-              "type" : "integer"
-            }
-          }, {
-            "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
-            "in" : "query",
-            "name" : "sort",
-            "required" : false,
-            "schema" : {
-              "items" : {
-                "type" : "string"
-              },
-              "type" : "array"
-            }
-          } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PageResponseQnaBoardResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "qna-controller" ],
-        "summary" : "List Q&As for the current student"
-      },
-      "post" : {
-        "operationId" : "createMyQna",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CreateQnaRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/QnaBoardResponse"
-                }
-              }
-            },
-            "description" : "Created"
-          }
-        },
-        "tags" : [ "qna-controller" ],
-        "summary" : "Create a Q&A for the current student"
-      }
-    },
-    "/v1/qna/me/{id}" : {
-      "get" : {
-        "operationId" : "getMyQna",
-        "parameters" : [ {
-            "in" : "path",
-            "name" : "id",
-            "required" : true,
-            "schema" : {
-              "format" : "int64",
-              "type" : "integer"
-            }
-          } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/QnaDetailResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "qna-controller" ],
-        "summary" : "Get a Q&A owned by the current student"
-      },
-      "patch" : {
-        "operationId" : "updateMyQna",
-        "parameters" : [ {
-            "in" : "path",
-            "name" : "id",
-            "required" : true,
-            "schema" : {
-              "format" : "int64",
-              "type" : "integer"
-            }
-          } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/UpdateQnaRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/QnaBoardResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "qna-controller" ],
-        "summary" : "Update a Q&A owned by the current student"
-      },
-      "delete" : {
-        "operationId" : "deleteMyQna",
-        "parameters" : [ {
-            "in" : "path",
-            "name" : "id",
-            "required" : true,
-            "schema" : {
-              "format" : "int64",
-              "type" : "integer"
-            }
-          } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          }
-        },
-        "tags" : [ "qna-controller" ],
-        "summary" : "Delete a Q&A owned by the current student"
-      }
     }
-  }
+  },
+  "security" : [ {
+    "sessionCookie" : [ ]
+  } ]
 }

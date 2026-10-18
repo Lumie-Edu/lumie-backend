@@ -1,5 +1,6 @@
 package com.lumie.staff.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.staff.application.dto.request.StaffFilterRequest;
 import com.lumie.staff.application.dto.request.StaffRequest;
 import com.lumie.staff.application.dto.request.StaffUpdateRequest;
@@ -33,6 +34,7 @@ public class StaffController {
     private final StaffQueryService staffQueryService;
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<StaffResponse> registerStaff(@Valid @RequestBody StaffRequest request) {
         StaffResponse response = staffCommandService.registerStaff(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -78,6 +80,7 @@ public class StaffController {
     }
 
     @PostMapping("/{id}/reset-password")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> resetStaffPassword(@PathVariable Long id) {
         staffCommandService.resetStaffPassword(id);
         return ResponseEntity.noContent().build();
@@ -92,24 +95,28 @@ public class StaffController {
     }
 
     @PostMapping("/{id}/deactivate")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deactivateStaff(@PathVariable Long id) {
         staffCommandService.deactivateStaff(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/reactivate")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> reactivateStaff(@PathVariable Long id) {
         staffCommandService.reactivateStaff(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/terminate")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> terminateStaff(@PathVariable Long id) {
         staffCommandService.terminateStaff(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteStaff(@PathVariable Long id) {
         staffCommandService.deleteStaff(id);
         return ResponseEntity.noContent().build();

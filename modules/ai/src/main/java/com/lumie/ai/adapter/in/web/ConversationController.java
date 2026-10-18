@@ -1,5 +1,6 @@
 package com.lumie.ai.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.ai.application.dto.response.ConversationDetailResponse;
 import com.lumie.ai.application.dto.response.ConversationSummaryResponse;
 import com.lumie.ai.application.service.ConversationQueryService;
@@ -38,6 +39,7 @@ public class ConversationController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteConversation(@PathVariable Long id) {
         requireStaffUser();
         queryService.deleteConversation(id);
