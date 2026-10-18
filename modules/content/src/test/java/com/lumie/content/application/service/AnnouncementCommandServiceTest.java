@@ -46,6 +46,7 @@ class AnnouncementCommandServiceTest {
     @BeforeEach
     void setUpTenant() {
         TenantContextHolder.setTenant("test-tenant");
+        UserContextHolder.setUserId(900L);
         UserContextHolder.setUserRole(Role.OWNER);
     }
 

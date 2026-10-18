@@ -1,7 +1,10 @@
 package com.lumie.content.application.service;
 
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.auth.Role;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.application.dto.response.QnaBoardResponse;
 import com.lumie.content.application.dto.response.QnaDetailResponse;
 import com.lumie.content.application.dto.response.QnaUnansweredOverdueResponse;
@@ -37,6 +40,7 @@ public class QnaQueryService {
     private final StaffService staffService;
 
     public Page<QnaBoardResponse> listQnas(String keyword, Boolean isAnswered, Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         log.debug("Listing Q&As with pagination, keyword={}, isAnswered={}", keyword, isAnswered);
 
         List<Long> userIds = null;
@@ -51,13 +55,22 @@ public class QnaQueryService {
     }
 
     public Page<QnaBoardResponse> listQnasByUser(Long qnaUserId, Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         log.debug("Listing Q&As for user: {}", qnaUserId);
 
         Page<QnaBoard> page = qnaBoardRepository.findByQnaUserId(qnaUserId, pageable);
         return enrichWithUserNames(page);
     }
 
+    public Page<QnaBoardResponse> listMyQnas(String keyword, Boolean isAnswered, Pageable pageable) {
+        requireCurrentStudent();
+        Page<QnaBoard> page = qnaBoardRepository.searchByUser(
+                UserContextHolder.getRequiredUserId(), keyword, isAnswered, pageable);
+        return enrichWithUserNames(page);
+    }
+
     public Page<QnaBoardResponse> listUnansweredQnas(Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         log.debug("Listing unanswered Q&As");
 
         Page<QnaBoard> page = qnaBoardRepository.findByIsAnsweredFalse(pageable);
@@ -71,6 +84,20 @@ public class QnaQueryService {
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(id)
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
 
+        requireStudentOwnerOrStaff(qnaBoard);
+        return toDetail(qnaBoard);
+    }
+
+    @Transactional
+    public QnaDetailResponse getMyQna(Long id) {
+        requireCurrentStudent();
+        QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(id)
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
+        requireCurrentStudentOwns(qnaBoard);
+        return toDetail(qnaBoard);
+    }
+
+    private QnaDetailResponse toDetail(QnaBoard qnaBoard) {
         Long currentUserId = com.lumie.common.tenant.UserContextHolder.getUserId();
         if (currentUserId != null && currentUserId.equals(qnaBoard.getQnaUserId())) {
             qnaBoard.markAsReadByAuthor();
@@ -102,6 +129,7 @@ public class QnaQueryService {
     }
 
     public QnaUnansweredOverdueResponse getUnansweredOverdueStatistics(long thresholdHours) {
+        AuthorizationGuard.requireStaff();
         log.debug("Computing unanswered-overdue Q&A count, thresholdHours={}", thresholdHours);
         Instant threshold = Instant.now().minusSeconds(thresholdHours * 3600L);
         long count = qnaBoardRepository.countByIsAnsweredFalseAndCreatedAtBefore(threshold);
@@ -116,6 +144,29 @@ public class QnaQueryService {
                 .map(qna -> Role.valueOf(role) != Role.STUDENT
                         || (qna.getQnaUserId() != null && qna.getQnaUserId().equals(userId)))
                 .orElse(false);
+    }
+
+    private void requireStudentOwnerOrStaff(QnaBoard qna) {
+        Role role = UserContextHolder.getUserRole();
+        if (role != Role.STUDENT) {
+            AuthorizationGuard.requireStaff();
+            return;
+        }
+        requireCurrentStudentOwns(qna);
+    }
+
+    private void requireCurrentStudent() {
+        if (UserContextHolder.getUserRole() != Role.STUDENT) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
+        UserContextHolder.getRequiredUserId();
+    }
+
+    private void requireCurrentStudentOwns(QnaBoard qna) {
+        Long userId = UserContextHolder.getRequiredUserId();
+        if (!userId.equals(qna.getQnaUserId())) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
     }
 
     private Page<QnaBoardResponse> enrichWithUserNames(Page<QnaBoard> page) {

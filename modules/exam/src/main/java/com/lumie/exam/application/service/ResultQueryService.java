@@ -1,6 +1,9 @@
 package com.lumie.exam.application.service;
 
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.auth.CurrentStudentResolver;
+import com.lumie.common.auth.Role;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.dto.response.OmrJobStatusResponse;
 import com.lumie.exam.application.dto.response.QuestionResultResponse;
@@ -14,6 +17,7 @@ import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.domain.repository.ExamResultRepository;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.student.api.StudentService;
@@ -218,9 +222,17 @@ public class ResultQueryService {
                 .toList();
     }
 
-    public byte[] getOmrImageData(Long resultId) {
-        ExamResult result = resultRepository.findById(resultId)
+    public byte[] getOmrImageData(Long examId, Long resultId) {
+        ExamResult result = resultRepository.findByIdAndExamId(resultId, examId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+
+        if (UserContextHolder.getUserRole() == Role.STUDENT) {
+            if (!Objects.equals(result.getStudentId(), currentStudentId())) {
+                throw new BusinessException(CommonErrorCode.FORBIDDEN);
+            }
+        } else {
+            AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        }
 
         if (result.getOmrImageKey() == null) {
             throw new BusinessException(ExamErrorCode.OMR_IMAGE_NOT_FOUND);

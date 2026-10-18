@@ -12,6 +12,8 @@ import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.repository.QnaBoardRepository;
 import com.lumie.content.domain.repository.QnaCommentRepository;
 import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.auth.Role;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.api.FileService;
 import com.lumie.file.api.PreparedTemporaryFile;
@@ -33,12 +35,33 @@ public class QnaCommandService {
 
     @Transactional
     public QnaBoardResponse createQna(CreateQnaRequest request) {
+        requireCurrentStudent();
+        return createForCurrentUser(request);
+    }
+
+    @Transactional
+    public QnaBoardResponse updateMyQna(Long id, UpdateQnaRequest request) {
+        QnaBoard qnaBoard = qnaBoardRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
+        requireCurrentStudentOwns(qnaBoard);
+        return updateQna(qnaBoard, id, request);
+    }
+
+    @Transactional
+    public void deleteMyQna(Long id) {
+        QnaBoard qnaBoard = qnaBoardRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
+        requireCurrentStudentOwns(qnaBoard);
+        deleteQna(qnaBoard, id);
+    }
+
+    private QnaBoardResponse createForCurrentUser(CreateQnaRequest request) {
         log.info("Creating Q&A: {}", request.qnaTitle());
         List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("qna", request.temporaryAttachments());
 
         try {
         QnaBoard qnaBoard = QnaBoard.create(
-                request.qnaUserId(),
+                UserContextHolder.getRequiredUserId(),
                 request.qnaTitle(),
                 request.qnaContent()
         );
@@ -58,12 +81,16 @@ public class QnaCommandService {
     @Transactional
     public QnaBoardResponse updateQna(Long id, UpdateQnaRequest request) {
         log.info("Updating Q&A: {}", id);
+        QnaBoard qnaBoard = qnaBoardRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
+        requireStudentOwnerOrStaff(qnaBoard);
+        return updateQna(qnaBoard, id, request);
+    }
+
+    private QnaBoardResponse updateQna(QnaBoard qnaBoard, Long id, UpdateQnaRequest request) {
         List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("qna", request.temporaryAttachments());
 
         try {
-        QnaBoard qnaBoard = qnaBoardRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
-
         qnaBoard.update(request.qnaTitle(), request.qnaContent());
 
         fileService.reconcilePreparedDirectFiles("qna", id, request.attachmentFileIds(), preparedFiles);
@@ -83,12 +110,15 @@ public class QnaCommandService {
     public void deleteQna(Long id) {
         log.info("Deleting Q&A: {}", id);
 
-        if (!qnaBoardRepository.existsById(id)) {
-            throw new BusinessException(ContentErrorCode.QNA_NOT_FOUND);
-        }
+        QnaBoard qnaBoard = qnaBoardRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
+        requireStudentOwnerOrStaff(qnaBoard);
+        deleteQna(qnaBoard, id);
+    }
 
+    private void deleteQna(QnaBoard qnaBoard, Long id) {
         fileService.deleteFilesByEntity("qna", id);
-        qnaBoardRepository.deleteById(id);
+        qnaBoardRepository.delete(qnaBoard);
         log.info("Q&A deleted: {}", id);
     }
 
@@ -119,12 +149,13 @@ public class QnaCommandService {
         QnaBoard qnaBoard = qnaBoardRepository.findByIdWithComments(qnaId)
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
 
-        if (!qnaCommentRepository.existsById(commentId)) {
-            throw new BusinessException(ContentErrorCode.COMMENT_NOT_FOUND);
-        }
+        QnaComment comment = qnaBoard.getComments().stream()
+                .filter(candidate -> candidate.getId().equals(commentId))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ContentErrorCode.COMMENT_NOT_FOUND));
 
-        qnaCommentRepository.deleteById(commentId);
-        qnaBoard.getComments().removeIf(c -> c.getId().equals(commentId));
+        qnaCommentRepository.delete(comment);
+        qnaBoard.getComments().remove(comment);
 
         if (!qnaBoard.hasStaffComment()) {
             qnaBoard.markAsUnanswered();
@@ -132,6 +163,29 @@ public class QnaCommandService {
         }
 
         log.info("Comment deleted: {}", commentId);
+    }
+
+    private void requireStudentOwnerOrStaff(QnaBoard qna) {
+        Role role = UserContextHolder.getUserRole();
+        if (role != Role.STUDENT) {
+            AuthorizationGuard.requireStaff();
+            return;
+        }
+        requireCurrentStudentOwns(qna);
+    }
+
+    private void requireCurrentStudent() {
+        if (UserContextHolder.getUserRole() != Role.STUDENT) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
+        UserContextHolder.getRequiredUserId();
+    }
+
+    private void requireCurrentStudentOwns(QnaBoard qna) {
+        Long userId = UserContextHolder.getRequiredUserId();
+        if (!userId.equals(qna.getQnaUserId())) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
     }
 
 }

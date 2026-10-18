@@ -10,6 +10,7 @@ import com.lumie.content.domain.entity.AnnouncementClassTarget;
 import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.domain.exception.ContentErrorCode;
 import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
 import com.lumie.content.domain.repository.AnnouncementRepository;
@@ -46,7 +47,7 @@ public class AnnouncementCommandService {
 
         try {
         Announcement announcement = Announcement.create(
-                request.authorId(),
+                UserContextHolder.getRequiredUserId(),
                 request.announcementTitle(),
                 request.announcementContent(),
                 request.isItAssetAnnouncement(),

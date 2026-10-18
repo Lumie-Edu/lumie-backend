@@ -1,13 +1,14 @@
 package com.lumie.content.application.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 import com.lumie.file.api.TemporaryAttachment;
 
 public record CreateQnaRequest(
-        @NotNull(message = "User ID is required")
+        // Accepted temporarily for old clients, but never used as the author.
+        @Schema(hidden = true)
         Long qnaUserId,
 
         @NotBlank(message = "Title is required")

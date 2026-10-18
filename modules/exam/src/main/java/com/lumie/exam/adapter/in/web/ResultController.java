@@ -389,7 +389,7 @@ public class ResultController {
     public ResponseEntity<byte[]> getOmrImage(
             @PathVariable Long examId,
             @PathVariable Long resultId) {
-        byte[] imageData = resultQueryService.getOmrImageData(resultId);
+        byte[] imageData = resultQueryService.getOmrImageData(examId, resultId);
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_PNG)
                 .contentLength(imageData.length)
