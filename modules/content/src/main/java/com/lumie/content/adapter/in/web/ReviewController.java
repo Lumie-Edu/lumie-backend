@@ -1,5 +1,6 @@
 package com.lumie.content.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.content.application.dto.request.CreateReviewRequest;
 import com.lumie.content.application.dto.request.UpdateReviewPopupSettingRequest;
 import com.lumie.content.application.dto.response.ReviewPopupSettingResponse;
@@ -29,6 +30,7 @@ public class ReviewController {
     private final ReviewPopupSettingService popupSettingService;
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<ReviewResponse> createReview(@Valid @RequestBody CreateReviewRequest request) {
         ReviewResponse response = commandService.createReview(request);
         return ResponseEntity.created(URI.create("/v1/reviews/" + response.id())).body(response);
@@ -42,6 +44,7 @@ public class ReviewController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteReview(@PathVariable Long id) {
         commandService.deleteReview(id);
         return ResponseEntity.noContent().build();

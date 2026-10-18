@@ -1,5 +1,6 @@
 package com.lumie.billing.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.billing.application.dto.request.ChangeSubscriptionRequest;
 import com.lumie.billing.application.dto.request.CreateSubscriptionRequest;
 import com.lumie.billing.application.dto.response.InvoiceResponse;
@@ -33,6 +34,7 @@ public class SubscriptionController {
     private final IdempotencyService idempotencyService;
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<SubscriptionResponse> createSubscription(
             @Valid @RequestBody CreateSubscriptionRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
@@ -63,6 +65,7 @@ public class SubscriptionController {
     }
 
     @DeleteMapping("/{tenantSlug}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> cancelSubscription(
             @PathVariable String tenantSlug,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {

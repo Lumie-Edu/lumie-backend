@@ -75,6 +75,7 @@ public class FileController {
     }
 
     @DeleteMapping("/{fileId}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteFile(@PathVariable UUID fileId) {
         fileCommandService.deleteFile(fileId);
         return ResponseEntity.noContent().build();

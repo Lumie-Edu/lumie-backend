@@ -1,6 +1,7 @@
 package com.lumie.exam.adapter.in.web;
 
 import com.lumie.exam.application.dto.request.ReportBatchRequest;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
 import com.lumie.exam.application.port.out.ReportServicePort;
 import com.lumie.exam.application.service.ReportJobService;
@@ -56,6 +57,7 @@ public class ReportController {
     }
 
     @PostMapping("/exams/{examId}/reports/batch")
+    @ApiResponse(responseCode = "202", description = "Accepted")
     public ResponseEntity<JobAcceptedResponse> createBatchReport(
             @PathVariable Long examId,
             @Valid @RequestBody ReportBatchRequest request,

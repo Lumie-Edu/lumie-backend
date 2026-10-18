@@ -1,5 +1,6 @@
 package com.lumie.classroom.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.classroom.application.dto.ClassEnrollmentResponse;
 import com.lumie.classroom.application.dto.EnrollStudentsRequest;
 import com.lumie.classroom.application.dto.UpdateEnrollmentRequest;
@@ -37,6 +38,7 @@ public class ClassEnrollmentController {
     }
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<List<ClassEnrollmentResponse>> enrollStudents(
             @PathVariable Long classId,
             @Valid @RequestBody EnrollStudentsRequest request) {
@@ -45,6 +47,7 @@ public class ClassEnrollmentController {
     }
 
     @DeleteMapping("/{enrollmentId}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> removeEnrollment(
             @PathVariable Long classId,
             @PathVariable Long enrollmentId) {
@@ -53,6 +56,7 @@ public class ClassEnrollmentController {
     }
 
     @DeleteMapping("/student/{studentId}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> removeEnrollmentByStudent(
             @PathVariable Long classId,
             @PathVariable Long studentId) {

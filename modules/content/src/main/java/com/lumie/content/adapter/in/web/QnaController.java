@@ -12,6 +12,8 @@ import com.lumie.content.application.service.QnaQueryService;
 import com.lumie.file.api.FileService;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +33,7 @@ public class QnaController {
     private final FileService fileService;
 
     @GetMapping
+    @Operation(description = "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).")
     @AllowedSortFields({"createdAt"})
     public ResponseEntity<PageResponse<QnaBoardResponse>> listQnas(
             @RequestParam(required = false) String keyword,
@@ -41,6 +44,7 @@ public class QnaController {
 
     @GetMapping("/me")
     @AllowedSortFields({"createdAt"})
+    @Operation(summary = "List Q&As for the current student", description = "Requires the STUDENT role.")
     public ResponseEntity<PageResponse<QnaBoardResponse>> listMyQnas(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Boolean isAnswered,
@@ -49,17 +53,21 @@ public class QnaController {
     }
 
     @GetMapping("/me/{id}")
+    @Operation(summary = "Get a Q&A owned by the current student", description = "Requires the student owner.")
     public ResponseEntity<QnaDetailResponse> getMyQna(@PathVariable Long id) {
         return ResponseEntity.ok(queryService.getMyQna(id));
     }
 
     @PostMapping("/me")
+    @Operation(summary = "Create a Q&A for the current student", description = "Requires the STUDENT role.")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<QnaBoardResponse> createMyQna(@Valid @RequestBody CreateQnaRequest request) {
         QnaBoardResponse response = commandService.createQna(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PatchMapping("/me/{id}")
+    @Operation(summary = "Update a Q&A owned by the current student", description = "Requires the student owner.")
     public ResponseEntity<QnaBoardResponse> updateMyQna(
             @PathVariable Long id,
             @Valid @RequestBody UpdateQnaRequest request) {
@@ -67,18 +75,22 @@ public class QnaController {
     }
 
     @DeleteMapping("/me/{id}")
+    @Operation(summary = "Delete a Q&A owned by the current student", description = "Requires the student owner.")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteMyQna(@PathVariable Long id) {
         commandService.deleteMyQna(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/statistics/unanswered-overdue")
+    @Operation(description = "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).")
     public ResponseEntity<QnaUnansweredOverdueResponse> getUnansweredOverdueStatistics(
             @RequestParam(defaultValue = "24") long thresholdHours) {
         return ResponseEntity.ok(queryService.getUnansweredOverdueStatistics(thresholdHours));
     }
 
     @GetMapping("/unanswered")
+    @Operation(description = "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).")
     @AllowedSortFields({"createdAt"})
     public ResponseEntity<PageResponse<QnaBoardResponse>> listUnansweredQnas(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -86,6 +98,7 @@ public class QnaController {
     }
 
     @GetMapping("/user/{qnaUserId}")
+    @Operation(description = "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).")
     @AllowedSortFields({"createdAt"})
     public ResponseEntity<PageResponse<QnaBoardResponse>> listQnasByUser(
             @PathVariable Long qnaUserId,
@@ -94,17 +107,21 @@ public class QnaController {
     }
 
     @GetMapping("/{id}")
+    @Operation(description = "Requires the student owner or a staff role.")
     public ResponseEntity<QnaDetailResponse> getQna(@PathVariable Long id) {
         return ResponseEntity.ok(queryService.getQna(id));
     }
 
     @PostMapping
+    @Operation(description = "Requires the STUDENT role. The author is derived from the session.")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<QnaBoardResponse> createQna(@Valid @RequestBody CreateQnaRequest request) {
         QnaBoardResponse response = commandService.createQna(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PatchMapping("/{id}")
+    @Operation(description = "Requires the student owner or a staff role.")
     public ResponseEntity<QnaBoardResponse> updateQna(
             @PathVariable Long id,
             @Valid @RequestBody UpdateQnaRequest request) {
@@ -112,12 +129,16 @@ public class QnaController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(description = "Requires the student owner or a staff role.")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteQna(@PathVariable Long id) {
         commandService.deleteQna(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/comments")
+    @Operation(description = "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<QnaCommentResponse> addComment(
             @PathVariable Long id,
             @Valid @RequestBody CreateCommentRequest request) {
@@ -126,6 +147,8 @@ public class QnaController {
     }
 
     @DeleteMapping("/{qnaId}/comments/{commentId}")
+    @Operation(description = "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteComment(
             @PathVariable Long qnaId,
             @PathVariable Long commentId) {

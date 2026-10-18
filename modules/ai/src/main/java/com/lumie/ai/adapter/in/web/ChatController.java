@@ -1,6 +1,9 @@
 package com.lumie.ai.adapter.in.web;
 
 import com.lumie.ai.adapter.out.external.ChatbotClient;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.ai.application.dto.response.ChatReplyResponse;
 import com.lumie.ai.application.service.ChatService;
 import com.lumie.common.auth.Role;
@@ -50,6 +53,8 @@ public class ChatController {
     }
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ApiResponse(responseCode = "200", description = "Server-sent chat events", content =
+            @Content(mediaType = MediaType.TEXT_EVENT_STREAM_VALUE, schema = @Schema(type = "string")))
     public SseEmitter chatStream(
             @Valid @RequestBody ChatRequest request,
             HttpServletResponse response) {

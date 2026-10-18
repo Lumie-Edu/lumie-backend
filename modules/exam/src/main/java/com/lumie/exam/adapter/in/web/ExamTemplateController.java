@@ -1,5 +1,6 @@
 package com.lumie.exam.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.exam.application.dto.request.CreateExamTemplateRequest;
 import com.lumie.exam.application.dto.request.UpdateExamTemplateRequest;
 import com.lumie.exam.application.dto.response.ExamTemplateResponse;
@@ -37,6 +38,7 @@ public class ExamTemplateController {
     }
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<ExamTemplateResponse> createTemplate(
             @Valid @RequestBody CreateExamTemplateRequest request) {
         ExamTemplateResponse response = examTemplateCommandService.create(request);
@@ -51,6 +53,7 @@ public class ExamTemplateController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteTemplate(@PathVariable Long id) {
         examTemplateCommandService.delete(id);
         return ResponseEntity.noContent().build();

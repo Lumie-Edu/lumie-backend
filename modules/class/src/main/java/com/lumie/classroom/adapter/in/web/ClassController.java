@@ -1,5 +1,6 @@
 package com.lumie.classroom.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.classroom.application.dto.ClassResponse;
 import com.lumie.classroom.application.dto.CreateClassRequest;
 import com.lumie.classroom.application.dto.UpdateClassRequest;
@@ -27,6 +28,7 @@ public class ClassController {
     private final ClassQueryService queryService;
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<ClassResponse> createClass(
             @Valid @RequestBody CreateClassRequest request) {
         ClassResponse response = commandService.createClass(request);
@@ -66,6 +68,7 @@ public class ClassController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteClass(@PathVariable Long id) {
         commandService.deleteClass(id);
         return ResponseEntity.noContent().build();

@@ -1,5 +1,6 @@
 package com.lumie.exam.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
@@ -33,6 +34,7 @@ public class ExamController {
     }
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<ExamResponse> createExam(@Valid @RequestBody CreateExamRequest request) {
         ExamResponse response = examCommandService.createExam(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -56,6 +58,7 @@ public class ExamController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteExam(@PathVariable Long id) {
         examCommandService.deleteExam(id);
         return ResponseEntity.noContent().build();
