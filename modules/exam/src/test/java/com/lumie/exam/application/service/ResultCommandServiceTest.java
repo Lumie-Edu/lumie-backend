@@ -282,7 +282,7 @@ class ResultCommandServiceTest {
             org.springframework.test.util.ReflectionTestUtils.setField(job, "id", 42L);
             return job;
         });
-        String key = "tmp/test-academy/omr/a1b2c3d4/one.jpg";
+        String key = "tmp/test-academy/omr/a1b2c3d4/01234567-89ab-cdef-0123-456789abcdef/one.jpg";
 
         var response = resultCommandService.confirmBatchOmrGrading(1L,
                 new OmrBatchConfirmRequest("a1b2c3d4", List.of(key)));

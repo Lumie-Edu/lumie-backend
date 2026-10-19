@@ -132,7 +132,8 @@ public class ResultCommandService {
         List<OmrPresignResponse.PresignedUpload> uploads = request.fileNames().stream()
                 .map(fileName -> {
                     String sanitized = sanitizeFileName(fileName);
-                    String objectKey = FileObjectKeyFactory.temporaryOmr(tenantId, batchKey, sanitized);
+                    String objectKey = FileObjectKeyFactory.temporaryOmr(
+                            tenantId, batchKey, java.util.UUID.randomUUID(), sanitized);
                     String uploadUrl = storagePort.getPresignedPutUrl(objectKey, 900);
                     return new OmrPresignResponse.PresignedUpload(fileName, objectKey, uploadUrl);
                 })
@@ -159,10 +160,7 @@ public class ResultCommandService {
         }
         String batchPrefix = FileObjectKeyFactory.temporaryOmrPrefix(tenantId) + batchKey + "/";
         for (String key : request.objectKeys()) {
-            if (key == null || !key.startsWith(batchPrefix)
-                    || key.length() == batchPrefix.length()
-                    || !key.substring(batchPrefix.length()).matches("[a-zA-Z0-9가-힣._-]+")
-                    || key.contains("..")) {
+            if (!isValidTemporaryOmrKey(key, batchPrefix)) {
                 throw new BusinessException(ExamErrorCode.INVALID_EXAM_DATA);
             }
         }
@@ -463,6 +461,25 @@ public class ResultCommandService {
             return java.util.UUID.randomUUID().toString().substring(0, 8);
         }
         return fileName.replaceAll("[^a-zA-Z0-9가-힣._-]", "_");
+    }
+
+    private boolean isValidTemporaryOmrKey(String key, String batchPrefix) {
+        if (key == null || !key.startsWith(batchPrefix)) {
+            return false;
+        }
+
+        String[] pathParts = key.substring(batchPrefix.length()).split("/", -1);
+        if (pathParts.length != 2 || pathParts[1].isBlank()
+                || !pathParts[1].matches("[a-zA-Z0-9가-힣._-]+") || pathParts[1].contains("..")) {
+            return false;
+        }
+
+        try {
+            java.util.UUID uploadId = java.util.UUID.fromString(pathParts[0]);
+            return uploadId.toString().equals(pathParts[0]);
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
     }
 
 }
