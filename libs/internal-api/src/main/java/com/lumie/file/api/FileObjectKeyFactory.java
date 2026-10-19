@@ -8,8 +8,9 @@ public final class FileObjectKeyFactory {
         return storageTenantId + "/branding/logo";
     }
 
-    public static String temporaryOmr(String storageTenantId, String batchId, String filename) {
-        return temporaryOmrPrefix(storageTenantId) + batchId + "/" + filename;
+    public static String temporaryOmr(
+            String storageTenantId, String batchId, java.util.UUID uploadId, String filename) {
+        return temporaryOmrPrefix(storageTenantId) + batchId + "/" + uploadId + "/" + filename;
     }
 
     public static String temporaryReport(String storageTenantId, Long examId, Long studentId) {
