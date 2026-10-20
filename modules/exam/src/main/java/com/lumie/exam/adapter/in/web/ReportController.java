@@ -90,6 +90,16 @@ public class ReportController {
         return ResponseEntity.ok(reportJobService.getJobStatus(jobId));
     }
 
+    @io.swagger.v3.oas.annotations.responses.ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Report ZIP"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "410",
+                    description = "Report ZIP has expired",
+                    content = @io.swagger.v3.oas.annotations.media.Content(
+                            mediaType = "application/problem+json",
+                            schema = @io.swagger.v3.oas.annotations.media.Schema(
+                                    implementation = org.springframework.http.ProblemDetail.class)))
+    })
     @GetMapping(value = "/exams/{examId}/reports/jobs/{jobId}/download", produces = "application/zip")
     public ResponseEntity<byte[]> downloadZip(
             @PathVariable Long examId,

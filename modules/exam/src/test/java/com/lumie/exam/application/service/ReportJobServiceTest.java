@@ -7,6 +7,7 @@ import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
+import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
 import com.lumie.exam.domain.vo.JobStatus;
@@ -26,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -213,14 +215,167 @@ class ReportJobServiceTest {
                 .willReturn("tmp/test-tenant/reports/10/batch_1.zip");
         doAnswer(invocation -> {
             ReflectionTestUtils.setField(job, "zipFileKey", invocation.getArgument(1));
+            ReflectionTestUtils.setField(job, "zipExpiresAt", invocation.getArgument(2));
             return null;
-        }).when(jobRepository).setZipFileKey(eq(1L), anyString());
+        }).when(jobRepository).setZipFileKey(eq(1L), anyString(), any(Instant.class));
 
         service.getZipBytes(1L);
 
         ArgumentCaptor<byte[]> zipCaptor = ArgumentCaptor.forClass(byte[].class);
         verify(storagePort).putObject(eq("tmp/test-tenant/reports/10/batch_1.zip"), zipCaptor.capture(), eq("application/zip"));
         assertThat(firstZipEntryName(zipCaptor.getValue())).isEqualTo("강다은_테스트_시험.jpg");
+    }
+
+    @Test
+    void getZipBytes_rejectsExpiredZipBeforeReadingOrRebuilding() {
+        ReportGenerationJob job = completedJob();
+        ReflectionTestUtils.setField(job, "zipFileKey", "tmp/test-tenant/reports/10/batch_1.zip");
+        ReflectionTestUtils.setField(job, "zipExpiresAt", Instant.now().minusSeconds(1));
+        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getZipBytes(1L))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class)
+                .hasMessageContaining("expired")
+                .extracting("errorCode").isEqualTo(ExamErrorCode.REPORT_ZIP_EXPIRED);
+
+        verify(storagePort, never()).getObject(anyString());
+        verify(studentService, never()).getStudentsByIds(anyString(), any());
+        verify(storagePort, never()).putObject(anyString(), any(), anyString());
+    }
+
+    @Test
+    void expiredReportZipErrorUsesGoneStatus() {
+        assertThat(ExamErrorCode.REPORT_ZIP_EXPIRED.getStatus()).isEqualTo(410);
+    }
+
+    @Test
+    void getZipBytes_rejectsLegacyZipWithoutExpiryInsteadOfCreatingANewWindow() {
+        ReportGenerationJob job = completedJob();
+        ReflectionTestUtils.setField(job, "zipFileKey", "tmp/test-tenant/reports/10/batch_1.zip");
+        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getZipBytes(1L))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+
+        verify(storagePort, never()).getObject(anyString());
+        verify(storagePort, never()).putObject(anyString(), any(), anyString());
+    }
+
+    @Test
+    void getZipBytes_assignsExpiryFromZipStorageTime() throws Exception {
+        ReportGenerationJob job = completedJob();
+        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
+        given(studentService.getStudentsByIds(eq("test-tenant"), eq(List.of(99L))))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(99L, 7L, "강다은", "010", true, null, null)),
+                        1, 0, 1));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
+                .willReturn("%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII));
+        given(storagePort.putObject(eq("tmp/test-tenant/reports/10/batch_1.zip"), any(), eq("application/zip")))
+                .willReturn("tmp/test-tenant/reports/10/batch_1.zip");
+        doAnswer(invocation -> {
+            ReflectionTestUtils.setField(job, "zipFileKey", invocation.getArgument(1));
+            ReflectionTestUtils.setField(job, "zipExpiresAt", invocation.getArgument(2));
+            return null;
+        }).when(jobRepository).setZipFileKey(eq(1L), anyString(), any(Instant.class));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/batch_1.zip"))
+                .willReturn(new byte[]{1, 2, 3});
+
+        Instant before = Instant.now();
+        service.getZipBytes(1L);
+        Instant after = Instant.now();
+
+        Instant expiry = job.getZipExpiresAt();
+        assertThat(expiry).isNotNull();
+        assertThat(expiry).isBetween(before.plusSeconds(24 * 60 * 60), after.plusSeconds(24 * 60 * 60));
+        verify(jobRepository).setZipFileKey(eq(1L), eq("tmp/test-tenant/reports/10/batch_1.zip"), any(Instant.class));
+    }
+
+    @Test
+    void getJobStatus_exposesPersistedZipExpiry() {
+        ReportGenerationJob job = completedJob();
+        Instant expiresAt = Instant.parse("2026-10-21T00:00:00Z");
+        ReflectionTestUtils.setField(job, "zipFileKey", "tmp/test-tenant/reports/10/batch_1.zip");
+        ReflectionTestUtils.setField(job, "zipExpiresAt", expiresAt);
+        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
+
+        var status = service.getJobStatus(1L);
+
+        assertThat(status.expiresAt()).isEqualTo(expiresAt);
+        assertThat(status.zipFileKey()).isEqualTo("tmp/test-tenant/reports/10/batch_1.zip");
+    }
+
+    @Test
+    void getZipBytes_doesNotStoreAnEmptyZipWhenAllIntermediateFilesAreMissing() {
+        ReportGenerationJob job = completedJob();
+        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
+        given(studentService.getStudentsByIds(eq("test-tenant"), eq(List.of(99L))))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(99L, 7L, "강다은", "010", true, null, null)),
+                        1, 0, 1));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
+                .willThrow(new IllegalStateException("missing pdf"));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.jpg"))
+                .willThrow(new IllegalStateException("missing legacy jpg"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getZipBytes(1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("incomplete report ZIP")
+                .hasMessageContaining("found 0");
+
+        verify(storagePort, never()).putObject(anyString(), any(), anyString());
+    }
+
+    @Test
+    void getZipBytes_doesNotStoreAPartialZipWhenAnIntermediateReportIsMissing() {
+        ReportGenerationJob job = completedJob();
+        ReflectionTestUtils.setField(job, "studentIds", List.of(99L, 100L));
+        ReflectionTestUtils.setField(job, "successCount", 2);
+        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
+        given(studentService.getStudentsByIds(eq("test-tenant"), eq(List.of(99L, 100L))))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(
+                                new StudentService.StudentData(99L, 7L, "강다은", "010", true, null, null),
+                                new StudentService.StudentData(100L, 7L, "김다은", "010", true, null, null)),
+                        2, 0, 2));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
+                .willReturn("%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/100.pdf"))
+                .willThrow(new IllegalStateException("missing pdf"));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/100.jpg"))
+                .willThrow(new IllegalStateException("missing legacy jpg"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getZipBytes(1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("incomplete report ZIP")
+                .hasMessageContaining("expected 2 entries, found 1");
+
+        verify(storagePort, never()).putObject(anyString(), any(), anyString());
+    }
+
+    @Test
+    void getZipBytes_recoveryDoesNotExtendTheOriginalExpiry() throws Exception {
+        ReportGenerationJob job = completedJob();
+        Instant originalExpiry = Instant.now().plusSeconds(3600);
+        ReflectionTestUtils.setField(job, "zipFileKey", "tmp/test-tenant/reports/10/batch_1.zip");
+        ReflectionTestUtils.setField(job, "zipExpiresAt", originalExpiry);
+        given(jobRepository.findById(1L)).willReturn(Optional.of(job));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/batch_1.zip"))
+                .willThrow(new IllegalStateException("temporarily unavailable"))
+                .willReturn(new byte[]{1, 2, 3});
+        given(studentService.getStudentsByIds(eq("test-tenant"), eq(List.of(99L))))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(99L, 7L, "강다은", "010", true, null, null)),
+                        1, 0, 1));
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
+                .willReturn("%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII));
+        given(storagePort.putObject(eq("tmp/test-tenant/reports/10/batch_1.zip"), any(), eq("application/zip")))
+                .willReturn("tmp/test-tenant/reports/10/batch_1.zip");
+
+        service.getZipBytes(1L);
+
+        assertThat(job.getZipExpiresAt()).isEqualTo(originalExpiry);
+        verify(jobRepository, never()).setZipFileKey(any(), anyString(), any(Instant.class));
     }
 
     private static ReportCallbackRequest successCallback(String reportBytes) {
