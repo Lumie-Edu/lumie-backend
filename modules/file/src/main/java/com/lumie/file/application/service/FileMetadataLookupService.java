@@ -33,7 +33,7 @@ public class FileMetadataLookupService {
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
-        if (!fileMetadata.isUploadCompleted()) {
+        if (!fileMetadata.isReady()) {
             throw new BusinessException(FileErrorCode.FILE_NOT_FOUND, "File upload not completed");
         }
         return fileMetadata;

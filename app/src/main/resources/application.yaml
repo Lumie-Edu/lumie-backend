@@ -172,6 +172,10 @@ telegram:
 
 # External Python services (exam module) + CORS
 lumie:
+  file:
+    storage-operation:
+      poll-interval-ms: 30000
+      batch-size: 100
   services:
     grading:
       url: ${GRADING_SVC_URL:http://localhost:8001}

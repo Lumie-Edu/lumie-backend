@@ -74,6 +74,8 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:minio")
+    testImplementation(libs.minio)
     // Flyway Java API for the migration-chain integration test. Present at
     // runtime transitively (Spring Boot Flyway autoconfig); declared here so
     // it is on the test *compile* classpath too. Versions via Spring Boot BOM.

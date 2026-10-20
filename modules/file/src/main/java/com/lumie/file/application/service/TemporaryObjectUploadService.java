@@ -19,13 +19,16 @@ public class TemporaryObjectUploadService {
     private final StoragePort storage;
     public TemporaryObjectUploadService(StoragePort storage) { this.storage = storage; }
     public TemporaryObjectUploadResponse create(CreateTemporaryUploadRequest request) {
-        if (request.fileSize() > MAX_BYTES || !isAllowedFilename(request.filename()) || request.contentType().isBlank()
+        if (request == null || request.fileSize() == null || request.fileSize() <= 0 || request.fileSize() > MAX_BYTES
+                || !isAllowedFilename(request.filename()) || request.contentType() == null || request.contentType().isBlank()
+                || request.entityType() == null
                 || !Set.of(EntityType.ANNOUNCEMENT, EntityType.QNA, EntityType.TEXTBOOK).contains(request.entityType()))
             throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
         String key = FilePath.of(request.entityType(), UUID.randomUUID(), request.filename()).toTemporaryObjectKey();
         return new TemporaryObjectUploadResponse(key, storage.generatePresignedUploadUrl(key, request.contentType(), 900));
     }
     public static boolean isAllowedFilename(String value) {
+        if (value == null || value.isBlank()) return false;
         int dot = value.lastIndexOf('.');
         return dot > 0 && !value.contains("/") && !value.contains("\\") && !value.contains("..")
                 && EXTENSIONS.contains(value.substring(dot + 1).toLowerCase(Locale.ROOT));

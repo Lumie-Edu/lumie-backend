@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AnnouncementCommandService 테스트")
@@ -81,6 +82,7 @@ class AnnouncementCommandServiceTest {
 
         assertThat(response.authorName()).isEqualTo("원장");
         assertThat(response.audienceScope()).isEqualTo(AnnouncementAudienceScope.ALL);
+        verify(fileService).attachPreparedFiles("announcement", 1L, List.of());
     }
 
     @Test
@@ -136,6 +138,7 @@ class AnnouncementCommandServiceTest {
         inOrder.verify(classTargetRepository).deleteByAnnouncementId(1L);
         inOrder.verify(classTargetRepository).flush();
         inOrder.verify(classTargetRepository).saveAll(anyList());
+        verify(fileService).reconcilePreparedDirectFiles("announcement", 1L, null, List.of());
     }
 
     @Test
@@ -157,6 +160,17 @@ class AnnouncementCommandServiceTest {
 
         assertThatThrownBy(() -> commandService.createAnnouncement(request))
                 .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+    }
+
+    @Test
+    void deleteAnnouncementUsesTheFileServiceDeletionContractInsideTheCommand() {
+        given(announcementRepository.existsById(1L)).willReturn(true);
+
+        commandService.deleteAnnouncement(1L);
+
+        verify(fileService).deleteFilesByEntity("announcement", 1L);
+        verify(announcementRepository).deleteById(1L);
+        verify(classTargetRepository).deleteByAnnouncementId(1L);
     }
 
     private static Announcement announcement(Long id, Long authorId) {
