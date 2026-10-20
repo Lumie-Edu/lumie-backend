@@ -4,6 +4,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.UpdateResultPhoneRequest;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
+import com.lumie.exam.application.dto.request.OmrPresignRequest;
 import com.lumie.exam.application.dto.response.ExamResultResponse;
 import com.lumie.exam.application.event.OmrGradingRequestedEvent;
 import com.lumie.exam.test.ExamFixtures;
@@ -290,6 +291,38 @@ class ResultCommandServiceTest {
         assertThat(response.jobId()).isEqualTo(42L);
         verify(submissionRepository).saveAll(any());
         verify(eventPublisher).publishEvent(any(OmrGradingRequestedEvent.class));
+    }
+
+    @Test
+    void generatePresignedUrls_usesUniqueUuidKeysForSameAndSanitizedFileNames() {
+        given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
+
+        var response = resultCommandService.generatePresignedUrls(1L,
+                new OmrPresignRequest(List.of("same name.jpg", "same name.jpg", "same@name.jpg")));
+
+        assertThat(response.uploads()).hasSize(3);
+        assertThat(response.uploads()).extracting(upload -> upload.objectKey()).doesNotHaveDuplicates();
+        assertThat(response.uploads()).extracting(upload -> upload.objectKey())
+                .allSatisfy(key -> assertThat(key)
+                        .matches("tmp/test-academy/omr/[0-9a-f]{8}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/same_name.jpg"));
+        assertThat(response.uploads()).extracting(upload -> upload.fileName())
+                .containsExactly("same name.jpg", "same name.jpg", "same@name.jpg");
+    }
+
+    @Test
+    void confirmBatchOmrGrading_rejectsWrongTenantAndNonUuidObjectKeys() {
+        given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
+
+        for (String key : List.of(
+                "tmp/other-academy/omr/a1b2c3d4/01234567-89ab-cdef-0123-456789abcdef/one.jpg",
+                "tmp/test-academy/omr/a1b2c3d4/upload-id/one.jpg")) {
+            assertThatThrownBy(() -> resultCommandService.confirmBatchOmrGrading(1L,
+                    new OmrBatchConfirmRequest("a1b2c3d4", List.of(key))))
+                    .isInstanceOfSatisfying(BusinessException.class, failure ->
+                            assertThat(failure.getErrorCode()).isEqualTo(ExamErrorCode.INVALID_EXAM_DATA));
+        }
+
+        verifyNoInteractions(jobRepository, submissionRepository, eventPublisher);
     }
 
     @Test

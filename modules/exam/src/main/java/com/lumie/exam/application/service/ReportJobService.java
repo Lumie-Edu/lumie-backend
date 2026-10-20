@@ -146,25 +146,36 @@ public class ReportJobService {
             return;
         }
 
-        if (!tx.isOpenJob(request.jobId())) {
-            log.warn("Late report callback skipped for terminal or missing job: jobId={}, reportIndex={}",
-                    request.jobId(), request.reportIndex());
-            return;
-        }
+        try {
+            if (!tx.isOpenJob(request.jobId())) {
+                log.warn("Late report callback skipped for terminal or missing job: jobId={}, reportIndex={}",
+                        request.jobId(), request.reportIndex());
+                return;
+            }
 
-        tx.markProcessing(request.jobId());
+            tx.markProcessing(request.jobId());
 
-        if (request.success()) {
-            processSuccessfulCallback(request);
-        } else {
-            log.warn("Report generation failed: jobId={}, studentId={}, error={}",
-                    request.jobId(), request.studentId(), request.error());
-            tx.recordFail(request.jobId());
-        }
+            if (request.success()) {
+                processSuccessfulCallback(request);
+            } else {
+                log.warn("Report generation failed: jobId={}, studentId={}, error={}",
+                        request.jobId(), request.studentId(), request.error());
+                tx.recordFail(request.jobId());
+            }
 
-        if (tx.finalizeIfDone(request.jobId(), request.totalReports())) {
-            log.info("Report job reached terminal state: jobId={}", request.jobId());
-            createZipFile(request.jobId());
+            if (tx.finalizeIfDone(request.jobId(), request.totalReports())) {
+                log.info("Report job reached terminal state: jobId={}", request.jobId());
+                createZipFile(request.jobId());
+            }
+        } catch (RuntimeException processingFailure) {
+            // Keep the broker retryable when any processing step fails. The SETNX
+            // reservation is only a dedup marker after successful DB processing.
+            try {
+                callbackDeduplication.forget(dedupKey);
+            } catch (RuntimeException cleanupFailure) {
+                processingFailure.addSuppressed(cleanupFailure);
+            }
+            throw processingFailure;
         }
     }
 

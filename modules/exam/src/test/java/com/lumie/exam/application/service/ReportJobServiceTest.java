@@ -24,8 +24,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -121,6 +123,49 @@ class ReportJobServiceTest {
         );
         verify(jobRepository).incrementSuccess(1L);
         verify(jobRepository, never()).incrementFail(1L);
+    }
+
+    @Test
+    void processCallback_failedStorageAttemptCanBeRetried() {
+        byte[] pdfBytes = "%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII);
+        String key = "report:cb:1:0";
+        Set<String> seenKeys = new HashSet<>();
+        given(callbackDeduplication.markIfAbsent(key)).willAnswer(invocation -> seenKeys.add(key));
+        doAnswer(invocation -> { seenKeys.remove(invocation.getArgument(0)); return null; })
+                .when(callbackDeduplication).forget(key);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
+        given(storagePort.putObject("tmp/test-tenant/reports/10/99.pdf", pdfBytes, ReportFileFormat.PDF_CONTENT_TYPE))
+                .willThrow(new IllegalStateException("temporary storage failure"))
+                .willReturn("tmp/test-tenant/reports/10/99.pdf");
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.processCallback(
+                        successCallback(Base64.getEncoder().encodeToString(pdfBytes))))
+                .isInstanceOf(IllegalStateException.class);
+        service.processCallback(successCallback(Base64.getEncoder().encodeToString(pdfBytes)));
+
+        verify(callbackDeduplication).forget(key);
+        verify(storagePort, org.mockito.Mockito.times(2)).putObject(
+                "tmp/test-tenant/reports/10/99.pdf", pdfBytes, ReportFileFormat.PDF_CONTENT_TYPE);
+        verify(jobRepository).incrementSuccess(1L);
+        verify(jobRepository, never()).incrementFail(1L);
+    }
+
+    @Test
+    void processCallback_duplicateSuccessfulDeliveryIsCountedOnce() {
+        byte[] pdfBytes = "%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII);
+        given(callbackDeduplication.markIfAbsent("report:cb:1:0")).willReturn(true, false);
+        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
+                .willReturn(true);
+
+        ReportCallbackRequest callback = successCallback(Base64.getEncoder().encodeToString(pdfBytes));
+        service.processCallback(callback);
+        service.processCallback(callback);
+
+        verify(storagePort).putObject(
+                "tmp/test-tenant/reports/10/99.pdf", pdfBytes, ReportFileFormat.PDF_CONTENT_TYPE);
+        verify(jobRepository).incrementSuccess(1L);
+        verify(callbackDeduplication, never()).forget("report:cb:1:0");
     }
 
     @Test
