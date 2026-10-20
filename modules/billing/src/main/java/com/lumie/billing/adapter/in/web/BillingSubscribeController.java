@@ -4,6 +4,7 @@ import com.lumie.billing.application.dto.request.SubscribeRequest;
 import com.lumie.billing.application.dto.response.SubscribeResponse;
 import com.lumie.billing.application.service.BillingSubscribeService;
 import com.lumie.common.idempotency.IdempotencyService;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class BillingSubscribeController {
     public ResponseEntity<SubscribeResponse> subscribe(
             @Valid @RequestBody SubscribeRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         Long tenantId = TenantContextHolder.getTenantId();
         String tenantSlug = TenantContextHolder.getTenantSlug();
         return idempotencyService.executeOnce(

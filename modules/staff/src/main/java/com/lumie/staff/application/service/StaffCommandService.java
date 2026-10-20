@@ -151,10 +151,10 @@ public class StaffCommandService {
 
     public void reactivateStaff(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
-        checkStaffQuota(tenantSlug);
         Staff staff = staffRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(id)));
         validateActorAuthority(staff, "reactivate");
+        checkStaffQuota(tenantSlug);
         staff.activate();
         staffRepository.save(staff);
         log.info("Staff reactivated: {} in tenant: {}", id, tenantSlug);

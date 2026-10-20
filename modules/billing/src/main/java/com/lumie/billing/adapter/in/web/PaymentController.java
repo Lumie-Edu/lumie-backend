@@ -5,6 +5,7 @@ import com.lumie.billing.application.dto.response.InvoiceResponse;
 import com.lumie.billing.application.service.PaymentService;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.validation.Valid;
@@ -31,6 +32,7 @@ public class PaymentController {
     public ResponseEntity<InvoiceResponse> confirmPayment(
             @Valid @RequestBody ConfirmPaymentRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         return idempotencyService.executeOnce(
                 idempotencyKey,
                 CONFIRM_SCOPE,
@@ -42,6 +44,7 @@ public class PaymentController {
     @AllowedSortFields({"createdAt", "amount", "status"})
     public ResponseEntity<PageResponse<InvoiceResponse>> getPaymentHistory(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireOwner();
         Long tenantId = TenantContextHolder.getTenantId();
         return ResponseEntity.ok(paymentService.getPaymentHistory(tenantId, pageable));
     }
@@ -51,6 +54,7 @@ public class PaymentController {
     public ResponseEntity<PageResponse<InvoiceResponse>> getPaymentHistoryBySlug(
             @PathVariable String tenantSlug,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireOwner();
         return ResponseEntity.ok(paymentService.getPaymentHistoryBySlug(tenantSlug, pageable));
     }
 }

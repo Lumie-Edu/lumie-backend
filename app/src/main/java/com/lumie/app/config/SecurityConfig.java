@@ -19,6 +19,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import jakarta.servlet.Filter;
 
 @Configuration
 @EnableWebSecurity
@@ -67,6 +69,35 @@ public class SecurityConfig {
                 .addFilterBefore(internalHmacAuthFilter, SessionAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public FilterRegistrationBean<HostTenantFilter> disableHostTenantServletRegistration(HostTenantFilter filter) {
+        return disableServletRegistration(filter);
+    }
+
+    @Bean
+    public FilterRegistrationBean<SessionAuthenticationFilter> disableSessionAuthenticationServletRegistration(
+            SessionAuthenticationFilter filter) {
+        return disableServletRegistration(filter);
+    }
+
+    @Bean
+    public FilterRegistrationBean<SameOriginCsrfFilter> disableSameOriginCsrfServletRegistration(
+            SameOriginCsrfFilter filter) {
+        return disableServletRegistration(filter);
+    }
+
+    @Bean
+    public FilterRegistrationBean<InternalHmacAuthFilter> disableInternalHmacServletRegistration(
+            InternalHmacAuthFilter filter) {
+        return disableServletRegistration(filter);
+    }
+
+    private static <T extends Filter> FilterRegistrationBean<T> disableServletRegistration(T filter) {
+        FilterRegistrationBean<T> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean

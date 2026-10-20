@@ -6,6 +6,7 @@ import com.lumie.billing.application.dto.response.AlimtalkCreditResponse;
 import com.lumie.billing.application.service.AlimtalkCreditCommandService;
 import com.lumie.billing.application.service.AlimtalkCreditQueryService;
 import com.lumie.common.idempotency.IdempotencyService;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class AlimtalkCreditController {
 
     @GetMapping
     public ResponseEntity<AlimtalkCreditResponse> getMyCreditBalance() {
+        AuthorizationGuard.requireOwner();
         Long tenantId = TenantContextHolder.getTenantId();
         return ResponseEntity.ok(alimtalkCreditQueryService.getCreditBalance(tenantId));
     }
@@ -37,6 +39,7 @@ public class AlimtalkCreditController {
     public ResponseEntity<AlimtalkCreditResponse> recharge(
             @Valid @RequestBody RechargeAlimtalkCreditRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         Long tenantId = TenantContextHolder.getTenantId();
         return idempotencyService.executeOnce(
                 idempotencyKey,
@@ -49,6 +52,7 @@ public class AlimtalkCreditController {
     public ResponseEntity<AlimtalkCreditResponse> configureAutoRecharge(
             @Valid @RequestBody ConfigureAutoRechargeRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         Long tenantId = TenantContextHolder.getTenantId();
         return idempotencyService.executeOnce(
                 idempotencyKey,
@@ -60,6 +64,7 @@ public class AlimtalkCreditController {
     @DeleteMapping("/auto-recharge")
     public ResponseEntity<AlimtalkCreditResponse> disableAutoRecharge(
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         Long tenantId = TenantContextHolder.getTenantId();
         return idempotencyService.executeOnce(
                 idempotencyKey,

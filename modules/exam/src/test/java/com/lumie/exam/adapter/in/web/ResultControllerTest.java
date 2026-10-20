@@ -3,6 +3,7 @@ package com.lumie.exam.adapter.in.web;
 import com.lumie.common.auth.Role;
 import com.lumie.common.api.SortFieldAllowlistInterceptor;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
@@ -12,6 +13,9 @@ import com.lumie.exam.application.service.OmrUploadTelemetryService;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
 import com.lumie.exam.application.dto.request.OmrUploadTelemetryRequest;
+import com.lumie.exam.application.dto.request.OmrPresignRequest;
+import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
+import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
 import com.lumie.exam.application.service.StudentGradeQueryService;
 import com.lumie.exam.application.port.out.OmrStoragePort;
@@ -39,6 +43,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Supplier;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -141,6 +146,70 @@ class ResultControllerTest {
             .hasMessageContaining("INSTRUCTOR role required");
 
         then(examExportService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void omrIngestRejectsStudentBeforeProcessingSigningOrQueueing() throws Exception {
+        UserContextHolder.setUserRole(Role.STUDENT);
+
+        assertThatThrownBy(() -> controller.processOmrGrading(
+                        55L, 9L, new org.springframework.mock.web.MockMultipartFile(
+                                "image", "exam.jpg", "image/jpeg", new byte[]{1, 2, 3}), null))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.FORBIDDEN));
+        assertThatThrownBy(() -> controller.requestPresignedUrls(
+                        55L, new OmrPresignRequest(List.of("page.png")), null))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.FORBIDDEN));
+        assertThatThrownBy(() -> controller.confirmBatchUpload(
+                        55L, new OmrBatchConfirmRequest("batch-1", List.of("object-key")), null))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.FORBIDDEN));
+
+        org.mockito.Mockito.verifyNoInteractions(resultCommandService, idempotencyService);
+    }
+
+    @Test
+    void instructorCanStartEachOmrIngestRoute() throws Exception {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        org.mockito.BDDMockito.given(resultCommandService.confirmBatchOmrGrading(
+                        55L, new OmrBatchConfirmRequest("batch-1", List.of("object-key"))))
+                .willReturn(new OmrJobResponse(12L));
+        org.mockito.BDDMockito.given(idempotencyService.executeOnceWithoutResponseBody(
+                        org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any()))
+                .willAnswer(invocation -> ((Supplier<?>) invocation.getArgument(3)).get());
+        org.mockito.BDDMockito.given(idempotencyService.executeOnce(
+                        org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any()))
+                .willAnswer(invocation -> ((Supplier<?>) invocation.getArgument(3)).get());
+
+        var single = controller.processOmrGrading(
+                55L, 9L, new org.springframework.mock.web.MockMultipartFile(
+                        "image", "exam.jpg", "image/jpeg", new byte[]{1, 2, 3}), null);
+        var presigned = controller.requestPresignedUrls(
+                55L, new OmrPresignRequest(List.of("page.png")), null);
+        var batch = controller.confirmBatchUpload(
+                55L, new OmrBatchConfirmRequest("batch-1", List.of("object-key")), null);
+
+        assertThat(single.getStatusCode().value()).isEqualTo(201);
+        assertThat(presigned.getStatusCode().value()).isEqualTo(200);
+        assertThat(batch.getStatusCode().value()).isEqualTo(202);
+
+        assertThat(controller.processOmrGrading(
+                        55L, 9L, new org.springframework.mock.web.MockMultipartFile(
+                                "image", "exam.jpg", "image/jpeg", new byte[]{1, 2, 3}), "single-key")
+                .getStatusCode().value()).isEqualTo(201);
+        assertThat(controller.requestPresignedUrls(
+                        55L, new OmrPresignRequest(List.of("page.png")), "presign-key")
+                .getStatusCode().value()).isEqualTo(200);
+        assertThat(controller.confirmBatchUpload(
+                        55L, new OmrBatchConfirmRequest("batch-1", List.of("object-key")), "confirm-key")
+                .getStatusCode().value()).isEqualTo(202);
     }
 
     @Test

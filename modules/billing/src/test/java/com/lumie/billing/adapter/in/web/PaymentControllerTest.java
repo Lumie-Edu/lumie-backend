@@ -1,5 +1,8 @@
 package com.lumie.billing.adapter.in.web;
 
+import com.lumie.common.auth.Role;
+import com.lumie.common.tenant.UserContextHolder;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.billing.application.dto.request.ConfirmPaymentRequest;
 import com.lumie.billing.application.service.PaymentService;
@@ -45,6 +48,7 @@ class PaymentControllerTest {
 
     @BeforeEach
     void setUp() {
+        UserContextHolder.setUserRole(Role.OWNER);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

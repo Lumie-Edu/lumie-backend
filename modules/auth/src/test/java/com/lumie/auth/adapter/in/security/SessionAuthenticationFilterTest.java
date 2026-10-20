@@ -23,6 +23,8 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,6 +55,69 @@ class SessionAuthenticationFilterTest {
     }
 
     @Test
+    void missingCookieContinuesAsUnauthenticatedWithoutLookingUpSession() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/v1/students");
+        AtomicBoolean chainCalled = new AtomicBoolean();
+
+        new SessionAuthenticationFilter(authQueryService, sessionConfig(),
+                new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper()))
+                .doFilter(request, new MockHttpServletResponse(),
+                        (ignoredRequest, ignoredResponse) -> chainCalled.set(true));
+
+        assertThat(chainCalled).isTrue();
+        verify(authQueryService, never()).findActiveSession(org.mockito.ArgumentMatchers.anyString());
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void unrelatedCookieIsIgnored() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/v1/students");
+        request.setCookies(new Cookie("unrelated", "value"));
+        AtomicBoolean chainCalled = new AtomicBoolean();
+
+        new SessionAuthenticationFilter(authQueryService, sessionConfig(),
+                new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper()))
+                .doFilter(request, new MockHttpServletResponse(),
+                        (ignoredRequest, ignoredResponse) -> chainCalled.set(true));
+
+        assertThat(chainCalled).isTrue();
+        verify(authQueryService, never()).findActiveSession(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void authenticationRoutesAreExcludedFromSessionLookup() throws Exception {
+        for (String path : new String[]{"/v1/login", "/v1/register/owner", "/actuator/health", "/internal/worker"}) {
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
+            request.setServletPath(path);
+            request.setCookies(new Cookie(sessionConfig().getCookieName(), "session-id"));
+            AtomicBoolean chainCalled = new AtomicBoolean();
+
+            new SessionAuthenticationFilter(authQueryService, sessionConfig(),
+                    new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper()))
+                    .doFilter(request, new MockHttpServletResponse(),
+                            (ignoredRequest, ignoredResponse) -> chainCalled.set(true));
+
+            assertThat(chainCalled).as("filter chain continues for %s", path).isTrue();
+        }
+        verify(authQueryService, never()).findActiveSession(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void unknownSessionCookieContinuesWithoutAuthentication() throws Exception {
+        when(authQueryService.findActiveSession("session-id")).thenReturn(Optional.empty());
+        MockHttpServletRequest request = request();
+        AtomicBoolean chainCalled = new AtomicBoolean();
+
+        new SessionAuthenticationFilter(authQueryService, sessionConfig(),
+                new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper()))
+                .doFilter(request, new MockHttpServletResponse(),
+                        (ignoredRequest, ignoredResponse) -> chainCalled.set(true));
+
+        assertThat(chainCalled).isTrue();
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
     void bindsSessionTenantAndUserToSecurityContext() throws Exception {
         when(authQueryService.findActiveSession("session-id")).thenReturn(Optional.of(session("inst-academy")));
         MockHttpServletRequest request = request();
@@ -65,6 +130,39 @@ class SessionAuthenticationFilterTest {
         assertThat(TenantContextHolder.getTenant()).isEqualTo("inst-academy");
         assertThat(SecurityContextHolder.getContext().getAuthentication().getAuthorities())
                 .extracting(Object::toString).containsExactly("ROLE_STUDENT");
+    }
+
+    @Test
+    void keepsNullRoleSessionAuthenticatedWithoutGrantingAnyRole() throws Exception {
+        Instant now = Instant.now();
+        AuthSession session = new AuthSession("session-id", 20L, "Unknown", "inst-academy", 10L, null,
+                "Chrome / macOS", DeviceCategory.PC, now, now.plusSeconds(3600));
+        when(authQueryService.findActiveSession("session-id")).thenReturn(Optional.of(session));
+        MockHttpServletRequest request = request();
+        request.setAttribute(RequestContextFilter.HOST_TENANT_SLUG_ATTRIBUTE, "inst-academy");
+
+        new SessionAuthenticationFilter(authQueryService, sessionConfig(),
+                new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper()))
+                .doFilter(request, new MockHttpServletResponse(), (ignoredRequest, ignoredResponse) -> { });
+
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        assertThat(authentication.isAuthenticated()).isTrue();
+        assertThat(authentication.getAuthorities()).isEmpty();
+        assertThat(UserContextHolder.getUserRole()).isNull();
+    }
+
+    @Test
+    void authenticatesValidSessionWhenNoHostTenantWasResolved() throws Exception {
+        when(authQueryService.findActiveSession("session-id")).thenReturn(Optional.of(session("inst-academy")));
+        MockHttpServletRequest request = request();
+
+        new SessionAuthenticationFilter(authQueryService, sessionConfig(),
+                new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper()))
+                .doFilter(request, new MockHttpServletResponse(), (ignoredRequest, ignoredResponse) -> { });
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication().isAuthenticated()).isTrue();
+        assertThat(UserContextHolder.getUserRole()).isEqualTo(Role.STUDENT);
+        verify(authQueryService).findActiveSession("session-id");
     }
 
     private MockHttpServletRequest request() {

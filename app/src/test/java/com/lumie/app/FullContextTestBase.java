@@ -32,7 +32,7 @@ import org.testcontainers.utility.DockerImageName;
  */
 @SpringBootTest(classes = LumieApplication.class, webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
-abstract class FullContextTestBase {
+public abstract class FullContextTestBase {
 
     private static final Duration CONTAINER_STARTUP_TIMEOUT = Duration.ofMinutes(3);
 

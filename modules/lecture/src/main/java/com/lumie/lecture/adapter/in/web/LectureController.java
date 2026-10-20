@@ -1,5 +1,7 @@
 package com.lumie.lecture.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+
 import com.lumie.lecture.application.dto.request.CreateLectureRequest;
 import com.lumie.lecture.application.dto.request.UpdateLectureRequest;
 import com.lumie.lecture.application.dto.response.LectureResponse;
@@ -30,6 +32,7 @@ public class LectureController {
     @PostMapping
     @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<LectureResponse> create(@Valid @RequestBody CreateLectureRequest request) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.status(HttpStatus.CREATED).body(commandService.create(request));
     }
 
@@ -42,24 +45,28 @@ public class LectureController {
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(PageResponse.from(queryService.findAll(
                 classId, teacherId, startDate, endDate, search, pageable)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<LectureResponse> findById(@PathVariable Long id) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(queryService.findById(id));
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<LectureResponse> update(@PathVariable Long id,
                                                     @RequestBody UpdateLectureRequest request) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(commandService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
+        AuthorizationGuard.requireStaff();
         commandService.delete(id);
         return ResponseEntity.noContent().build();
     }

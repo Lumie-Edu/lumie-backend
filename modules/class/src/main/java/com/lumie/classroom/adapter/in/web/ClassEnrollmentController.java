@@ -1,5 +1,7 @@
 package com.lumie.classroom.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.classroom.application.dto.ClassEnrollmentResponse;
 import com.lumie.classroom.application.dto.EnrollStudentsRequest;
@@ -33,6 +35,7 @@ public class ClassEnrollmentController {
     public ResponseEntity<PageResponse<ClassEnrollmentResponse>> getEnrollments(
             @PathVariable Long classId,
             @PageableDefault(size = 20, sort = "enrolledAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         Page<ClassEnrollmentResponse> response = queryService.getEnrollments(classId, pageable);
         return ResponseEntity.ok(PageResponse.from(response));
     }
@@ -42,6 +45,7 @@ public class ClassEnrollmentController {
     public ResponseEntity<List<ClassEnrollmentResponse>> enrollStudents(
             @PathVariable Long classId,
             @Valid @RequestBody EnrollStudentsRequest request) {
+        AuthorizationGuard.requireStaff();
         List<ClassEnrollmentResponse> response = commandService.enrollStudents(classId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -51,6 +55,7 @@ public class ClassEnrollmentController {
     public ResponseEntity<Void> removeEnrollment(
             @PathVariable Long classId,
             @PathVariable Long enrollmentId) {
+        AuthorizationGuard.requireStaff();
         commandService.removeEnrollment(classId, enrollmentId);
         return ResponseEntity.noContent().build();
     }
@@ -60,6 +65,7 @@ public class ClassEnrollmentController {
     public ResponseEntity<Void> removeEnrollmentByStudent(
             @PathVariable Long classId,
             @PathVariable Long studentId) {
+        AuthorizationGuard.requireStaff();
         commandService.removeEnrollmentByStudent(classId, studentId);
         return ResponseEntity.noContent().build();
     }
@@ -69,6 +75,7 @@ public class ClassEnrollmentController {
             @PathVariable Long classId,
             @PathVariable Long enrollmentId,
             @Valid @RequestBody UpdateEnrollmentRequest request) {
+        AuthorizationGuard.requireStaff();
         ClassEnrollmentResponse response = commandService.updateEnrollmentStatus(classId, enrollmentId, request);
         return ResponseEntity.ok(response);
     }

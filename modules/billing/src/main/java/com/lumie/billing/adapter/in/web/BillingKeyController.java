@@ -6,6 +6,7 @@ import com.lumie.billing.application.dto.response.BillingKeyResponse;
 import com.lumie.billing.application.service.BillingKeyCommandService;
 import com.lumie.billing.application.service.BillingKeyQueryService;
 import com.lumie.common.idempotency.IdempotencyService;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class BillingKeyController {
     public ResponseEntity<BillingKeyResponse> registerBillingKey(
             @Valid @RequestBody RegisterBillingKeyRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         Long tenantId = TenantContextHolder.getTenantId();
         return idempotencyService.executeOnce(
                 idempotencyKey,
@@ -44,12 +46,14 @@ public class BillingKeyController {
 
     @GetMapping
     public ResponseEntity<List<BillingKeyResponse>> getMyBillingKeys() {
+        AuthorizationGuard.requireOwner();
         Long tenantId = TenantContextHolder.getTenantId();
         return ResponseEntity.ok(billingKeyQueryService.getAllBillingKeys(tenantId));
     }
 
     @GetMapping("/active")
     public ResponseEntity<BillingKeyResponse> getActiveBillingKey() {
+        AuthorizationGuard.requireOwner();
         Long tenantId = TenantContextHolder.getTenantId();
         return ResponseEntity.ok(billingKeyQueryService.getActiveBillingKey(tenantId));
     }
@@ -59,6 +63,7 @@ public class BillingKeyController {
     public ResponseEntity<Void> revokeBillingKey(
             @PathVariable Long billingKeyId,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         Long tenantId = TenantContextHolder.getTenantId();
         return idempotencyService.executeOnce(
                 idempotencyKey,

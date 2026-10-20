@@ -1,5 +1,8 @@
 package com.lumie.classroom.adapter.in.web;
 
+import com.lumie.common.auth.Role;
+import com.lumie.common.tenant.UserContextHolder;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.lumie.classroom.application.dto.ClassResponse;
@@ -11,6 +14,7 @@ import com.lumie.classroom.domain.exception.ClassErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,13 +30,19 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -49,6 +59,7 @@ class ClassControllerTest {
 
     @BeforeEach
     void setUp() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
@@ -87,6 +98,72 @@ class ClassControllerTest {
     }
 
     @Test
+    @DisplayName("GET /v1/classes - 학생은 직원 수업 목록에 접근하지 못한다")
+    void studentCannotListStaffClasses() throws Exception {
+        UserContextHolder.setUserRole(Role.STUDENT);
+
+        mockMvc.perform(get("/v1/classes"))
+                .andExpect(status().isForbidden());
+
+        verify(queryService, never()).listClasses(any(), any(), any());
+    }
+
+    @Test
+    void studentIsDeniedAtEntryToEveryStaffClassHandler() throws Exception {
+        UserContextHolder.setUserRole(Role.STUDENT);
+        for (Method handler : ClassController.class.getDeclaredMethods()) {
+            if (!isMappedHandler(handler) || handler.getName().equals("getClassesForCurrentStudent")) {
+                continue;
+            }
+            try {
+                handler.invoke(controller, new Object[handler.getParameterCount()]);
+                throw new AssertionError("Expected 403 at route entry for " + handler.getName());
+            } catch (InvocationTargetException exception) {
+                assertThat(exception.getCause()).isInstanceOf(BusinessException.class);
+            }
+        }
+        verifyNoInteractions(commandService, queryService);
+    }
+
+    @Test
+    void instructorCanEnterEveryClassHandlerIncludingStudentSelfRead() throws Exception {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        Page<ClassResponse> emptyPage = new PageImpl<>(List.of(), PageRequest.of(0, 20), 0);
+        given(queryService.listClasses(any(), any(), any())).willReturn(emptyPage);
+        given(queryService.getClassesForCurrentStudent(any())).willReturn(emptyPage);
+        given(queryService.getClassesByTeacher(any(), any())).willReturn(emptyPage);
+        given(queryService.getClassesByStudent(any(), any())).willReturn(emptyPage);
+
+        for (Method handler : ClassController.class.getDeclaredMethods()) {
+            if (!isMappedHandler(handler)) continue;
+            Object result = handler.invoke(controller, allowedArguments(handler));
+            assertThat(result)
+                    .as("route handler %s", handler.getName())
+                    .isInstanceOf(org.springframework.http.ResponseEntity.class);
+        }
+    }
+
+    private static Object[] allowedArguments(Method method) {
+        Object[] args = new Object[method.getParameterCount()];
+        Class<?>[] types = method.getParameterTypes();
+        for (int i = 0; i < types.length; i++) {
+            if (org.springframework.data.domain.Pageable.class.isAssignableFrom(types[i])) {
+                args[i] = PageRequest.of(0, 20);
+            } else if (types[i] == Long.class) {
+                args[i] = 1L;
+            } else if (types[i] == String.class) {
+                args[i] = "search";
+            }
+        }
+        return args;
+    }
+
+    private static boolean isMappedHandler(Method method) {
+        return java.util.Arrays.stream(method.getDeclaredAnnotations())
+                .anyMatch(annotation -> annotation.annotationType().getSimpleName().endsWith("Mapping"));
+    }
+
+    @Test
     @DisplayName("GET /v1/classes/{id} - 수업 단건 조회 시 200을 반환한다")
     void getClass_returns200() throws Exception {
         ClassResponse response = buildClassResponse(1L);
@@ -101,6 +178,7 @@ class ClassControllerTest {
     @Test
     @DisplayName("GET /v1/classes/me - 현재 학생의 수업 목록 조회 시 200을 반환한다")
     void getClassesForCurrentStudent_returns200() throws Exception {
+        UserContextHolder.setUserRole(Role.STUDENT);
         ClassResponse response = buildClassResponse(1L);
         Page<ClassResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1);
 
@@ -110,6 +188,11 @@ class ClassControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(1))
                 .andExpect(jsonPath("$.items[0].name").value("수학 기초반"));
+    }
+
+    @AfterEach
+    void clearUserContext() {
+        UserContextHolder.clear();
     }
 
     @Test

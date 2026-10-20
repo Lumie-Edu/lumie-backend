@@ -1,5 +1,7 @@
 package com.lumie.exam.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
@@ -30,23 +32,27 @@ public class ExamController {
     @AllowedSortFields({"createdAt", "name", "category"})
     public ResponseEntity<PageResponse<ExamResponse>> listExams(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(PageResponse.from(examQueryService.listExams(pageable)));
     }
 
     @PostMapping
     @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<ExamResponse> createExam(@Valid @RequestBody CreateExamRequest request) {
+        AuthorizationGuard.requireStaff();
         ExamResponse response = examCommandService.createExam(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ExamResponse> getExam(@PathVariable Long id) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(examQueryService.getExam(id));
     }
 
     @GetMapping("/{id}/full")
     public ResponseEntity<ExamFullResponse> getExamFull(@PathVariable Long id) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(examQueryService.getExamFull(id));
     }
 
@@ -54,12 +60,14 @@ public class ExamController {
     public ResponseEntity<ExamResponse> updateExam(
             @PathVariable Long id,
             @Valid @RequestBody UpdateExamRequest request) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(examCommandService.updateExam(id, request));
     }
 
     @DeleteMapping("/{id}")
     @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteExam(@PathVariable Long id) {
+        AuthorizationGuard.requireStaff();
         examCommandService.deleteExam(id);
         return ResponseEntity.noContent().build();
     }
