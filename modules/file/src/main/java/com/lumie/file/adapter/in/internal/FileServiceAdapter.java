@@ -2,11 +2,13 @@ package com.lumie.file.adapter.in.internal;
 
 import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.file.application.port.out.StoragePort;
+import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.api.PreparedTemporaryFile;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
+import com.lumie.file.domain.entity.FileStorageOperation;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
@@ -16,14 +18,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.time.Duration;
+import java.time.Instant;
 
 @Slf4j
 @Component
@@ -31,9 +33,11 @@ import java.util.UUID;
 public class FileServiceAdapter implements FileService {
 
     private static final int MAX_ATTACHMENTS = 5;
+    private static final Duration TEMPORARY_SOURCE_SAFETY_WINDOW = Duration.ofHours(22);
 
     private final FileMetadataRepository fileMetadataRepository;
     private final StoragePort storagePort;
+    private final FileStorageOperationPersistencePort operationPersistencePort;
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -44,11 +48,13 @@ public class FileServiceAdapter implements FileService {
         List<PreparedTemporaryFile> prepared = new ArrayList<>();
         try {
             for (TemporaryAttachment attachment : attachments) {
-                validateTemporaryObject(attachment);
+                TemporarySourceInfo source = validateTemporaryObject(attachment);
                 UUID id = UUID.randomUUID();
                 String durable = com.lumie.file.domain.vo.FilePath.of(type, id, attachment.filename()).toObjectKey();
-                storagePort.copyObject(attachment.objectKey(), durable, storagePort.objectEtag(attachment.objectKey()));
-                prepared.add(new PreparedTemporaryFile(id, attachment.filename(), attachment.contentType(), attachment.fileSize(), durable));
+                PreparedTemporaryFile preparedFile = new PreparedTemporaryFile(id, attachment.filename(),
+                        attachment.contentType(), attachment.fileSize(), source.objectKey(), durable,
+                        source.etag(), source.lastModified());
+                prepared.add(preparedFile);
             }
             return List.copyOf(prepared);
         } catch (RuntimeException exception) {
@@ -58,11 +64,13 @@ public class FileServiceAdapter implements FileService {
     }
 
     @Override
+    @Transactional
     public List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files) {
         return attachPreparedFiles(entityType, entityId, files, null);
     }
 
     @Override
+    @Transactional
     public List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files, UUID folderId) {
         if (files == null || files.isEmpty()) return List.of();
         EntityType type = parseEntityType(entityType);
@@ -70,8 +78,11 @@ public class FileServiceAdapter implements FileService {
         for (PreparedTemporaryFile prepared : files) {
             FileMetadata file = FileMetadata.create(type, entityId,
                     prepared.filename(), prepared.contentType(), prepared.fileSize(), prepared.durableObjectKey(), folderId);
-            file.markUploadCompleted();
-            ids.add(fileMetadataRepository.save(file).getId());
+            FileMetadata saved = fileMetadataRepository.save(file);
+            operationPersistencePort.save(FileStorageOperation.promote(saved.getId(),
+                    prepared.temporaryObjectKey(), prepared.durableObjectKey(), prepared.sourceEtag(),
+                    prepared.fileSize(), prepared.contentType(), prepared.sourceLastModified()));
+            ids.add(saved.getId());
         }
         return ids;
     }
@@ -89,6 +100,7 @@ public class FileServiceAdapter implements FileService {
         }
     }
     @Override
+    @Transactional
     public void reconcilePreparedDirectFiles(String entityType, Long entityId, List<UUID> retainedFileIds,
                                               List<PreparedTemporaryFile> preparedFiles) {
         if (retainedFileIds == null && (preparedFiles == null || preparedFiles.isEmpty())) return;
@@ -108,6 +120,7 @@ public class FileServiceAdapter implements FileService {
     }
 
     @Override
+    @Transactional
     public void deleteFilesByEntity(String entityType, Long entityId) {
         EntityType type = parseEntityType(entityType);
 
@@ -116,55 +129,47 @@ public class FileServiceAdapter implements FileService {
             return;
         }
 
-        List<String> objectKeys = new ArrayList<>();
         for (FileMetadata file : files) {
-            objectKeys.add(file.getObjectKey());
-            fileMetadataRepository.deleteById(file.getId());
+            enqueueDelete(file);
         }
-
-        log.info("Marked {} file(s) for MinIO deletion (entity={}/{})", objectKeys.size(), entityType, entityId);
-        scheduleMinioCleanup(objectKeys);
+        log.info("Enqueued file deletion for entity={}/{} count={}", entityType, entityId,
+                files.stream().filter(file -> file.isDeleting()).count());
     }
 
     @Override
+    @Transactional
     public void deleteFilesByIds(List<UUID> fileIds) {
         if (fileIds == null || fileIds.isEmpty()) {
             return;
         }
 
-        List<String> objectKeys = new ArrayList<>();
         for (UUID id : fileIds) {
             fileMetadataRepository.findById(id).ifPresent(file -> {
                 if (file.getEntityType() == EntityType.TEXTBOOK) {
                     throw new BusinessException(FileErrorCode.FILE_IN_USE, "Textbook files must be unlinked, not deleted from posts");
                 }
-                objectKeys.add(file.getObjectKey());
-                fileMetadataRepository.deleteById(file.getId());
+                enqueueDelete(file);
             });
         }
-
-        if (objectKeys.isEmpty()) {
-            return;
-        }
-
-        log.info("Marked {} file(s) for MinIO deletion by ID", objectKeys.size());
-        scheduleMinioCleanup(objectKeys);
     }
 
     @Override
+    @Transactional
     public void deleteFilesByEntityAndIds(String entityType, Long entityId, List<UUID> fileIds) {
         if (fileIds == null || fileIds.isEmpty()) return;
         EntityType type = parseEntityType(entityType);
-        List<String> objectKeys = new ArrayList<>();
         for (UUID fileId : fileIds.stream().distinct().toList()) {
             fileMetadataRepository.findById(fileId)
                     .filter(file -> file.getEntityType() == type && entityId.equals(file.getEntityId()))
-                    .ifPresent(file -> {
-                        objectKeys.add(file.getObjectKey());
-                        fileMetadataRepository.delete(file);
-                    });
+                    .ifPresent(this::enqueueDelete);
         }
-        if (!objectKeys.isEmpty()) scheduleMinioCleanup(objectKeys);
+    }
+
+    private void enqueueDelete(FileMetadata file) {
+        if (file.isDeleting()) return;
+        file.markDeleting();
+        operationPersistencePort.save(FileStorageOperation.delete(
+                file.getId(), file.getObjectKey(), Instant.now()));
     }
 
     private static EntityType parseEntityType(String entityType) {
@@ -183,39 +188,35 @@ public class FileServiceAdapter implements FileService {
         for (TemporaryAttachment attachment : attachments) {
             if (attachment == null || attachment.fileSize() <= 0 || attachment.fileSize() > TemporaryObjectUploadService.MAX_BYTES
                     || attachment.contentType() == null || attachment.contentType().isBlank()
+                    || attachment.filename() == null
                     || !TemporaryObjectUploadService.isAllowedFilename(attachment.filename())) {
                 throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
             }
         }
     }
 
-    private void validateTemporaryObject(TemporaryAttachment attachment) {
+    private TemporarySourceInfo validateTemporaryObject(TemporaryAttachment attachment) {
         String tenantId = com.lumie.common.tenant.TenantContextHolder.toStorageTenantId(
                 com.lumie.common.tenant.TenantContextHolder.getRequiredTenant());
         if (!FileObjectKeyFactory.isTemporaryUploadKey(tenantId, attachment.objectKey(), attachment.filename())
-                || !storagePort.objectExists(attachment.objectKey())
-                || storagePort.objectSize(attachment.objectKey()) != attachment.fileSize()) {
+                || !storagePort.objectExists(attachment.objectKey())) {
             throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
         }
+        long actualSize = storagePort.objectSize(attachment.objectKey());
+        String actualContentType = storagePort.objectContentType(attachment.objectKey());
+        String etag = storagePort.objectEtag(attachment.objectKey());
+        Instant lastModified = storagePort.objectLastModified(attachment.objectKey());
+        Instant now = Instant.now();
+        if (actualSize != attachment.fileSize()
+                || actualContentType == null || !actualContentType.equalsIgnoreCase(attachment.contentType())
+                || etag == null || etag.isBlank() || lastModified == null
+                || lastModified.isBefore(now.minus(TEMPORARY_SOURCE_SAFETY_WINDOW))
+                || lastModified.isAfter(now.plus(Duration.ofMinutes(5)))) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
+        }
+        return new TemporarySourceInfo(attachment.objectKey(), etag, lastModified);
     }
 
-    /**
-     * MinIO 삭제는 DB 트랜잭션 커밋 이후에 실행.
-     * 트랜잭션이 롤백되면 MinIO 객체는 삭제되지 않아 일관성 유지.
-     */
-    private void scheduleMinioCleanup(List<String> objectKeys) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                for (String key : objectKeys) {
-                    try {
-                        storagePort.deleteObject(key);
-                        log.debug("Deleted MinIO object after commit: {}", key);
-                    } catch (Exception e) {
-                        log.error("Failed to delete MinIO object after commit: {}", key, e);
-                    }
-                }
-            }
-        });
-    }
+    private record TemporarySourceInfo(String objectKey, String etag, Instant lastModified) { }
+
 }

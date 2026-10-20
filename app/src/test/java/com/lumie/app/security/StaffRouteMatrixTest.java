@@ -12,8 +12,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.test.context.TestConstructor;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -23,13 +23,16 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
  * each handler to have a single, explicit authorization classification. Keep exceptions
  * here narrow and named: adding a new handler without deciding its policy must fail.
  */
+@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class StaffRouteMatrixTest extends FullContextTestBase {
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    @Autowired
-    @Qualifier("requestMappingHandlerMapping")
-    private RequestMappingHandlerMapping mappings;
+    private final RequestMappingHandlerMapping mappings;
+
+    StaffRouteMatrixTest(@Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping mappings) {
+        this.mappings = mappings;
+    }
 
     @Test
     void everyLiveRouteMatchesApiInventoryAndHasOnePolicyClassification() throws Exception {

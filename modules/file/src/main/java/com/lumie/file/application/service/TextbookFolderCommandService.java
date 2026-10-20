@@ -3,8 +3,9 @@ package com.lumie.file.application.service;
 import com.lumie.file.application.dto.request.CreateTextbookFolderRequest;
 import com.lumie.file.application.dto.request.RenameTextbookFolderRequest;
 import com.lumie.file.application.dto.response.TextbookFolderResponse;
-import com.lumie.file.application.port.out.StoragePort;
+import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.domain.entity.FileMetadata;
+import com.lumie.file.domain.entity.FileStorageOperation;
 import com.lumie.file.domain.entity.TextbookFolder;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
@@ -26,7 +27,7 @@ public class TextbookFolderCommandService {
 
     private final TextbookFolderRepository textbookFolderRepository;
     private final FileMetadataRepository fileMetadataRepository;
-    private final StoragePort storagePort;
+    private final FileStorageOperationPersistencePort operationPersistencePort;
 
     @Transactional
     public TextbookFolderResponse createFolder(CreateTextbookFolderRequest request) {
@@ -84,9 +85,13 @@ public class TextbookFolderCommandService {
         // 2. 이 폴더의 파일들을 S3 + DB에서 삭제
         List<FileMetadata> files = fileMetadataRepository.findByEntityTypeAndFolderId(EntityType.TEXTBOOK, folderId);
         for (FileMetadata file : files) {
-            storagePort.deleteObject(file.getObjectKey());
-            fileMetadataRepository.deleteById(file.getId());
-            log.debug("Deleted file from folder {}: {}", folderId, file.getId());
+            if (!file.isDeleting()) {
+                file.markDeleting();
+                file.clearFolder();
+                operationPersistencePort.save(FileStorageOperation.delete(
+                        file.getId(), file.getObjectKey(), java.time.Instant.now()));
+                log.debug("Enqueued textbook object deletion from folder {}: {}", folderId, file.getId());
+            }
         }
 
         // 3. 폴더 자체 삭제

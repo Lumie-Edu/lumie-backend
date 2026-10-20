@@ -79,6 +79,8 @@ dependencies {
     testImplementation("io.cucumber:cucumber-spring:7.34.9")
     testImplementation("io.cucumber:cucumber-junit-platform-engine:7.34.9")
     testImplementation("org.junit.platform:junit-platform-suite")
+    testImplementation("org.testcontainers:minio")
+    testImplementation(libs.minio)
     // Flyway Java API for the migration-chain integration test. Present at
     // runtime transitively (Spring Boot Flyway autoconfig); declared here so
     // it is on the test *compile* classpath too. Versions via Spring Boot BOM.

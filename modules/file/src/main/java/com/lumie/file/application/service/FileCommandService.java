@@ -4,13 +4,14 @@ import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.application.dto.request.RegisterTextbookFilesRequest;
 import com.lumie.file.api.FileService;
 import com.lumie.file.api.PreparedTemporaryFile;
-import com.lumie.file.application.port.out.StoragePort;
+import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.repository.TextbookFolderRepository;
+import com.lumie.file.domain.entity.FileStorageOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,8 +27,8 @@ public class FileCommandService {
     private final FileMetadataRepository fileMetadataRepository;
     private final TextbookFolderRepository textbookFolderRepository;
     private final com.lumie.file.domain.repository.FileDownloadRepository fileDownloadRepository;
-    private final StoragePort storagePort;
     private final FileService fileService;
+    private final FileStorageOperationPersistencePort operationPersistencePort;
 
     @Transactional
     public List<FileMetadataResponse> registerTextbookFiles(RegisterTextbookFilesRequest request) {
@@ -56,13 +57,19 @@ public class FileCommandService {
         fileDownloadRepository.upsertDownload(TenantContextHolder.getRequiredTenantId(), fileId, userId);
     }
 
+    private void enqueueDelete(FileMetadata fileMetadata) {
+        if (fileMetadata.isDeleting()) return;
+        fileMetadata.markDeleting();
+        operationPersistencePort.save(FileStorageOperation.delete(
+                fileMetadata.getId(), fileMetadata.getObjectKey(), java.time.Instant.now()));
+    }
+
     @Transactional
     public void deleteFile(UUID fileId) {
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
-        storagePort.deleteObject(fileMetadata.getObjectKey());
-        fileMetadataRepository.deleteById(fileId);
+        enqueueDelete(fileMetadata);
 
         log.info("Deleted file: {}", fileId);
     }

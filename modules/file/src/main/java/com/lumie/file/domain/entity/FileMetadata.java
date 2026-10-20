@@ -2,6 +2,7 @@ package com.lumie.file.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
 import com.lumie.file.domain.vo.EntityType;
+import com.lumie.file.domain.vo.FileUploadStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -49,6 +50,10 @@ public class FileMetadata extends TenantScopedEntity {
     @Column(name = "upload_completed", nullable = false)
     private boolean uploadCompleted;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "upload_status", nullable = false, length = 16)
+    private FileUploadStatus uploadStatus;
+
     @Column(name = "folder_id")
     private UUID folderId;
 
@@ -56,7 +61,7 @@ public class FileMetadata extends TenantScopedEntity {
     @Builder
     private FileMetadata(EntityType entityType, Long entityId,
                          String originalFilename, String storedFilename, String contentType,
-                         Long fileSize, String objectKey, boolean uploadCompleted, UUID folderId) {
+                         Long fileSize, String objectKey, UUID folderId) {
         this.entityType = entityType;
         this.entityId = entityId;
         this.originalFilename = originalFilename;
@@ -64,7 +69,8 @@ public class FileMetadata extends TenantScopedEntity {
         this.contentType = contentType;
         this.fileSize = fileSize;
         this.objectKey = objectKey;
-        this.uploadCompleted = uploadCompleted;
+        this.uploadCompleted = false;
+        this.uploadStatus = FileUploadStatus.PENDING;
         this.folderId = folderId;
     }
 
@@ -80,7 +86,6 @@ public class FileMetadata extends TenantScopedEntity {
                 .contentType(contentType)
                 .fileSize(fileSize)
                 .objectKey(objectKey)
-                .uploadCompleted(false)
                 .folderId(folderId)
                 .build();
     }
@@ -95,7 +100,32 @@ public class FileMetadata extends TenantScopedEntity {
     }
 
     public void markUploadCompleted() {
+        this.uploadStatus = FileUploadStatus.READY;
         this.uploadCompleted = true;
+    }
+
+    public void markReady() { markUploadCompleted(); }
+
+    public void markFailed() {
+        this.uploadStatus = FileUploadStatus.FAILED;
+        this.uploadCompleted = false;
+    }
+
+    public void markDeleting() {
+        this.uploadStatus = FileUploadStatus.DELETING;
+        this.uploadCompleted = false;
+    }
+
+    public void clearFolder() {
+        this.folderId = null;
+    }
+
+    public boolean isDeleting() {
+        return uploadStatus == FileUploadStatus.DELETING;
+    }
+
+    public boolean isReady() {
+        return uploadStatus == FileUploadStatus.READY && uploadCompleted;
     }
 
 

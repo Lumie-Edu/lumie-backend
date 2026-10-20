@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
+import java.time.Instant;
+import io.minio.errors.ErrorResponseException;
 
 @Slf4j
 @Component
@@ -140,8 +142,11 @@ public class MinioStorageAdapter implements StoragePort {
             );
             log.debug("Deleted object: {}", objectKey);
         } catch (Exception e) {
+            if (isMissing(e)) {
+                return;
+            }
             log.error("Failed to delete object: {}", objectKey, e);
-            throw new BusinessException(FileErrorCode.STORAGE_ERROR);
+            throw storageFailure(e);
         }
     }
 
@@ -156,8 +161,12 @@ public class MinioStorageAdapter implements StoragePort {
             );
             return true;
         } catch (Exception e) {
-            log.debug("Object not found: {}", objectKey);
-            return false;
+            if (isMissing(e)) {
+                log.debug("Object not found: {}", objectKey);
+                return false;
+            }
+            log.warn("Unable to determine whether object exists: {}", objectKey, e);
+            throw new BusinessException(FileErrorCode.STORAGE_ERROR);
         }
     }
 
@@ -168,7 +177,7 @@ public class MinioStorageAdapter implements StoragePort {
                     .source(CopySource.builder().bucket(bucketName).object(sourceKey).matchETag(expectedSourceEtag).build()).build());
         } catch (Exception e) {
             log.error("Failed to copy object {} to {}", sourceKey, destinationKey, e);
-            throw new BusinessException(FileErrorCode.STORAGE_ERROR);
+            throw storageFailure(e);
         }
     }
 
@@ -177,7 +186,7 @@ public class MinioStorageAdapter implements StoragePort {
         try {
             return minioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectKey).build()).size();
         } catch (Exception e) {
-            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND);
+            throw storageFailure(e);
         }
     }
 
@@ -186,7 +195,7 @@ public class MinioStorageAdapter implements StoragePort {
         try {
             return minioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectKey).build()).etag();
         } catch (Exception e) {
-            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND);
+            throw storageFailure(e);
         }
     }
 
@@ -195,7 +204,28 @@ public class MinioStorageAdapter implements StoragePort {
         try {
             return minioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectKey).build()).contentType();
         } catch (Exception e) {
-            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND);
+            throw storageFailure(e);
         }
+    }
+
+    @Override
+    public Instant objectLastModified(String objectKey) {
+        try {
+            return minioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectKey).build())
+                    .lastModified().toInstant();
+        } catch (Exception e) {
+            throw storageFailure(e);
+        }
+    }
+
+    private static BusinessException storageFailure(Exception exception) {
+        return new BusinessException(isMissing(exception) ? FileErrorCode.FILE_NOT_FOUND : FileErrorCode.STORAGE_ERROR);
+    }
+
+    private static boolean isMissing(Exception exception) {
+        return exception instanceof ErrorResponseException responseException
+                && responseException.errorResponse() != null
+                && ("NoSuchKey".equals(responseException.errorResponse().code())
+                || "NoSuchObject".equals(responseException.errorResponse().code()));
     }
 }
