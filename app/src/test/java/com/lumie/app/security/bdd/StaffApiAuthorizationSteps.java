@@ -44,45 +44,59 @@ import io.cucumber.java.en.When;
 
 public class StaffApiAuthorizationSteps {
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private MockMvc mockMvc;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private AuthQueryService authQueryService;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private SessionConfig sessionConfig;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private TemporaryObjectUploadService temporaryObjectUploadService;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private FileCommandService fileCommandService;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private StudentQueryService studentQueryService;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private ClassQueryService classQueryService;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private SchemaDiscoveryService schemaDiscoveryService;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private TenantService tenantService;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private AnnouncementRepository announcementRepository;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private AnnouncementClassTargetRepository announcementClassTargetRepository;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private FileService fileService;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private ClassService classService;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private StaffService staffService;
 
