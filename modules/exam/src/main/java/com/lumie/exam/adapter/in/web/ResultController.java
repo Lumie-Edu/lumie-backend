@@ -162,6 +162,7 @@ public class ResultController {
     public ResponseEntity<OmrJobStatusResponse> getOmrJobStatus(
             @PathVariable Long examId,
             @PathVariable Long jobId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getOmrJobStatus(examId, jobId));
     }
 
@@ -169,6 +170,7 @@ public class ResultController {
     public ResponseEntity<List<ExamResultResponse>> getOmrJobResults(
             @PathVariable Long examId,
             @PathVariable Long jobId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getOmrJobResults(examId, jobId));
     }
 
@@ -313,11 +315,13 @@ public class ResultController {
 
     @GetMapping("/exams/{examId}/omr-jobs")
     public ResponseEntity<List<OmrJobStatusResponse>> getOmrJobs(@PathVariable Long examId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getOmrJobs(examId));
     }
 
     @GetMapping("/exams/{examId}/results")
     public ResponseEntity<List<ExamResultResponse>> getExamResults(@PathVariable Long examId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getExamResults(examId));
     }
 
@@ -328,12 +332,14 @@ public class ResultController {
 
     @GetMapping("/students/{studentId}/results")
     public ResponseEntity<List<ExamResultResponse>> getStudentResults(@PathVariable Long studentId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getStudentResults(studentId));
     }
 
     @GetMapping("/exam-results/statistics/top-students-monthly")
     public ResponseEntity<List<TopStudentMonthlyResponse>> getTopStudentsMonthly(
             @RequestParam(defaultValue = "5") int limit) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getTopStudentsMonthly(limit));
     }
 
@@ -377,7 +383,7 @@ public class ResultController {
 
     @GetMapping("/results/{resultId}/questions")
     public ResponseEntity<List<QuestionResultResponse>> getQuestionResults(@PathVariable Long resultId) {
-        return ResponseEntity.ok(resultQueryService.getQuestionResults(resultId));
+        return ResponseEntity.ok(resultQueryService.getQuestionResultsForCurrentUser(resultId));
     }
 
     @GetMapping("/exams/{examId}/results/{resultId}/omr-image")

@@ -169,6 +169,26 @@ class ResultControllerTest {
     }
 
     @Test
+    void rawStudentResultsRequireStaffRole() throws Exception {
+        mockMvc.perform(get("/v1/students/123/results")
+                .header(TEST_ROLE_HEADER, Role.STUDENT.name())
+                .header(TEST_TENANT_HEADER, "test-academy"))
+            .andExpect(status().isForbidden());
+
+        then(resultQueryService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void examResultsRequireStaffRole() throws Exception {
+        mockMvc.perform(get("/v1/exams/5/results")
+                .header(TEST_ROLE_HEADER, Role.STUDENT.name())
+                .header(TEST_TENANT_HEADER, "test-academy"))
+            .andExpect(status().isForbidden());
+
+        then(resultQueryService).shouldHaveNoInteractions();
+    }
+
+    @Test
     @DisplayName("recordBatchUploadTelemetry: 강사 이상이면 클라이언트 업로드 측정값을 기록한다")
     void recordBatchUploadTelemetry_allowsInstructorAndDelegates() {
         UserContextHolder.setUserRole(Role.INSTRUCTOR);

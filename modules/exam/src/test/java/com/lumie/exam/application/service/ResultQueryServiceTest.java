@@ -1,6 +1,8 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
+import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.application.port.out.OmrStoragePort;
@@ -93,6 +95,7 @@ class ResultQueryServiceTest {
     @Test
     @DisplayName("현재 학생 시험 결과 조회는 userId를 studentId로 변환한 뒤 조회한다")
     void getCurrentStudentResults_usesStudentIdResolvedFromCurrentUser() {
+        UserContextHolder.setUserRole(Role.STUDENT);
         given(studentService.getStudentsByUserIds("test-academy", List.of(77L)))
                 .willReturn(new StudentService.StudentListData(
                         List.of(new StudentService.StudentData(123L, 77L, "하지영", "01012345678", true, null, null)),
@@ -100,16 +103,25 @@ class ResultQueryServiceTest {
                         0,
                         1
                 ));
-        given(resultRepository.findByStudentId(123L)).willReturn(List.of());
+        Exam exam = ExamFixtures.aGradedExam();
+        org.springframework.test.util.ReflectionTestUtils.setField(exam, "id", 5L);
+        ExamResult result = ExamResult.create(exam, 123L, 65);
+        given(resultRepository.findByStudentId(123L)).willReturn(List.of(result));
+        given(studentService.getStudentsByIds("test-academy", List.of(123L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(123L, 77L, "하지영", "01012345678", true, null, null)),
+                        1, 0, 1));
 
-        resultQueryService.getCurrentStudentResults();
+        var responses = resultQueryService.getCurrentStudentResults();
 
         verify(resultRepository).findByStudentId(123L);
+        assertThat(responses).singleElement().extracting("studentId").isEqualTo(123L);
     }
 
     @Test
     @DisplayName("현재 사용자에 연결된 학생이 없으면 STUDENT_NOT_FOUND를 반환한다")
     void getCurrentStudentResults_withoutStudent_throwsStudentNotFound() {
+        UserContextHolder.setUserRole(Role.STUDENT);
         given(studentService.getStudentsByUserIds("test-academy", List.of(77L)))
                 .willReturn(new StudentService.StudentListData(List.of(), 0, 0, 0));
 
@@ -117,6 +129,51 @@ class ResultQueryServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ExamErrorCode.STUDENT_NOT_FOUND);
+    }
+
+    @Test
+    void studentCannotReadAnotherStudentsQuestions() {
+        UserContextHolder.setUserRole(Role.STUDENT);
+        ExamResult otherResult = ExamResult.create(ExamFixtures.aGradedExam(), 456L, 65);
+        given(resultRepository.findById(11L)).willReturn(java.util.Optional.of(otherResult));
+        given(studentService.getStudentsByUserIds("test-academy", List.of(77L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(123L, 77L, "하지영", "01012345678", true, null, null)),
+                        1, 0, 1));
+
+        assertThatThrownBy(() -> resultQueryService.getQuestionResultsForCurrentUser(11L))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(CommonErrorCode.FORBIDDEN);
+    }
+
+    @Test
+    void studentCannotReadAnotherStudentsStatistics() {
+        UserContextHolder.setUserRole(Role.STUDENT);
+        given(studentService.getStudentsByUserIds("test-academy", List.of(77L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(123L, 77L, "하지영", "01012345678", true, null, null)),
+                        1, 0, 1));
+
+        assertThatThrownBy(() -> resultQueryService.requireStudentAccess(456L))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(CommonErrorCode.FORBIDDEN);
+    }
+
+    @Test
+    void studentCannotReadAnotherStudentsOmrImage() {
+        UserContextHolder.setUserRole(Role.STUDENT);
+        ExamResult otherResult = ExamResult.create(ExamFixtures.aGradedExam(), 456L, 65);
+        otherResult.assignOmrImage("omr/other.png");
+        given(resultRepository.findByIdAndExamId(11L, 5L)).willReturn(java.util.Optional.of(otherResult));
+        given(studentService.getStudentsByUserIds("test-academy", List.of(77L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(123L, 77L, "하지영", "01012345678", true, null, null)),
+                        1, 0, 1));
+
+        assertThatThrownBy(() -> resultQueryService.getOmrImageData(5L, 11L))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(CommonErrorCode.FORBIDDEN);
+        org.mockito.Mockito.verifyNoInteractions(storagePort);
     }
 
     @Test

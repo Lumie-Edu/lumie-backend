@@ -95,8 +95,29 @@ public class ResultQueryService {
     }
 
     public List<ExamResultResponse> getCurrentStudentResults() {
+        requireStudentRole();
         Long studentId = currentStudentId();
-        return getStudentResults(studentId);
+        List<ExamResultResponse> results = getStudentResults(studentId);
+        if (results.stream().anyMatch(result -> !studentId.equals(result.studentId()))) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
+        return results;
+    }
+
+    public void requireStudentAccess(Long studentId) {
+        if (UserContextHolder.getUserRole() == Role.STUDENT) {
+            if (!Objects.equals(studentId, currentStudentId())) {
+                throw new BusinessException(CommonErrorCode.FORBIDDEN);
+            }
+        } else {
+            AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        }
+    }
+
+    private static void requireStudentRole() {
+        if (UserContextHolder.getUserRole() != Role.STUDENT) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
     }
 
     private List<ExamResultResponse> toResponses(List<ExamResult> results,
@@ -194,6 +215,17 @@ public class ResultQueryService {
         ExamResult result = resultRepository.findById(resultId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
+        return toQuestionResults(result);
+    }
+
+    public List<QuestionResultResponse> getQuestionResultsForCurrentUser(Long resultId) {
+        ExamResult result = resultRepository.findById(resultId)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+        requireStudentAccess(result.getStudentId());
+        return toQuestionResults(result);
+    }
+
+    private static List<QuestionResultResponse> toQuestionResults(ExamResult result) {
         var exam = result.getExam();
         return result.getQuestionResults().stream()
                 .map(qr -> QuestionResultResponse.from(qr, exam))
@@ -226,13 +258,7 @@ public class ResultQueryService {
         ExamResult result = resultRepository.findByIdAndExamId(resultId, examId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
 
-        if (UserContextHolder.getUserRole() == Role.STUDENT) {
-            if (!Objects.equals(result.getStudentId(), currentStudentId())) {
-                throw new BusinessException(CommonErrorCode.FORBIDDEN);
-            }
-        } else {
-            AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
-        }
+        requireStudentAccess(result.getStudentId());
 
         if (result.getOmrImageKey() == null) {
             throw new BusinessException(ExamErrorCode.OMR_IMAGE_NOT_FOUND);

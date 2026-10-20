@@ -5,7 +5,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
 import com.lumie.exam.application.port.out.ReportServicePort;
 import com.lumie.exam.application.service.ReportJobService;
+import com.lumie.exam.application.service.ResultQueryService;
 import com.lumie.common.api.JobAcceptedResponse;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.validation.Valid;
@@ -29,6 +31,7 @@ public class ReportController {
 
     private final ReportServicePort reportServicePort;
     private final ReportJobService reportJobService;
+    private final ResultQueryService resultQueryService;
     private final IdempotencyService idempotencyService;
 
     @GetMapping(value = "/reports/students/{studentId}/exams/{examId}", produces = MediaType.APPLICATION_PDF_VALUE)
@@ -36,6 +39,7 @@ public class ReportController {
             @PathVariable Long studentId,
             @PathVariable Long examId
     ) {
+        resultQueryService.requireStudentAccess(studentId);
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         byte[] reportBytes = reportServicePort.generateReport(studentId, examId, tenantSlug);
 
@@ -63,6 +67,7 @@ public class ReportController {
             @Valid @RequestBody ReportBatchRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
+        AuthorizationGuard.requireStaff();
         if (idempotencyKey != null) {
             return idempotencyService.executeOnce(
                     idempotencyKey,
@@ -87,6 +92,7 @@ public class ReportController {
             @PathVariable Long examId,
             @PathVariable Long jobId
     ) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(reportJobService.getJobStatus(jobId));
     }
 
@@ -95,6 +101,7 @@ public class ReportController {
             @PathVariable Long examId,
             @PathVariable Long jobId
     ) {
+        AuthorizationGuard.requireStaff();
         byte[] zipBytes = reportJobService.getZipBytes(jobId);
 
         HttpHeaders headers = new HttpHeaders();
