@@ -4097,6 +4097,12 @@
       },
       "ReportJobStatusResponse" : {
         "properties" : {
+          "expiresAt" : {
+            "description" : "UTC time after which the report ZIP is unavailable",
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
           "failCount" : {
             "format" : "int32",
             "type" : "integer"
@@ -4121,10 +4127,12 @@
             "type" : "integer"
           },
           "zipFileKey" : {
+            "description" : "Temporary object key after ZIP generation",
+            "nullable" : true,
             "type" : "string"
           }
         },
-        "required" : [ "failCount", "jobId", "processedReports", "status", "successCount", "totalReports", "zipFileKey" ],
+        "required" : [ "expiresAt", "failCount", "jobId", "processedReports", "status", "successCount", "totalReports", "zipFileKey" ],
         "type" : "object"
       },
       "ReportUploadRequest" : {
@@ -9968,7 +9976,17 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Report ZIP"
+          },
+          "410" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Report ZIP has expired"
           }
         },
         "tags" : [ "report-controller" ]

@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +38,7 @@ import java.util.zip.ZipOutputStream;
 public class ReportJobService {
 
     private static final int REPORT_BATCH_CHUNK_SIZE = 30;
+    private static final Duration ZIP_DOWNLOAD_WINDOW = Duration.ofHours(24);
 
     private final ExamRepository examRepository;
     private final ReportGenerationJobRepository jobRepository;
@@ -85,38 +88,69 @@ public class ReportJobService {
                 job.getProcessedReports(),
                 job.getSuccessCount(),
                 job.getFailCount(),
-                job.getZipFileKey()
+                job.getZipFileKey(),
+                job.getZipExpiresAt()
         );
     }
 
     public byte[] getZipBytes(Long jobId) {
         ReportZipDownloadState state = tx.loadZipDownloadState(jobId);
 
+        if (isExpired(state.zipExpiresAt())) {
+            throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+        }
+        if (state.zipFileKey() != null && state.zipExpiresAt() == null) {
+            throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+        }
+
         if (state.zipFileKey() == null) {
             if (!canCreateZip(state)) {
                 throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
             }
-            createZipFileForDownload(jobId);
+            createZipFileForDownload(jobId, null);
             state = tx.loadZipDownloadState(jobId);
-            if (state.zipFileKey() == null) {
+            if (state.zipFileKey() == null || state.zipExpiresAt() == null) {
                 throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
             }
         }
 
         try {
-            return storagePort.getObject(state.zipFileKey());
+            byte[] bytes = storagePort.getObject(state.zipFileKey());
+            if (isExpired(state.zipExpiresAt())) {
+                throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+            }
+            return bytes;
         } catch (RuntimeException e) {
+            if (e instanceof BusinessException businessException
+                    && businessException.getErrorCode() == ExamErrorCode.REPORT_ZIP_EXPIRED) {
+                throw businessException;
+            }
             if (!canCreateZip(state)) {
                 throw e;
             }
+            ReportZipDownloadState latestState = tx.loadZipDownloadState(jobId);
+            if (isExpired(latestState.zipExpiresAt())) {
+                throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+            }
             log.warn("Failed to download report ZIP; retrying after rebuild: jobId={}", jobId, e);
-            createZipFileForDownload(jobId);
+            createZipFileForDownload(jobId, state.zipExpiresAt());
             ReportZipDownloadState refreshedState = tx.loadZipDownloadState(jobId);
-            if (refreshedState.zipFileKey() == null) {
+            if (refreshedState.zipFileKey() == null || refreshedState.zipExpiresAt() == null) {
                 throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
             }
-            return storagePort.getObject(refreshedState.zipFileKey());
+            if (isExpired(refreshedState.zipExpiresAt())) {
+                throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+            }
+            byte[] rebuilt = storagePort.getObject(refreshedState.zipFileKey());
+            if (isExpired(refreshedState.zipExpiresAt())) {
+                throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+            }
+            return rebuilt;
         }
+    }
+
+    private static boolean isExpired(Instant expiresAt) {
+        return expiresAt != null && !expiresAt.isAfter(Instant.now());
     }
 
     @Transactional(readOnly = true)
@@ -223,15 +257,15 @@ public class ReportJobService {
 
     private void createZipFile(Long jobId) {
         try {
-            createZipFileOrThrow(jobId);
+            createZipFileOrThrow(jobId, null);
         } catch (Exception e) {
             log.error("Failed to create ZIP: jobId={}", jobId, e);
         }
     }
 
-    private void createZipFileForDownload(Long jobId) {
+    private void createZipFileForDownload(Long jobId, Instant existingExpiry) {
         try {
-            createZipFileOrThrow(jobId);
+            createZipFileOrThrow(jobId, existingExpiry);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -243,16 +277,24 @@ public class ReportJobService {
         return state.status() == JobStatus.COMPLETED && state.successCount() > 0;
     }
 
-    private void createZipFileOrThrow(Long jobId) throws Exception {
+    private void createZipFileOrThrow(Long jobId, Instant existingExpiry) throws Exception {
         ReportZipManifest manifest = tx.loadZipManifest(jobId);
         String tenantId = TenantContextHolder.toStorageTenantId(manifest.tenantSlug());
         Map<String, Integer> entryNameCounts = new HashMap<>();
+        int addedReports = 0;
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zos = new ZipOutputStream(baos)) {
             for (Long studentId : manifest.studentIds()) {
+                if (isExpired(existingExpiry)) {
+                    throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+                }
                 try {
-                    StoredReport storedReport = getStoredReport(tenantId, manifest.examId(), studentId);
+                    StoredReport storedReport = getStoredReport(
+                            tenantId, manifest.examId(), studentId, existingExpiry);
+                    if (isExpired(existingExpiry)) {
+                        throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+                    }
                     String studentName = manifest.studentNamesById()
                             .getOrDefault(studentId, "학생 " + studentId);
                     String entryName = uniqueFilename(
@@ -261,28 +303,61 @@ public class ReportJobService {
                     zos.putNextEntry(new ZipEntry(entryName));
                     zos.write(storedReport.bytes());
                     zos.closeEntry();
+                    addedReports++;
                 } catch (Exception e) {
+                    if (e instanceof BusinessException businessException
+                            && businessException.getErrorCode() == ExamErrorCode.REPORT_ZIP_EXPIRED) {
+                        throw businessException;
+                    }
                     log.warn("Failed to add report to ZIP: studentId={}", studentId, e);
                 }
             }
         }
 
+        if (isExpired(existingExpiry)) {
+            throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+        }
+        if (addedReports != manifest.successCount()) {
+            throw new IllegalStateException("Cannot store an incomplete report ZIP: expected "
+                    + manifest.successCount() + " entries, found " + addedReports);
+        }
+
         String zipKey = FileObjectKeyFactory.reportArchive(tenantId, manifest.examId(), jobId);
         storagePort.putObject(zipKey, baos.toByteArray(), "application/zip");
-        tx.setZipFileKey(jobId, zipKey);
+        if (existingExpiry == null) {
+            Instant expiresAt = Instant.now().plus(ZIP_DOWNLOAD_WINDOW);
+            tx.setZipFileKey(jobId, zipKey, expiresAt);
+        }
 
         log.info("ZIP created: jobId={}, key={}", jobId, zipKey);
     }
 
-    private StoredReport getStoredReport(String tenantId, Long examId, Long studentId) {
+    private StoredReport getStoredReport(String tenantId, Long examId, Long studentId, Instant existingExpiry) {
+        if (isExpired(existingExpiry)) {
+            throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+        }
         String fileKey = buildReportFileKey(tenantId, examId, studentId);
         try {
-            return new StoredReport(storagePort.getObject(fileKey), ReportFileFormat.PDF_EXTENSION);
+            byte[] bytes = storagePort.getObject(fileKey);
+            if (isExpired(existingExpiry)) {
+                throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+            }
+            return new StoredReport(bytes, ReportFileFormat.PDF_EXTENSION);
         } catch (RuntimeException pdfFailure) {
+            if (isExpired(existingExpiry)) {
+                throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+            }
             String legacyFileKey = buildLegacyReportFileKey(tenantId, examId, studentId);
             try {
-                return new StoredReport(storagePort.getObject(legacyFileKey), ReportFileFormat.LEGACY_JPG_EXTENSION);
+                byte[] bytes = storagePort.getObject(legacyFileKey);
+                if (isExpired(existingExpiry)) {
+                    throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+                }
+                return new StoredReport(bytes, ReportFileFormat.LEGACY_JPG_EXTENSION);
             } catch (RuntimeException legacyFailure) {
+                if (isExpired(existingExpiry)) {
+                    throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+                }
                 pdfFailure.addSuppressed(legacyFailure);
                 throw pdfFailure;
             }
@@ -344,11 +419,11 @@ public class ReportJobService {
         return sanitized.isBlank() ? "리포트" : sanitized;
     }
 
-    private record ReportZipManifest(String tenantSlug, Long examId, String examName,
+    private record ReportZipManifest(String tenantSlug, Long examId, String examName, int successCount,
                                      List<Long> studentIds, Map<Long, String> studentNamesById) {
     }
 
-    private record ReportZipDownloadState(JobStatus status, int successCount, String zipFileKey) {
+    private record ReportZipDownloadState(JobStatus status, int successCount, String zipFileKey, Instant zipExpiresAt) {
     }
 
     private record StoredReport(byte[] bytes, String extension) {
@@ -414,6 +489,7 @@ public class ReportJobService {
                     tenantSlug,
                     job.getExam().getId(),
                     job.getExam().getName(),
+                    job.getSuccessCount(),
                     List.copyOf(job.getStudentIds()),
                     studentNamesById
             );
@@ -426,13 +502,14 @@ public class ReportJobService {
             return new ReportZipDownloadState(
                     job.getStatus(),
                     job.getSuccessCount(),
-                    job.getZipFileKey()
+                    job.getZipFileKey(),
+                    job.getZipExpiresAt()
             );
         }
 
         @Transactional
-        public void setZipFileKey(Long jobId, String zipKey) {
-            jobRepository.setZipFileKey(jobId, zipKey);
+        public void setZipFileKey(Long jobId, String zipKey, Instant expiresAt) {
+            jobRepository.setZipFileKey(jobId, zipKey, expiresAt);
         }
     }
 }

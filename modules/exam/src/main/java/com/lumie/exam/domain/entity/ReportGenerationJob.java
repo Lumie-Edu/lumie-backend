@@ -10,6 +10,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.util.List;
+import java.time.Instant;
 
 @Entity
 @Table(name = "report_generation_jobs")
@@ -50,6 +51,9 @@ public class ReportGenerationJob extends TenantScopedEntity {
 
     @Column(name = "zip_file_key")
     private String zipFileKey;
+
+    @Column(name = "zip_expires_at")
+    private Instant zipExpiresAt;
 
     public static ReportGenerationJob create(Exam exam, String tenantSlug, List<Long> studentIds) {
         ReportGenerationJob job = new ReportGenerationJob();
