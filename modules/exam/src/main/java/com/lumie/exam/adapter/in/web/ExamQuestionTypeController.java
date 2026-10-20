@@ -1,5 +1,7 @@
 package com.lumie.exam.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+
 import com.lumie.exam.application.dto.request.CreateExamQuestionTypeRequest;
 import com.lumie.exam.application.dto.response.ExamQuestionTypeResponse;
 import com.lumie.exam.application.service.ExamQuestionTypeService;
@@ -30,6 +32,7 @@ public class ExamQuestionTypeController {
 
     @GetMapping
     public ResponseEntity<List<ExamQuestionTypeResponse>> listQuestionTypes() {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(examQuestionTypeService.listQuestionTypes());
     }
 
@@ -47,6 +50,7 @@ public class ExamQuestionTypeController {
     )
     public ResponseEntity<ExamQuestionTypeResponse> createQuestionType(
             @Valid @RequestBody CreateExamQuestionTypeRequest request) {
+        AuthorizationGuard.requireStaff();
         ExamQuestionTypeResponse response = examQuestionTypeService.createQuestionType(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -64,6 +68,7 @@ public class ExamQuestionTypeController {
             content = @Content(schema = @Schema(implementation = ProblemDetail.class))
     )
     public ResponseEntity<Void> deleteQuestionType(@PathVariable Long id) {
+        AuthorizationGuard.requireStaff();
         examQuestionTypeService.deleteQuestionType(id);
         return ResponseEntity.noContent().build();
     }

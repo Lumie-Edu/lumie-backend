@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AnnouncementCommandService 테스트")
@@ -81,6 +82,27 @@ class AnnouncementCommandServiceTest {
 
         assertThat(response.authorName()).isEqualTo("원장");
         assertThat(response.audienceScope()).isEqualTo(AnnouncementAudienceScope.ALL);
+    }
+
+    @Test
+    @DisplayName("요청 작성자 ID 대신 인증한 사용자를 공지 작성자로 저장한다")
+    void createAnnouncement_ignoresForgedAuthorId() {
+        CreateAnnouncementRequest request = new CreateAnnouncementRequest(
+                1234L, "공지", "내용", false, false, null, List.of(), AnnouncementAudienceScope.ALL);
+        given(announcementRepository.save(any(Announcement.class))).willAnswer(invocation -> {
+            Announcement announcement = invocation.getArgument(0);
+            ReflectionTestUtils.setField(announcement, "id", 1L);
+            return announcement;
+        });
+        given(staffService.getStaffByUserId("test-tenant", 900L))
+                .willReturn(Optional.of(staff(900L, "원장")));
+
+        commandService.createAnnouncement(request);
+
+        org.mockito.ArgumentCaptor<Announcement> saved = org.mockito.ArgumentCaptor.forClass(Announcement.class);
+        verify(announcementRepository).save(saved.capture());
+        assertThat(saved.getValue().getAuthorId()).isEqualTo(900L);
+        assertThat(saved.getValue().getAuthorId()).isNotEqualTo(request.authorId());
     }
 
     @Test

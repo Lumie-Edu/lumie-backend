@@ -1,5 +1,7 @@
 package com.lumie.classroom.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.classroom.application.dto.ClassResponse;
 import com.lumie.classroom.application.dto.CreateClassRequest;
@@ -31,6 +33,7 @@ public class ClassController {
     @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<ClassResponse> createClass(
             @Valid @RequestBody CreateClassRequest request) {
+        AuthorizationGuard.requireStaff();
         ClassResponse response = commandService.createClass(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -41,6 +44,7 @@ public class ClassController {
             @RequestParam(required = false) Long teacherId,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         Page<ClassResponse> response = queryService.listClasses(teacherId, search, pageable);
         return ResponseEntity.ok(PageResponse.from(response));
     }
@@ -55,6 +59,7 @@ public class ClassController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ClassResponse> getClass(@PathVariable Long id) {
+        AuthorizationGuard.requireStaff();
         ClassResponse response = queryService.getClass(id);
         return ResponseEntity.ok(response);
     }
@@ -63,6 +68,7 @@ public class ClassController {
     public ResponseEntity<ClassResponse> updateClass(
             @PathVariable Long id,
             @Valid @RequestBody UpdateClassRequest request) {
+        AuthorizationGuard.requireStaff();
         ClassResponse response = commandService.updateClass(id, request);
         return ResponseEntity.ok(response);
     }
@@ -70,6 +76,7 @@ public class ClassController {
     @DeleteMapping("/{id}")
     @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteClass(@PathVariable Long id) {
+        AuthorizationGuard.requireStaff();
         commandService.deleteClass(id);
         return ResponseEntity.noContent().build();
     }
@@ -79,6 +86,7 @@ public class ClassController {
     public ResponseEntity<PageResponse<ClassResponse>> getClassesByTeacher(
             @PathVariable Long teacherId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         Page<ClassResponse> response = queryService.getClassesByTeacher(teacherId, pageable);
         return ResponseEntity.ok(PageResponse.from(response));
     }
@@ -88,6 +96,7 @@ public class ClassController {
     public ResponseEntity<PageResponse<ClassResponse>> getClassesByStudent(
             @PathVariable Long studentId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         Page<ClassResponse> response = queryService.getClassesByStudent(studentId, pageable);
         return ResponseEntity.ok(PageResponse.from(response));
     }

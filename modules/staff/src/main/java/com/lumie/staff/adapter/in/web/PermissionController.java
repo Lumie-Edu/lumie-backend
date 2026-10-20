@@ -1,5 +1,7 @@
 package com.lumie.staff.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.auth.Role;
 import com.lumie.staff.application.dto.response.PermissionResponse;
 import com.lumie.staff.application.service.PermissionQueryService;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +22,13 @@ public class PermissionController {
 
     @GetMapping
     public ResponseEntity<List<PermissionResponse>> getAllPermissions() {
+        AuthorizationGuard.requireAtLeast(Role.MANAGER);
         return ResponseEntity.ok(permissionQueryService.getAllPermissions());
     }
 
     @GetMapping("/categories")
     public ResponseEntity<Map<String, List<PermissionResponse>>> getPermissionsByCategory() {
+        AuthorizationGuard.requireAtLeast(Role.MANAGER);
         return ResponseEntity.ok(permissionQueryService.getPermissionsByCategory());
     }
 }

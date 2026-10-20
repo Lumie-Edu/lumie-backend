@@ -1,5 +1,8 @@
 package com.lumie.classroom.adapter.in.web;
 
+import com.lumie.common.auth.Role;
+import com.lumie.common.tenant.UserContextHolder;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.lumie.classroom.application.dto.ClassEnrollmentResponse;
@@ -12,6 +15,7 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,12 +25,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -50,10 +58,68 @@ class ClassEnrollmentControllerTest {
 
     @BeforeEach
     void setUp() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .build();
+    }
+
+    @Test
+    void studentIsDeniedAtEntryToEveryEnrollmentHandler() throws Exception {
+        UserContextHolder.setUserRole(Role.STUDENT);
+
+        for (Method handler : ClassEnrollmentController.class.getDeclaredMethods()) {
+            if (Arrays.stream(handler.getDeclaredAnnotations())
+                    .noneMatch(annotation -> annotation.annotationType().getSimpleName().endsWith("Mapping"))) {
+                continue;
+            }
+            try {
+                handler.invoke(controller, new Object[handler.getParameterCount()]);
+                throw new AssertionError("Expected 403 at route entry for " + handler.getName());
+            } catch (InvocationTargetException exception) {
+                org.assertj.core.api.Assertions.assertThat(exception.getCause())
+                        .isInstanceOf(BusinessException.class);
+            }
+        }
+
+        org.mockito.Mockito.verifyNoInteractions(commandService, queryService);
+    }
+
+    @Test
+    void instructorCanEnterEveryEnrollmentHandler() throws Exception {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        given(queryService.getEnrollments(eq(1L), any()))
+                .willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        for (Method handler : ClassEnrollmentController.class.getDeclaredMethods()) {
+            if (Arrays.stream(handler.getDeclaredAnnotations())
+                    .noneMatch(annotation -> annotation.annotationType().getSimpleName().endsWith("Mapping"))) {
+                continue;
+            }
+            Object result = handler.invoke(controller, allowedArguments(handler));
+            org.assertj.core.api.Assertions.assertThat(result)
+                    .as("route handler %s", handler.getName())
+                    .isInstanceOf(org.springframework.http.ResponseEntity.class);
+        }
+    }
+
+    private static Object[] allowedArguments(Method method) {
+        Object[] args = new Object[method.getParameterCount()];
+        Class<?>[] types = method.getParameterTypes();
+        for (int i = 0; i < types.length; i++) {
+            if (Pageable.class.isAssignableFrom(types[i])) {
+                args[i] = PageRequest.of(0, 20);
+            } else if (types[i] == Long.class) {
+                args[i] = 1L;
+            }
+        }
+        return args;
+    }
+
+    @AfterEach
+    void clearUserContext() {
+        UserContextHolder.clear();
     }
 
     @Test

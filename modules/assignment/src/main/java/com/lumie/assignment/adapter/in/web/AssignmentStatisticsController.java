@@ -1,5 +1,6 @@
 package com.lumie.assignment.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.assignment.application.dto.response.statistics.AssignmentDashboardResponse;
 import com.lumie.assignment.application.service.AssignmentStatisticsQueryService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class AssignmentStatisticsController {
     @GetMapping("/dashboard")
     public ResponseEntity<AssignmentDashboardResponse> getDashboardStatistics(
             @RequestParam(required = false) Integer months) {
+        AuthorizationGuard.requireStaff();
         AssignmentDashboardResponse response = months == null
                 ? assignmentStatisticsQueryService.getDashboardStatistics()
                 : assignmentStatisticsQueryService.getDashboardStatistics(months);

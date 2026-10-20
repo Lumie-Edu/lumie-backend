@@ -87,6 +87,7 @@ public class ResultController {
             @RequestParam Long studentId,
             @RequestParam("image") MultipartFile image,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         byte[] imageData = image.getBytes();
         if (idempotencyKey != null) {
             return idempotencyService.executeOnceWithoutResponseBody(
@@ -106,6 +107,7 @@ public class ResultController {
             @PathVariable Long examId,
             @Valid @RequestBody OmrPresignRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         if (idempotencyKey != null) {
             return idempotencyService.executeOnceWithoutResponseBody(
                     idempotencyKey,
@@ -130,6 +132,7 @@ public class ResultController {
             @PathVariable Long examId,
             @Valid @RequestBody OmrBatchConfirmRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         if (idempotencyKey != null) {
             return idempotencyService.executeOnce(
                     idempotencyKey,

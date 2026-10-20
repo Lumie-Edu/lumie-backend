@@ -185,6 +185,7 @@ class MigrationsRlsIntegrationTest {
             // SELECT,INSERT,UPDATE,DELETE) so the role is a faithful stand-in.
             st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON classes TO " + APP_ROLE);
             st.execute("GRANT USAGE ON SEQUENCE classes_id_seq TO " + APP_ROLE);
+            st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON file_metadata TO " + APP_ROLE);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to provision restricted app role", e);
         }
@@ -252,6 +253,65 @@ class MigrationsRlsIntegrationTest {
             assertThat(countClasses(conn))
                     .as("tenant 1 still sees its row after the hostile reads")
                     .isEqualTo(1);
+        }
+    }
+
+    @Test
+    void fileMetadataRlsPreventsCrossTenantReadAndDelete() throws Exception {
+        java.util.UUID tenantOneFile = java.util.UUID.randomUUID();
+        java.util.UUID tenantTwoFile = java.util.UUID.randomUUID();
+        try (Connection admin = adminConnection();
+             PreparedStatement insert = admin.prepareStatement("""
+                     INSERT INTO file_metadata
+                         (id, entity_type, original_filename, stored_filename, content_type,
+                          file_size, object_key, tenant_id)
+                     VALUES (?, 'TEXTBOOK', 'book.pdf', 'book.pdf', 'application/pdf', 12, ?, ?)
+                     """)) {
+            insert.setObject(1, tenantOneFile);
+            insert.setString(2, "tenant-one/" + tenantOneFile);
+            insert.setLong(3, 1L);
+            insert.executeUpdate();
+            insert.setObject(1, tenantTwoFile);
+            insert.setString(2, "tenant-two/" + tenantTwoFile);
+            insert.setLong(3, 2L);
+            insert.executeUpdate();
+        }
+
+        try (Connection tenantOne = appRoleConnection()) {
+            tenantOne.setAutoCommit(true);
+            setTenant(tenantOne, "1");
+            assertThat(countFileMetadataById(tenantOne, tenantOneFile))
+                    .as("a Tenant can read its own file row")
+                    .isEqualTo(1);
+            assertThat(countFileMetadataById(tenantOne, tenantTwoFile))
+                    .as("a Tenant cannot read another Tenant's file row")
+                    .isZero();
+            try (PreparedStatement deleteForeign = tenantOne.prepareStatement(
+                    "DELETE FROM file_metadata WHERE id = ?")) {
+                deleteForeign.setObject(1, tenantTwoFile);
+                assertThat(deleteForeign.executeUpdate())
+                        .as("a foreign file id cannot be deleted through RLS")
+                        .isZero();
+            }
+        }
+
+        try (Connection tenantTwo = appRoleConnection()) {
+            tenantTwo.setAutoCommit(true);
+            setTenant(tenantTwo, "2");
+            assertThat(countFileMetadataById(tenantTwo, tenantTwoFile))
+                    .as("the foreign row remains present after Tenant 1's delete request")
+                    .isEqualTo(1);
+        }
+    }
+
+    private static int countFileMetadataById(Connection connection, java.util.UUID fileId) throws Exception {
+        try (PreparedStatement query = connection.prepareStatement(
+                "SELECT count(*) FROM file_metadata WHERE id = ?")) {
+            query.setObject(1, fileId);
+            try (ResultSet result = query.executeQuery()) {
+                assertThat(result.next()).isTrue();
+                return result.getInt(1);
+            }
         }
     }
 

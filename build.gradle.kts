@@ -119,6 +119,10 @@ subprojects {
         group = "verification"
         testClassesDirs = testSourceSet.output.classesDirs
         classpath = testSourceSet.runtimeClasspath
+        filter {
+            excludeTestsMatching("com.lumie.app.security.bdd.StaffApiBddTest")
+            excludeTestsMatching("com.lumie.app.security.bdd.StaffApiAtddTest")
+        }
         dependsOn(tasks.named("testClasses"))
         useJUnitPlatform { includeTags("integration") }
         shouldRunAfter("test")

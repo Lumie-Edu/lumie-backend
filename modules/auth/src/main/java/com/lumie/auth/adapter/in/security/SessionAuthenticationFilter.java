@@ -52,10 +52,13 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void authenticate(AuthSession session) {
+        List<SimpleGrantedAuthority> authorities = session.role() == null
+                ? List.of()
+                : List.of(new SimpleGrantedAuthority("ROLE_" + session.role().name()));
         AuthenticatedUser principal = new AuthenticatedUser(
                 session.userId(), session.tenantSlug(), session.tenantId(), session.role());
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                principal, null, List.of(new SimpleGrantedAuthority("ROLE_" + session.role().name()))));
+                principal, null, authorities));
         TenantContextHolder.setTenant(session.tenantSlug());
         TenantContextHolder.setTenantId(session.tenantId());
         UserContextHolder.setUserId(session.userId());
