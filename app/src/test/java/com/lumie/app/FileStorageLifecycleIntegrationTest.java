@@ -133,6 +133,9 @@ class FileStorageLifecycleIntegrationTest extends FullContextTestBase {
             assertThat(operation.getFileId()).isEqualTo(fileId);
             assertThat(operation.getStatus()).isEqualTo(FileStorageOperationStatus.PENDING);
         });
+        java.time.Instant nearDeadline = java.time.Instant.now().plus(java.time.Duration.ofHours(21));
+        assertThat(operationRepository.countPromotionsExpiringSoon(
+                nearDeadline, nearDeadline.plus(java.time.Duration.ofHours(2)))).isEqualTo(1);
 
         assertThat(processor.processDueOperations(10)).isEqualTo(1);
         FileMetadata ready = fileMetadataRepository.findById(fileId).orElseThrow();

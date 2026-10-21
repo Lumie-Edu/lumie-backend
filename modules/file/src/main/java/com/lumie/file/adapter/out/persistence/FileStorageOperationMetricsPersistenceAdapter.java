@@ -1,6 +1,7 @@
 package com.lumie.file.adapter.out.persistence;
 
 import com.lumie.file.application.port.out.FileStorageOperationMetricsPersistencePort;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,6 @@ public class FileStorageOperationMetricsPersistenceAdapter implements FileStorag
                 .map(row -> new Series(row.getOperation(), row.getStatus(), row.getValue()))
                 .toList();
         return new StorageOperationMetricsSnapshot(
-                counts, ages, operationRepository.countPromotionsExpiringSoon(now));
+                counts, ages, operationRepository.countPromotionsExpiringSoon(now, now.plus(Duration.ofHours(2))));
     }
 }
