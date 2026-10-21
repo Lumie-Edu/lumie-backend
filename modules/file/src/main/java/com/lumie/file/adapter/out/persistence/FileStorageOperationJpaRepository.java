@@ -6,7 +6,6 @@ import com.lumie.file.domain.vo.FileStorageOperationType;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -41,9 +40,9 @@ public interface FileStorageOperationJpaRepository extends JpaRepository<FileSto
             WHERE operation_type = 'PROMOTE'
               AND status IN ('PENDING', 'RETRY')
               AND deadline_at > :now
-              AND deadline_at <= :now + interval '2 hours'
+              AND deadline_at <= :cutoff
             """, nativeQuery = true)
-    long countPromotionsExpiringSoon(@Param("now") Instant now);
+    long countPromotionsExpiringSoon(@Param("now") Instant now, @Param("cutoff") Instant cutoff);
 
     boolean existsByFileIdAndOperationTypeAndStatusAndLeaseUntilAfter(
             UUID fileId, FileStorageOperationType operationType, FileStorageOperationStatus status, Instant now);

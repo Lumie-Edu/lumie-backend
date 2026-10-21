@@ -60,7 +60,7 @@ class FileServiceAdapterSourceValidationTest {
     void capturesObservedSourceIdentityAndTimestampForPromotionIntent() {
         prepareTenant();
         givenValidSource();
-        Instant modified = Instant.parse("2026-10-20T00:00:00Z");
+        Instant modified = Instant.now().minusSeconds(60);
         when(storage.objectLastModified(SOURCE)).thenReturn(modified);
 
         List<PreparedTemporaryFile> prepared = adapter.prepareTemporaryFiles("announcement", List.of(attachment()));
