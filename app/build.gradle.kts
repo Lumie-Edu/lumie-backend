@@ -6,6 +6,7 @@ plugins {
 dependencyManagement {
     imports {
         mavenBom(libs.spring.modulith.bom.get().toString())
+        mavenBom("org.junit:junit-bom:5.14.2")
     }
 }
 
@@ -74,6 +75,12 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
+    testImplementation("io.cucumber:cucumber-java:7.34.9")
+    testImplementation("io.cucumber:cucumber-spring:7.34.9")
+    testImplementation("io.cucumber:cucumber-junit-platform-engine:7.34.9")
+    testImplementation("org.junit.platform:junit-platform-suite")
+    testImplementation("org.testcontainers:minio")
+    testImplementation(libs.minio)
     // Flyway Java API for the migration-chain integration test. Present at
     // runtime transitively (Spring Boot Flyway autoconfig); declared here so
     // it is on the test *compile* classpath too. Versions via Spring Boot BOM.

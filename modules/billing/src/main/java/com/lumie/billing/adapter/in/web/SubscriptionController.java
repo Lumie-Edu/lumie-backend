@@ -1,5 +1,6 @@
 package com.lumie.billing.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.billing.application.dto.request.ChangeSubscriptionRequest;
 import com.lumie.billing.application.dto.request.CreateSubscriptionRequest;
 import com.lumie.billing.application.dto.response.InvoiceResponse;
@@ -8,6 +9,7 @@ import com.lumie.billing.application.dto.response.SubscriptionResponse;
 import com.lumie.billing.application.service.SubscriptionCommandService;
 import com.lumie.billing.application.service.SubscriptionQueryService;
 import com.lumie.common.quota.MetricType;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.idempotency.IdempotencyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,9 +35,11 @@ public class SubscriptionController {
     private final IdempotencyService idempotencyService;
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<SubscriptionResponse> createSubscription(
             @Valid @RequestBody CreateSubscriptionRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         return idempotencyService.executeOnce(
                 idempotencyKey,
                 CREATE_SUBSCRIPTION_SCOPE,
@@ -46,6 +50,7 @@ public class SubscriptionController {
 
     @GetMapping("/{tenantSlug}")
     public ResponseEntity<SubscriptionResponse> getSubscription(@PathVariable String tenantSlug) {
+        AuthorizationGuard.requireOwner();
         SubscriptionResponse response = subscriptionQueryService.getSubscription(tenantSlug);
         return ResponseEntity.ok(response);
     }
@@ -55,6 +60,7 @@ public class SubscriptionController {
             @PathVariable String tenantSlug,
             @Valid @RequestBody ChangeSubscriptionRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         return idempotencyService.executeOnce(
                 idempotencyKey,
                 CHANGE_PLAN_SCOPE,
@@ -63,9 +69,11 @@ public class SubscriptionController {
     }
 
     @DeleteMapping("/{tenantSlug}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> cancelSubscription(
             @PathVariable String tenantSlug,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         return idempotencyService.executeOnce(
                 idempotencyKey,
                 CANCEL_SUBSCRIPTION_SCOPE,
@@ -80,6 +88,7 @@ public class SubscriptionController {
     public ResponseEntity<SubscriptionResponse> undoCancellation(
             @PathVariable String tenantSlug,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         return idempotencyService.executeOnce(
                 idempotencyKey,
                 UNDO_CANCELLATION_SCOPE,
@@ -91,6 +100,7 @@ public class SubscriptionController {
     public ResponseEntity<InvoiceResponse> chargeFirstInvoice(
             @PathVariable String tenantSlug,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        AuthorizationGuard.requireOwner();
         return idempotencyService.executeOnce(
                 idempotencyKey,
                 CHARGE_FIRST_INVOICE_SCOPE,
@@ -103,6 +113,7 @@ public class SubscriptionController {
             @PathVariable String tenantSlug,
             @PathVariable MetricType metricType,
             @RequestParam(defaultValue = "0") long currentUsage) {
+        AuthorizationGuard.requireOwner();
         return ResponseEntity.ok(subscriptionQueryService.checkQuota(tenantSlug, metricType, currentUsage));
     }
 }

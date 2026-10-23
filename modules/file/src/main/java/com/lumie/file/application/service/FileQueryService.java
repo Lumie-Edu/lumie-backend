@@ -53,6 +53,10 @@ public class FileQueryService {
 
         fileMetadataLookupService.requireAccess(fileMetadata.getEntityType(), fileMetadata.getEntityId());
 
+        if (!fileMetadata.isReady()) {
+            throw new BusinessException(FileErrorCode.FILE_NOT_FOUND);
+        }
+
         return FileMetadataResponse.from(fileMetadata);
     }
 
@@ -60,6 +64,7 @@ public class FileQueryService {
     public List<FileMetadataResponse> getFilesByEntity(EntityType entityType, Long entityId) {
         fileMetadataLookupService.requireAccess(entityType, entityId);
         return fileMetadataRepository.findByEntityTypeAndEntityId(entityType, entityId).stream()
+                .filter(this::isReady)
                 .map(FileMetadataResponse::from)
                 .toList();
     }
@@ -70,6 +75,7 @@ public class FileQueryService {
         List<FileMetadata> files = fileMetadataRepository.findByEntityTypeAndFolderId(entityType, folderId);
 
         return files.stream()
+                .filter(this::isReady)
                 .map(FileMetadataResponse::from)
                 .toList();
     }
@@ -80,8 +86,13 @@ public class FileQueryService {
         List<FileMetadata> files = fileMetadataRepository.findByEntityType(entityType);
 
         return files.stream()
+                .filter(this::isReady)
                 .map(FileMetadataResponse::from)
                 .toList();
+    }
+
+    private boolean isReady(FileMetadata metadata) {
+        return metadata.isReady();
     }
 
     @Transactional(readOnly = true)

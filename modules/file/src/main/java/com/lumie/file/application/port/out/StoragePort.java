@@ -1,6 +1,7 @@
 package com.lumie.file.application.port.out;
 
 import java.io.InputStream;
+import java.time.Instant;
 
 public interface StoragePort {
 
@@ -27,4 +28,6 @@ public interface StoragePort {
     String objectEtag(String objectKey);
 
     String objectContentType(String objectKey);
+
+    Instant objectLastModified(String objectKey);
 }

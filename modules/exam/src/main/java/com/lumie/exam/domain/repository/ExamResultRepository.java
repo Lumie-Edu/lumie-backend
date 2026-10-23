@@ -15,6 +15,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     @EntityGraph(attributePaths = {"exam"})
     Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
 
+    Optional<ExamResult> findByIdAndExamId(Long id, Long examId);
+
     Optional<ExamResult> findByCurrentSubmissionId(Long currentSubmissionId);
 
     @Query("""

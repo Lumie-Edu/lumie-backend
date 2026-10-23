@@ -32,7 +32,7 @@ import org.testcontainers.utility.DockerImageName;
  */
 @SpringBootTest(classes = LumieApplication.class, webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
-abstract class FullContextTestBase {
+public abstract class FullContextTestBase {
 
     private static final Duration CONTAINER_STARTUP_TIMEOUT = Duration.ofMinutes(3);
 
@@ -104,9 +104,10 @@ abstract class FullContextTestBase {
         registry.add("telegram.bot-token", () -> "test-token");
         registry.add("paddle.api-key", () -> "test-key");
         registry.add("paddle.webhook-secret", () -> "test-secret");
-        registry.add("minio.endpoint", () -> "http://localhost:9000");
-        registry.add("minio.external-endpoint", () -> "http://localhost:9000");
-        registry.add("minio.access-key", () -> "test");
-        registry.add("minio.secret-key", () -> "test");
+        registry.add("minio.endpoint", () -> System.getProperty("lumie.test.minio.endpoint", "http://localhost:9000"));
+        registry.add("minio.external-endpoint", () -> System.getProperty(
+                "lumie.test.minio.external-endpoint", "http://localhost:9000"));
+        registry.add("minio.access-key", () -> System.getProperty("lumie.test.minio.access-key", "test"));
+        registry.add("minio.secret-key", () -> System.getProperty("lumie.test.minio.secret-key", "test"));
     }
 }

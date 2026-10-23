@@ -24,6 +24,7 @@ public enum ExamErrorCode implements ErrorCode {
     OMR_JOB_NOT_FOUND("EXAM_105", "OMR grading job not found", 404),
     OMR_IMAGE_NOT_FOUND("EXAM_106", "OMR image not found", 404),
     QUESTION_TYPE_NOT_FOUND("EXAM_107", "Exam question type not found", 404),
+    REPORT_ZIP_EXPIRED("EXAM_108", "Report ZIP has expired", 410),
 
     // 409 Conflict
     DUPLICATE_RESULT("EXAM_201", "Exam result already exists for this student", 409),

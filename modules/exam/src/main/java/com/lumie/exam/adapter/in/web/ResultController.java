@@ -87,6 +87,7 @@ public class ResultController {
             @RequestParam Long studentId,
             @RequestParam("image") MultipartFile image,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         byte[] imageData = image.getBytes();
         if (idempotencyKey != null) {
             return idempotencyService.executeOnceWithoutResponseBody(
@@ -106,6 +107,7 @@ public class ResultController {
             @PathVariable Long examId,
             @Valid @RequestBody OmrPresignRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         if (idempotencyKey != null) {
             return idempotencyService.executeOnceWithoutResponseBody(
                     idempotencyKey,
@@ -130,6 +132,7 @@ public class ResultController {
             @PathVariable Long examId,
             @Valid @RequestBody OmrBatchConfirmRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         if (idempotencyKey != null) {
             return idempotencyService.executeOnce(
                     idempotencyKey,
@@ -162,6 +165,7 @@ public class ResultController {
     public ResponseEntity<OmrJobStatusResponse> getOmrJobStatus(
             @PathVariable Long examId,
             @PathVariable Long jobId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getOmrJobStatus(examId, jobId));
     }
 
@@ -169,6 +173,7 @@ public class ResultController {
     public ResponseEntity<List<ExamResultResponse>> getOmrJobResults(
             @PathVariable Long examId,
             @PathVariable Long jobId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getOmrJobResults(examId, jobId));
     }
 
@@ -313,11 +318,13 @@ public class ResultController {
 
     @GetMapping("/exams/{examId}/omr-jobs")
     public ResponseEntity<List<OmrJobStatusResponse>> getOmrJobs(@PathVariable Long examId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getOmrJobs(examId));
     }
 
     @GetMapping("/exams/{examId}/results")
     public ResponseEntity<List<ExamResultResponse>> getExamResults(@PathVariable Long examId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getExamResults(examId));
     }
 
@@ -328,12 +335,14 @@ public class ResultController {
 
     @GetMapping("/students/{studentId}/results")
     public ResponseEntity<List<ExamResultResponse>> getStudentResults(@PathVariable Long studentId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getStudentResults(studentId));
     }
 
     @GetMapping("/exam-results/statistics/top-students-monthly")
     public ResponseEntity<List<TopStudentMonthlyResponse>> getTopStudentsMonthly(
             @RequestParam(defaultValue = "5") int limit) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(resultQueryService.getTopStudentsMonthly(limit));
     }
 
@@ -347,6 +356,7 @@ public class ResultController {
     }
 
     @DeleteMapping("/exams/{examId}/results/{resultId}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteResult(
             @PathVariable Long examId,
             @PathVariable Long resultId) {
@@ -376,7 +386,7 @@ public class ResultController {
 
     @GetMapping("/results/{resultId}/questions")
     public ResponseEntity<List<QuestionResultResponse>> getQuestionResults(@PathVariable Long resultId) {
-        return ResponseEntity.ok(resultQueryService.getQuestionResults(resultId));
+        return ResponseEntity.ok(resultQueryService.getQuestionResultsForCurrentUser(resultId));
     }
 
     @GetMapping("/exams/{examId}/results/{resultId}/omr-image")
@@ -389,7 +399,7 @@ public class ResultController {
     public ResponseEntity<byte[]> getOmrImage(
             @PathVariable Long examId,
             @PathVariable Long resultId) {
-        byte[] imageData = resultQueryService.getOmrImageData(resultId);
+        byte[] imageData = resultQueryService.getOmrImageData(examId, resultId);
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_PNG)
                 .contentLength(imageData.length)
@@ -397,6 +407,8 @@ public class ResultController {
     }
 
     @GetMapping(value = "/exams/results/export.csv", produces = "text/csv;charset=UTF-8")
+    @ApiResponse(responseCode = "200", description = "CSV export", content =
+            @Content(mediaType = "text/csv;charset=UTF-8", schema = @Schema(type = "string", format = "binary")))
     public ResponseEntity<StreamingResponseBody> exportResultsCsv() {
         AuthorizationGuard.requireOwner();
         String filename = "%s_grades_%s.csv".formatted(
@@ -412,6 +424,8 @@ public class ResultController {
     }
 
     @GetMapping(value = "/exams/{examId}/results/export.csv", produces = "text/csv;charset=UTF-8")
+    @ApiResponse(responseCode = "200", description = "CSV export", content =
+            @Content(mediaType = "text/csv;charset=UTF-8", schema = @Schema(type = "string", format = "binary")))
     @AllowedSortFields({StudentGradeQueryService.SORT_FIELD_RANK, StudentGradeQueryService.SORT_FIELD_TOTAL_SCORE})
     public ResponseEntity<StreamingResponseBody> exportExamResultsCsv(
             @PathVariable Long examId,

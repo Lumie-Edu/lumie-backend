@@ -1,6 +1,9 @@
 package com.lumie.student.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.common.util.ReportingTime;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
 import com.lumie.common.auth.AuthorizationGuard;
@@ -51,13 +54,16 @@ public class StudentController {
     private final IdempotencyService idempotencyService;
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<StudentResponse> registerStudent(@Valid @RequestBody StudentRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         StudentResponse response = studentCommandService.registerStudent(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<StudentResponse> getStudent(@PathVariable Long id) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         StudentResponse response = studentQueryService.getStudent(id);
         return ResponseEntity.ok(response);
     }
@@ -65,11 +71,13 @@ public class StudentController {
     @GetMapping("/statistics/enrollment-trend")
     public ResponseEntity<EnrollmentTrendResponse> getEnrollmentTrend(
             @RequestParam(defaultValue = "6") int months) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(studentQueryService.getEnrollmentTrend(months));
     }
 
     @GetMapping("/statistics/dropout-summary")
     public ResponseEntity<DropoutSummaryResponse> getDropoutSummary() {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.ok(studentQueryService.getDropoutSummary());
     }
 
@@ -81,6 +89,7 @@ public class StudentController {
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Boolean hasActiveEnrollment,
             @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         Page<StudentResponse> response = studentQueryService.searchStudents(
                 isActive,
                 search,
@@ -95,24 +104,31 @@ public class StudentController {
     public ResponseEntity<StudentResponse> updateStudent(
             @PathVariable Long id,
             @Valid @RequestBody StudentUpdateRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         StudentResponse response = studentCommandService.updateStudent(id, request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{id}/deactivate")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deactivateStudent(@PathVariable Long id) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         studentCommandService.deactivateStudent(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/reactivate")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> reactivateStudent(@PathVariable Long id) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         studentCommandService.reactivateStudent(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/reset-password")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> resetStudentPassword(@PathVariable Long id) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         studentCommandService.resetStudentPassword(id);
         return ResponseEntity.noContent().build();
     }
@@ -121,30 +137,39 @@ public class StudentController {
     public ResponseEntity<ChangeLoginIdResponse> changeStudentLoginId(
             @PathVariable Long id,
             @Valid @RequestBody ChangeLoginIdRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         String result = studentCommandService.changeStudentLoginId(id, request.loginId());
         return ResponseEntity.ok(new ChangeLoginIdResponse(result));
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         studentCommandService.deleteStudent(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/batch/deactivate")
+    @ApiResponse(responseCode = "207", description = "Multi-Status")
     public ResponseEntity<BatchOperationResult> batchDeactivate(@Valid @RequestBody BatchOperationRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         BatchOperationResult result = studentCommandService.batchDeactivate(request.ids());
         return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result);
     }
 
     @PostMapping("/batch/reactivate")
+    @ApiResponse(responseCode = "207", description = "Multi-Status")
     public ResponseEntity<BatchOperationResult> batchReactivate(@Valid @RequestBody BatchOperationRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         BatchOperationResult result = studentCommandService.batchReactivate(request.ids());
         return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result);
     }
 
     @PostMapping("/batch/delete")
+    @ApiResponse(responseCode = "207", description = "Multi-Status")
     public ResponseEntity<BatchOperationResult> batchDelete(@Valid @RequestBody BatchOperationRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         BatchOperationResult result = studentCommandService.batchDelete(request.ids());
         return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result);
     }
@@ -184,6 +209,8 @@ public class StudentController {
     }
 
     @GetMapping(value = "/export.csv", produces = "text/csv;charset=UTF-8")
+    @ApiResponse(responseCode = "200", description = "CSV export", content =
+            @Content(mediaType = "text/csv;charset=UTF-8", schema = @Schema(type = "string", format = "binary")))
     public ResponseEntity<StreamingResponseBody> exportStudentsCsv() {
         AuthorizationGuard.requireOwner();
         String filename = "%s_students_%s.csv".formatted(

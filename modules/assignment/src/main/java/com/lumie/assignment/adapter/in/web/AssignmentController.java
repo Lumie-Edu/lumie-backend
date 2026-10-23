@@ -1,5 +1,6 @@
 package com.lumie.assignment.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.assignment.application.dto.request.CreateAssignmentRequest;
 import com.lumie.assignment.application.dto.request.SubmitAssignmentRequest;
 import com.lumie.assignment.application.dto.request.UpdateAssignmentRequest;
@@ -35,6 +36,7 @@ public class AssignmentController {
     private final AssignmentQueryService queryService;
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<AssignmentResponse> createAssignment(
             @Valid @RequestBody CreateAssignmentRequest request) {
         AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
@@ -101,6 +103,7 @@ public class AssignmentController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteAssignment(@PathVariable Long id) {
         AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         commandService.deleteAssignment(id);

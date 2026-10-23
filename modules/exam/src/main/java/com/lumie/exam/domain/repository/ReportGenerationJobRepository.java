@@ -28,9 +28,10 @@ public interface ReportGenerationJobRepository extends JpaRepository<ReportGener
     void incrementFail(@Param("jobId") Long jobId);
 
     @Modifying
-    @Query(value = "UPDATE report_generation_jobs SET zip_file_key = :zipFileKey " +
-            "WHERE id = :jobId", nativeQuery = true)
-    void setZipFileKey(@Param("jobId") Long jobId, @Param("zipFileKey") String zipFileKey);
+    @Query(value = "UPDATE report_generation_jobs SET zip_file_key = :zipFileKey, zip_expires_at = :zipExpiresAt " +
+            "WHERE id = :jobId AND zip_file_key IS NULL AND zip_expires_at IS NULL", nativeQuery = true)
+    void setZipFileKey(@Param("jobId") Long jobId, @Param("zipFileKey") String zipFileKey,
+                       @Param("zipExpiresAt") Instant zipExpiresAt);
 
     @Modifying
     @Query(value = "UPDATE report_generation_jobs SET status = 'PROCESSING' " +

@@ -1,5 +1,7 @@
 package com.lumie.staff.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.auth.Role;
 import com.lumie.staff.application.dto.response.statistics.StaffDashboardResponse;
 import com.lumie.staff.application.service.StaffStatisticsQueryService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ public class StaffStatisticsController {
 
     @GetMapping("/dashboard")
     public ResponseEntity<StaffDashboardResponse> getDashboardStatistics() {
+        AuthorizationGuard.requireAtLeast(Role.MANAGER);
         return ResponseEntity.ok(staffStatisticsQueryService.getDashboardStatistics());
     }
 }

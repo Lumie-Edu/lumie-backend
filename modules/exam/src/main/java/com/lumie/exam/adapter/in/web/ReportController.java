@@ -1,10 +1,13 @@
 package com.lumie.exam.adapter.in.web;
 
 import com.lumie.exam.application.dto.request.ReportBatchRequest;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
 import com.lumie.exam.application.port.out.ReportServicePort;
 import com.lumie.exam.application.service.ReportJobService;
+import com.lumie.exam.application.service.ResultQueryService;
 import com.lumie.common.api.JobAcceptedResponse;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.validation.Valid;
@@ -28,6 +31,7 @@ public class ReportController {
 
     private final ReportServicePort reportServicePort;
     private final ReportJobService reportJobService;
+    private final ResultQueryService resultQueryService;
     private final IdempotencyService idempotencyService;
 
     @GetMapping(value = "/reports/students/{studentId}/exams/{examId}", produces = MediaType.APPLICATION_PDF_VALUE)
@@ -35,6 +39,7 @@ public class ReportController {
             @PathVariable Long studentId,
             @PathVariable Long examId
     ) {
+        resultQueryService.requireStudentAccess(studentId);
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         byte[] reportBytes = reportServicePort.generateReport(studentId, examId, tenantSlug);
 
@@ -56,11 +61,13 @@ public class ReportController {
     }
 
     @PostMapping("/exams/{examId}/reports/batch")
+    @ApiResponse(responseCode = "202", description = "Accepted")
     public ResponseEntity<JobAcceptedResponse> createBatchReport(
             @PathVariable Long examId,
             @Valid @RequestBody ReportBatchRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
+        AuthorizationGuard.requireStaff();
         if (idempotencyKey != null) {
             return idempotencyService.executeOnce(
                     idempotencyKey,
@@ -85,14 +92,26 @@ public class ReportController {
             @PathVariable Long examId,
             @PathVariable Long jobId
     ) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(reportJobService.getJobStatus(jobId));
     }
 
+    @io.swagger.v3.oas.annotations.responses.ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Report ZIP"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "410",
+                    description = "Report ZIP has expired",
+                    content = @io.swagger.v3.oas.annotations.media.Content(
+                            mediaType = "application/problem+json",
+                            schema = @io.swagger.v3.oas.annotations.media.Schema(
+                                    implementation = org.springframework.http.ProblemDetail.class)))
+    })
     @GetMapping(value = "/exams/{examId}/reports/jobs/{jobId}/download", produces = "application/zip")
     public ResponseEntity<byte[]> downloadZip(
             @PathVariable Long examId,
             @PathVariable Long jobId
     ) {
+        AuthorizationGuard.requireStaff();
         byte[] zipBytes = reportJobService.getZipBytes(jobId);
 
         HttpHeaders headers = new HttpHeaders();

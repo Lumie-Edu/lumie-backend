@@ -5,6 +5,7 @@ import com.lumie.billing.api.BillingService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.quota.MetricType;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
@@ -24,14 +25,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("StaffCommandService 테스트")
@@ -132,6 +137,148 @@ class StaffCommandServiceTest {
         given(staffRepository.save(any(Staff.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         assertThat(service.registerStaff(request).phone()).isNull();
+    }
+
+    @Test
+    void managerCanCreateInstructorButCannotCreateAnotherManager() {
+        UserContextHolder.setUserRole(Role.MANAGER);
+        StaffRequest request = new StaffRequest(Role.MANAGER.name(), "관리자", "", null, null);
+
+        assertThatThrownBy(() -> service.registerStaff(request))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(StaffErrorCode.INSUFFICIENT_PERMISSION));
+
+        verifyNoInteractions(billingService, authService);
+    }
+
+    @Test
+    void managerCanCreateInstructorAccount() {
+        UserContextHolder.setUserRole(Role.MANAGER);
+        StaffRequest request = new StaffRequest(Role.INSTRUCTOR.name(), "강사", "", null, null);
+        given(billingService.checkQuota(TENANT, MetricType.STAFF))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STAFF, "ok"));
+        given(authService.createUser("강사", "", Role.INSTRUCTOR.name(), 1L))
+                .willReturn(new AuthService.CreateUserResult(true, "ok", 100L, "staff_100"));
+        given(staffRepository.save(any(Staff.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(service.registerStaff(request)).isNotNull();
+
+        verify(authService).createUser("강사", "", Role.INSTRUCTOR.name(), 1L);
+    }
+
+    @Test
+    void managerCannotChangeManagerAccount() {
+        UserContextHolder.setUserRole(Role.MANAGER);
+        Staff target = Staff.create(100L, "manager_100", "관리자", "01012345678", null, null);
+        ReflectionTestUtils.setField(target, "id", 10L);
+        ReflectionTestUtils.setField(target, "role", Role.MANAGER.name());
+        given(staffRepository.findById(10L)).willReturn(Optional.of(target));
+
+        assertThatThrownBy(() -> service.updateStaff(10L,
+                new com.lumie.staff.application.dto.request.StaffUpdateRequest(null, null, null, null)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.FORBIDDEN));
+
+        verify(staffRepository, never()).save(any(Staff.class));
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void managerCannotChangeOwnStaffAccount() {
+        UserContextHolder.setUserRole(Role.MANAGER);
+        Staff target = Staff.create(900L, "manager_900", "관리자", "01012345678", null, null);
+        ReflectionTestUtils.setField(target, "id", 10L);
+        ReflectionTestUtils.setField(target, "role", Role.MANAGER.name());
+        given(staffRepository.findById(10L)).willReturn(Optional.of(target));
+
+        assertThatThrownBy(() -> service.updateStaff(10L,
+                new com.lumie.staff.application.dto.request.StaffUpdateRequest(null, null, null, null)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.FORBIDDEN));
+
+        verify(staffRepository, never()).save(any(Staff.class));
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void managerCanChangeInstructorAccount() {
+        UserContextHolder.setUserRole(Role.MANAGER);
+        Staff target = Staff.create(100L, "instructor_100", "강사", "01012345678", null, null);
+        ReflectionTestUtils.setField(target, "id", 10L);
+        ReflectionTestUtils.setField(target, "role", Role.INSTRUCTOR.name());
+        given(staffRepository.findById(10L)).willReturn(Optional.of(target));
+        given(staffRepository.save(target)).willReturn(target);
+
+        service.updateStaff(10L,
+                new com.lumie.staff.application.dto.request.StaffUpdateRequest(null, null, null, null));
+
+        verify(staffRepository).save(target);
+    }
+
+    @Test
+    void managerCanReactivateInstructorAccountAfterRoleValidation() {
+        UserContextHolder.setUserRole(Role.MANAGER);
+        Staff target = Staff.create(100L, "instructor_100", "강사", "01012345678", null, null);
+        target.deactivate();
+        ReflectionTestUtils.setField(target, "id", 10L);
+        ReflectionTestUtils.setField(target, "role", Role.INSTRUCTOR.name());
+        given(staffRepository.findById(10L)).willReturn(Optional.of(target));
+        given(billingService.checkQuota(TENANT, MetricType.STAFF))
+                .willReturn(new BillingService.QuotaResult(true, 0L, 100L, MetricType.STAFF, "ok"));
+        given(staffRepository.save(target)).willReturn(target);
+
+        service.reactivateStaff(10L);
+
+        assertThat(target.isActive()).isTrue();
+        verify(billingService).checkQuota(TENANT, MetricType.STAFF);
+    }
+
+    @Test
+    void managerCanSetPermissionsForInstructorAccount() {
+        UserContextHolder.setUserRole(Role.MANAGER);
+        Staff target = Staff.create(100L, "instructor_100", "강사", "01012345678", null, null);
+        ReflectionTestUtils.setField(target, "id", 10L);
+        ReflectionTestUtils.setField(target, "role", Role.INSTRUCTOR.name());
+        given(staffRepository.findById(10L)).willReturn(Optional.of(target));
+        Map<String, com.lumie.staff.domain.vo.AccessLevel> permissions =
+                Map.of("STUDENT_READ", com.lumie.staff.domain.vo.AccessLevel.READ);
+
+        service.setStaffPermissions(10L, permissions);
+
+        verify(staffPermissionRepository).deleteByStaffId(10L);
+        verify(staffPermissionRepository).saveAll(anyList());
+    }
+
+    @Test
+    void managerCannotChangePeerOrOwnerThroughAnyStaffMutation() {
+        UserContextHolder.setUserRole(Role.MANAGER);
+        for (Role targetRole : List.of(Role.MANAGER, Role.OWNER)) {
+            Staff target = Staff.create(100L, "target_100", "Target", "01012345678", null, null);
+            ReflectionTestUtils.setField(target, "id", 10L);
+            ReflectionTestUtils.setField(target, "role", targetRole.name());
+            target.deactivate();
+            given(staffRepository.findById(10L)).willReturn(Optional.of(target));
+
+            assertForbidden(() -> service.updateStaff(10L,
+                    new com.lumie.staff.application.dto.request.StaffUpdateRequest(null, null, null, null)));
+            assertForbidden(() -> service.setStaffPermissions(10L, Map.of()));
+            assertForbidden(() -> service.resetStaffPassword(10L));
+            assertForbidden(() -> service.changeStaffLoginId(10L, "new_login"));
+            assertForbidden(() -> service.deactivateStaff(10L));
+            assertForbidden(() -> service.reactivateStaff(10L));
+            assertForbidden(() -> service.terminateStaff(10L));
+            assertForbidden(() -> service.deleteStaff(10L));
+        }
+
+        verify(staffRepository, never()).save(any(Staff.class));
+        verify(staffPermissionRepository, never()).deleteByStaffId(anyLong());
+        verifyNoInteractions(authService, billingService, classService);
+    }
+
+    private static void assertForbidden(org.assertj.core.api.ThrowableAssert.ThrowingCallable action) {
+        assertThatThrownBy(action)
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.FORBIDDEN));
     }
 
     @Test

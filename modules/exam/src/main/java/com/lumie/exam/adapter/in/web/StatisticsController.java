@@ -11,6 +11,7 @@ import com.lumie.exam.application.service.ResultQueryService;
 import com.lumie.exam.application.dto.response.RecentCompletedExamResponse;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
+import com.lumie.common.auth.AuthorizationGuard;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -34,6 +35,7 @@ public class StatisticsController {
 
     @GetMapping("/dashboard/recent-completed-exams")
     public ResponseEntity<List<RecentCompletedExamResponse>> getRecentCompletedExams() {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(resultQueryService.getRecentCompletedExams());
     }
 
@@ -43,6 +45,7 @@ public class StatisticsController {
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Boolean hasActiveEnrollment,
             @RequestParam(required = false) Boolean isActive) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(examSummaryStatisticsService.getExamStatistics(
                 examId, classId, hasActiveEnrollment, isActive));
     }
@@ -55,6 +58,7 @@ public class StatisticsController {
             @RequestParam(required = false) Boolean hasActiveEnrollment,
             @RequestParam(required = false) Boolean isActive,
             @PageableDefault(size = 20, sort = "rank") Pageable pageable) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(PageResponse.from(studentGradeQueryService.getStudentGrades(
                 examId, classId, hasActiveEnrollment, isActive, pageable)));
     }
@@ -62,6 +66,7 @@ public class StatisticsController {
     @GetMapping("/exams/{examId}/results-summary")
     public ResponseEntity<List<StudentResultSummaryResponse>> getStudentResultSummaries(
             @PathVariable Long examId) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(studentGradeQueryService.getStudentResultSummaries(examId));
     }
 
@@ -71,6 +76,7 @@ public class StatisticsController {
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Boolean hasActiveEnrollment,
             @RequestParam(required = false) Boolean isActive) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(choiceDistributionQueryService.getChoiceDistribution(
                 examId, classId, hasActiveEnrollment, isActive));
     }
@@ -81,6 +87,7 @@ public class StatisticsController {
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Boolean hasActiveEnrollment,
             @RequestParam(required = false) Boolean isActive) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(classComparisonQueryService.getClassComparison(
                 examId, classId, hasActiveEnrollment, isActive));
     }
@@ -91,6 +98,7 @@ public class StatisticsController {
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Boolean hasActiveEnrollment,
             @RequestParam(required = false) Boolean isActive) {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(itemAnalysisQueryService.getItemAnalysis(
                 examId, classId, hasActiveEnrollment, isActive));
     }
@@ -99,26 +107,31 @@ public class StatisticsController {
     public ResponseEntity<StudentRankResponse> getStudentRank(
             @PathVariable Long studentId,
             @RequestParam Long examId) {
+        resultQueryService.requireStudentAccess(studentId);
         return ResponseEntity.ok(studentAnalyticsQueryService.getStudentRank(studentId, examId));
     }
 
     @GetMapping("/students/{studentId}/stability")
     public ResponseEntity<StabilityIndexResponse> getStabilityIndex(@PathVariable Long studentId) {
+        resultQueryService.requireStudentAccess(studentId);
         return ResponseEntity.ok(studentAnalyticsQueryService.getStabilityIndex(studentId));
     }
 
     @GetMapping("/students/{studentId}/type-growth")
     public ResponseEntity<TypeGrowthTrendResponse> getTypeGrowthTrend(@PathVariable Long studentId) {
+        resultQueryService.requireStudentAccess(studentId);
         return ResponseEntity.ok(studentAnalyticsQueryService.getTypeGrowthTrend(studentId));
     }
 
     @GetMapping("/students/{studentId}/normalized")
     public ResponseEntity<NormalizedScoreResponse> getNormalizedScores(@PathVariable Long studentId) {
+        resultQueryService.requireStudentAccess(studentId);
         return ResponseEntity.ok(studentAnalyticsQueryService.getNormalizedScores(studentId));
     }
 
     @GetMapping("/dashboard")
     public ResponseEntity<DashboardStatisticsResponse> getDashboardStatistics() {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(examSummaryStatisticsService.getDashboardStatistics());
     }
 }

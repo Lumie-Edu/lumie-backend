@@ -1,5 +1,6 @@
 package com.lumie.auth.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.auth.application.dto.request.ChangePasswordRequest;
 import com.lumie.auth.application.dto.request.LoginRequest;
 import com.lumie.auth.application.dto.request.OwnerRegisterRequest;
@@ -66,6 +67,7 @@ public class AuthController {
     }
 
     @PostMapping("/me/password")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
@@ -75,6 +77,7 @@ public class AuthController {
     }
 
     @PatchMapping("/me/avatar")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> updateAvatar(@Valid @RequestBody UpdateAvatarRequest request) {
         Long userId = UserContextHolder.getUserId();
         if (userId == null) throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
@@ -91,6 +94,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/me/sessions/{sessionId}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> revokeSession(@PathVariable String sessionId) {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
@@ -101,6 +105,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/me/sessions")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> revokeOtherSessions() {
         Long userId = UserContextHolder.getUserId();
         String tenantSlug = TenantContextHolder.getTenant();
@@ -110,6 +115,7 @@ public class AuthController {
     }
 
     @PostMapping("/register/owner")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<AuthResponse> registerOwner(
             @Valid @RequestBody OwnerRegisterRequest request, HttpServletRequest httpRequest) {
         // Owner signup is a Lumie-product entry point. A tenant host must
@@ -127,6 +133,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
         String sessionId = sessionId(request);
         if (sessionId != null) authSessionService.logout(sessionId);
@@ -134,6 +141,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout-all")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> logoutAll(HttpServletRequest request) {
         String sessionId = sessionId(request);
         if (sessionId != null) authQueryService.findActiveSession(sessionId).ifPresent(authSessionService::logoutAll);

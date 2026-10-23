@@ -1,5 +1,6 @@
 package com.lumie.assignment.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.assignment.application.dto.request.CreateSubmissionRequest;
 import com.lumie.assignment.application.dto.request.UpdateSubmissionRequest;
 import com.lumie.assignment.application.dto.response.AssignmentSubmissionStatusResponse;
@@ -48,6 +49,7 @@ public class AssignmentSubmissionController {
     }
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<SubmissionResponse> createSubmission(
             @PathVariable Long assignmentId,
             @Valid @RequestBody CreateSubmissionRequest request) {

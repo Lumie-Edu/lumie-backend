@@ -19,6 +19,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -185,8 +186,35 @@ class MigrationsRlsIntegrationTest {
             // SELECT,INSERT,UPDATE,DELETE) so the role is a faithful stand-in.
             st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON classes TO " + APP_ROLE);
             st.execute("GRANT USAGE ON SEQUENCE classes_id_seq TO " + APP_ROLE);
+            st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON file_metadata TO " + APP_ROLE);
+            st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON file_storage_operation TO " + APP_ROLE);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to provision restricted app role", e);
+        }
+    }
+
+    @Test
+    void readOnlyChatbotRetiresConfirmedActionSchema() throws Exception {
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement();
+             ResultSet rs = st.executeQuery("""
+                     SELECT to_regclass('public.ai_confirmed_actions') IS NULL AS actions_removed,
+                            to_regclass('public.idx_ai_chat_messages_id_tenant_id') IS NULL AS action_index_removed,
+                            to_regclass('public.idx_sms_messages_tenant_source_action') IS NULL AS sms_index_removed,
+                            NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns
+                                 WHERE table_schema = 'public' AND table_name = 'sms_messages'
+                                   AND column_name = 'source_action_id'
+                            ) AS sms_column_removed,
+                            (SELECT count(*) FROM flyway_schema_history
+                              WHERE version IN ('132', '133', '134') AND success) AS migration_count
+                     """)) {
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getBoolean("actions_removed")).isTrue();
+            assertThat(rs.getBoolean("action_index_removed")).isTrue();
+            assertThat(rs.getBoolean("sms_index_removed")).isTrue();
+            assertThat(rs.getBoolean("sms_column_removed")).isTrue();
+            assertThat(rs.getInt("migration_count")).isEqualTo(3);
         }
     }
 
@@ -227,6 +255,65 @@ class MigrationsRlsIntegrationTest {
             assertThat(countClasses(conn))
                     .as("tenant 1 still sees its row after the hostile reads")
                     .isEqualTo(1);
+        }
+    }
+
+    @Test
+    void fileMetadataRlsPreventsCrossTenantReadAndDelete() throws Exception {
+        java.util.UUID tenantOneFile = java.util.UUID.randomUUID();
+        java.util.UUID tenantTwoFile = java.util.UUID.randomUUID();
+        try (Connection admin = adminConnection();
+             PreparedStatement insert = admin.prepareStatement("""
+                     INSERT INTO file_metadata
+                         (id, entity_type, original_filename, stored_filename, content_type,
+                          file_size, object_key, tenant_id)
+                     VALUES (?, 'TEXTBOOK', 'book.pdf', 'book.pdf', 'application/pdf', 12, ?, ?)
+                     """)) {
+            insert.setObject(1, tenantOneFile);
+            insert.setString(2, "tenant-one/" + tenantOneFile);
+            insert.setLong(3, 1L);
+            insert.executeUpdate();
+            insert.setObject(1, tenantTwoFile);
+            insert.setString(2, "tenant-two/" + tenantTwoFile);
+            insert.setLong(3, 2L);
+            insert.executeUpdate();
+        }
+
+        try (Connection tenantOne = appRoleConnection()) {
+            tenantOne.setAutoCommit(true);
+            setTenant(tenantOne, "1");
+            assertThat(countFileMetadataById(tenantOne, tenantOneFile))
+                    .as("a Tenant can read its own file row")
+                    .isEqualTo(1);
+            assertThat(countFileMetadataById(tenantOne, tenantTwoFile))
+                    .as("a Tenant cannot read another Tenant's file row")
+                    .isZero();
+            try (PreparedStatement deleteForeign = tenantOne.prepareStatement(
+                    "DELETE FROM file_metadata WHERE id = ?")) {
+                deleteForeign.setObject(1, tenantTwoFile);
+                assertThat(deleteForeign.executeUpdate())
+                        .as("a foreign file id cannot be deleted through RLS")
+                        .isZero();
+            }
+        }
+
+        try (Connection tenantTwo = appRoleConnection()) {
+            tenantTwo.setAutoCommit(true);
+            setTenant(tenantTwo, "2");
+            assertThat(countFileMetadataById(tenantTwo, tenantTwoFile))
+                    .as("the foreign row remains present after Tenant 1's delete request")
+                    .isEqualTo(1);
+        }
+    }
+
+    private static int countFileMetadataById(Connection connection, java.util.UUID fileId) throws Exception {
+        try (PreparedStatement query = connection.prepareStatement(
+                "SELECT count(*) FROM file_metadata WHERE id = ?")) {
+            query.setObject(1, fileId);
+            try (ResultSet result = query.executeQuery()) {
+                assertThat(result.next()).isTrue();
+                return result.getInt(1);
+            }
         }
     }
 
@@ -795,6 +882,165 @@ class MigrationsRlsIntegrationTest {
                     .isInstanceOf(SQLException.class)
                     .satisfies(error -> assertThat(((SQLException) error).getSQLState())
                             .isEqualTo("23503"));
+        }
+    }
+
+    @Test
+    void attachmentPromotionOutboxSchemaExistsAndRollsBackWithPendingMetadata() throws Exception {
+        UUID fileId = UUID.randomUUID();
+        UUID operationId = UUID.randomUUID();
+        long tenantId = 947_301L;
+
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement();
+             ResultSet outbox = st.executeQuery("SELECT to_regclass('public.file_storage_operation')")) {
+            assertThat(outbox.next()).isTrue();
+            assertThat(outbox.getString(1)).isEqualTo("file_storage_operation");
+        }
+
+        try (Connection admin = adminConnection()) {
+            admin.setAutoCommit(false);
+            try {
+                try (PreparedStatement file = admin.prepareStatement("""
+                        INSERT INTO file_metadata
+                            (id, entity_type, original_filename, stored_filename, content_type,
+                             file_size, object_key, upload_completed, upload_status, tenant_id)
+                        VALUES (?, 'ANNOUNCEMENT', 'notes.pdf', 'notes.pdf', 'application/pdf',
+                                128, 'files/demo/notes.pdf', false, 'PENDING', ?)
+                        """)) {
+                    file.setObject(1, fileId);
+                    file.setLong(2, tenantId);
+                    assertThat(file.executeUpdate()).isEqualTo(1);
+                }
+                try (PreparedStatement operation = admin.prepareStatement("""
+                        INSERT INTO file_storage_operation
+                            (id, tenant_id, file_id, operation_type, status, source_object_key,
+                             target_object_key, source_etag, expected_size, expected_content_type,
+                             source_created_at, source_expires_at, next_attempt_at, deadline_at)
+                        VALUES (?, ?, ?, 'PROMOTE', 'PENDING', 'tmp/demo/uploads/notes.pdf',
+                                'files/demo/notes.pdf', 'source-etag', 128, 'application/pdf',
+                                now(), now() + interval '24 hours', now(), now() + interval '22 hours')
+                        """)) {
+                    operation.setObject(1, operationId);
+                    operation.setLong(2, tenantId);
+                    operation.setObject(3, fileId);
+                    assertThat(operation.executeUpdate()).isEqualTo(1);
+                }
+            } finally {
+                admin.rollback();
+            }
+        }
+
+        try (Connection admin = adminConnection(); Statement st = admin.createStatement()) {
+            try (ResultSet files = st.executeQuery(
+                    "SELECT count(*) FROM file_metadata WHERE id = '" + fileId + "'")) {
+                assertThat(files.next()).isTrue();
+                assertThat(files.getLong(1)).isZero();
+            }
+            try (ResultSet operations = st.executeQuery(
+                    "SELECT count(*) FROM file_storage_operation WHERE id = '" + operationId + "'")) {
+                assertThat(operations.next()).isTrue();
+                assertThat(operations.getLong(1)).isZero();
+            }
+        }
+
+        try (Connection admin = adminConnection(); PreparedStatement insert = admin.prepareStatement("""
+                INSERT INTO file_storage_operation
+                    (id, tenant_id, file_id, operation_type, status, target_object_key, deadline_at)
+                VALUES (?, 200, ?, 'DELETE', 'PENDING', 'files/tenant-b/object.pdf', now() + interval '1 day')
+                """)) {
+            insert.setObject(1, operationId);
+            insert.setObject(2, fileId);
+            assertThat(insert.executeUpdate()).isEqualTo(1);
+        }
+
+        try (Connection app = appRoleConnection()) {
+            setTenant(app, "100");
+            try (PreparedStatement select = app.prepareStatement(
+                    "SELECT count(*) FROM file_storage_operation WHERE id = ?")) {
+                select.setObject(1, operationId);
+                try (ResultSet invisible = select.executeQuery()) {
+                    assertThat(invisible.next()).isTrue();
+                    assertThat(invisible.getLong(1)).isZero();
+                }
+            }
+
+            UUID rejectedOperationId = UUID.randomUUID();
+            try (PreparedStatement insert = app.prepareStatement("""
+                    INSERT INTO file_storage_operation
+                        (id, tenant_id, file_id, operation_type, status, target_object_key, deadline_at)
+                    VALUES (?, 200, ?, 'DELETE', 'PENDING', 'files/tenant-b/denied.pdf', now() + interval '1 day')
+                    """)) {
+                insert.setObject(1, rejectedOperationId);
+                insert.setObject(2, UUID.randomUUID());
+                assertThatThrownBy(insert::executeUpdate)
+                        .isInstanceOf(SQLException.class)
+                        .satisfies(error -> assertThat(((SQLException) error).getSQLState()).isEqualTo("42501"));
+            }
+
+            setTenant(app, "200");
+            try (PreparedStatement select = app.prepareStatement(
+                    "SELECT count(*) FROM file_storage_operation WHERE id = ?")) {
+                select.setObject(1, operationId);
+                try (ResultSet visible = select.executeQuery()) {
+                    assertThat(visible.next()).isTrue();
+                    assertThat(visible.getLong(1)).isEqualTo(1);
+                }
+            }
+        } finally {
+            try (Connection admin = adminConnection(); PreparedStatement delete = admin.prepareStatement(
+                    "DELETE FROM file_storage_operation WHERE id = ?")) {
+                delete.setObject(1, operationId);
+                delete.executeUpdate();
+            }
+        }
+    }
+
+    @Test
+    void concurrentTenantBoundClaimsSkipRowsAlreadyLocked() throws Exception {
+        UUID operationId = UUID.randomUUID();
+        UUID fileId = UUID.randomUUID();
+        long tenantId = 947_302L;
+        try (Connection admin = adminConnection(); PreparedStatement insert = admin.prepareStatement("""
+                INSERT INTO file_storage_operation
+                    (id, tenant_id, file_id, operation_type, status, target_object_key, deadline_at)
+                VALUES (?, ?, ?, 'DELETE', 'PENDING', 'files/demo/claim.pdf', now() + interval '1 day')
+                """)) {
+            insert.setObject(1, operationId);
+            insert.setLong(2, tenantId);
+            insert.setObject(3, fileId);
+            assertThat(insert.executeUpdate()).isEqualTo(1);
+        }
+
+        try (Connection firstWorker = appRoleConnection(); Connection secondWorker = appRoleConnection()) {
+            firstWorker.setAutoCommit(false);
+            secondWorker.setAutoCommit(false);
+            setTenant(firstWorker, String.valueOf(tenantId));
+            setTenant(secondWorker, String.valueOf(tenantId));
+            String dueClaim = """
+                    SELECT id FROM file_storage_operation
+                    WHERE status IN ('PENDING', 'RETRY') AND next_attempt_at <= now()
+                    ORDER BY next_attempt_at, created_at
+                    LIMIT 10
+                    FOR UPDATE SKIP LOCKED
+                    """;
+            try (PreparedStatement claim = firstWorker.prepareStatement(dueClaim);
+                 ResultSet firstClaim = claim.executeQuery()) {
+                assertThat(firstClaim.next()).isTrue();
+                assertThat(firstClaim.getObject(1, UUID.class)).isEqualTo(operationId);
+            }
+            try (PreparedStatement claim = secondWorker.prepareStatement(dueClaim);
+                 ResultSet skippedClaim = claim.executeQuery()) {
+                assertThat(skippedClaim.next()).isFalse();
+            }
+            secondWorker.rollback();
+            firstWorker.rollback();
+        } finally {
+            try (Connection admin = adminConnection(); PreparedStatement delete = admin.prepareStatement(
+                    "DELETE FROM file_storage_operation WHERE id = ?")) {
+                delete.setObject(1, operationId);
+                delete.executeUpdate();
+            }
         }
     }
 

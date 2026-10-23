@@ -1,5 +1,6 @@
 package com.lumie.notification.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.notification.application.dto.request.CreateTemplateRequest;
 import com.lumie.notification.application.dto.request.UpdateTemplateRequest;
 import com.lumie.notification.application.dto.response.SmsTemplateResponse;
@@ -35,6 +36,7 @@ public class SmsTemplateController {
     }
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<SmsTemplateResponse> createTemplate(
             @Valid @RequestBody CreateTemplateRequest request) {
         SmsTemplateResponse response = commandService.createTemplate(request);
@@ -50,6 +52,7 @@ public class SmsTemplateController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteTemplate(@PathVariable Long id) {
         commandService.deleteTemplate(id);
         return ResponseEntity.noContent().build();

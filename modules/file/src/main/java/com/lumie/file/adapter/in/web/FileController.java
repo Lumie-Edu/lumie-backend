@@ -1,5 +1,8 @@
 package com.lumie.file.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.auth.Role;
+import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.application.dto.response.TemporaryObjectUploadResponse;
@@ -50,6 +53,7 @@ public class FileController {
 
     @GetMapping("/{fileId}/downloaders")
     public ResponseEntity<List<com.lumie.file.application.dto.response.FileDownloaderResponse>> getFileDownloaders(@PathVariable UUID fileId) {
+        AuthorizationGuard.requireStaff();
         List<com.lumie.file.application.dto.response.FileDownloaderResponse> response = fileQueryService.getFileDownloaders(fileId);
         return ResponseEntity.ok(response);
     }
@@ -58,6 +62,10 @@ public class FileController {
     @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<TemporaryObjectUploadResponse> createTemporaryUpload(
             @Valid @RequestBody CreateTemporaryUploadRequest request) {
+        Role role = UserContextHolder.getUserRole();
+        if (role != Role.STUDENT || request.entityType() != EntityType.QNA) {
+            AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(temporaryObjectUploadService.create(request));
     }
 
@@ -65,6 +73,7 @@ public class FileController {
     @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<List<FileMetadataResponse>> registerTextbookFiles(
             @Valid @RequestBody RegisterTextbookFilesRequest request) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         return ResponseEntity.status(HttpStatus.CREATED).body(fileCommandService.registerTextbookFiles(request));
     }
 
@@ -75,7 +84,9 @@ public class FileController {
     }
 
     @DeleteMapping("/{fileId}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteFile(@PathVariable UUID fileId) {
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         fileCommandService.deleteFile(fileId);
         return ResponseEntity.noContent().build();
     }
@@ -86,6 +97,9 @@ public class FileController {
             @RequestParam(required = false) Long entityId,
             @RequestParam(required = false) UUID folderId,
             @RequestParam(required = false, defaultValue = "false") boolean all) {
+        if (entityType == EntityType.TEXTBOOK) {
+            AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
+        }
         List<FileMetadataResponse> response;
         if (entityType == EntityType.TEXTBOOK && all) {
             response = fileQueryService.getAllFilesByEntityType(entityType);

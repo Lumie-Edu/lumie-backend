@@ -1,5 +1,7 @@
 package com.lumie.classroom.adapter.in.web;
 
+import com.lumie.common.auth.AuthorizationGuard;
+
 import com.lumie.classroom.application.dto.response.statistics.ClassDashboardResponse;
 import com.lumie.classroom.application.service.ClassStatisticsQueryService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ public class ClassStatisticsController {
 
     @GetMapping("/dashboard")
     public ResponseEntity<ClassDashboardResponse> getDashboardStatistics() {
+        AuthorizationGuard.requireStaff();
         return ResponseEntity.ok(classStatisticsQueryService.getDashboardStatistics());
     }
 }

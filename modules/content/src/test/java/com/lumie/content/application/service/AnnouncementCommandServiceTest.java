@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AnnouncementCommandService 테스트")
@@ -46,6 +47,7 @@ class AnnouncementCommandServiceTest {
     @BeforeEach
     void setUpTenant() {
         TenantContextHolder.setTenant("test-tenant");
+        UserContextHolder.setUserId(900L);
         UserContextHolder.setUserRole(Role.OWNER);
     }
 
@@ -80,6 +82,28 @@ class AnnouncementCommandServiceTest {
 
         assertThat(response.authorName()).isEqualTo("원장");
         assertThat(response.audienceScope()).isEqualTo(AnnouncementAudienceScope.ALL);
+        verify(fileService).attachPreparedFiles("announcement", 1L, List.of());
+    }
+
+    @Test
+    @DisplayName("요청 작성자 ID 대신 인증한 사용자를 공지 작성자로 저장한다")
+    void createAnnouncement_ignoresForgedAuthorId() {
+        CreateAnnouncementRequest request = new CreateAnnouncementRequest(
+                1234L, "공지", "내용", false, false, null, List.of(), AnnouncementAudienceScope.ALL);
+        given(announcementRepository.save(any(Announcement.class))).willAnswer(invocation -> {
+            Announcement announcement = invocation.getArgument(0);
+            ReflectionTestUtils.setField(announcement, "id", 1L);
+            return announcement;
+        });
+        given(staffService.getStaffByUserId("test-tenant", 900L))
+                .willReturn(Optional.of(staff(900L, "원장")));
+
+        commandService.createAnnouncement(request);
+
+        org.mockito.ArgumentCaptor<Announcement> saved = org.mockito.ArgumentCaptor.forClass(Announcement.class);
+        verify(announcementRepository).save(saved.capture());
+        assertThat(saved.getValue().getAuthorId()).isEqualTo(900L);
+        assertThat(saved.getValue().getAuthorId()).isNotEqualTo(request.authorId());
     }
 
     @Test
@@ -135,6 +159,7 @@ class AnnouncementCommandServiceTest {
         inOrder.verify(classTargetRepository).deleteByAnnouncementId(1L);
         inOrder.verify(classTargetRepository).flush();
         inOrder.verify(classTargetRepository).saveAll(anyList());
+        verify(fileService).reconcilePreparedDirectFiles("announcement", 1L, null, List.of());
     }
 
     @Test
@@ -156,6 +181,17 @@ class AnnouncementCommandServiceTest {
 
         assertThatThrownBy(() -> commandService.createAnnouncement(request))
                 .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+    }
+
+    @Test
+    void deleteAnnouncementUsesTheFileServiceDeletionContractInsideTheCommand() {
+        given(announcementRepository.existsById(1L)).willReturn(true);
+
+        commandService.deleteAnnouncement(1L);
+
+        verify(fileService).deleteFilesByEntity("announcement", 1L);
+        verify(announcementRepository).deleteById(1L);
+        verify(classTargetRepository).deleteByAnnouncementId(1L);
     }
 
     private static Announcement announcement(Long id, Long authorId) {

@@ -1,6 +1,7 @@
 package com.lumie.auth.adapter.out.persistence;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumie.auth.application.exception.AuthErrorCode;
 import com.lumie.auth.application.port.out.SessionPersistencePort;
@@ -54,12 +55,19 @@ public class RedisSessionPersistenceAdapter implements SessionPersistencePort {
             return Optional.empty();
         }
         try {
-            return Optional.of(objectMapper.readValue(value, AuthSession.class));
+            return Optional.of(readSession(objectMapper, value));
         } catch (JsonProcessingException e) {
             log.warn("Discarding unreadable auth session {}", sessionId, e);
             redisTemplate.delete(sessionKey(sessionId));
             return Optional.empty();
         }
+    }
+
+    static AuthSession readSession(ObjectMapper objectMapper, String value)
+            throws JsonProcessingException {
+        return objectMapper.readerFor(AuthSession.class)
+                .with(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL)
+                .readValue(value);
     }
 
     @Override

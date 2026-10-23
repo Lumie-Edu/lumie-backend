@@ -1,5 +1,6 @@
 package com.lumie.content.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import com.lumie.content.application.dto.request.CreateAnnouncementRequest;
 import com.lumie.content.application.dto.request.UpdateAnnouncementRequest;
 import com.lumie.content.application.dto.response.AnnouncementResponse;
@@ -52,6 +53,7 @@ public class AnnouncementController {
     }
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<AnnouncementResponse> createAnnouncement(
             @Valid @RequestBody CreateAnnouncementRequest request) {
         AnnouncementResponse response = commandService.createAnnouncement(request);
@@ -66,6 +68,7 @@ public class AnnouncementController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteAnnouncement(@PathVariable Long id) {
         commandService.deleteAnnouncement(id);
         return ResponseEntity.noContent().build();

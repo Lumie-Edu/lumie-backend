@@ -1,6 +1,8 @@
 package com.lumie.content.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.UserContextHolder;
+import com.lumie.common.auth.Role;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
 import com.lumie.content.domain.repository.QnaBoardRepository;
@@ -37,11 +39,13 @@ class QnaQueryServiceTest {
     @BeforeEach
     void setUpTenant() {
         TenantContextHolder.setTenant("test-tenant");
+        UserContextHolder.setUserRole(Role.OWNER);
     }
 
     @AfterEach
     void tearDownTenant() {
         TenantContextHolder.clear();
+        UserContextHolder.clear();
     }
 
     @Test
