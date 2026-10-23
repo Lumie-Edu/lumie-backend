@@ -3,6 +3,9 @@ package com.lumie.exam.application.service;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.domain.repository.OmrGradingJobRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
+import com.lumie.exam.domain.repository.ReportGenerationItemRepository;
+import com.lumie.exam.domain.vo.JobStatus;
+import com.lumie.exam.domain.vo.ReportGenerationItemStatus;
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.api.TenantService.TenantData;
 import lombok.RequiredArgsConstructor;
@@ -95,6 +98,7 @@ public class ExamJobTimeoutSweeper {
     static class Tx {
         private final OmrGradingJobRepository omrGradingJobRepository;
         private final ReportGenerationJobRepository reportGenerationJobRepository;
+        private final ReportGenerationItemRepository reportGenerationItemRepository;
 
         @Transactional
         public int sweepOmrJobs(Instant cutoff) {
@@ -103,7 +107,24 @@ public class ExamJobTimeoutSweeper {
 
         @Transactional
         public int sweepReportJobs(Instant cutoff) {
-            return reportGenerationJobRepository.markStaleAsFailed(cutoff);
+            List<com.lumie.exam.domain.entity.ReportGenerationJob> staleJobs =
+                    reportGenerationJobRepository.findStaleOpenJobsForUpdate(
+                            List.of(JobStatus.PENDING, JobStatus.PROCESSING), cutoff);
+            int marked = 0;
+            for (var job : staleJobs) {
+                int failedItems = 0;
+                if (job.isCallbacksItemized()) {
+                    List<com.lumie.exam.domain.entity.ReportGenerationItem> pendingItems =
+                            reportGenerationItemRepository.findByJobIdAndStatusOrderByReportIndexAsc(
+                                    job.getId(), ReportGenerationItemStatus.PENDING);
+                    for (var item : pendingItems) {
+                        item.completeWithFailure("REPORT_JOB_TIMEOUT");
+                        failedItems++;
+                    }
+                }
+                marked += reportGenerationJobRepository.failStaleJob(job.getId(), failedItems);
+            }
+            return marked;
         }
     }
 }

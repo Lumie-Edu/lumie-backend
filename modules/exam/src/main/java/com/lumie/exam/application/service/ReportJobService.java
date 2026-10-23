@@ -7,12 +7,15 @@ import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
 import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.Exam;
+import com.lumie.exam.domain.entity.ReportGenerationItem;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.vo.JobStatus;
+import com.lumie.exam.domain.vo.ReportGenerationItemStatus;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
+import com.lumie.exam.domain.repository.ReportGenerationItemRepository;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +62,11 @@ public class ReportJobService {
 
         ReportGenerationJob job = ReportGenerationJob.create(exam, tenantSlug, studentIds);
         ReportGenerationJob savedJob = jobRepository.save(job);
+        List<ReportGenerationItem> items = java.util.stream.IntStream.range(0, studentIds.size())
+                .mapToObj(index -> ReportGenerationItem.pending(
+                        savedJob.getId(), examId, index, studentIds.get(index)))
+                .toList();
+        tx.createItems(items);
 
         // Outbox: each event is persisted to event_publication in THIS transaction,
         // atomically with the job row, then forwarded to RabbitMQ after commit by
@@ -173,6 +181,47 @@ public class ReportJobService {
         log.info("Processing report callback: jobId={}, studentId={}, success={}",
                 request.jobId(), request.studentId(), request.success());
 
+        CallbackContext context = tx.loadCallbackContext(request);
+        if (!context.open()) {
+            log.warn("Late report callback skipped for terminal job: jobId={}, reportIndex={}",
+                    request.jobId(), request.reportIndex());
+            return;
+        }
+
+        if (!context.itemized()) {
+            processLegacyCallback(request);
+            return;
+        }
+
+        if (context.itemStatus() != ReportGenerationItemStatus.PENDING) {
+            boolean callbackSuccess = request.success();
+            boolean recordedSuccess = context.itemStatus() == ReportGenerationItemStatus.SUCCESS;
+            if (callbackSuccess != recordedSuccess) {
+                log.warn("Conflicting report callback ignored after terminal item state: "
+                                + "jobId={}, reportIndex={}, recordedStatus={}, callbackSuccess={}",
+                        request.jobId(), request.reportIndex(), context.itemStatus(), callbackSuccess);
+            } else {
+                log.info("Duplicate report callback skipped by item state: jobId={}, reportIndex={}, status={}",
+                        request.jobId(), request.reportIndex(), context.itemStatus());
+            }
+            return;
+        }
+
+        CallbackOutcome outcome = prepareItemizedOutcome(request);
+        CallbackPersistenceResult result = tx.completeItem(request, outcome);
+        if (!result.transitioned()) {
+            log.info("Concurrent report callback already transitioned item: jobId={}, reportIndex={}",
+                    request.jobId(), request.reportIndex());
+            return;
+        }
+        if (result.finalized()) {
+            log.info("Report job reached terminal state: jobId={}", request.jobId());
+            createZipFile(request.jobId());
+        }
+    }
+
+    private void processLegacyCallback(ReportCallbackRequest request) {
+
         String dedupKey = "report:cb:" + request.jobId() + ":" + request.reportIndex();
         if (!callbackDeduplication.markIfAbsent(dedupKey)) {
             log.warn("Duplicate report callback skipped: jobId={}, reportIndex={}",
@@ -211,6 +260,42 @@ public class ReportJobService {
             }
             throw processingFailure;
         }
+    }
+
+    private CallbackOutcome prepareItemizedOutcome(ReportCallbackRequest request) {
+        if (!request.success()) {
+            return CallbackOutcome.failed(boundError(request.error(), "REPORT_GENERATION_FAILED"));
+        }
+
+        String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
+        String expectedFileKey = buildReportFileKey(tenantId, request.examId(), request.studentId());
+        if (request.fileKey() != null && !request.fileKey().isBlank()) {
+            if (!expectedFileKey.equals(request.fileKey())) {
+                return CallbackOutcome.failed("UNEXPECTED_FILE_KEY");
+            }
+            // Storage read errors are transient delivery failures. Only readable,
+            // non-PDF content is a terminal report failure.
+            byte[] storedBytes = storagePort.getObject(expectedFileKey);
+            if (!ReportFileFormat.isPdf(storedBytes)) {
+                return CallbackOutcome.failed("INVALID_REPORT_FILE");
+            }
+            return CallbackOutcome.succeeded(expectedFileKey);
+        }
+
+        byte[] reportBytes = decodeReportBytes(request.reportBytes());
+        if (!ReportFileFormat.isPdf(reportBytes)) {
+            return CallbackOutcome.failed("INVALID_REPORT_FILE");
+        }
+
+        // The storage write stays outside the DB transaction. Retrying writes
+        // the same deterministic key; the DB state transition gates counting.
+        storagePort.putObject(expectedFileKey, reportBytes, ReportFileFormat.PDF_CONTENT_TYPE);
+        return CallbackOutcome.succeeded(expectedFileKey);
+    }
+
+    private static String boundError(String error, String fallback) {
+        String message = error == null || error.isBlank() ? fallback : error;
+        return message.substring(0, Math.min(1000, message.length()));
     }
 
     private void processSuccessfulCallback(ReportCallbackRequest request) {
@@ -285,18 +370,19 @@ public class ReportJobService {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zos = new ZipOutputStream(baos)) {
-            for (Long studentId : manifest.studentIds()) {
+            for (ReportZipItem report : manifest.reports()) {
                 if (isExpired(existingExpiry)) {
                     throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
                 }
                 try {
                     StoredReport storedReport = getStoredReport(
-                            tenantId, manifest.examId(), studentId, existingExpiry);
+                            tenantId, manifest.examId(), report.studentId(), report.fileKey(),
+                            report.allowLegacyJpg(), existingExpiry);
                     if (isExpired(existingExpiry)) {
                         throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
                     }
                     String studentName = manifest.studentNamesById()
-                            .getOrDefault(studentId, "학생 " + studentId);
+                            .getOrDefault(report.studentId(), "학생 " + report.studentId());
                     String entryName = uniqueFilename(
                             buildReportFilename(studentName, manifest.examName(), storedReport.extension()),
                             entryNameCounts);
@@ -309,7 +395,7 @@ public class ReportJobService {
                             && businessException.getErrorCode() == ExamErrorCode.REPORT_ZIP_EXPIRED) {
                         throw businessException;
                     }
-                    log.warn("Failed to add report to ZIP: studentId={}", studentId, e);
+                    log.warn("Failed to add report to ZIP: studentId={}", report.studentId(), e);
                 }
             }
         }
@@ -332,11 +418,12 @@ public class ReportJobService {
         log.info("ZIP created: jobId={}, key={}", jobId, zipKey);
     }
 
-    private StoredReport getStoredReport(String tenantId, Long examId, Long studentId, Instant existingExpiry) {
+    private StoredReport getStoredReport(
+            String tenantId, Long examId, Long studentId, String fileKey,
+            boolean allowLegacyJpg, Instant existingExpiry) {
         if (isExpired(existingExpiry)) {
             throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
         }
-        String fileKey = buildReportFileKey(tenantId, examId, studentId);
         try {
             byte[] bytes = storagePort.getObject(fileKey);
             if (isExpired(existingExpiry)) {
@@ -346,6 +433,9 @@ public class ReportJobService {
         } catch (RuntimeException pdfFailure) {
             if (isExpired(existingExpiry)) {
                 throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
+            }
+            if (!allowLegacyJpg) {
+                throw pdfFailure;
             }
             String legacyFileKey = buildLegacyReportFileKey(tenantId, examId, studentId);
             try {
@@ -420,13 +510,32 @@ public class ReportJobService {
     }
 
     private record ReportZipManifest(String tenantSlug, Long examId, String examName, int successCount,
-                                     List<Long> studentIds, Map<Long, String> studentNamesById) {
+                                     List<ReportZipItem> reports, Map<Long, String> studentNamesById) {
+    }
+
+    private record ReportZipItem(Long studentId, String fileKey, boolean allowLegacyJpg) {
     }
 
     private record ReportZipDownloadState(JobStatus status, int successCount, String zipFileKey, Instant zipExpiresAt) {
     }
 
     private record StoredReport(byte[] bytes, String extension) {
+    }
+
+    record CallbackContext(boolean itemized, boolean open, ReportGenerationItemStatus itemStatus) {
+    }
+
+    record CallbackOutcome(boolean success, String fileKey, String errorMessage) {
+        static CallbackOutcome succeeded(String fileKey) {
+            return new CallbackOutcome(true, fileKey, null);
+        }
+
+        static CallbackOutcome failed(String errorMessage) {
+            return new CallbackOutcome(false, null, errorMessage);
+        }
+    }
+
+    record CallbackPersistenceResult(boolean transitioned, boolean finalized) {
     }
 
     /**
@@ -439,7 +548,101 @@ public class ReportJobService {
     @RequiredArgsConstructor
     static class Tx {
         private final ReportGenerationJobRepository jobRepository;
+        private final ReportGenerationItemRepository itemRepository;
         private final StudentService studentService;
+
+        @Transactional
+        public void createItems(List<ReportGenerationItem> items) {
+            itemRepository.saveAll(items);
+        }
+
+        @Transactional(readOnly = true)
+        public CallbackContext loadCallbackContext(ReportCallbackRequest request) {
+            if (request.jobId() == null || request.examId() == null || request.studentId() == null
+                    || request.tenantSlug() == null || request.tenantSlug().isBlank()
+                    || request.totalReports() < 1 || request.reportIndex() < 0
+                    || request.reportIndex() >= request.totalReports()) {
+                throw invalidCallback("Missing or invalid report callback identity");
+            }
+
+            ReportGenerationJob job = jobRepository.findById(request.jobId())
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+            if (!request.tenantSlug().equals(job.getTenantSlug())
+                    || !request.examId().equals(job.getExam().getId())
+                    || request.totalReports() != job.getTotalReports()
+                    || job.getStudentIds() == null
+                    || request.reportIndex() >= job.getStudentIds().size()
+                    || !request.studentId().equals(job.getStudentIds().get(request.reportIndex()))) {
+                throw invalidCallback("Report callback does not match its job identity");
+            }
+
+            boolean open = job.getStatus() == JobStatus.PENDING || job.getStatus() == JobStatus.PROCESSING;
+            if (!job.isCallbacksItemized()) {
+                return new CallbackContext(false, open, null);
+            }
+
+            ReportGenerationItem item = itemRepository
+                    .findByJobIdAndReportIndex(request.jobId(), request.reportIndex())
+                    .orElseThrow(() -> invalidCallback("Report item is missing"));
+            if (!request.examId().equals(item.getExamId())
+                    || !request.studentId().equals(item.getStudentId())) {
+                throw invalidCallback("Report callback does not match its report item");
+            }
+            return new CallbackContext(true, open, item.getStatus());
+        }
+
+        @Transactional
+        public CallbackPersistenceResult completeItem(ReportCallbackRequest request, CallbackOutcome outcome) {
+            ReportGenerationJob job = jobRepository.findByIdForUpdate(request.jobId())
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+            if (!job.isCallbacksItemized() || !isOpen(job.getStatus())) {
+                return new CallbackPersistenceResult(false, false);
+            }
+            validateCallbackMatchesJob(request, job);
+
+            ReportGenerationItem item = itemRepository
+                    .findByJobIdAndReportIndexForUpdate(request.jobId(), request.reportIndex())
+                    .orElseThrow(() -> invalidCallback("Report item is missing"));
+            if (!request.examId().equals(item.getExamId())
+                    || !request.studentId().equals(item.getStudentId())) {
+                throw invalidCallback("Report callback does not match its report item");
+            }
+
+            boolean transitioned = outcome.success()
+                    ? item.completeSuccessfully(outcome.fileKey())
+                    : item.completeWithFailure(outcome.errorMessage());
+            if (!transitioned) {
+                return new CallbackPersistenceResult(false, false);
+            }
+
+            jobRepository.startProcessingIfPending(request.jobId());
+            if (outcome.success()) {
+                jobRepository.incrementSuccess(request.jobId());
+            } else {
+                jobRepository.incrementFail(request.jobId());
+            }
+            boolean finalized = jobRepository.tryFinalize(request.jobId(), job.getTotalReports());
+            return new CallbackPersistenceResult(true, finalized);
+        }
+
+        private static void validateCallbackMatchesJob(ReportCallbackRequest request, ReportGenerationJob job) {
+            if (!request.tenantSlug().equals(job.getTenantSlug())
+                    || !request.examId().equals(job.getExam().getId())
+                    || request.totalReports() != job.getTotalReports()
+                    || job.getStudentIds() == null
+                    || request.reportIndex() >= job.getStudentIds().size()
+                    || !request.studentId().equals(job.getStudentIds().get(request.reportIndex()))) {
+                throw invalidCallback("Report callback does not match its job identity");
+            }
+        }
+
+        private static boolean isOpen(JobStatus status) {
+            return status == JobStatus.PENDING || status == JobStatus.PROCESSING;
+        }
+
+        private static BusinessException invalidCallback(String message) {
+            return new BusinessException(ExamErrorCode.INVALID_EXAM_DATA, message);
+        }
 
         @Transactional
         public void markProcessing(Long jobId) {
@@ -474,9 +677,21 @@ public class ReportJobService {
             ReportGenerationJob job = jobRepository.findById(jobId)
                     .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
             String tenantSlug = job.getTenantSlug();
+            Long examId = job.getExam().getId();
+            String storageTenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
+            List<ReportZipItem> reports = job.isCallbacksItemized()
+                    ? itemRepository.findByJobIdOrderByReportIndexAsc(jobId).stream()
+                            .filter(item -> item.getStatus() == ReportGenerationItemStatus.SUCCESS)
+                            .map(item -> new ReportZipItem(item.getStudentId(), item.getFileKey(), false))
+                            .toList()
+                    : job.getStudentIds().stream()
+                            .map(studentId -> new ReportZipItem(
+                                    studentId, buildReportFileKey(storageTenantId, examId, studentId), true))
+                            .toList();
+            List<Long> reportStudentIds = reports.stream().map(ReportZipItem::studentId).distinct().toList();
             Map<Long, String> studentNamesById = studentService.getStudentsByIds(
                             tenantSlug,
-                            List.copyOf(job.getStudentIds())
+                            reportStudentIds
                     )
                     .students()
                     .stream()
@@ -487,10 +702,10 @@ public class ReportJobService {
                     ));
             return new ReportZipManifest(
                     tenantSlug,
-                    job.getExam().getId(),
+                    examId,
                     job.getExam().getName(),
                     job.getSuccessCount(),
-                    List.copyOf(job.getStudentIds()),
+                    reports,
                     studentNamesById
             );
         }
