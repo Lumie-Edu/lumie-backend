@@ -178,7 +178,6 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
     }
 
     @Test
-    @Test
     void storageAndDatabaseFailuresLeaveItemPendingForRedelivery() {
         JobData data = createJob(List.of(992_001L, 992_002L, 992_003L, 992_004L));
         byte[] pdf = "%PDF-1.7\nretry".getBytes(StandardCharsets.US_ASCII);
