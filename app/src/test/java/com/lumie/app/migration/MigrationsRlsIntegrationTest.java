@@ -188,6 +188,8 @@ class MigrationsRlsIntegrationTest {
             st.execute("GRANT USAGE ON SEQUENCE classes_id_seq TO " + APP_ROLE);
             st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON file_metadata TO " + APP_ROLE);
             st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON file_storage_operation TO " + APP_ROLE);
+            st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON report_generation_items TO " + APP_ROLE);
+            st.execute("GRANT USAGE, SELECT ON SEQUENCE report_generation_items_id_seq TO " + APP_ROLE);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to provision restricted app role", e);
         }
@@ -303,6 +305,69 @@ class MigrationsRlsIntegrationTest {
             assertThat(countFileMetadataById(tenantTwo, tenantTwoFile))
                     .as("the foreign row remains present after Tenant 1's delete request")
                     .isEqualTo(1);
+        }
+    }
+
+    @Test
+    void reportGenerationItemsHaveForcedTenantRlsAndHideForeignRows() throws Exception {
+        long tenantOne = 880_001L;
+        long tenantTwo = 880_002L;
+        long examId = 881_002L;
+        long jobId = 882_002L;
+
+        try (Connection admin = adminConnection(); Statement st = admin.createStatement()) {
+            st.executeUpdate("""
+                    INSERT INTO tenants (id, slug, name, status, plan_id)
+                    VALUES (880001, 'report-rls-a', 'Report RLS A', 'ACTIVE', 'BASIC'),
+                           (880002, 'report-rls-b', 'Report RLS B', 'ACTIVE', 'BASIC')
+                    ON CONFLICT (id) DO NOTHING
+                    """);
+            st.executeUpdate("""
+                    INSERT INTO exams
+                        (id, name, category, total_questions, correct_answers, question_scores,
+                         grading_type, grade_scale, tenant_id)
+                    VALUES (881002, 'Report RLS exam', 'GRADED', 1, '{"1":"1"}'::jsonb,
+                            '{"1":100}'::jsonb, 'ABSOLUTE', 'NINE_GRADE', 880002)
+                    """);
+            st.executeUpdate("""
+                    INSERT INTO report_generation_jobs
+                        (id, exam_id, tenant_slug, status, total_reports, processed_reports,
+                         success_count, fail_count, student_ids, tenant_id)
+                    VALUES (882002, 881002, 'report-rls-b', 'PENDING', 1, 0, 0, 0,
+                            '[991002]'::jsonb, 880002)
+                    """);
+            st.executeUpdate("""
+                    INSERT INTO report_generation_items
+                        (tenant_id, job_id, exam_id, report_index, student_id, status)
+                    VALUES (880002, 882002, 881002, 0, 991002, 'PENDING')
+                    """);
+            try (ResultSet rs = st.executeQuery("""
+                    SELECT c.relrowsecurity, c.relforcerowsecurity
+                    FROM pg_class c WHERE c.oid = 'report_generation_items'::regclass
+                    """)) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getBoolean("relrowsecurity")).isTrue();
+                assertThat(rs.getBoolean("relforcerowsecurity")).isTrue();
+            }
+        }
+
+        try (Connection app = appRoleConnection()) {
+            app.setAutoCommit(true);
+            setTenant(app, Long.toString(tenantOne));
+            assertThat(countReportItems(app, jobId)).isZero();
+            setTenant(app, Long.toString(tenantTwo));
+            assertThat(countReportItems(app, jobId)).isEqualTo(1);
+        }
+    }
+
+    private static int countReportItems(Connection connection, long jobId) throws Exception {
+        try (PreparedStatement query = connection.prepareStatement(
+                "SELECT count(*) FROM report_generation_items WHERE job_id = ?")) {
+            query.setLong(1, jobId);
+            try (ResultSet result = query.executeQuery()) {
+                assertThat(result.next()).isTrue();
+                return result.getInt(1);
+            }
         }
     }
 

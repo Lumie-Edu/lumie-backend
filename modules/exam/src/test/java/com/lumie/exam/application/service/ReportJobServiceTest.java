@@ -7,10 +7,13 @@ import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
+import com.lumie.exam.domain.entity.ReportGenerationItem;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
+import com.lumie.exam.domain.repository.ReportGenerationItemRepository;
 import com.lumie.exam.domain.vo.JobStatus;
+import com.lumie.exam.domain.vo.ReportGenerationItemStatus;
 import com.lumie.exam.test.ExamFixtures;
 import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +44,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith({MockitoExtension.class, TenantContextExtension.class})
 class ReportJobServiceTest {
@@ -49,6 +53,8 @@ class ReportJobServiceTest {
     private ExamRepository examRepository;
     @Mock
     private ReportGenerationJobRepository jobRepository;
+    @Mock
+    private ReportGenerationItemRepository itemRepository;
     @Mock
     private OmrStoragePort storagePort;
     @Mock
@@ -62,7 +68,7 @@ class ReportJobServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReportJobService.Tx tx = new ReportJobService.Tx(jobRepository, studentService);
+        ReportJobService.Tx tx = new ReportJobService.Tx(jobRepository, itemRepository, studentService);
         service = new ReportJobService(
                 examRepository,
                 jobRepository,
@@ -72,6 +78,12 @@ class ReportJobServiceTest {
                 studentService,
                 tx
         );
+        Exam exam = ExamFixtures.aGradedExam();
+        ReflectionTestUtils.setField(exam, "id", 10L);
+        ReportGenerationJob legacyJob = ReportGenerationJob.create(exam, "test-tenant", List.of(99L));
+        ReflectionTestUtils.setField(legacyJob, "id", 1L);
+        ReflectionTestUtils.setField(legacyJob, "callbacksItemized", false);
+        org.mockito.Mockito.lenient().when(jobRepository.findById(1L)).thenReturn(Optional.of(legacyJob));
     }
 
     @Test
@@ -107,6 +119,31 @@ class ReportJobServiceTest {
                     assertThat(event.totalReports()).isEqualTo(65);
                     assertThat(event.tenantSlug()).isEqualTo("test-tenant");
                 });
+        ArgumentCaptor<Iterable<ReportGenerationItem>> itemCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(itemRepository).saveAll(itemCaptor.capture());
+        assertThat(itemCaptor.getValue()).extracting(ReportGenerationItem::getReportIndex)
+                .containsExactlyElementsOf(java.util.stream.IntStream.range(0, 65).boxed().toList());
+        assertThat(itemCaptor.getValue()).extracting(ReportGenerationItem::getStudentId)
+                .containsExactlyElementsOf(studentIds);
+    }
+
+    @Test
+    void createBatchJob_doesNotPublishEventsWhenItemRowsCannotBeSaved() {
+        Exam exam = ExamFixtures.aGradedExam();
+        ReflectionTestUtils.setField(exam, "id", 10L);
+        given(examRepository.findById(10L)).willReturn(Optional.of(exam));
+        given(jobRepository.save(any(ReportGenerationJob.class))).willAnswer(invocation -> {
+            ReportGenerationJob job = invocation.getArgument(0);
+            ReflectionTestUtils.setField(job, "id", 1L);
+            return job;
+        });
+        given(itemRepository.saveAll(any())).willThrow(new IllegalStateException("item persistence failed"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                        service.createBatchJob(10L, List.of(99L, 100L)))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -168,6 +205,63 @@ class ReportJobServiceTest {
                 "tmp/test-tenant/reports/10/99.pdf", pdfBytes, ReportFileFormat.PDF_CONTENT_TYPE);
         verify(jobRepository).incrementSuccess(1L);
         verify(callbackDeduplication, never()).forget("report:cb:1:0");
+    }
+
+    @Test
+    void processCallback_itemizedSuccessIsCountedOnceAndSkipsConflictingFailure() {
+        ReportGenerationJob itemizedJob = itemizedJob();
+        ReportGenerationItem item = ReportGenerationItem.pending(1L, 10L, 0, 99L);
+        given(jobRepository.findById(1L)).willReturn(Optional.of(itemizedJob));
+        given(jobRepository.findByIdForUpdate(1L)).willReturn(Optional.of(itemizedJob));
+        given(jobRepository.tryFinalize(1L, 1)).willReturn(true);
+        given(itemRepository.findByJobIdAndReportIndex(1L, 0)).willReturn(Optional.of(item));
+        given(itemRepository.findByJobIdAndReportIndexForUpdate(1L, 0)).willReturn(Optional.of(item));
+        byte[] pdfBytes = "%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII);
+
+        service.processCallback(successCallback(Base64.getEncoder().encodeToString(pdfBytes)));
+        service.processCallback(failureCallback("late conflicting failure"));
+
+        assertThat(item.getStatus()).isEqualTo(ReportGenerationItemStatus.SUCCESS);
+        assertThat(item.getFileKey()).isEqualTo("tmp/test-tenant/reports/10/99.pdf");
+        verify(jobRepository).incrementSuccess(1L);
+        verify(jobRepository, never()).incrementFail(1L);
+        verify(callbackDeduplication, never()).markIfAbsent(anyString());
+    }
+
+    @Test
+    void processCallback_itemizedStorageFailureLeavesItemRetryable() {
+        ReportGenerationJob itemizedJob = itemizedJob();
+        ReportGenerationItem item = ReportGenerationItem.pending(1L, 10L, 0, 99L);
+        given(jobRepository.findById(1L)).willReturn(Optional.of(itemizedJob));
+        given(jobRepository.findByIdForUpdate(1L)).willReturn(Optional.of(itemizedJob));
+        given(itemRepository.findByJobIdAndReportIndex(1L, 0)).willReturn(Optional.of(item));
+        given(itemRepository.findByJobIdAndReportIndexForUpdate(1L, 0)).willReturn(Optional.of(item));
+        byte[] pdfBytes = "%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII);
+        given(storagePort.putObject("tmp/test-tenant/reports/10/99.pdf", pdfBytes, ReportFileFormat.PDF_CONTENT_TYPE))
+                .willThrow(new IllegalStateException("temporary storage failure"))
+                .willReturn("tmp/test-tenant/reports/10/99.pdf");
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.processCallback(
+                        successCallback(Base64.getEncoder().encodeToString(pdfBytes))))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(item.getStatus()).isEqualTo(ReportGenerationItemStatus.PENDING);
+
+        service.processCallback(successCallback(Base64.getEncoder().encodeToString(pdfBytes)));
+
+        assertThat(item.getStatus()).isEqualTo(ReportGenerationItemStatus.SUCCESS);
+        verify(jobRepository).incrementSuccess(1L);
+    }
+
+    @Test
+    void processCallback_rejectsIdentityMismatchBeforeStorageOrDedup() {
+        ReportCallbackRequest mismatched = new ReportCallbackRequest(
+                1L, 10L, 100L, "test-tenant", 0, 1, true, null, null,
+                Base64.getEncoder().encodeToString("%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII)));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.processCallback(mismatched))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+
+        verifyNoInteractions(callbackDeduplication, storagePort);
     }
 
     @Test
@@ -453,11 +547,35 @@ class ReportJobServiceTest {
         );
     }
 
+    private static ReportCallbackRequest failureCallback(String error) {
+        return new ReportCallbackRequest(
+                1L,
+                10L,
+                99L,
+                "test-tenant",
+                0,
+                1,
+                false,
+                error,
+                null,
+                null
+        );
+    }
+
+    private static ReportGenerationJob itemizedJob() {
+        Exam exam = ExamFixtures.aGradedExam();
+        ReflectionTestUtils.setField(exam, "id", 10L);
+        ReportGenerationJob job = ReportGenerationJob.create(exam, "test-tenant", List.of(99L));
+        ReflectionTestUtils.setField(job, "id", 1L);
+        return job;
+    }
+
     private static ReportGenerationJob completedJob() {
         Exam exam = ExamFixtures.aGradedExam();
         ReflectionTestUtils.setField(exam, "id", 10L);
         ReportGenerationJob job = ReportGenerationJob.create(exam, "test-tenant", List.of(99L));
         ReflectionTestUtils.setField(job, "id", 1L);
+        ReflectionTestUtils.setField(job, "callbacksItemized", false);
         ReflectionTestUtils.setField(job, "status", JobStatus.COMPLETED);
         ReflectionTestUtils.setField(job, "successCount", 1);
         return job;

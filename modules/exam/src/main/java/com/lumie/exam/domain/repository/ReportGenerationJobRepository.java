@@ -2,7 +2,9 @@ package com.lumie.exam.domain.repository;
 
 import com.lumie.exam.domain.entity.ReportGenerationJob;
 import com.lumie.exam.domain.vo.JobStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,6 +14,10 @@ import java.util.Collection;
 import java.util.List;
 
 public interface ReportGenerationJobRepository extends JpaRepository<ReportGenerationJob, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select job from ReportGenerationJob job where job.id = :jobId")
+    java.util.Optional<ReportGenerationJob> findByIdForUpdate(@Param("jobId") Long jobId);
 
     List<ReportGenerationJob> findByExamIdOrderByCreatedAtDesc(Long examId);
 
@@ -65,15 +71,20 @@ public interface ReportGenerationJobRepository extends JpaRepository<ReportGener
                 || markFailedIfAllProcessed(jobId, totalReports) > 0;
     }
 
-    /**
-     * Mark every open report job whose row was created before {@code cutoff} as
-     * {@code FAILED}. Covers both worker crashes after the first callback
-     * ({@code PROCESSING}) and request messages that never reached a worker
-     * ({@code PENDING}).
-     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select job from ReportGenerationJob job
+            where job.status in :statuses and job.createdAt < :cutoff
+            order by job.id
+            """)
+    List<ReportGenerationJob> findStaleOpenJobsForUpdate(
+            @Param("statuses") Collection<JobStatus> statuses,
+            @Param("cutoff") Instant cutoff);
+
     @Modifying
-    @Query(value = "UPDATE report_generation_jobs " +
-            "SET status = 'FAILED', updated_at = NOW() " +
-            "WHERE status IN ('PENDING', 'PROCESSING') AND created_at < :cutoff", nativeQuery = true)
-    int markStaleAsFailed(@Param("cutoff") Instant cutoff);
+    @Query(value = "UPDATE report_generation_jobs SET status = 'FAILED', " +
+            "processed_reports = processed_reports + :failedItems, " +
+            "fail_count = fail_count + :failedItems, updated_at = NOW() " +
+            "WHERE id = :jobId AND status IN ('PENDING', 'PROCESSING')", nativeQuery = true)
+    int failStaleJob(@Param("jobId") Long jobId, @Param("failedItems") int failedItems);
 }
