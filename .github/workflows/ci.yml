@@ -117,8 +117,8 @@ jobs:
       - name: Update image tag values
         if: github.ref == 'refs/heads/main'
         env:
-          TAG_REPO: Lumie-Edu/lumie-devops
-          TAG_FILE: image-tags/applications/lumie/backend/image-values.yaml
+          TAG_REPO: Lumie-Edu/lumie-image-tags
+          TAG_FILE: applications/lumie/backend/image-values.yaml
           IMAGE_TAG: ${{ steps.tags.outputs.short_sha }}
           TAG_REPO_TOKEN: ${{ secrets.LUMIE_GITOPS_TOKEN }}
         run: |
