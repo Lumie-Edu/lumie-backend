@@ -29,6 +29,7 @@ public enum ExamErrorCode implements ErrorCode {
     // 409 Conflict
     DUPLICATE_RESULT("EXAM_201", "Exam result already exists for this student", 409),
     DUPLICATE_QUESTION_TYPE("EXAM_202", "Exam question type already exists", 409),
+    EXAM_HAS_ACTIVE_OMR_JOB("EXAM_203", "Cannot delete exam while OMR grading is in progress", 409),
     INACTIVE_STUDENT_PHONE(
             StudentPhoneConflict.INACTIVE_STUDENT_PHONE.code(),
             StudentPhoneConflict.INACTIVE_STUDENT_PHONE.message(),
