@@ -315,8 +315,12 @@ public class AttachmentLifecycleWorld {
                 lookup,
                 storagePort);
         metrics.initializeMeters();
+        when(operationPersistencePort.findMetadataById(any())).thenAnswer(invocation -> files.stream()
+                .filter(file -> file.getId().equals(invocation.getArgument(0)))
+                .filter(file -> java.util.Objects.equals(file.getTenantId(), TenantContextHolder.getRequiredTenantId()))
+                .findFirst());
         storageOperationProcessor = new StorageOperationProcessor(
-                operationPersistencePort, fileMetadataRepository, storagePort, java.time.Clock.systemUTC(), metrics);
+                operationPersistencePort, storagePort, java.time.Clock.systemUTC(), metrics);
         when(storagePort.objectExists("tmp/demo/uploads/upload-1/notes.pdf")).thenReturn(true);
         when(storagePort.objectExists("files/demo/announcement/file-1/notes.pdf")).thenReturn(false, true);
         when(storagePort.objectSize("files/demo/announcement/file-1/notes.pdf")).thenReturn(10L);

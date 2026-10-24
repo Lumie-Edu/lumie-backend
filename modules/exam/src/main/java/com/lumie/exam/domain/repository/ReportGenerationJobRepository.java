@@ -21,8 +21,6 @@ public interface ReportGenerationJobRepository extends JpaRepository<ReportGener
 
     List<ReportGenerationJob> findByExamIdOrderByCreatedAtDesc(Long examId);
 
-    boolean existsByIdAndStatusIn(Long id, Collection<JobStatus> statuses);
-
     @Modifying
     @Query(value = "UPDATE report_generation_jobs SET processed_reports = processed_reports + 1, " +
             "success_count = success_count + 1 WHERE id = :jobId", nativeQuery = true)
@@ -44,6 +42,10 @@ public interface ReportGenerationJobRepository extends JpaRepository<ReportGener
             "WHERE id = :jobId AND status = 'PENDING'", nativeQuery = true)
     int markProcessingIfPending(@Param("jobId") Long jobId);
 
+    default boolean startProcessingIfPending(Long jobId) {
+        return markProcessingIfPending(jobId) > 0;
+    }
+
     @Modifying
     @Query(value = "UPDATE report_generation_jobs SET status = 'COMPLETED', updated_at = NOW() " +
             "WHERE id = :jobId AND processed_reports >= :totalReports " +
@@ -55,10 +57,6 @@ public interface ReportGenerationJobRepository extends JpaRepository<ReportGener
             "WHERE id = :jobId AND processed_reports >= :totalReports " +
             "  AND success_count = 0 AND status = 'PROCESSING'", nativeQuery = true)
     int markFailedIfAllProcessed(@Param("jobId") Long jobId, @Param("totalReports") int totalReports);
-
-    default boolean startProcessingIfPending(Long jobId) {
-        return markProcessingIfPending(jobId) > 0;
-    }
 
     /**
      * Idempotently transition to a terminal state once every report's callback has

@@ -4,7 +4,6 @@ import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.exam.application.event.ReportBatchGenerationRequestedEvent;
 import com.lumie.exam.application.dto.request.ReportCallbackRequest;
 import com.lumie.exam.application.dto.response.ReportJobStatusResponse;
-import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ReportGenerationItem;
@@ -46,7 +45,6 @@ public class ReportJobService {
     private final ExamRepository examRepository;
     private final ReportGenerationJobRepository jobRepository;
     private final OmrStoragePort storagePort;
-    private final CallbackDeduplicationPort callbackDeduplication;
     private final ApplicationEventPublisher eventPublisher;
     private final StudentService studentService;
     private final Tx tx;
@@ -188,11 +186,6 @@ public class ReportJobService {
             return;
         }
 
-        if (!context.itemized()) {
-            processLegacyCallback(request);
-            return;
-        }
-
         if (context.itemStatus() != ReportGenerationItemStatus.PENDING) {
             boolean callbackSuccess = request.success();
             boolean recordedSuccess = context.itemStatus() == ReportGenerationItemStatus.SUCCESS;
@@ -207,7 +200,7 @@ public class ReportJobService {
             return;
         }
 
-        CallbackOutcome outcome = prepareItemizedOutcome(request);
+        CallbackOutcome outcome = prepareCallbackOutcome(request);
         CallbackPersistenceResult result = tx.completeItem(request, outcome);
         if (!result.transitioned()) {
             log.info("Concurrent report callback already transitioned item: jobId={}, reportIndex={}",
@@ -220,49 +213,7 @@ public class ReportJobService {
         }
     }
 
-    private void processLegacyCallback(ReportCallbackRequest request) {
-
-        String dedupKey = "report:cb:" + request.jobId() + ":" + request.reportIndex();
-        if (!callbackDeduplication.markIfAbsent(dedupKey)) {
-            log.warn("Duplicate report callback skipped: jobId={}, reportIndex={}",
-                    request.jobId(), request.reportIndex());
-            return;
-        }
-
-        try {
-            if (!tx.isOpenJob(request.jobId())) {
-                log.warn("Late report callback skipped for terminal or missing job: jobId={}, reportIndex={}",
-                        request.jobId(), request.reportIndex());
-                return;
-            }
-
-            tx.markProcessing(request.jobId());
-
-            if (request.success()) {
-                processSuccessfulCallback(request);
-            } else {
-                log.warn("Report generation failed: jobId={}, studentId={}, error={}",
-                        request.jobId(), request.studentId(), request.error());
-                tx.recordFail(request.jobId());
-            }
-
-            if (tx.finalizeIfDone(request.jobId(), request.totalReports())) {
-                log.info("Report job reached terminal state: jobId={}", request.jobId());
-                createZipFile(request.jobId());
-            }
-        } catch (RuntimeException processingFailure) {
-            // Keep the broker retryable when any processing step fails. The SETNX
-            // reservation is only a dedup marker after successful DB processing.
-            try {
-                callbackDeduplication.forget(dedupKey);
-            } catch (RuntimeException cleanupFailure) {
-                processingFailure.addSuppressed(cleanupFailure);
-            }
-            throw processingFailure;
-        }
-    }
-
-    private CallbackOutcome prepareItemizedOutcome(ReportCallbackRequest request) {
+    private CallbackOutcome prepareCallbackOutcome(ReportCallbackRequest request) {
         if (!request.success()) {
             return CallbackOutcome.failed(boundError(request.error(), "REPORT_GENERATION_FAILED"));
         }
@@ -296,48 +247,6 @@ public class ReportJobService {
     private static String boundError(String error, String fallback) {
         String message = error == null || error.isBlank() ? fallback : error;
         return message.substring(0, Math.min(1000, message.length()));
-    }
-
-    private void processSuccessfulCallback(ReportCallbackRequest request) {
-        String tenantId = TenantContextHolder.toStorageTenantId(request.tenantSlug());
-        String expectedFileKey = buildReportFileKey(tenantId, request.examId(), request.studentId());
-        if (request.fileKey() != null && !request.fileKey().isBlank()) {
-            if (!expectedFileKey.equals(request.fileKey())) {
-                log.warn("Report callback returned unexpected fileKey: jobId={}, studentId={}, fileKey={}",
-                        request.jobId(), request.studentId(), request.fileKey());
-                tx.recordFail(request.jobId());
-                return;
-            }
-            if (!isReadablePdf(expectedFileKey)) {
-                log.warn("Report callback fileKey is not a readable PDF: jobId={}, studentId={}, fileKey={}",
-                        request.jobId(), request.studentId(), request.fileKey());
-                tx.recordFail(request.jobId());
-                return;
-            }
-            tx.recordSuccess(request.jobId());
-            return;
-        }
-
-        byte[] reportBytes = decodeReportBytes(request.reportBytes());
-        if (!ReportFileFormat.isPdf(reportBytes)) {
-            log.warn("Report callback returned non-PDF bytes: jobId={}, studentId={}",
-                    request.jobId(), request.studentId());
-            tx.recordFail(request.jobId());
-            return;
-        }
-
-        // storage call outside any @Transactional boundary
-        storagePort.putObject(expectedFileKey, reportBytes, ReportFileFormat.PDF_CONTENT_TYPE);
-        tx.recordSuccess(request.jobId());
-    }
-
-    private boolean isReadablePdf(String fileKey) {
-        try {
-            return ReportFileFormat.isPdf(storagePort.getObject(fileKey));
-        } catch (RuntimeException e) {
-            log.warn("Failed to read report fileKey before callback success: fileKey={}", fileKey, e);
-            return false;
-        }
     }
 
     private void createZipFile(Long jobId) {
@@ -522,7 +431,7 @@ public class ReportJobService {
     private record StoredReport(byte[] bytes, String extension) {
     }
 
-    record CallbackContext(boolean itemized, boolean open, ReportGenerationItemStatus itemStatus) {
+    record CallbackContext(boolean open, ReportGenerationItemStatus itemStatus) {
     }
 
     record CallbackOutcome(boolean success, String fileKey, String errorMessage) {
@@ -577,8 +486,8 @@ public class ReportJobService {
             }
 
             boolean open = job.getStatus() == JobStatus.PENDING || job.getStatus() == JobStatus.PROCESSING;
-            if (!job.isCallbacksItemized()) {
-                return new CallbackContext(false, open, null);
+            if (!open) {
+                return new CallbackContext(false, null);
             }
 
             ReportGenerationItem item = itemRepository
@@ -588,14 +497,14 @@ public class ReportJobService {
                     || !request.studentId().equals(item.getStudentId())) {
                 throw invalidCallback("Report callback does not match its report item");
             }
-            return new CallbackContext(true, open, item.getStatus());
+            return new CallbackContext(open, item.getStatus());
         }
 
         @Transactional
         public CallbackPersistenceResult completeItem(ReportCallbackRequest request, CallbackOutcome outcome) {
             ReportGenerationJob job = jobRepository.findByIdForUpdate(request.jobId())
                     .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
-            if (!job.isCallbacksItemized() || !isOpen(job.getStatus())) {
+            if (!isOpen(job.getStatus())) {
                 return new CallbackPersistenceResult(false, false);
             }
             validateCallbackMatchesJob(request, job);
@@ -644,34 +553,6 @@ public class ReportJobService {
             return new BusinessException(ExamErrorCode.INVALID_EXAM_DATA, message);
         }
 
-        @Transactional
-        public void markProcessing(Long jobId) {
-            jobRepository.startProcessingIfPending(jobId);
-        }
-
-        @Transactional(readOnly = true)
-        public boolean isOpenJob(Long jobId) {
-            return jobRepository.existsByIdAndStatusIn(
-                    jobId,
-                    List.of(JobStatus.PENDING, JobStatus.PROCESSING)
-            );
-        }
-
-        @Transactional
-        public void recordSuccess(Long jobId) {
-            jobRepository.incrementSuccess(jobId);
-        }
-
-        @Transactional
-        public void recordFail(Long jobId) {
-            jobRepository.incrementFail(jobId);
-        }
-
-        @Transactional
-        public boolean finalizeIfDone(Long jobId, int totalReports) {
-            return jobRepository.tryFinalize(jobId, totalReports);
-        }
-
         @Transactional(readOnly = true)
         public ReportZipManifest loadZipManifest(Long jobId) {
             ReportGenerationJob job = jobRepository.findById(jobId)
@@ -679,8 +560,9 @@ public class ReportJobService {
             String tenantSlug = job.getTenantSlug();
             Long examId = job.getExam().getId();
             String storageTenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
-            List<ReportZipItem> reports = job.isCallbacksItemized()
-                    ? itemRepository.findByJobIdOrderByReportIndexAsc(jobId).stream()
+            List<ReportGenerationItem> items = itemRepository.findByJobIdOrderByReportIndexAsc(jobId);
+            List<ReportZipItem> reports = !items.isEmpty()
+                    ? items.stream()
                             .filter(item -> item.getStatus() == ReportGenerationItemStatus.SUCCESS)
                             .map(item -> new ReportZipItem(item.getStudentId(), item.getFileKey(), false))
                             .toList()

@@ -178,29 +178,6 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
     }
 
     @Test
-    void legacyJobWithoutItemRowsContinuesThroughRedisCompatibilityPath() {
-        JobData data = createJob(List.of(995_001L, 995_002L));
-        String fileKey = reportKey(data.examId(), 995_001L);
-        byte[] pdf = "%PDF-1.7\nlegacy".getBytes(StandardCharsets.US_ASCII);
-        given(storagePort.getObject(fileKey)).willReturn(pdf);
-        withinTenant(() -> {
-            jdbc.update("DELETE FROM report_generation_items WHERE job_id = ?", data.jobId());
-            jdbc.update("UPDATE report_generation_jobs SET callbacks_itemized = false WHERE id = ?", data.jobId());
-
-            ReportCallbackRequest callback = callback(data, 995_001L, 0, true, null, fileKey, null);
-            reportJobService.processCallback(callback);
-            reportJobService.processCallback(callback);
-
-            var job = jobRepository.findById(data.jobId()).orElseThrow();
-            assertThat(job.isCallbacksItemized()).isFalse();
-            assertThat(job.getProcessedReports()).isEqualTo(1);
-            assertThat(job.getSuccessCount()).isEqualTo(1);
-            assertThat(itemRepository.findByJobIdOrderByReportIndexAsc(data.jobId())).isEmpty();
-        });
-        verify(storagePort, times(1)).getObject(fileKey);
-    }
-
-    @Test
     void storageAndDatabaseFailuresLeaveItemPendingForRedelivery() {
         JobData data = createJob(List.of(992_001L, 992_002L, 992_003L, 992_004L));
         byte[] pdf = "%PDF-1.7\nretry".getBytes(StandardCharsets.US_ASCII);

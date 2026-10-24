@@ -5,7 +5,6 @@ import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.FileStorageOperationStatus;
 import com.lumie.file.domain.vo.FileStorageOperationType;
 import com.lumie.common.exception.BusinessException;
@@ -25,16 +24,14 @@ public class StorageOperationProcessor {
     private static final Duration LEASE_DURATION = Duration.ofMinutes(2);
 
     private final FileStorageOperationPersistencePort operationPersistencePort;
-    private final FileMetadataRepository fileMetadataRepository;
     private final StoragePort storagePort;
     private final StorageOperationMetrics metrics;
     private final Clock clock;
 
     public StorageOperationProcessor(FileStorageOperationPersistencePort operationPersistencePort,
-                                     FileMetadataRepository fileMetadataRepository, StoragePort storagePort,
+                                     StoragePort storagePort,
                                      @Nullable Clock clock, StorageOperationMetrics metrics) {
         this.operationPersistencePort = operationPersistencePort;
-        this.fileMetadataRepository = fileMetadataRepository;
         this.storagePort = storagePort;
         this.clock = clock == null ? Clock.systemUTC() : clock;
         this.metrics = metrics;
@@ -53,7 +50,7 @@ public class StorageOperationProcessor {
         List<FileStorageOperation> due = operationPersistencePort.claimDueOperations(
                 now, batchSize, leaseOwner, LEASE_DURATION);
         for (FileStorageOperation operation : due) {
-            FileMetadata metadata = fileMetadataRepository.findById(operation.getFileId()).orElse(null);
+            FileMetadata metadata = operationPersistencePort.findMetadataById(operation.getFileId()).orElse(null);
             try {
                 process(operation, metadata, clock.instant());
             } catch (RuntimeException exception) {
@@ -74,7 +71,7 @@ public class StorageOperationProcessor {
             return;
         }
         if (metadata == null || metadata.getUploadStatus() != com.lumie.file.domain.vo.FileUploadStatus.PENDING) {
-            operationPersistencePort.finalizePromotion(
+            operationPersistencePort.finalizeStalePromotion(
                     operation.getId(), operation.getFileId(), operation.getLeaseOwner());
             return;
         }
