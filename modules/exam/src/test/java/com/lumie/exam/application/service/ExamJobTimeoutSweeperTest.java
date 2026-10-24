@@ -80,8 +80,8 @@ class ExamJobTimeoutSweeperTest {
     }
 
     @Test
-    void staleItemizedJobFailsPendingItemsAndCountsThem() {
-        ReportGenerationJob job = reportJob(true);
+    void staleReportJobFailsPendingItemsAndCountsThem() {
+        ReportGenerationJob job = reportJob();
         ReportGenerationItem first = ReportGenerationItem.pending(1L, 10L, 0, 20L);
         ReportGenerationItem second = ReportGenerationItem.pending(1L, 10L, 1, 21L);
         given(reportJobRepository.findStaleOpenJobsForUpdate(
@@ -101,30 +101,15 @@ class ExamJobTimeoutSweeperTest {
     }
 
     @Test
-    void staleLegacyJobKeepsAggregateCountsAndUsesZeroItemDelta() {
-        ReportGenerationJob job = reportJob(false);
-        given(reportJobRepository.findStaleOpenJobsForUpdate(
-                eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING)), any(Instant.class)))
-                .willReturn(List.of(job));
-        given(reportJobRepository.failStaleJob(1L, 0)).willReturn(1);
-
-        assertThat(tx().sweepReportJobs(Instant.now())).isEqualTo(1);
-
-        verify(itemRepository, org.mockito.Mockito.never())
-                .findByJobIdAndStatusOrderByReportIndexAsc(any(), any());
-        verify(reportJobRepository).failStaleJob(1L, 0);
-    }
-
     private ExamJobTimeoutSweeper.Tx tx() {
         return new ExamJobTimeoutSweeper.Tx(omrJobRepository, reportJobRepository, itemRepository);
     }
 
-    private static ReportGenerationJob reportJob(boolean itemized) {
+    private static ReportGenerationJob reportJob() {
         Exam exam = ExamFixtures.aGradedExam();
         ReflectionTestUtils.setField(exam, "id", 10L);
         ReportGenerationJob job = ReportGenerationJob.create(exam, "test-tenant", List.of(20L, 21L));
         ReflectionTestUtils.setField(job, "id", 1L);
-        ReflectionTestUtils.setField(job, "callbacksItemized", itemized);
         return job;
     }
 }

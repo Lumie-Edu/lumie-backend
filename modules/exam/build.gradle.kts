@@ -16,9 +16,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     implementation("org.springframework.boot:spring-boot-starter-security")
 
-    // Redis — callback deduplication via SETNX
-    implementation("org.springframework.boot:spring-boot-starter-data-redis")
-
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")
 

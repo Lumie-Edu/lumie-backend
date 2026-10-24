@@ -1,7 +1,6 @@
 package com.lumie.exam.domain.entity;
 
 import com.lumie.exam.domain.vo.ReportGenerationItemStatus;
-import com.lumie.exam.test.ExamFixtures;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,11 +26,4 @@ class ReportGenerationItemTest {
         assertThat(failed.getErrorMessage()).isEqualTo("render failed");
     }
 
-    @Test
-    void newReportJobsOptIntoItemizedCallbacks() {
-        ReportGenerationJob job = ReportGenerationJob.create(
-                ExamFixtures.aGradedExam(), "test-tenant", java.util.List.of(30L));
-
-        assertThat(job.isCallbacksItemized()).isTrue();
-    }
 }

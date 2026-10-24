@@ -113,14 +113,12 @@ public class ExamJobTimeoutSweeper {
             int marked = 0;
             for (var job : staleJobs) {
                 int failedItems = 0;
-                if (job.isCallbacksItemized()) {
-                    List<com.lumie.exam.domain.entity.ReportGenerationItem> pendingItems =
-                            reportGenerationItemRepository.findByJobIdAndStatusOrderByReportIndexAsc(
-                                    job.getId(), ReportGenerationItemStatus.PENDING);
-                    for (var item : pendingItems) {
-                        item.completeWithFailure("REPORT_JOB_TIMEOUT");
-                        failedItems++;
-                    }
+                List<com.lumie.exam.domain.entity.ReportGenerationItem> pendingItems =
+                        reportGenerationItemRepository.findByJobIdAndStatusOrderByReportIndexAsc(
+                                job.getId(), ReportGenerationItemStatus.PENDING);
+                for (var item : pendingItems) {
+                    item.completeWithFailure("REPORT_JOB_TIMEOUT");
+                    failedItems++;
                 }
                 marked += reportGenerationJobRepository.failStaleJob(job.getId(), failedItems);
             }

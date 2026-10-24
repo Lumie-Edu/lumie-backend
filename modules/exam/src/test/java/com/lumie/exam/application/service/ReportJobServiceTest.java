@@ -3,7 +3,6 @@ package com.lumie.exam.application.service;
 import com.lumie.common.test.TenantContextExtension;
 import com.lumie.exam.application.dto.request.ReportCallbackRequest;
 import com.lumie.exam.application.event.ReportBatchGenerationRequestedEvent;
-import com.lumie.exam.application.port.out.CallbackDeduplicationPort;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
@@ -28,18 +27,16 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.time.Instant;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -58,8 +55,6 @@ class ReportJobServiceTest {
     @Mock
     private OmrStoragePort storagePort;
     @Mock
-    private CallbackDeduplicationPort callbackDeduplication;
-    @Mock
     private ApplicationEventPublisher eventPublisher;
     @Mock
     private StudentService studentService;
@@ -73,17 +68,21 @@ class ReportJobServiceTest {
                 examRepository,
                 jobRepository,
                 storagePort,
-                callbackDeduplication,
                 eventPublisher,
                 studentService,
                 tx
         );
         Exam exam = ExamFixtures.aGradedExam();
         ReflectionTestUtils.setField(exam, "id", 10L);
-        ReportGenerationJob legacyJob = ReportGenerationJob.create(exam, "test-tenant", List.of(99L));
-        ReflectionTestUtils.setField(legacyJob, "id", 1L);
-        ReflectionTestUtils.setField(legacyJob, "callbacksItemized", false);
-        org.mockito.Mockito.lenient().when(jobRepository.findById(1L)).thenReturn(Optional.of(legacyJob));
+        ReportGenerationJob job = ReportGenerationJob.create(exam, "test-tenant", List.of(99L));
+        ReflectionTestUtils.setField(job, "id", 1L);
+        ReportGenerationItem item = ReportGenerationItem.pending(1L, 10L, 0, 99L);
+        org.mockito.Mockito.lenient().when(jobRepository.findById(1L)).thenReturn(Optional.of(job));
+        org.mockito.Mockito.lenient().when(jobRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(job));
+        org.mockito.Mockito.lenient().when(itemRepository.findByJobIdAndReportIndex(1L, 0))
+                .thenReturn(Optional.of(item));
+        org.mockito.Mockito.lenient().when(itemRepository.findByJobIdAndReportIndexForUpdate(1L, 0))
+                .thenReturn(Optional.of(item));
     }
 
     @Test
@@ -147,68 +146,7 @@ class ReportJobServiceTest {
     }
 
     @Test
-    void processCallback_storesOnlyPdfReports() {
-        byte[] pdfBytes = "%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII);
-        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
-        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
-                .willReturn(true);
-
-        service.processCallback(successCallback(Base64.getEncoder().encodeToString(pdfBytes)));
-
-        verify(storagePort).putObject(
-                "tmp/test-tenant/reports/10/99.pdf",
-                pdfBytes,
-                ReportFileFormat.PDF_CONTENT_TYPE
-        );
-        verify(jobRepository).incrementSuccess(1L);
-        verify(jobRepository, never()).incrementFail(1L);
-    }
-
-    @Test
-    void processCallback_failedStorageAttemptCanBeRetried() {
-        byte[] pdfBytes = "%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII);
-        String key = "report:cb:1:0";
-        Set<String> seenKeys = new HashSet<>();
-        given(callbackDeduplication.markIfAbsent(key)).willAnswer(invocation -> seenKeys.add(key));
-        doAnswer(invocation -> { seenKeys.remove(invocation.getArgument(0)); return null; })
-                .when(callbackDeduplication).forget(key);
-        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
-                .willReturn(true);
-        given(storagePort.putObject("tmp/test-tenant/reports/10/99.pdf", pdfBytes, ReportFileFormat.PDF_CONTENT_TYPE))
-                .willThrow(new IllegalStateException("temporary storage failure"))
-                .willReturn("tmp/test-tenant/reports/10/99.pdf");
-
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.processCallback(
-                        successCallback(Base64.getEncoder().encodeToString(pdfBytes))))
-                .isInstanceOf(IllegalStateException.class);
-        service.processCallback(successCallback(Base64.getEncoder().encodeToString(pdfBytes)));
-
-        verify(callbackDeduplication).forget(key);
-        verify(storagePort, org.mockito.Mockito.times(2)).putObject(
-                "tmp/test-tenant/reports/10/99.pdf", pdfBytes, ReportFileFormat.PDF_CONTENT_TYPE);
-        verify(jobRepository).incrementSuccess(1L);
-        verify(jobRepository, never()).incrementFail(1L);
-    }
-
-    @Test
-    void processCallback_duplicateSuccessfulDeliveryIsCountedOnce() {
-        byte[] pdfBytes = "%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII);
-        given(callbackDeduplication.markIfAbsent("report:cb:1:0")).willReturn(true, false);
-        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
-                .willReturn(true);
-
-        ReportCallbackRequest callback = successCallback(Base64.getEncoder().encodeToString(pdfBytes));
-        service.processCallback(callback);
-        service.processCallback(callback);
-
-        verify(storagePort).putObject(
-                "tmp/test-tenant/reports/10/99.pdf", pdfBytes, ReportFileFormat.PDF_CONTENT_TYPE);
-        verify(jobRepository).incrementSuccess(1L);
-        verify(callbackDeduplication, never()).forget("report:cb:1:0");
-    }
-
-    @Test
-    void processCallback_itemizedSuccessIsCountedOnceAndSkipsConflictingFailure() {
+    void processCallback_completedItemIsCountedOnceAndSkipsConflictingFailure() {
         ReportGenerationJob itemizedJob = itemizedJob();
         ReportGenerationItem item = ReportGenerationItem.pending(1L, 10L, 0, 99L);
         given(jobRepository.findById(1L)).willReturn(Optional.of(itemizedJob));
@@ -225,11 +163,10 @@ class ReportJobServiceTest {
         assertThat(item.getFileKey()).isEqualTo("tmp/test-tenant/reports/10/99.pdf");
         verify(jobRepository).incrementSuccess(1L);
         verify(jobRepository, never()).incrementFail(1L);
-        verify(callbackDeduplication, never()).markIfAbsent(anyString());
     }
 
     @Test
-    void processCallback_itemizedStorageFailureLeavesItemRetryable() {
+    void processCallback_storageFailureLeavesItemRetryable() {
         ReportGenerationJob itemizedJob = itemizedJob();
         ReportGenerationItem item = ReportGenerationItem.pending(1L, 10L, 0, 99L);
         given(jobRepository.findById(1L)).willReturn(Optional.of(itemizedJob));
@@ -261,14 +198,11 @@ class ReportJobServiceTest {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.processCallback(mismatched))
                 .isInstanceOf(com.lumie.common.exception.BusinessException.class);
 
-        verifyNoInteractions(callbackDeduplication, storagePort);
+        verifyNoInteractions(storagePort);
     }
 
     @Test
     void processCallback_acceptsPreUploadedPdfFileKey() {
-        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
-        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
-                .willReturn(true);
         given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
                 .willReturn("%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII));
 
@@ -281,9 +215,6 @@ class ReportJobServiceTest {
 
     @Test
     void processCallback_rejectsUnexpectedFileKey() {
-        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
-        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
-                .willReturn(true);
 
         service.processCallback(successCallbackWithFileKey("tmp/other/reports/10/99.pdf"));
 
@@ -294,9 +225,6 @@ class ReportJobServiceTest {
 
     @Test
     void processCallback_rejectsUnreadableFileKey() {
-        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
-        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
-                .willReturn(true);
         given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
                 .willReturn(new byte[]{(byte) 0xFF, (byte) 0xD8, 0x00});
 
@@ -308,25 +236,21 @@ class ReportJobServiceTest {
     }
 
     @Test
-    void processCallback_recordsFailureWhenFileKeyReadFails() {
-        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
-        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
-                .willReturn(true);
+    void processCallback_retriesWhenFileKeyReadFails() {
         given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
                 .willThrow(new IllegalStateException("missing object"));
 
-        service.processCallback(successCallbackWithFileKey("tmp/test-tenant/reports/10/99.pdf"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                        service.processCallback(successCallbackWithFileKey("tmp/test-tenant/reports/10/99.pdf")))
+                .isInstanceOf(IllegalStateException.class);
 
-        verify(jobRepository).incrementFail(1L);
+        verify(jobRepository, never()).incrementFail(1L);
         verify(jobRepository, never()).incrementSuccess(1L);
     }
 
     @Test
     void processCallback_marksNonPdfPayloadAsFailed() {
         byte[] jpgBytes = new byte[]{(byte) 0xFF, (byte) 0xD8, 0x00};
-        given(callbackDeduplication.markIfAbsent(anyString())).willReturn(true);
-        given(jobRepository.existsByIdAndStatusIn(eq(1L), eq(List.of(JobStatus.PENDING, JobStatus.PROCESSING))))
-                .willReturn(true);
 
         service.processCallback(successCallback(Base64.getEncoder().encodeToString(jpgBytes)));
 
@@ -575,7 +499,6 @@ class ReportJobServiceTest {
         ReflectionTestUtils.setField(exam, "id", 10L);
         ReportGenerationJob job = ReportGenerationJob.create(exam, "test-tenant", List.of(99L));
         ReflectionTestUtils.setField(job, "id", 1L);
-        ReflectionTestUtils.setField(job, "callbacksItemized", false);
         ReflectionTestUtils.setField(job, "status", JobStatus.COMPLETED);
         ReflectionTestUtils.setField(job, "successCount", 1);
         return job;
