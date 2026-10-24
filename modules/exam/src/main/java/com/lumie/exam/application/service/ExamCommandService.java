@@ -13,6 +13,8 @@ import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.repository.ExamRepository;
 import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.exam.domain.vo.JobStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -31,6 +33,7 @@ public class ExamCommandService {
 
     private final ExamRepository examRepository;
     private final ExamResultRepository resultRepository;
+    private final OmrGradingJobRepository omrGradingJobRepository;
     private final GradeCalculator gradeCalculator;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -179,11 +182,20 @@ public class ExamCommandService {
     public void deleteExam(Long examId) {
         log.info("Deleting exam: {}", examId);
 
-        if (!examRepository.existsById(examId)) {
-            throw new BusinessException(ExamErrorCode.EXAM_NOT_FOUND);
+        Exam exam = examRepository.findByIdForUpdate(examId)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
+
+        if (omrGradingJobRepository.existsByExamIdAndStatusIn(
+                examId, List.of(JobStatus.PENDING, JobStatus.PROCESSING))) {
+            throw new BusinessException(ExamErrorCode.EXAM_HAS_ACTIVE_OMR_JOB);
         }
 
-        examRepository.deleteById(examId);
+        // The same-tenant OMR job FK intentionally restricts exam deletion. Remove
+        // only terminal jobs first; their submissions cascade and result links
+        // become null before the exam and its results are deleted.
+        omrGradingJobRepository.deleteTerminalJobsByExamId(examId);
+        examRepository.delete(exam);
+        examRepository.flush();
         log.info("Exam deleted: {}", examId);
     }
 }
