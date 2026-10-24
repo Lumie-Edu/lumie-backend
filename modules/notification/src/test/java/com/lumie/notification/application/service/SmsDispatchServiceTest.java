@@ -372,8 +372,8 @@ class SmsDispatchServiceTest {
         SmsMessage message = SmsMessage.create(
                 10L,
                 senderNumber,
-                RecipientType.GUARDIAN,
-                List.of(Recipient.pending("01012345678", "홍길동", 100L, null, RecipientRole.GUARDIAN, "안내")),
+                RecipientType.PARENT,
+                List.of(Recipient.pending("01012345678", "홍길동", 100L, null, RecipientRole.PARENT, "안내")),
                 "제목",
                 "안내",
                 null,

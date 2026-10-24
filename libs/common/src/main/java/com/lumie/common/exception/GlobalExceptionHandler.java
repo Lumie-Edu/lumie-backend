@@ -87,13 +87,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             ));
         }
         log.warn("Validation failed: {}", violations);
+        List<Map<String, Object>> userViolations = localizeViolations(violations);
 
         ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
-                "Request validation failed");
+                UserFacingErrorMessages.forStatus(HttpStatus.BAD_REQUEST.value()));
         body.setType(URI.create(PROBLEM_TYPE_PREFIX + "validation-error"));
-        body.setTitle("Validation error");
+        body.setTitle("입력값 오류");
         decorate(body, CommonErrorCode.VALIDATION_ERROR.getCode(), request);
-        body.setProperty("violations", violations);
+        body.setProperty("violations", userViolations);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .headers(problemJsonHeaders())
                 .body(body);
@@ -119,13 +120,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                         "rejectedValue", String.valueOf(cv.getInvalidValue())))
                 .toList();
         log.warn("Constraint violation: {}", violations);
+        List<Map<String, Object>> userViolations = localizeViolations(violations);
 
         ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
-                "Request validation failed");
+                UserFacingErrorMessages.forStatus(HttpStatus.BAD_REQUEST.value()));
         body.setType(URI.create(PROBLEM_TYPE_PREFIX + "validation-error"));
-        body.setTitle("Validation error");
+        body.setTitle("입력값 오류");
         decorate(body, CommonErrorCode.VALIDATION_ERROR.getCode(), request);
-        body.setProperty("violations", violations);
+        body.setProperty("violations", userViolations);
         return wrapAsProblemJson(body);
     }
 
@@ -136,9 +138,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                                                             HttpServletRequest request) {
         log.warn("Business rule violation (IllegalState): {}", ex.getMessage());
         ProblemDetail body = ProblemDetail.forStatusAndDetail(
-                HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                UserFacingErrorMessages.forStatus(HttpStatus.UNPROCESSABLE_ENTITY.value()));
         body.setType(URI.create(PROBLEM_TYPE_PREFIX + "business-rule-violation"));
-        body.setTitle("Business rule violation");
+        body.setTitle("업무 규칙 오류");
         decorate(body, CommonErrorCode.BUSINESS_RULE_VIOLATION.getCode(), request);
         return wrapAsProblemJson(body);
     }
@@ -175,18 +178,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case "23505" -> {
                 log.warn("Unique violation: {}", ex.getMessage());
                 ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
-                        "Resource conflict — a duplicate or constraint violation occurred");
+                        "이미 등록된 정보와 충돌합니다.");
                 body.setType(URI.create(PROBLEM_TYPE_PREFIX + "resource-conflict"));
-                body.setTitle("Resource conflict");
+                body.setTitle("중복된 정보");
                 decorate(body, CommonErrorCode.RESOURCE_CONFLICT.getCode(), request);
                 yield wrapAsProblemJson(body);
             }
             case "23514" -> {
                 log.warn("Check constraint violation: {}", ex.getMessage());
                 ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "Value violates a domain rule");
+                        "입력한 값이 허용된 규칙에 맞지 않습니다.");
                 body.setType(URI.create(PROBLEM_TYPE_PREFIX + "business-rule-violation"));
-                body.setTitle("Business rule violation");
+                body.setTitle("업무 규칙 오류");
                 decorate(body, CommonErrorCode.BUSINESS_RULE_VIOLATION.getCode(), request);
                 yield wrapAsProblemJson(body);
             }
@@ -197,9 +200,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 log.error("Server-side data integrity violation (sqlState={}): {}",
                         sqlState.isEmpty() ? "<unknown>" : sqlState, ex.getMessage(), ex);
                 ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Internal server error");
+                        UserFacingErrorMessages.forStatus(HttpStatus.INTERNAL_SERVER_ERROR.value()));
                 body.setType(URI.create(PROBLEM_TYPE_PREFIX + "internal-error"));
-                body.setTitle("Internal server error");
+                body.setTitle("서버 오류");
                 decorate(body, CommonErrorCode.INTERNAL_ERROR.getCode(), request);
                 yield wrapAsProblemJson(body);
             }
@@ -211,6 +214,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return (cause instanceof SQLException sql && sql.getSQLState() != null)
                 ? sql.getSQLState()
                 : "";
+    }
+
+    private static List<Map<String, Object>> localizeViolations(List<Map<String, Object>> violations) {
+        return violations.stream()
+                .map(violation -> Map.<String, Object>of(
+                        "field", violation.get("field"),
+                        "message", UserFacingErrorMessages.preserveOrLocalize(
+                                (String) violation.get("message"), HttpStatus.BAD_REQUEST.value()),
+                        "rejectedValue", violation.get("rejectedValue")))
+                .toList();
     }
 
     private void logBusinessException(BusinessException ex, HttpServletRequest request) {
@@ -254,9 +267,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex,
                                                                HttpServletRequest request) {
         log.warn("Illegal argument: {}", ex.getMessage());
-        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                UserFacingErrorMessages.forStatus(HttpStatus.BAD_REQUEST.value()));
         body.setType(URI.create(PROBLEM_TYPE_PREFIX + "illegal-argument"));
-        body.setTitle("Illegal argument");
+        body.setTitle("잘못된 요청");
         decorate(body, CommonErrorCode.INVALID_INPUT.getCode(), request);
         return wrapAsProblemJson(body);
     }
@@ -272,9 +286,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                                                               HttpServletRequest request) {
         log.warn("Optimistic lock conflict: {}", ex.getMessage());
         ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
-                "Resource was modified by another request; refresh and retry.");
+                "다른 곳에서 항목이 수정되었습니다. 새로고침 후 다시 시도해 주세요.");
         body.setType(URI.create(PROBLEM_TYPE_PREFIX + "optimistic-lock-conflict"));
-        body.setTitle("Optimistic lock conflict");
+        body.setTitle("동시 수정 충돌");
         decorate(body, CommonErrorCode.OPTIMISTIC_LOCK_CONFLICT.getCode(), request);
         return wrapAsProblemJson(body);
     }
@@ -283,9 +297,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception ex, HttpServletRequest request) {
         log.error("Unexpected error", ex);
         ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
-                "An unexpected error occurred");
+                UserFacingErrorMessages.forStatus(HttpStatus.INTERNAL_SERVER_ERROR.value()));
         body.setType(URI.create(PROBLEM_TYPE_PREFIX + "internal-error"));
-        body.setTitle("Internal server error");
+        body.setTitle("서버 오류");
         decorate(body, CommonErrorCode.INTERNAL_ERROR.getCode(), request);
         return wrapAsProblemJson(body);
     }
@@ -294,11 +308,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> createResponseEntity(Object body, HttpHeaders headers,
                                                           HttpStatusCode status, WebRequest request) {
         if (body instanceof ProblemDetail problem) {
+            int statusValue = problem.getStatus();
             if (problem.getProperties() == null || !problem.getProperties().containsKey("code")) {
                 CommonErrorCode code = status.is5xxServerError()
                         ? CommonErrorCode.INTERNAL_ERROR : CommonErrorCode.INVALID_INPUT;
                 decorate(problem, code.getCode(), request);
             }
+            problem.setDetail(UserFacingErrorMessages.preserveOrLocalize(problem.getDetail(), statusValue));
+            problem.setTitle(UserFacingErrorMessages.preserveOrLocalize(problem.getTitle(), statusValue));
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.putAll(headers);
             responseHeaders.setContentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON);
@@ -311,11 +328,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private ProblemDetail buildProblemDetail(BusinessException ex, HttpServletRequest request) {
         ErrorCode errorCode = ex.getErrorCode();
+        int status = errorCode.getStatus();
         ProblemDetail body = ProblemDetail.forStatusAndDetail(
-                HttpStatusCode.valueOf(errorCode.getStatus()),
-                ex.getMessage());
+                HttpStatusCode.valueOf(status),
+                UserFacingErrorMessages.forBusinessError(ex.getMessage(), errorCode.getMessage(), status));
         body.setType(URI.create(PROBLEM_TYPE_PREFIX + toKebab(errorCode.getCode())));
-        body.setTitle(errorCode.getMessage());
+        body.setTitle(UserFacingErrorMessages.preserveOrLocalize(errorCode.getMessage(), status));
         decorate(body, errorCode.getCode(), request);
         return body;
     }

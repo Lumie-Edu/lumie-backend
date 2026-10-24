@@ -19,7 +19,7 @@ class SmsMessageTest {
     void create_defaultStatusIsPending() {
         SmsMessage message = SmsMessage.create(
                 10L, RecipientType.STUDENT,
-                List.of(Recipient.pending("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null)),
+                List.of(Recipient.pending("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT, null)),
                 "테스트 제목", "테스트 내용", null);
 
         assertThat(message.getStatus()).isEqualTo(SmsStatus.PENDING);
@@ -86,7 +86,7 @@ class SmsMessageTest {
     void create_nullTemplateId_succeeds() {
         SmsMessage message = SmsMessage.create(
                 10L, RecipientType.CUSTOM,
-                List.of(Recipient.pending("010-0000-0000", "테스트", null, null, RecipientRole.GUARDIAN, null)),
+                List.of(Recipient.pending("010-0000-0000", "테스트", null, null, RecipientRole.PARENT, null)),
                 null, "내용", null);
 
         assertThat(message.getTemplateId()).isNull();
@@ -98,8 +98,8 @@ class SmsMessageTest {
         return SmsMessage.create(
                 10L, RecipientType.STUDENT,
                 List.of(
-                    Recipient.pending("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null),
-                    Recipient.pending("010-9876-5432", "김철수", 200L, null, RecipientRole.GUARDIAN, null)
+                    Recipient.pending("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT, null),
+                    Recipient.pending("010-9876-5432", "김철수", 200L, null, RecipientRole.PARENT, null)
                 ),
                 "테스트 제목", "테스트 내용", null);
     }

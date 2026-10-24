@@ -142,7 +142,7 @@ class SmsCommandServiceTest {
             SendSmsRequest request = new SendSmsRequest(
                     List.of(
                             new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.STUDENT),
-                            new RecipientRequest("010-9876-5432", "김철수", 200L, null, RecipientRole.GUARDIAN)
+                            new RecipientRequest("010-9876-5432", "김철수", 200L, null, RecipientRole.PARENT)
                     ),
                     "제목", "내용", null);
 
@@ -181,7 +181,7 @@ class SmsCommandServiceTest {
         @DisplayName("존재하지 않는 발송자로 발송 시 BusinessException이 발생한다")
         void sendSms_senderNotFound_throwsException() {
             SendSmsRequest request = new SendSmsRequest(
-                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
+                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT)),
                     "제목", "내용", null);
 
             given(staffService.getStaffByUserId(anyString(), eq(100L))).willReturn(Optional.empty());
@@ -205,7 +205,7 @@ class SmsCommandServiceTest {
                     10L,
                     "학부모 그룹",
                     "mic",
-                    List.of(Recipient.pending("01012345678", "홍길동", 100L, "수학반", RecipientRole.GUARDIAN, null))
+                    List.of(Recipient.pending("01012345678", "홍길동", 100L, "수학반", RecipientRole.PARENT, null))
             );
 
             given(staffService.getStaffByUserId(anyString(), eq(100L)))
@@ -257,7 +257,7 @@ class SmsCommandServiceTest {
         @DisplayName("그룹 발송에 inline recipients를 함께 보내면 거절한다")
         void sendSms_groupSendWithInlineRecipients_throwsException() {
             SendSmsRequest request = new SendSmsRequest(
-                    List.of(new RecipientRequest("010-9999-9999", "무시됨", 999L, null, RecipientRole.GUARDIAN)),
+                    List.of(new RecipientRequest("010-9999-9999", "무시됨", 999L, null, RecipientRole.PARENT)),
                     "제목",
                     55L,
                     "내용",
@@ -291,7 +291,7 @@ class SmsCommandServiceTest {
                     "mic",
                     List.of(
                             Recipient.pending("01012345678", "홍길동", 100L, "수학반", RecipientRole.STUDENT, null),
-                            Recipient.pending("01098765432", "김철수", 200L, "수학반", RecipientRole.GUARDIAN, null)
+                            Recipient.pending("01098765432", "김철수", 200L, "수학반", RecipientRole.PARENT, null)
                     )
             );
 
@@ -320,7 +320,7 @@ class SmsCommandServiceTest {
         void sendSms_futureSchedule_persistsPending() {
             Instant scheduledAt = Instant.now().plusSeconds(3600);
             SendSmsRequest request = new SendSmsRequest(
-                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
+                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT)),
                     "제목", "{학생명} 안내", null, scheduledAt);
 
             given(staffService.getStaffByUserId(anyString(), eq(100L)))
@@ -346,7 +346,7 @@ class SmsCommandServiceTest {
         @DisplayName("과거 예약 시간으로 발송 시 BusinessException이 발생한다")
         void sendSms_pastSchedule_throwsException() {
             SendSmsRequest request = new SendSmsRequest(
-                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
+                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT)),
                     "제목", "내용", null, Instant.now().minusSeconds(60));
 
             given(staffService.getStaffByUserId(anyString(), eq(100L)))
@@ -361,7 +361,7 @@ class SmsCommandServiceTest {
         @DisplayName("유효하지 않은 수신자 번호로 발송 시 BusinessException이 발생한다")
         void sendSms_invalidRecipientPhone_throwsException() {
             SendSmsRequest request = new SendSmsRequest(
-                    List.of(new RecipientRequest("1234", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
+                    List.of(new RecipientRequest("1234", "홍길동", 100L, null, RecipientRole.PARENT)),
                     "제목", "내용", null);
 
             given(staffService.getStaffByUserId(anyString(), eq(100L)))
@@ -377,7 +377,7 @@ class SmsCommandServiceTest {
         void sendSms_solapiProviderWithoutApprovedSenderNumber_throwsException() {
             given(providerRegistry.isMockProvider()).willReturn(false);
             SendSmsRequest request = new SendSmsRequest(
-                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
+                    List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT)),
                     "제목", "내용", null);
 
             given(staffService.getStaffByUserId(anyString(), eq(100L)))
@@ -399,7 +399,7 @@ class SmsCommandServiceTest {
         @Test
         @DisplayName("반 전체 발송 시 성공한다")
         void sendToClass_success() {
-            SendToClassRequest request = new SendToClassRequest(RecipientRole.GUARDIAN, "제목", "내용", null);
+            SendToClassRequest request = new SendToClassRequest(RecipientRole.PARENT, "제목", "내용", null);
 
             given(staffService.getStaffByUserId(anyString(), eq(100L)))
                     .willReturn(Optional.of(new StaffService.StaffData(
@@ -426,7 +426,7 @@ class SmsCommandServiceTest {
 
             assertThat(response.status()).isEqualTo(SmsStatus.PENDING);
             assertThat(response.successCount()).isZero();
-            assertThat(response.recipientType()).isEqualTo(RecipientType.GUARDIAN);
+            assertThat(response.recipientType()).isEqualTo(RecipientType.PARENT);
             verify(dispatchService).dispatchAfterCommit(1L);
         }
 
@@ -468,7 +468,7 @@ class SmsCommandServiceTest {
         @Test
         @DisplayName("수강생이 없는 반에 발송 시 BusinessException이 발생한다")
         void sendToClass_noStudents_throwsException() {
-            SendToClassRequest request = new SendToClassRequest(RecipientRole.GUARDIAN, "제목", "내용", null);
+            SendToClassRequest request = new SendToClassRequest(RecipientRole.PARENT, "제목", "내용", null);
 
             given(staffService.getStaffByUserId(anyString(), eq(100L)))
                     .willReturn(Optional.of(new StaffService.StaffData(
@@ -486,7 +486,7 @@ class SmsCommandServiceTest {
         @Test
         @DisplayName("학부모 전화번호가 없는 반 발송 시 BusinessException이 발생한다")
         void sendToClass_missingParentPhone_throwsException() {
-            SendToClassRequest request = new SendToClassRequest(RecipientRole.GUARDIAN, "제목", "내용", null);
+            SendToClassRequest request = new SendToClassRequest(RecipientRole.PARENT, "제목", "내용", null);
 
             given(staffService.getStaffByUserId(anyString(), eq(100L)))
                     .willReturn(Optional.of(new StaffService.StaffData(
@@ -517,9 +517,9 @@ class SmsCommandServiceTest {
             Instant scheduledAt = Instant.now().plusSeconds(3600);
             SmsMessage message = SmsMessage.create(
                     10L,
-                    RecipientType.GUARDIAN,
+                    RecipientType.PARENT,
                     List.of(com.lumie.notification.domain.vo.Recipient.pending(
-                            "01012345678", "홍길동", 100L, null, RecipientRole.GUARDIAN, "내용")),
+                            "01012345678", "홍길동", 100L, null, RecipientRole.PARENT, "내용")),
                     "제목",
                     "내용",
                     null,
@@ -547,9 +547,9 @@ class SmsCommandServiceTest {
         void cancelScheduled_sentMessage_throwsException() throws Exception {
             SmsMessage message = SmsMessage.create(
                     10L,
-                    RecipientType.GUARDIAN,
+                    RecipientType.PARENT,
                     List.of(com.lumie.notification.domain.vo.Recipient.pending(
-                            "01012345678", "홍길동", 100L, null, RecipientRole.GUARDIAN, "내용")),
+                            "01012345678", "홍길동", 100L, null, RecipientRole.PARENT, "내용")),
                     "제목",
                     "내용",
                     null,
@@ -576,9 +576,9 @@ class SmsCommandServiceTest {
             Instant scheduledAt = Instant.now().plusSeconds(3600);
             SmsMessage message = SmsMessage.create(
                     10L,
-                    RecipientType.GUARDIAN,
+                    RecipientType.PARENT,
                     List.of(com.lumie.notification.domain.vo.Recipient.pending(
-                            "01012345678", "홍길동", 100L, null, RecipientRole.GUARDIAN, "내용")),
+                            "01012345678", "홍길동", 100L, null, RecipientRole.PARENT, "내용")),
                     "제목",
                     "내용",
                     null,
@@ -607,9 +607,9 @@ class SmsCommandServiceTest {
         void cancelScheduled_otherSender_throwsException() throws Exception {
             SmsMessage message = SmsMessage.create(
                     20L,
-                    RecipientType.GUARDIAN,
+                    RecipientType.PARENT,
                     List.of(com.lumie.notification.domain.vo.Recipient.pending(
-                            "01012345678", "홍길동", 100L, null, RecipientRole.GUARDIAN, "내용")),
+                            "01012345678", "홍길동", 100L, null, RecipientRole.PARENT, "내용")),
                     "제목",
                     "내용",
                     null,

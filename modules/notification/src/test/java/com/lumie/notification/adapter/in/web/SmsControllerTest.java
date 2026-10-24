@@ -74,7 +74,7 @@ class SmsControllerTest {
                 .willAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(3)).get());
 
         SendSmsRequest request = new SendSmsRequest(
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT)),
                 "제목", "내용", null);
 
         mockMvc.perform(post("/v1/sms/send")
@@ -90,7 +90,7 @@ class SmsControllerTest {
     @DisplayName("POST /v1/sms/send - Idempotency-Key 누락 시 400을 반환한다")
     void sendSms_missingIdempotencyKey_returns400() throws Exception {
         SendSmsRequest request = new SendSmsRequest(
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT)),
                 "제목", "내용", null);
 
         mockMvc.perform(post("/v1/sms/send")
@@ -103,7 +103,7 @@ class SmsControllerTest {
     @DisplayName("POST /v1/sms/send - Idempotency-Key 형식 오류 시 400을 반환한다")
     void sendSms_invalidIdempotencyKey_returns400() throws Exception {
         SendSmsRequest request = new SendSmsRequest(
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)),
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT)),
                 "제목", "내용", null);
 
         mockMvc.perform(post("/v1/sms/send")
@@ -169,7 +169,7 @@ class SmsControllerTest {
         CreateSmsRecipientGroupRequest request = new CreateSmsRecipientGroupRequest(
                 "레벨업학원 전체 학부모님",
                 "mic",
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)));
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT)));
 
         mockMvc.perform(post("/v1/sms/recipient-groups")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -187,7 +187,7 @@ class SmsControllerTest {
         CreateSmsRecipientGroupRequest request = new CreateSmsRecipientGroupRequest(
                 "레벨업학원 전체 학부모님",
                 "mic",
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)));
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT)));
 
         mockMvc.perform(post("/v1/sms/recipient-groups")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -239,7 +239,7 @@ class SmsControllerTest {
         given(idempotencyService.executeOnceWithoutResponseBody(anyString(), anyString(), any(), any()))
                 .willAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(3)).get());
 
-        SendToClassRequest request = new SendToClassRequest(RecipientRole.GUARDIAN, "제목", "내용", null);
+        SendToClassRequest request = new SendToClassRequest(RecipientRole.PARENT, "제목", "내용", null);
 
         mockMvc.perform(post("/v1/sms/send/class/5")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -269,8 +269,8 @@ class SmsControllerTest {
 
     private SmsMessageResponse buildSmsResponse(Long id, String content) {
         return new SmsMessageResponse(
-                id, 10L, RecipientType.GUARDIAN,
-                List.of(new RecipientResponse("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null)),
+                id, 10L, RecipientType.PARENT,
+                List.of(new RecipientResponse("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT, null)),
                 "테스트 제목", content, null,
                 Instant.now(), SmsStatus.SENT, 1, 0,
                 Instant.now(), Instant.now());
@@ -281,7 +281,7 @@ class SmsControllerTest {
                 id,
                 "레벨업학원 전체 학부모님",
                 "mic",
-                List.of(new RecipientResponse("010-****-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null)),
+                List.of(new RecipientResponse("010-****-5678", "홍길동", 100L, null, RecipientRole.PARENT, null)),
                 Instant.now(),
                 Instant.now());
     }

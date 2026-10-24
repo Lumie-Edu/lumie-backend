@@ -10,7 +10,7 @@ public record SmsRecipientGroupSummaryResponse(
         String icon,
         int recipientCount,
         int studentRecipientCount,
-        int guardianRecipientCount,
+        int parentRecipientCount,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -22,7 +22,7 @@ public record SmsRecipientGroupSummaryResponse(
                 summary.icon(),
                 summary.recipientCount(),
                 summary.studentRecipientCount(),
-                summary.guardianRecipientCount(),
+                summary.parentRecipientCount(),
                 summary.createdAt(),
                 summary.updatedAt()
         );

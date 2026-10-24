@@ -20,7 +20,7 @@ public interface SmsRecipientGroupPersistencePort {
             String icon,
             int recipientCount,
             int studentRecipientCount,
-            int guardianRecipientCount,
+            int parentRecipientCount,
             Instant createdAt,
             Instant updatedAt
     ) {

@@ -3925,7 +3925,7 @@
             "type" : "string"
           },
           "recipientRole" : {
-            "enum" : [ "STUDENT", "GUARDIAN" ],
+            "enum" : [ "STUDENT", "PARENT" ],
             "type" : "string"
           },
           "studentId" : {
@@ -3954,7 +3954,7 @@
             "type" : "string"
           },
           "recipientRole" : {
-            "enum" : [ "STUDENT", "GUARDIAN" ],
+            "enum" : [ "STUDENT", "PARENT" ],
             "type" : "string"
           },
           "studentId" : {
@@ -4437,7 +4437,7 @@
             "type" : "string"
           },
           "recipientRole" : {
-            "enum" : [ "STUDENT", "GUARDIAN" ],
+            "enum" : [ "STUDENT", "PARENT" ],
             "type" : "string"
           },
           "scheduledAt" : {
@@ -4533,7 +4533,7 @@
             "type" : "integer"
           },
           "recipientType" : {
-            "enum" : [ "STUDENT", "GUARDIAN", "CUSTOM" ],
+            "enum" : [ "STUDENT", "PARENT", "CUSTOM" ],
             "type" : "string"
           },
           "recipients" : {
@@ -4630,10 +4630,6 @@
             "format" : "date-time",
             "type" : "string"
           },
-          "guardianRecipientCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
           "icon" : {
             "type" : "string"
           },
@@ -4643,6 +4639,10 @@
           },
           "name" : {
             "type" : "string"
+          },
+          "parentRecipientCount" : {
+            "format" : "int32",
+            "type" : "integer"
           },
           "recipientCount" : {
             "format" : "int32",
@@ -4657,7 +4657,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "createdAt", "guardianRecipientCount", "icon", "id", "name", "recipientCount", "studentRecipientCount", "updatedAt" ],
+        "required" : [ "createdAt", "icon", "id", "name", "parentRecipientCount", "recipientCount", "studentRecipientCount", "updatedAt" ],
         "type" : "object"
       },
       "SmsSenderSettingResponse" : {
@@ -12371,7 +12371,7 @@
           "name" : "recipientType",
           "required" : false,
           "schema" : {
-            "enum" : [ "STUDENT", "GUARDIAN", "CUSTOM" ],
+            "enum" : [ "STUDENT", "PARENT", "CUSTOM" ],
             "type" : "string"
           }
         }, {

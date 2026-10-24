@@ -152,10 +152,10 @@ public class SmsCommandService {
         if (recipientType == RecipientRole.STUDENT) {
             return student.studentPhone();
         }
-        if (recipientType == RecipientRole.GUARDIAN) {
+        if (recipientType == RecipientRole.PARENT) {
             return student.parentPhone();
         }
-        throw new BusinessException(SmsErrorCode.INVALID_RECIPIENTS, "Class SMS requests must target students or guardians");
+        throw new BusinessException(SmsErrorCode.INVALID_RECIPIENTS, "Class SMS requests must target students or parents");
     }
 
     public SmsMessageResponse cancelScheduled(Long id) {
@@ -349,15 +349,15 @@ public class SmsCommandService {
     private RecipientType inferRecipientType(List<Recipient> recipients) {
         boolean hasStudent = recipients.stream()
                 .anyMatch(recipient -> recipient.recipientRole() == RecipientRole.STUDENT);
-        boolean hasGuardian = recipients.stream()
-                .anyMatch(recipient -> recipient.recipientRole() == RecipientRole.GUARDIAN);
-        if (hasStudent && hasGuardian) {
+        boolean hasParent = recipients.stream()
+                .anyMatch(recipient -> recipient.recipientRole() == RecipientRole.PARENT);
+        if (hasStudent && hasParent) {
             return RecipientType.CUSTOM;
         }
         if (hasStudent) {
             return RecipientType.STUDENT;
         }
-        return RecipientType.GUARDIAN;
+        return RecipientType.PARENT;
     }
 
     private record SendTarget(boolean groupSend, Long recipientGroupId) {

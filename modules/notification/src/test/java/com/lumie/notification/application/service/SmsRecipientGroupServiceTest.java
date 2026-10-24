@@ -71,7 +71,7 @@ class SmsRecipientGroupServiceTest {
         CreateSmsRecipientGroupRequest request = new CreateSmsRecipientGroupRequest(
                 " 전체 학부모 ",
                 "mic",
-                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.GUARDIAN)));
+                List.of(new RecipientRequest("010-1234-5678", "홍길동", 100L, null, RecipientRole.PARENT)));
 
         SmsRecipientGroupResponse response = service.createGroup(request);
 
@@ -110,7 +110,7 @@ class SmsRecipientGroupServiceTest {
         assertThat(response.get(0).name()).isEqualTo("전체 학부모");
         assertThat(response.get(0).recipientCount()).isEqualTo(1);
         assertThat(response.get(0).studentRecipientCount()).isZero();
-        assertThat(response.get(0).guardianRecipientCount()).isEqualTo(1);
+        assertThat(response.get(0).parentRecipientCount()).isEqualTo(1);
     }
 
     @Test
@@ -123,7 +123,7 @@ class SmsRecipientGroupServiceTest {
                 10L,
                 "전체 학부모",
                 "mic",
-                List.of(Recipient.pending("01012345678", "홍길동", 100L, null, RecipientRole.GUARDIAN, null)));
+                List.of(Recipient.pending("01012345678", "홍길동", 100L, null, RecipientRole.PARENT, null)));
         setField(group, "id", 1L);
         given(groupPersistencePort.findByIdAndOwnerStaffId(1L, 10L)).willReturn(Optional.of(group));
 
@@ -155,7 +155,7 @@ class SmsRecipientGroupServiceTest {
         CreateSmsRecipientGroupRequest request = new CreateSmsRecipientGroupRequest(
                 "전체 학부모",
                 "mic",
-                List.of(new RecipientRequest("1234", "홍길동", 100L, null, RecipientRole.GUARDIAN)));
+                List.of(new RecipientRequest("1234", "홍길동", 100L, null, RecipientRole.PARENT)));
 
         assertThatThrownBy(() -> service.createGroup(request))
                 .isInstanceOf(BusinessException.class);

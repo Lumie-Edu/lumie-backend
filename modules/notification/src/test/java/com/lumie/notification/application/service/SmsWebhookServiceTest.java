@@ -137,7 +137,7 @@ class SmsWebhookServiceTest {
                 7L,
                 10L,
                 "02-1234-5678",
-                RecipientType.GUARDIAN,
+                RecipientType.PARENT,
                 List.of(),
                 1,
                 "제목",
