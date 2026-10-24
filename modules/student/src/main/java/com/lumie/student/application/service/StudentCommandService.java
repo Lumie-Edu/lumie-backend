@@ -382,9 +382,7 @@ public class StudentCommandService {
 
                 if (!userResult.success()) {
                     errors.add(rowError(row.rowNumber(), null, null,
-                            StudentErrorCode.BULK_IMPORT_AUTH_FAILED,
-                            StudentErrorCode.BULK_IMPORT_AUTH_FAILED.getMessage()
-                                    + " (" + userResult.message() + ")"));
+                            StudentErrorCode.BULK_IMPORT_AUTH_FAILED));
                     continue;
                 }
 
@@ -413,7 +411,7 @@ public class StudentCommandService {
                         StudentErrorCode.BULK_IMPORT_QUOTA_EXCEEDED));
             } catch (Exception e) {
                 errors.add(rowError(row.rowNumber(), null, null,
-                        StudentErrorCode.BULK_IMPORT_UNEXPECTED, e.getMessage()));
+                        StudentErrorCode.BULK_IMPORT_UNEXPECTED));
             }
         }
 

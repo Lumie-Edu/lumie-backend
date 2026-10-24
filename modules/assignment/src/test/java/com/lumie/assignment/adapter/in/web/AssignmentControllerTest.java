@@ -100,7 +100,7 @@ class AssignmentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Validation error"));
+                .andExpect(jsonPath("$.title").value("입력값 오류"));
     }
 
     @Test

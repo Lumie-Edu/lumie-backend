@@ -132,7 +132,7 @@ class JoossamengAiReportClientTest {
                 "inst-joossameng"
         ))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Resource modified concurrently");
+                .hasMessageContaining("다른 곳에서 항목이 수정되었습니다");
         server.verify();
     }
 
