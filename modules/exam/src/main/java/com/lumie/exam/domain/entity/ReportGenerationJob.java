@@ -55,9 +55,6 @@ public class ReportGenerationJob extends TenantScopedEntity {
     @Column(name = "zip_expires_at")
     private Instant zipExpiresAt;
 
-    @Column(name = "callbacks_itemized", nullable = false)
-    private boolean callbacksItemized;
-
     public static ReportGenerationJob create(Exam exam, String tenantSlug, List<Long> studentIds) {
         ReportGenerationJob job = new ReportGenerationJob();
         job.exam = exam;
@@ -68,7 +65,6 @@ public class ReportGenerationJob extends TenantScopedEntity {
         job.successCount = 0;
         job.failCount = 0;
         job.studentIds = studentIds;
-        job.callbacksItemized = true;
         return job;
     }
 
