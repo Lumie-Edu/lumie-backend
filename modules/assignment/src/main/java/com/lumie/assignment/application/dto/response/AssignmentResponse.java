@@ -12,8 +12,6 @@ import java.util.List;
 
 public record AssignmentResponse(
     Long id,
-    @Schema(nullable = true)
-    Long classId,
     Instant dueDate,
     @Schema(nullable = true) Integer maxScore,
     @Schema(nullable = true) List<Long> attachments,
@@ -33,26 +31,6 @@ public record AssignmentResponse(
     Instant createdAt,
     Instant updatedAt
 ) {
-    public AssignmentResponse(Long id, Long classId, Instant dueDate, Integer maxScore,
-                              List<Long> attachments, AssignmentStatus status,
-                              Instant createdAt, Instant updatedAt) {
-        this(id, classId, dueDate, maxScore, attachments, status,
-                SubmissionMode.EXAM_MANUAL, EvaluationMode.EXAM_AUTO, null, null, List.of(), List.of(),
-                true, true, false, true, false, "UNVERIFIED", createdAt, updatedAt);
-    }
-
-    public AssignmentResponse(Long id, Long classId, Instant dueDate, Integer maxScore,
-                              List<Long> attachments, AssignmentStatus status,
-                              SubmissionMode submissionMode, EvaluationMode evaluationMode,
-                              Long linkedExamId, String examName, List<Long> targetClassIds,
-                              List<Long> targetStudentIds, boolean showScore, boolean showPassFail,
-                              boolean showGrade, boolean showQuestionResults, boolean showCorrectAnswers,
-                              Instant createdAt, Instant updatedAt) {
-        this(id, classId, dueDate, maxScore, attachments, status, submissionMode, evaluationMode,
-                linkedExamId, examName, targetClassIds, targetStudentIds, showScore, showPassFail,
-                showGrade, showQuestionResults, showCorrectAnswers, "UNVERIFIED", createdAt, updatedAt);
-    }
-
     public static AssignmentResponse from(Assignment entity) {
         return from(entity, new Targets(List.of(), List.of()));
     }
@@ -69,7 +47,6 @@ public record AssignmentResponse(
                                           String examName, String rosterAccuracy) {
         return new AssignmentResponse(
             entity.getId(),
-            targets.firstClassId(),
             entity.getDueDate(),
             entity.getMaxScore(),
             entity.getAttachments(),

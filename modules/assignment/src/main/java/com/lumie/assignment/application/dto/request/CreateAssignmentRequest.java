@@ -7,8 +7,6 @@ import java.time.Instant;
 import java.util.List;
 
 public record CreateAssignmentRequest(
-    Long classId,
-
     @NotNull(message = "Assignment due date is required")
     Instant dueDate,
     Integer maxScore,
@@ -25,8 +23,8 @@ public record CreateAssignmentRequest(
     Boolean showQuestionResults,
     Boolean showCorrectAnswers
 ) {
-    public CreateAssignmentRequest(Long classId, Instant dueDate, Integer maxScore, List<Long> attachments) {
-        this(classId, dueDate, maxScore, attachments,
-                null, null, null, null, null, null, null, null, null, null, null);
+    public CreateAssignmentRequest(Instant dueDate, Integer maxScore, List<Long> attachments) {
+        this(dueDate, maxScore, attachments, null, null, null, null, null, null,
+                null, null, null, null, null);
     }
 }

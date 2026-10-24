@@ -29,7 +29,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.sql.DriverManager;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -120,15 +119,15 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
         given(storagePort.getObject(fileKey)).willReturn(pdf);
 
         withinTenant(() -> {
-            ReportCallbackRequest success = callback(data, 991_001L, 0, true, null, fileKey, null);
+            ReportCallbackRequest success = callback(data, 991_001L, 0, true, null, fileKey);
             reportJobService.processCallback(success);
             reportJobService.processCallback(success);
             reportJobService.processCallback(callback(
-                    data, 991_001L, 0, false, "conflicting failure", null, null));
+                    data, 991_001L, 0, false, "conflicting failure", null));
             reportJobService.processCallback(callback(
-                    data, 991_002L, 1, false, "render failed", null, null));
+                    data, 991_002L, 1, false, "render failed", null));
             reportJobService.processCallback(callback(
-                    data, 991_002L, 1, false, "duplicate failure", null, null));
+                    data, 991_002L, 1, false, "duplicate failure", null));
 
             var successItem = itemRepository.findByJobIdAndReportIndex(data.jobId(), 0).orElseThrow();
             var failedItem = itemRepository.findByJobIdAndReportIndex(data.jobId(), 1).orElseThrow();
@@ -158,7 +157,7 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
             assertThat(bothReading.await(10, TimeUnit.SECONDS)).isTrue();
             return pdf;
         });
-        ReportCallbackRequest callback = callback(data, 994_001L, 0, true, null, fileKey, null);
+        ReportCallbackRequest callback = callback(data, 994_001L, 0, true, null, fileKey);
 
         try (var executor = Executors.newFixedThreadPool(2)) {
             var first = executor.submit(() -> withinTenant(() -> reportJobService.processCallback(callback)));
@@ -178,17 +177,16 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
     }
 
     @Test
-    void storageAndDatabaseFailuresLeaveItemPendingForRedelivery() {
+    void storageReadAndDatabaseFailuresLeaveItemPendingForRedelivery() {
         JobData data = createJob(List.of(992_001L, 992_002L, 992_003L, 992_004L));
         byte[] pdf = "%PDF-1.7\nretry".getBytes(StandardCharsets.US_ASCII);
-        String encoded = Base64.getEncoder().encodeToString(pdf);
         String storageKey = reportKey(data.examId(), 992_001L);
-        given(storagePort.putObject(storageKey, pdf, "application/pdf"))
+        given(storagePort.getObject(storageKey))
                 .willThrow(new IllegalStateException("temporary object-store failure"))
-                .willReturn(storageKey);
+                .willReturn(pdf);
 
         withinTenant(() -> {
-            ReportCallbackRequest callback = callback(data, 992_001L, 0, true, null, null, encoded);
+            ReportCallbackRequest callback = callback(data, 992_001L, 0, true, null, storageKey);
             assertThatThrownBy(() -> reportJobService.processCallback(callback))
                     .isInstanceOf(IllegalStateException.class);
             assertPending(data, 0, 0);
@@ -211,9 +209,8 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
         jdbc.execute("CREATE TRIGGER " + trigger + " BEFORE UPDATE ON report_generation_items "
                 + "FOR EACH ROW EXECUTE FUNCTION public." + function + "()");
         String databaseFailureKey = reportKey(data.examId(), 992_002L);
-        given(storagePort.putObject(databaseFailureKey, pdf, "application/pdf"))
-                .willReturn(databaseFailureKey);
-        ReportCallbackRequest dbFailureCallback = callback(data, 992_002L, 1, true, null, null, encoded);
+        given(storagePort.getObject(databaseFailureKey)).willReturn(pdf);
+        ReportCallbackRequest dbFailureCallback = callback(data, 992_002L, 1, true, null, databaseFailureKey);
         try {
             withinTenant(() -> assertThatThrownBy(() -> reportJobService.processCallback(dbFailureCallback))
                     .isInstanceOf(RuntimeException.class));
@@ -227,7 +224,7 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
             reportJobService.processCallback(dbFailureCallback);
             assertSuccess(data, 1, 2);
         });
-        verify(storagePort, times(2)).putObject(databaseFailureKey, pdf, "application/pdf");
+        verify(storagePort, times(2)).getObject(databaseFailureKey);
     }
 
     @Test
@@ -254,8 +251,8 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
             // Simulate a success callback that uploaded its deterministic object
             // but lost the database race to a conflicting failure callback.
             reportJobService.processCallback(callback(
-                    data, 993_001L, 0, false, "first terminal outcome", null, null));
-            ReportCallbackRequest success = callback(data, 993_002L, 1, true, null, fileKey, null);
+                    data, 993_001L, 0, false, "first terminal outcome", null));
+            ReportCallbackRequest success = callback(data, 993_002L, 1, true, null, fileKey);
             reportJobService.processCallback(success);
             reportJobService.processCallback(success);
 
@@ -316,10 +313,10 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
 
     private static ReportCallbackRequest callback(
             JobData job, Long studentId, int index, boolean success,
-            String error, String fileKey, String reportBytes) {
+            String error, String fileKey) {
         return new ReportCallbackRequest(
                 job.jobId(), job.examId(), studentId, TENANT_SLUG, index, job.totalReports(),
-                success, error, fileKey, reportBytes);
+                success, error, fileKey);
     }
 
     private static void withinTenant(Runnable action) {

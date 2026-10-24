@@ -25,7 +25,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.time.Instant;
@@ -155,9 +154,10 @@ class ReportJobServiceTest {
         given(jobRepository.tryFinalize(1L, 1)).willReturn(true);
         given(itemRepository.findByJobIdAndReportIndex(1L, 0)).willReturn(Optional.of(item));
         given(itemRepository.findByJobIdAndReportIndexForUpdate(1L, 0)).willReturn(Optional.of(item));
-        byte[] pdfBytes = "%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII);
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
+                .willReturn("%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII));
 
-        service.processCallback(successCallback(Base64.getEncoder().encodeToString(pdfBytes)));
+        service.processCallback(successCallbackWithFileKey("tmp/test-tenant/reports/10/99.pdf"));
         service.processCallback(failureCallback("late conflicting failure"));
 
         assertThat(item.getStatus()).isEqualTo(ReportGenerationItemStatus.SUCCESS);
@@ -167,34 +167,9 @@ class ReportJobServiceTest {
     }
 
     @Test
-    void processCallback_storageFailureLeavesItemRetryable() {
-        ReportGenerationJob itemizedJob = itemizedJob();
-        ReportGenerationItem item = ReportGenerationItem.pending(1L, 10L, 0, 99L);
-        given(jobRepository.findById(1L)).willReturn(Optional.of(itemizedJob));
-        given(jobRepository.findByIdForUpdate(1L)).willReturn(Optional.of(itemizedJob));
-        given(itemRepository.findByJobIdAndReportIndex(1L, 0)).willReturn(Optional.of(item));
-        given(itemRepository.findByJobIdAndReportIndexForUpdate(1L, 0)).willReturn(Optional.of(item));
-        byte[] pdfBytes = "%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII);
-        given(storagePort.putObject("tmp/test-tenant/reports/10/99.pdf", pdfBytes, ReportFileFormat.PDF_CONTENT_TYPE))
-                .willThrow(new IllegalStateException("temporary storage failure"))
-                .willReturn("tmp/test-tenant/reports/10/99.pdf");
-
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.processCallback(
-                        successCallback(Base64.getEncoder().encodeToString(pdfBytes))))
-                .isInstanceOf(IllegalStateException.class);
-        assertThat(item.getStatus()).isEqualTo(ReportGenerationItemStatus.PENDING);
-
-        service.processCallback(successCallback(Base64.getEncoder().encodeToString(pdfBytes)));
-
-        assertThat(item.getStatus()).isEqualTo(ReportGenerationItemStatus.SUCCESS);
-        verify(jobRepository).incrementSuccess(1L);
-    }
-
-    @Test
     void processCallback_rejectsIdentityMismatchBeforeStorageOrDedup() {
         ReportCallbackRequest mismatched = new ReportCallbackRequest(
-                1L, 10L, 100L, "test-tenant", 0, 1, true, null, null,
-                Base64.getEncoder().encodeToString("%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII)));
+                1L, 10L, 100L, "test-tenant", 0, 1, true, null, "tmp/test-tenant/reports/10/99.pdf");
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.processCallback(mismatched))
                 .isInstanceOf(com.lumie.common.exception.BusinessException.class);
@@ -250,10 +225,11 @@ class ReportJobServiceTest {
     }
 
     @Test
-    void processCallback_marksNonPdfPayloadAsFailed() {
+    void processCallback_marksNonPdfObjectAsFailed() {
         byte[] jpgBytes = new byte[]{(byte) 0xFF, (byte) 0xD8, 0x00};
+        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf")).willReturn(jpgBytes);
 
-        service.processCallback(successCallback(Base64.getEncoder().encodeToString(jpgBytes)));
+        service.processCallback(successCallbackWithFileKey("tmp/test-tenant/reports/10/99.pdf"));
 
         verify(storagePort, never()).putObject(anyString(), any(), anyString());
         verify(jobRepository).incrementFail(1L);
@@ -423,21 +399,6 @@ class ReportJobServiceTest {
         verify(jobRepository, never()).setZipFileKey(any(), anyString(), any(Instant.class));
     }
 
-    private static ReportCallbackRequest successCallback(String reportBytes) {
-        return new ReportCallbackRequest(
-                1L,
-                10L,
-                99L,
-                "test-tenant",
-                0,
-                1,
-                true,
-                null,
-                null,
-                reportBytes
-        );
-    }
-
     private static ReportCallbackRequest successCallbackWithFileKey(String fileKey) {
         return new ReportCallbackRequest(
                 1L,
@@ -448,8 +409,7 @@ class ReportJobServiceTest {
                 1,
                 true,
                 null,
-                fileKey,
-                null
+                fileKey
         );
     }
 
@@ -463,7 +423,6 @@ class ReportJobServiceTest {
                 1,
                 false,
                 error,
-                null,
                 null
         );
     }

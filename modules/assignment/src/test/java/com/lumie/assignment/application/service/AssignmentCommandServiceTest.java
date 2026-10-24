@@ -70,7 +70,6 @@ class AssignmentCommandServiceTest {
         @DisplayName("정상 생성 시 AssignmentResponse를 반환한다")
         void createAssignment_success() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    1L,
                     futureDueDate(),
                     100,
                     null,
@@ -110,7 +109,7 @@ class AssignmentCommandServiceTest {
         @DisplayName("반에 등록되지 않은 학생도 직접 대상 과제를 받을 수 있다")
         void createAssignment_directStudentWithoutClass() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    null, futureDueDate(), 100, null, null,
+                    futureDueDate(), 100, null, null,
                     "EXAM_MANUAL", "EXAM_AUTO", examRequest(),
                     List.of(), List.of(42L),
                     null, null, null, null, null);
@@ -129,7 +128,6 @@ class AssignmentCommandServiceTest {
 
             AssignmentResponse response = commandService.createAssignment(request);
 
-            assertThat(response.classId()).isNull();
             assertThat(response.targetStudentIds()).containsExactly(42L);
             verify(classService, never()).getEnrolledClassesForStudents(any(), any());
             verify(recipientService).snapshotRecipients("test-tenant", 1L, List.of(), List.of(42L));
@@ -139,7 +137,6 @@ class AssignmentCommandServiceTest {
         @DisplayName("EXAM_MANUAL 생성은 inline exam payload를 우선해 전용 시험을 만든다")
         void createAssignment_examManualCreatesDedicatedExam() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    1L,
                     futureDueDate(),
                     100,
                     null,
@@ -193,7 +190,6 @@ class AssignmentCommandServiceTest {
         @DisplayName("마감일이 이미 지난 ACTIVE 과제는 생성 직후 CLOSED가 된다")
         void createAssignment_overdueActive_closesImmediately() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    1L,
                     Instant.parse("2000-01-01T00:00:00Z"),
                     100,
                     null,
@@ -229,7 +225,8 @@ class AssignmentCommandServiceTest {
         @DisplayName("존재하지 않는 수업으로 생성 시 BusinessException이 발생한다")
         void createAssignment_classNotFound_throwsException() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    999L, futureDueDate(), null, null);
+                    futureDueDate(), null, null, null, "EXAM_MANUAL", "EXAM_AUTO", examRequest(),
+                    List.of(999L), List.of(), null, null, null, null, null);
 
             given(classService.getClass(any(), eq(999L))).willReturn(Optional.empty());
 
@@ -241,7 +238,7 @@ class AssignmentCommandServiceTest {
         @DisplayName("마감일 없이 생성 시 BusinessException이 발생한다")
         void createAssignment_missingDueDate_throwsException() {
             CreateAssignmentRequest request = new CreateAssignmentRequest(
-                    1L, null, null, null);
+                    null, null, null);
 
             assertThatThrownBy(() -> commandService.createAssignment(request))
                     .isInstanceOf(BusinessException.class)

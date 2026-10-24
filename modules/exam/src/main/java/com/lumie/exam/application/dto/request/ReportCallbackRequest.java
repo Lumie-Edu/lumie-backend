@@ -9,7 +9,6 @@ public record ReportCallbackRequest(
         int totalReports,
         boolean success,
         String error,
-        String fileKey,
-        String reportBytes
+        String fileKey
 ) {
 }

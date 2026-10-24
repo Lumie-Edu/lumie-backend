@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -233,15 +232,7 @@ public class ReportJobService {
             return CallbackOutcome.succeeded(expectedFileKey);
         }
 
-        byte[] reportBytes = decodeReportBytes(request.reportBytes());
-        if (!ReportFileFormat.isPdf(reportBytes)) {
-            return CallbackOutcome.failed("INVALID_REPORT_FILE");
-        }
-
-        // The storage write stays outside the DB transaction. Retrying writes
-        // the same deterministic key; the DB state transition gates counting.
-        storagePort.putObject(expectedFileKey, reportBytes, ReportFileFormat.PDF_CONTENT_TYPE);
-        return CallbackOutcome.succeeded(expectedFileKey);
+        return CallbackOutcome.failed("MISSING_FILE_KEY");
     }
 
     private static String boundError(String error, String fallback) {
@@ -342,17 +333,6 @@ public class ReportJobService {
                 throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
             }
             throw pdfFailure;
-        }
-    }
-
-    private static byte[] decodeReportBytes(String reportBytes) {
-        if (reportBytes == null) {
-            return null;
-        }
-        try {
-            return Base64.getDecoder().decode(reportBytes);
-        } catch (IllegalArgumentException e) {
-            return null;
         }
     }
 

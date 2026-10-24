@@ -74,7 +74,7 @@ class AssignmentControllerTest {
         given(commandService.createAssignment(any(CreateAssignmentRequest.class))).willReturn(response);
 
         CreateAssignmentRequest request = new CreateAssignmentRequest(
-                1L, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC), 100, null,
+                LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC), 100, null,
                 null, "EXAM_MANUAL", "EXAM_AUTO",
                 new com.lumie.assignment.application.dto.request.CreateAssignmentExamRequest(
                         "시험", "GRADED", "ABSOLUTE", "NINE_GRADE", 1,
@@ -94,7 +94,7 @@ class AssignmentControllerTest {
     @DisplayName("POST /v1/assignments - 마감일이 없으면 400을 반환한다")
     void createAssignment_missingDueDate_returns400() throws Exception {
         CreateAssignmentRequest request = new CreateAssignmentRequest(
-                1L, null, 100, null);
+                null, 100, null);
 
         mockMvc.perform(post("/v1/assignments")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -198,12 +198,12 @@ class AssignmentControllerTest {
 
     private AssignmentResponse buildAssignmentResponse(Long id) {
         return new AssignmentResponse(
-                id, 1L, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
+                id, LocalDateTime.of(2026, 4, 15, 23, 59).toInstant(ZoneOffset.UTC),
                 100, null, AssignmentStatus.ACTIVE,
                 com.lumie.assignment.domain.vo.SubmissionMode.EXAM_MANUAL,
                 com.lumie.assignment.domain.vo.EvaluationMode.EXAM_AUTO,
                 10L, "수학 숙제", List.of(1L), List.of(),
                 true, true, false, true, false,
-                Instant.now(), Instant.now());
+                "UNVERIFIED", Instant.now(), Instant.now());
     }
 }
