@@ -258,7 +258,7 @@ class ReportJobServiceTest {
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getZipBytes(1L))
                 .isInstanceOf(com.lumie.common.exception.BusinessException.class)
-                .hasMessageContaining("expired")
+                .hasMessageContaining("만료되었습니다")
                 .extracting("errorCode").isEqualTo(ExamErrorCode.REPORT_ZIP_EXPIRED);
 
         verify(storagePort, never()).getObject(anyString());
