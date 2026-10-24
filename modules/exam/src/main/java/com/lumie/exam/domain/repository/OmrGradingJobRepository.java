@@ -15,6 +15,13 @@ public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Lo
 
     List<OmrGradingJob> findByExamIdOrderByCreatedAtDesc(Long examId);
 
+    boolean existsByExamIdAndStatusIn(Long examId, Collection<JobStatus> statuses);
+
+    @Modifying
+    @Query(value = "DELETE FROM omr_grading_jobs WHERE exam_id = :examId "
+            + "AND status IN ('COMPLETED', 'FAILED')", nativeQuery = true)
+    int deleteTerminalJobsByExamId(@Param("examId") Long examId);
+
     /**
      * Dashboard-sized OMR completion summaries. The RLS policy on every joined
      * table scopes this native aggregate to the active tenant.
