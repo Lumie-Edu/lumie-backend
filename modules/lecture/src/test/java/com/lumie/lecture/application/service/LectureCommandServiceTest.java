@@ -215,9 +215,6 @@ class LectureCommandServiceTest {
                 "수학반 " + classId,
                 1L,
                 teacherId,
-                List.of(),
-                null,
-                null,
                 null,
                 null
         );

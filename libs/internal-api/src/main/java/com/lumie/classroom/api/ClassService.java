@@ -39,9 +39,6 @@ public interface ClassService {
             String name,
             Long tenantId,
             Long teacherId,
-            List<String> scheduleDays,
-            String startTime,
-            String endTime,
             String createdAt,
             String updatedAt
     ) {}

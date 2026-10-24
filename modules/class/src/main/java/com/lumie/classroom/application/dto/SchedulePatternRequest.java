@@ -11,58 +11,31 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record SchedulePatternRequest(
-        List<String> days,
-
-        String startTime,
-
-        String endTime,
-
+        @NotNull(message = "At least one schedule session is required")
         @Valid
         List<@NotNull(message = "Schedule session is required") ScheduleSessionRequest> sessions
 ) {
     public SchedulePattern toVo() {
-        return new SchedulePattern(
-                days,
-                startTime,
-                endTime,
-                sessions == null ? null : sessions.stream()
-                        .filter(java.util.Objects::nonNull)
-                        .map(ScheduleSessionRequest::toVo)
-                        .toList()
-        );
+        return new SchedulePattern(sessions == null ? null : sessions.stream()
+                .filter(java.util.Objects::nonNull)
+                .map(ScheduleSessionRequest::toVo)
+                .toList());
     }
 
     @JsonIgnore
     @Schema(hidden = true)
-    @AssertTrue(message = "Schedule must include either days/startTime/endTime or at least one session")
+    @AssertTrue(message = "Schedule must include at least one session")
     public boolean isScheduleShapeValid() {
-        return hasLegacyShape() || hasSessionShape();
+        return sessions != null && !sessions.isEmpty()
+                && sessions.stream().allMatch(java.util.Objects::nonNull);
     }
 
     @JsonIgnore
     @Schema(hidden = true)
     @AssertTrue(message = "Schedule end time must be after start time")
     public boolean isScheduleTimeRangeValid() {
-        if (hasLegacyShape() && !endTime.isBlank() && !startTime.isBlank()
-                && endTime.compareTo(startTime) <= 0) {
-            return false;
-        }
-        if (sessions == null) {
-            return true;
-        }
-        return sessions.stream()
+        return sessions == null || sessions.stream()
                 .allMatch(session -> session != null && session.hasValidTimeRange());
-    }
-
-    private boolean hasLegacyShape() {
-        return days != null && !days.isEmpty()
-                && startTime != null && !startTime.isBlank()
-                && endTime != null && !endTime.isBlank();
-    }
-
-    private boolean hasSessionShape() {
-        return sessions != null && !sessions.isEmpty()
-                && sessions.stream().allMatch(java.util.Objects::nonNull);
     }
 
     public record ScheduleSessionRequest(

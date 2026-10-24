@@ -285,8 +285,7 @@ public class ReportJobService {
                 }
                 try {
                     StoredReport storedReport = getStoredReport(
-                            tenantId, manifest.examId(), report.studentId(), report.fileKey(),
-                            report.allowLegacyJpg(), existingExpiry);
+                            report.fileKey(), existingExpiry);
                     if (isExpired(existingExpiry)) {
                         throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
                     }
@@ -328,8 +327,7 @@ public class ReportJobService {
     }
 
     private StoredReport getStoredReport(
-            String tenantId, Long examId, Long studentId, String fileKey,
-            boolean allowLegacyJpg, Instant existingExpiry) {
+            String fileKey, Instant existingExpiry) {
         if (isExpired(existingExpiry)) {
             throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
         }
@@ -343,23 +341,7 @@ public class ReportJobService {
             if (isExpired(existingExpiry)) {
                 throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
             }
-            if (!allowLegacyJpg) {
-                throw pdfFailure;
-            }
-            String legacyFileKey = buildLegacyReportFileKey(tenantId, examId, studentId);
-            try {
-                byte[] bytes = storagePort.getObject(legacyFileKey);
-                if (isExpired(existingExpiry)) {
-                    throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
-                }
-                return new StoredReport(bytes, ReportFileFormat.LEGACY_JPG_EXTENSION);
-            } catch (RuntimeException legacyFailure) {
-                if (isExpired(existingExpiry)) {
-                    throw new BusinessException(ExamErrorCode.REPORT_ZIP_EXPIRED);
-                }
-                pdfFailure.addSuppressed(legacyFailure);
-                throw pdfFailure;
-            }
+            throw pdfFailure;
         }
     }
 
@@ -375,11 +357,7 @@ public class ReportJobService {
     }
 
     private static String buildReportFileKey(String tenantId, Long examId, Long studentId) {
-        return com.lumie.file.api.FileObjectKeyFactory.temporaryReport(tenantId, examId, studentId);
-    }
-
-    private static String buildLegacyReportFileKey(String tenantId, Long examId, Long studentId) {
-        return FileObjectKeyFactory.legacyReport(tenantId, examId, studentId);
+        return FileObjectKeyFactory.temporaryReport(tenantId, examId, studentId);
     }
 
     private static String buildReportFilename(String studentName, String examName) {
@@ -422,7 +400,7 @@ public class ReportJobService {
                                      List<ReportZipItem> reports, Map<Long, String> studentNamesById) {
     }
 
-    private record ReportZipItem(Long studentId, String fileKey, boolean allowLegacyJpg) {
+    private record ReportZipItem(Long studentId, String fileKey) {
     }
 
     private record ReportZipDownloadState(JobStatus status, int successCount, String zipFileKey, Instant zipExpiresAt) {
@@ -559,17 +537,14 @@ public class ReportJobService {
                     .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
             String tenantSlug = job.getTenantSlug();
             Long examId = job.getExam().getId();
-            String storageTenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
             List<ReportGenerationItem> items = itemRepository.findByJobIdOrderByReportIndexAsc(jobId);
-            List<ReportZipItem> reports = !items.isEmpty()
-                    ? items.stream()
-                            .filter(item -> item.getStatus() == ReportGenerationItemStatus.SUCCESS)
-                            .map(item -> new ReportZipItem(item.getStudentId(), item.getFileKey(), false))
-                            .toList()
-                    : job.getStudentIds().stream()
-                            .map(studentId -> new ReportZipItem(
-                                    studentId, buildReportFileKey(storageTenantId, examId, studentId), true))
-                            .toList();
+            if (items.isEmpty()) {
+                throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
+            }
+            List<ReportZipItem> reports = items.stream()
+                    .filter(item -> item.getStatus() == ReportGenerationItemStatus.SUCCESS)
+                    .map(item -> new ReportZipItem(item.getStudentId(), item.getFileKey()))
+                    .toList();
             List<Long> reportStudentIds = reports.stream().map(ReportZipItem::studentId).distinct().toList();
             Map<Long, String> studentNamesById = studentService.getStudentsByIds(
                             tenantSlug,

@@ -120,13 +120,6 @@ public class AssignmentQueryService {
                 .filter(submission -> submission.getRecipientId() != null)
                 .collect(Collectors.toMap(AssignmentSubmission::getRecipientId,
                         submission -> submission, (left, right) -> right));
-        Map<Long, AssignmentSubmission> legacySubmissionsByStudent = submissions.stream()
-                .filter(submission -> submission.getRecipientId() == null)
-                .filter(submission -> submission.getStudentId() != null)
-                .collect(Collectors.toMap(
-                        AssignmentSubmission::getStudentId,
-                        submission -> submission,
-                        (left, right) -> right));
         Map<Long, String> studentNamesById = studentIds.isEmpty()
                 ? Map.of()
                 : studentService.getStudentsByIds(slug, List.copyOf(studentIds)).students().stream()
@@ -140,11 +133,8 @@ public class AssignmentQueryService {
         var results = currentResults(assignmentId);
         return recipients.stream()
                 .map(recipient -> {
-                    Long studentId = recipient.getStudentId();
                     AssignmentSubmission submission = submissionsByRecipient.get(recipient.getId());
-                    if (submission == null && studentId != null) {
-                        submission = legacySubmissionsByStudent.get(studentId);
-                    }
+                    Long studentId = recipient.getStudentId();
                     var result = submission == null || submission.getExamResultId() == null
                             ? null : results.get(submission.getExamResultId());
                     return new AssignmentSubmissionStatusResponse(
@@ -193,10 +183,6 @@ public class AssignmentQueryService {
                 .filter(submission -> submission.getRecipientId() != null)
                 .collect(Collectors.toMap(AssignmentSubmission::getRecipientId,
                         submission -> submission, (left, right) -> right));
-        Map<Long, AssignmentSubmission> legacyByStudent = submissions.stream()
-                .filter(submission -> submission.getRecipientId() == null && submission.getStudentId() != null)
-                .collect(Collectors.toMap(AssignmentSubmission::getStudentId,
-                        submission -> submission, (left, right) -> right));
         List<AssignmentStudentGradeResponse> rows = recipients.stream()
                 .filter(recipient -> classId == null || classRecipientIds.contains(recipient.getStudentId()))
                 .filter(recipient -> hasActiveEnrollment == null
@@ -206,9 +192,6 @@ public class AssignmentQueryService {
                             && students.get(recipient.getStudentId()).isActive() == isActive))
                 .map(recipient -> {
                     AssignmentSubmission submission = submissionsByRecipient.get(recipient.getId());
-                    if (submission == null && recipient.getStudentId() != null) {
-                        submission = legacyByStudent.get(recipient.getStudentId());
-                    }
                     return toAssignmentStudentGrade(recipient, students.get(recipient.getStudentId()),
                             submission == null ? null : gradesByStudent.get(recipient.getStudentId()), submission);
                 })

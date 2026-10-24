@@ -94,22 +94,19 @@ class AnnouncementQueryServiceTest {
                         1, 0, 1));
         given(classService.getClassesByStudent("test-tenant", 42L, 0, 1000))
                 .willReturn(new ClassService.ClassListData(
-                        List.of(new ClassService.ClassData(7L, "수업", 1L, null, List.of(), null, null, null, null)),
+                        List.of(new ClassService.ClassData(7L, "수업", 1L, null, null, null)),
                         1, 0, 1));
 
         assertThat(queryService.canUserViewAnnouncement(9L, "STUDENT", 200L)).isTrue();
     }
 
     @Test
-    void unknownOrTargetlessRestrictedAnnouncementDoesNotBecomePublic() {
-        given(announcementRepository.findById(9L)).willReturn(Optional.of(
-                announcement(9L, 1L, AnnouncementAudienceScope.LEGACY_UNSPECIFIED)));
+    void targetlessRestrictedAnnouncementDoesNotBecomePublic() {
         given(announcementRepository.findById(10L)).willReturn(Optional.of(
                 announcement(10L, 1L, AnnouncementAudienceScope.TARGETED)));
 
-        assertThat(queryService.canUserViewAnnouncement(9L, "STUDENT", 200L)).isFalse();
         assertThat(queryService.canUserViewAnnouncement(10L, "STUDENT", 200L)).isFalse();
-        assertThat(queryService.canUserViewAnnouncement(9L, "OWNER", 200L)).isTrue();
+        assertThat(queryService.canUserViewAnnouncement(10L, "OWNER", 200L)).isTrue();
     }
 
     private static Announcement announcement(Long id, Long authorId) {

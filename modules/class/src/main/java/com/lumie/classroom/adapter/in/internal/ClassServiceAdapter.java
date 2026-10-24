@@ -140,15 +140,11 @@ public class ClassServiceAdapter implements ClassService {
     }
 
     private ClassData toClassData(ClassResponse response, Long tenantId) {
-        var schedule = response.schedulePattern();
         return new ClassData(
                 response.id(),
                 response.name(),
                 tenantId,
                 response.teacherId(),
-                schedule != null ? schedule.days() : List.of(),
-                schedule != null ? schedule.startTime() : null,
-                schedule != null ? schedule.endTime() : null,
                 response.createdAt() != null ? response.createdAt().toString() : "",
                 response.updatedAt() != null ? response.updatedAt().toString() : ""
         );
