@@ -95,9 +95,6 @@ class ClassCommandServiceTest {
                     "수학 심화반",
                     10L,
                     new SchedulePatternRequest(
-                            null,
-                            null,
-                            null,
                             List.of(
                                     new SchedulePatternRequest.ScheduleSessionRequest("WED", "15:00", "16:00"),
                                     new SchedulePatternRequest.ScheduleSessionRequest("FRI", "18:00", "19:00")
@@ -107,9 +104,6 @@ class ClassCommandServiceTest {
             ClassEntity existing = buildClassEntity(
                     2L,
                     new SchedulePattern(
-                            null,
-                            null,
-                            null,
                             List.of(new SchedulePattern.ScheduleSession("WED", "16:00", "17:00"))
                     )
             );
@@ -143,18 +137,12 @@ class ClassCommandServiceTest {
                     "수학 심화반",
                     10L,
                     new SchedulePatternRequest(
-                            null,
-                            null,
-                            null,
                             List.of(new SchedulePatternRequest.ScheduleSessionRequest("WED", "15:30", "16:30"))
                     ),
                     null);
             ClassEntity existing = buildClassEntity(
                     2L,
                     new SchedulePattern(
-                            null,
-                            null,
-                            null,
                             List.of(new SchedulePattern.ScheduleSession("WED", "15:00", "16:00"))
                     )
             );
@@ -177,7 +165,7 @@ class ClassCommandServiceTest {
         @Test
         @DisplayName("partial schedulePattern은 유효하지 않다")
         void partialSchedulePattern_isInvalid() {
-            SchedulePatternRequest request = new SchedulePatternRequest(List.of("MON"), null, null, null);
+            SchedulePatternRequest request = new SchedulePatternRequest(null);
 
             assertThat(request.isScheduleShapeValid()).isFalse();
         }
@@ -185,7 +173,7 @@ class ClassCommandServiceTest {
         @Test
         @DisplayName("empty sessions schedulePattern은 유효하지 않다")
         void emptySessionsSchedulePattern_isInvalid() {
-            SchedulePatternRequest request = new SchedulePatternRequest(null, null, null, List.of());
+            SchedulePatternRequest request = new SchedulePatternRequest(List.of());
 
             assertThat(request.isScheduleShapeValid()).isFalse();
         }
@@ -194,9 +182,6 @@ class ClassCommandServiceTest {
         @DisplayName("null session을 포함한 schedulePattern은 유효하지 않다")
         void nullSessionSchedulePattern_isInvalid() {
             SchedulePatternRequest request = new SchedulePatternRequest(
-                    null,
-                    null,
-                    null,
                     java.util.Arrays.asList((SchedulePatternRequest.ScheduleSessionRequest) null));
 
             assertThat(request.isScheduleShapeValid()).isFalse();
@@ -207,9 +192,6 @@ class ClassCommandServiceTest {
         @DisplayName("요일별 session schedulePattern은 유효하다")
         void perDaySessionSchedulePattern_isValid() {
             SchedulePatternRequest request = new SchedulePatternRequest(
-                    null,
-                    null,
-                    null,
                     List.of(new SchedulePatternRequest.ScheduleSessionRequest("MON", "15:00", "16:00")));
 
             assertThat(request.isScheduleShapeValid()).isTrue();
@@ -220,9 +202,6 @@ class ClassCommandServiceTest {
         @DisplayName("역전된 시간 범위는 유효하지 않다")
         void reversedTimeRange_isInvalid() {
             SchedulePatternRequest request = new SchedulePatternRequest(
-                    null,
-                    null,
-                    null,
                     List.of(new SchedulePatternRequest.ScheduleSessionRequest("MON", "16:00", "15:00")));
 
             assertThat(request.isScheduleTimeRangeValid()).isFalse();

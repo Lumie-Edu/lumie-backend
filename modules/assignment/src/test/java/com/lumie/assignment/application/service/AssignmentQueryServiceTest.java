@@ -200,7 +200,7 @@ class AssignmentQueryServiceTest {
     void getSubmissionStatuses_includesStudentName() throws Exception {
         stubCurrentResults();
         Assignment entity = buildAssignment(1L);
-        AssignmentSubmission submission = AssignmentSubmission.create(1L, 42L);
+        AssignmentSubmission submission = AssignmentSubmission.createForRecipient(1L, 42L, 100L);
         submission.submitExam(java.util.Map.of("1", "1"), 90L, 10);
         setField(submission, "id", 10L);
 

@@ -29,7 +29,9 @@ class ClassEntityTest {
     void create_fieldsAreSetCorrectly() {
         ClassEntity entity = ClassEntity.create(
                 "수학 기초반", 10L,
-                new SchedulePattern(List.of("MON", "WED"), "14:00", "15:30"),
+                new SchedulePattern(List.of(
+                        new SchedulePattern.ScheduleSession("MON", "14:00", "15:30"),
+                        new SchedulePattern.ScheduleSession("WED", "14:00", "15:30"))),
                 "설명");
 
         assertThat(entity.getName()).isEqualTo("수학 기초반");
@@ -38,9 +40,11 @@ class ClassEntityTest {
     }
 
     @Test
-    @DisplayName("legacy schedulePattern은 요일별 session으로 정규화된다")
-    void schedulePattern_legacyShape_normalizesSessions() {
-        SchedulePattern schedulePattern = new SchedulePattern(List.of("MON", "WED"), "14:00", "15:30");
+    @DisplayName("요일별 schedule session을 보존한다")
+    void schedulePattern_perDaySessionsArePreserved() {
+        SchedulePattern schedulePattern = new SchedulePattern(List.of(
+                new SchedulePattern.ScheduleSession("MON", "14:00", "15:30"),
+                new SchedulePattern.ScheduleSession("WED", "14:00", "15:30")));
 
         assertThat(schedulePattern.sessions())
                 .extracting("day", "startTime", "endTime")
@@ -51,39 +55,39 @@ class ClassEntityTest {
     }
 
     @Test
-    @DisplayName("같은 시간의 요일별 schedulePattern은 legacy 필드를 파생한다")
-    void schedulePattern_sessionsWithSharedTime_deriveLegacyFields() {
+    @DisplayName("같은 시간의 요일별 schedulePattern은 session 목록만 보존한다")
+    void schedulePattern_sessionsWithSharedTimeArePreserved() {
         SchedulePattern schedulePattern = new SchedulePattern(
-                null,
-                null,
-                null,
                 List.of(
                         new SchedulePattern.ScheduleSession("WED", "15:00", "16:00"),
                         new SchedulePattern.ScheduleSession("FRI", "15:00", "16:00")
                 )
         );
 
-        assertThat(schedulePattern.days()).containsExactly("WED", "FRI");
-        assertThat(schedulePattern.startTime()).isEqualTo("15:00");
-        assertThat(schedulePattern.endTime()).isEqualTo("16:00");
+        assertThat(schedulePattern.sessions())
+                .extracting("day", "startTime", "endTime")
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("WED", "15:00", "16:00"),
+                        org.assertj.core.groups.Tuple.tuple("FRI", "15:00", "16:00")
+                );
     }
 
     @Test
-    @DisplayName("다른 시간의 요일별 schedulePattern은 legacy 시간 필드를 비운다")
-    void schedulePattern_sessionsWithMixedTime_doNotProjectFalseLegacyTime() {
+    @DisplayName("다른 시간의 요일별 schedulePattern은 session별 시간을 보존한다")
+    void schedulePattern_sessionsWithMixedTimeArePreserved() {
         SchedulePattern schedulePattern = new SchedulePattern(
-                null,
-                null,
-                null,
                 List.of(
                         new SchedulePattern.ScheduleSession("WED", "15:00", "16:00"),
                         new SchedulePattern.ScheduleSession("FRI", "18:00", "19:00")
                 )
         );
 
-        assertThat(schedulePattern.days()).containsExactly("WED", "FRI");
-        assertThat(schedulePattern.startTime()).isNull();
-        assertThat(schedulePattern.endTime()).isNull();
+        assertThat(schedulePattern.sessions())
+                .extracting("day", "startTime", "endTime")
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("WED", "15:00", "16:00"),
+                        org.assertj.core.groups.Tuple.tuple("FRI", "18:00", "19:00")
+                );
     }
 
     @Test
@@ -92,7 +96,9 @@ class ClassEntityTest {
         ClassEntity entity = buildEntity();
 
         entity.updateInfo("영어 고급반", 20L,
-                new SchedulePattern(List.of("TUE", "THU"), "10:00", "11:30"),
+                new SchedulePattern(List.of(
+                        new SchedulePattern.ScheduleSession("TUE", "10:00", "11:30"),
+                        new SchedulePattern.ScheduleSession("THU", "10:00", "11:30"))),
                 "변경된 설명");
 
         assertThat(entity.getName()).isEqualTo("영어 고급반");
@@ -113,7 +119,9 @@ class ClassEntityTest {
     private ClassEntity buildEntity() {
         return ClassEntity.create(
                 "수학 기초반", 10L,
-                new SchedulePattern(List.of("MON", "WED"), "14:00", "15:30"),
+                new SchedulePattern(List.of(
+                        new SchedulePattern.ScheduleSession("MON", "14:00", "15:30"),
+                        new SchedulePattern.ScheduleSession("WED", "14:00", "15:30"))),
                 "설명");
     }
 }

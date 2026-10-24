@@ -1,8 +1,7 @@
 package com.lumie.content.domain.vo;
 
-/** Explicit audience intent, including historical rows whose intent cannot be proven. */
+/** Explicit announcement audience. */
 public enum AnnouncementAudienceScope {
     ALL,
-    TARGETED,
-    LEGACY_UNSPECIFIED
+    TARGETED
 }

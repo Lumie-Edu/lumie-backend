@@ -75,7 +75,6 @@ public class Tenant extends BaseEntity {
             "announcements", "sms", "resources", "qna",
             "textbooks", "reviews"
     );
-    private static final Set<String> REMOVED_LEGACY_SIDEBAR_ITEM_IDS = Set.of("schedules");
 
     @Builder
     private Tenant(TenantSlug slug, String name, String displayName, TenantPlan plan,
@@ -176,7 +175,6 @@ public class Tenant extends BaseEntity {
         return itemIds.stream()
                 .filter(id -> id != null && !id.isBlank())
                 .map(String::trim)
-                .filter(id -> !REMOVED_LEGACY_SIDEBAR_ITEM_IDS.contains(id))
                 .map(this::validatedSidebarItemId)
                 .distinct()
                 .toList();

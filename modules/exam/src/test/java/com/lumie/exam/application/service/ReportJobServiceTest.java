@@ -24,14 +24,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.time.Instant;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -83,6 +80,10 @@ class ReportJobServiceTest {
                 .thenReturn(Optional.of(item));
         org.mockito.Mockito.lenient().when(itemRepository.findByJobIdAndReportIndexForUpdate(1L, 0))
                 .thenReturn(Optional.of(item));
+        ReportGenerationItem successfulItem = ReportGenerationItem.pending(1L, 10L, 0, 99L);
+        successfulItem.completeSuccessfully("tmp/test-tenant/reports/10/99.pdf");
+        org.mockito.Mockito.lenient().when(itemRepository.findByJobIdOrderByReportIndexAsc(1L))
+                .thenReturn(List.of(successfulItem));
     }
 
     @Test
@@ -260,33 +261,16 @@ class ReportJobServiceTest {
     }
 
     @Test
-    void getZipBytes_fallsBackToLegacyJpgObjectsDuringMigration() throws Exception {
+    void getZipBytes_doesNotRebuildZipForJobWithoutItems() {
         ReportGenerationJob job = completedJob();
         given(jobRepository.findById(1L)).willReturn(Optional.of(job));
-        given(studentService.getStudentsByIds(eq("test-tenant"), eq(List.of(99L))))
-                .willReturn(new StudentService.StudentListData(
-                        List.of(new StudentService.StudentData(99L, 7L, "강다은", "010", true, null, null)),
-                        1,
-                        0,
-                        1
-                ));
-        given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
-                .willThrow(new IllegalStateException("missing pdf"));
-        given(storagePort.getObject("tmp/test-tenant/reports/10/99.jpg"))
-                .willReturn(new byte[]{1, 2, 3});
-        given(storagePort.putObject(eq("tmp/test-tenant/reports/10/batch_1.zip"), any(), eq("application/zip")))
-                .willReturn("tmp/test-tenant/reports/10/batch_1.zip");
-        doAnswer(invocation -> {
-            ReflectionTestUtils.setField(job, "zipFileKey", invocation.getArgument(1));
-            ReflectionTestUtils.setField(job, "zipExpiresAt", invocation.getArgument(2));
-            return null;
-        }).when(jobRepository).setZipFileKey(eq(1L), anyString(), any(Instant.class));
+        given(itemRepository.findByJobIdOrderByReportIndexAsc(1L)).willReturn(List.of());
 
-        service.getZipBytes(1L);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getZipBytes(1L))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
 
-        ArgumentCaptor<byte[]> zipCaptor = ArgumentCaptor.forClass(byte[].class);
-        verify(storagePort).putObject(eq("tmp/test-tenant/reports/10/batch_1.zip"), zipCaptor.capture(), eq("application/zip"));
-        assertThat(firstZipEntryName(zipCaptor.getValue())).isEqualTo("강다은_테스트_시험.jpg");
+        verify(storagePort, never()).getObject(anyString());
+        verify(storagePort, never()).putObject(anyString(), any(), anyString());
     }
 
     @Test
@@ -378,8 +362,6 @@ class ReportJobServiceTest {
                         1, 0, 1));
         given(storagePort.getObject("tmp/test-tenant/reports/10/99.pdf"))
                 .willThrow(new IllegalStateException("missing pdf"));
-        given(storagePort.getObject("tmp/test-tenant/reports/10/99.jpg"))
-                .willThrow(new IllegalStateException("missing legacy jpg"));
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getZipBytes(1L))
                 .isInstanceOf(IllegalStateException.class)
@@ -395,6 +377,8 @@ class ReportJobServiceTest {
         ReflectionTestUtils.setField(job, "studentIds", List.of(99L, 100L));
         ReflectionTestUtils.setField(job, "successCount", 2);
         given(jobRepository.findById(1L)).willReturn(Optional.of(job));
+        given(itemRepository.findByJobIdOrderByReportIndexAsc(1L))
+                .willReturn(List.of(successfulItem(99L, 0), successfulItem(100L, 1)));
         given(studentService.getStudentsByIds(eq("test-tenant"), eq(List.of(99L, 100L))))
                 .willReturn(new StudentService.StudentListData(
                         List.of(
@@ -405,8 +389,6 @@ class ReportJobServiceTest {
                 .willReturn("%PDF-1.7\nbody".getBytes(StandardCharsets.US_ASCII));
         given(storagePort.getObject("tmp/test-tenant/reports/10/100.pdf"))
                 .willThrow(new IllegalStateException("missing pdf"));
-        given(storagePort.getObject("tmp/test-tenant/reports/10/100.jpg"))
-                .willThrow(new IllegalStateException("missing legacy jpg"));
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getZipBytes(1L))
                 .isInstanceOf(IllegalStateException.class)
@@ -504,10 +486,9 @@ class ReportJobServiceTest {
         return job;
     }
 
-    private static String firstZipEntryName(byte[] zipBytes) throws Exception {
-        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
-            ZipEntry entry = zis.getNextEntry();
-            return entry == null ? null : entry.getName();
-        }
+    private static ReportGenerationItem successfulItem(Long studentId, int reportIndex) {
+        ReportGenerationItem item = ReportGenerationItem.pending(1L, 10L, reportIndex, studentId);
+        item.completeSuccessfully("tmp/test-tenant/reports/10/" + studentId + ".pdf");
+        return item;
     }
 }

@@ -56,7 +56,4 @@ public final class FileObjectKeyFactory {
         return "tmp/" + storageTenantId + "/reports/" + examId + "/batch_" + jobId + ".zip";
     }
 
-    public static String legacyReport(String storageTenantId, Long examId, Long studentId) {
-        return "tmp/" + storageTenantId + "/reports/" + examId + "/" + studentId + ".jpg";
-    }
 }

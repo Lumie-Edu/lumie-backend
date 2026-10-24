@@ -141,7 +141,7 @@
             "type" : "string"
           },
           "audienceScope" : {
-            "enum" : [ "ALL", "TARGETED", "LEGACY_UNSPECIFIED" ],
+            "enum" : [ "ALL", "TARGETED" ],
             "type" : "string"
           },
           "authorId" : {
@@ -1045,7 +1045,7 @@
             "type" : "string"
           },
           "audienceScope" : {
-            "enum" : [ "ALL", "TARGETED", "LEGACY_UNSPECIFIED" ],
+            "enum" : [ "ALL", "TARGETED" ],
             "type" : "string"
           },
           "classIds" : {
@@ -4284,52 +4284,27 @@
       },
       "SchedulePatternRequest" : {
         "properties" : {
-          "days" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          },
-          "endTime" : {
-            "type" : "string"
-          },
           "sessions" : {
             "items" : {
               "$ref" : "#/components/schemas/ScheduleSessionRequest"
             },
             "type" : "array"
-          },
-          "startTime" : {
-            "type" : "string"
           }
         },
+        "required" : [ "sessions" ],
         "type" : "object"
       },
       "SchedulePatternResponse" : {
         "nullable" : true,
         "properties" : {
-          "days" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          },
-          "endTime" : {
-            "nullable" : true,
-            "type" : "string"
-          },
           "sessions" : {
             "items" : {
               "$ref" : "#/components/schemas/ScheduleSessionResponse"
             },
             "type" : "array"
-          },
-          "startTime" : {
-            "nullable" : true,
-            "type" : "string"
           }
         },
-        "required" : [ "days", "endTime", "sessions", "startTime" ],
+        "required" : [ "sessions" ],
         "type" : "object"
       },
       "ScheduleSessionRequest" : {
@@ -5891,7 +5866,7 @@
             "type" : "array"
           },
           "audienceScope" : {
-            "enum" : [ "ALL", "TARGETED", "LEGACY_UNSPECIFIED" ],
+            "enum" : [ "ALL", "TARGETED" ],
             "type" : "string"
           },
           "classIds" : {

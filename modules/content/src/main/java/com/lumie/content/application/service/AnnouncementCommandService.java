@@ -142,8 +142,10 @@ public class AnnouncementCommandService {
 
     private AnnouncementAudienceScope createScope(AnnouncementAudienceScope requested, List<Long> classIds) {
         if (requested == null) {
-            return classIds.isEmpty() ? AnnouncementAudienceScope.LEGACY_UNSPECIFIED
-                    : AnnouncementAudienceScope.TARGETED;
+            if (classIds.isEmpty()) {
+                throw new BusinessException(ContentErrorCode.INVALID_ANNOUNCEMENT_AUDIENCE);
+            }
+            return AnnouncementAudienceScope.TARGETED;
         }
         validateScope(requested, classIds);
         return requested;
@@ -166,8 +168,7 @@ public class AnnouncementCommandService {
     }
 
     private void validateScope(AnnouncementAudienceScope scope, List<Long> classIds) {
-        if (scope == AnnouncementAudienceScope.LEGACY_UNSPECIFIED
-                || (scope == AnnouncementAudienceScope.ALL && !classIds.isEmpty())
+        if ((scope == AnnouncementAudienceScope.ALL && !classIds.isEmpty())
                 || (scope == AnnouncementAudienceScope.TARGETED && classIds.isEmpty())) {
             throw new BusinessException(ContentErrorCode.INVALID_ANNOUNCEMENT_AUDIENCE);
         }

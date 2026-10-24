@@ -406,7 +406,7 @@ class SmsCommandServiceTest {
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(classService.getClass(anyString(), eq(5L)))
                     .willReturn(Optional.of(new ClassService.ClassData(
-                            5L, "수학반", null, null, null, null, null, null, null)));
+                            5L, "수학반", null, null, null, null)));
             given(classService.getEnrolledStudentIds(anyString(), eq(5L)))
                     .willReturn(List.of(100L, 200L));
             given(studentService.getStudentsByIds(anyString(), eq(List.of(100L, 200L))))
@@ -440,7 +440,7 @@ class SmsCommandServiceTest {
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(classService.getClass(anyString(), eq(5L)))
                     .willReturn(Optional.of(new ClassService.ClassData(
-                            5L, "수학반", null, null, null, null, null, null, null)));
+                            5L, "수학반", null, null, null, null)));
             given(classService.getEnrolledStudentIds(anyString(), eq(5L)))
                     .willReturn(List.of(100L));
             given(studentService.getStudentsByIds(anyString(), eq(List.of(100L))))
@@ -475,7 +475,7 @@ class SmsCommandServiceTest {
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(classService.getClass(anyString(), eq(5L)))
                     .willReturn(Optional.of(new ClassService.ClassData(
-                            5L, "수학반", null, null, null, null, null, null, null)));
+                            5L, "수학반", null, null, null, null)));
             given(classService.getEnrolledStudentIds(anyString(), eq(5L)))
                     .willReturn(List.of());
 
@@ -493,7 +493,7 @@ class SmsCommandServiceTest {
                             10L, 100L, "admin", "관리자", null, null, true, "ACTIVE", null, null)));
             given(classService.getClass(anyString(), eq(5L)))
                     .willReturn(Optional.of(new ClassService.ClassData(
-                            5L, "수학반", null, null, null, null, null, null, null)));
+                            5L, "수학반", null, null, null, null)));
             given(classService.getEnrolledStudentIds(anyString(), eq(5L)))
                     .willReturn(List.of(100L));
             given(studentService.getStudentsByIds(anyString(), eq(List.of(100L))))

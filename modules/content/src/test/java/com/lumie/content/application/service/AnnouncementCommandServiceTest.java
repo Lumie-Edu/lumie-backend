@@ -116,7 +116,8 @@ class AnnouncementCommandServiceTest {
                 false,
                 false,
                 null,
-                List.of()
+                List.of(),
+                AnnouncementAudienceScope.ALL
         );
         given(announcementRepository.save(any(Announcement.class))).willAnswer(invocation -> {
             Announcement announcement = invocation.getArgument(0);
@@ -196,7 +197,7 @@ class AnnouncementCommandServiceTest {
 
     private static Announcement announcement(Long id, Long authorId) {
         Announcement announcement = Announcement.create(authorId, "공지", "내용", false, false,
-                AnnouncementAudienceScope.LEGACY_UNSPECIFIED);
+                AnnouncementAudienceScope.ALL);
         ReflectionTestUtils.setField(announcement, "id", id);
         return announcement;
     }
@@ -206,6 +207,6 @@ class AnnouncementCommandServiceTest {
     }
 
     private static ClassService.ClassData classData(Long id) {
-        return new ClassService.ClassData(id, "클래스 " + id, 1L, null, List.of(), null, null, null, null);
+        return new ClassService.ClassData(id, "클래스 " + id, 1L, null, null, null);
     }
 }

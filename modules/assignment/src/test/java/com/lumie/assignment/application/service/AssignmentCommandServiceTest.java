@@ -88,7 +88,7 @@ class AssignmentCommandServiceTest {
 
             given(classService.getClass(any(), eq(1L)))
                     .willReturn(Optional.of(new ClassService.ClassData(
-                            1L, "수학반", null, null, null, null, null, null, null)));
+                            1L, "수학반", null, null, null, null)));
             given(examService.createExamForAssignment(any(), any())).willReturn(77L);
             given(assignmentRepository.save(any(Assignment.class)))
                     .willAnswer(inv -> {
@@ -168,7 +168,7 @@ class AssignmentCommandServiceTest {
 
             given(classService.getClass(any(), eq(1L)))
                     .willReturn(Optional.of(new ClassService.ClassData(
-                            1L, "수학반", null, null, null, null, null, null, null)));
+                            1L, "수학반", null, null, null, null)));
             given(examService.createExamForAssignment(any(), any())).willReturn(77L);
             given(assignmentRepository.save(any(Assignment.class)))
                     .willAnswer(inv -> {
@@ -211,7 +211,7 @@ class AssignmentCommandServiceTest {
 
             given(classService.getClass(any(), eq(1L)))
                     .willReturn(Optional.of(new ClassService.ClassData(
-                            1L, "수학반", null, null, null, null, null, null, null)));
+                            1L, "수학반", null, null, null, null)));
             given(examService.createExamForAssignment(any(), any())).willReturn(77L);
             given(assignmentRepository.save(any(Assignment.class)))
                     .willAnswer(inv -> {
