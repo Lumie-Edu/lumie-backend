@@ -25,8 +25,5 @@ public interface AssignmentAudienceReadPort {
             studentIds = List.copyOf(studentIds);
         }
 
-        public Long firstClassId() {
-            return classIds.isEmpty() ? null : classIds.get(0);
-        }
     }
 }

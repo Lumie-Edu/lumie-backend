@@ -33,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,7 +63,7 @@ public class AssignmentCommandService {
         AssignmentStatus status = request.status() != null
                 ? parseAssignmentStatus(request.status())
                 : AssignmentStatus.ACTIVE;
-        List<Long> targetClassIds = normalizeClassTargets(request.classId(), request.targetClassIds());
+        List<Long> targetClassIds = normalizeIds(request.targetClassIds());
         List<Long> targetStudentIds = normalizeIds(request.targetStudentIds());
         validateTargets(slug, targetClassIds, targetStudentIds);
 
@@ -364,15 +363,6 @@ public class AssignmentCommandService {
                         assignment.isShowCorrectAnswers() ? question.correctAnswer() : null
                 ))
                 .toList();
-    }
-
-    private List<Long> normalizeClassTargets(Long legacyClassId, List<Long> classIds) {
-        LinkedHashSet<Long> ids = new LinkedHashSet<>();
-        if (legacyClassId != null) {
-            ids.add(legacyClassId);
-        }
-        ids.addAll(normalizeIds(classIds));
-        return ids.stream().toList();
     }
 
     private List<Long> normalizeIds(Collection<Long> ids) {

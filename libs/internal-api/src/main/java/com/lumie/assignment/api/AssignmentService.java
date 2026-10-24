@@ -12,7 +12,6 @@ public interface AssignmentService {
     record AssignmentData(
             Long id,
             String examName,
-            Long classId,
             String status,
             String createdAt,
             String updatedAt

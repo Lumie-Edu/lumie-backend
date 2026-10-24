@@ -319,7 +319,6 @@ public class AssignmentQueryService {
             Assignment assignment, Targets targets, String examName, Instant now, String rosterAccuracy) {
         return new AssignmentResponse(
                 assignment.getId(),
-                targets.firstClassId(),
                 assignment.getDueDate(),
                 assignment.getMaxScore(),
                 assignment.getAttachments(),
@@ -350,7 +349,6 @@ public class AssignmentQueryService {
                                                          Instant now, String rosterAccuracy) {
         return new AssignmentResponse(
                 assignment.getId(),
-                null,
                 assignment.getDueDate(),
                 assignment.getMaxScore(),
                 assignment.getAttachments(),

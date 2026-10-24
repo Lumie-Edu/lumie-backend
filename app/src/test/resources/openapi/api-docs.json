@@ -260,11 +260,6 @@
             "nullable" : true,
             "type" : "array"
           },
-          "classId" : {
-            "format" : "int64",
-            "nullable" : true,
-            "type" : "integer"
-          },
           "createdAt" : {
             "format" : "date-time",
             "type" : "string"
@@ -340,7 +335,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "attachments", "classId", "createdAt", "dueDate", "evaluationMode", "examName", "id", "linkedExamId", "maxScore", "rosterAccuracy", "showCorrectAnswers", "showGrade", "showPassFail", "showQuestionResults", "showScore", "status", "submissionMode", "targetClassIds", "targetStudentIds", "updatedAt" ],
+        "required" : [ "attachments", "createdAt", "dueDate", "evaluationMode", "examName", "id", "linkedExamId", "maxScore", "rosterAccuracy", "showCorrectAnswers", "showGrade", "showPassFail", "showQuestionResults", "showScore", "status", "submissionMode", "targetClassIds", "targetStudentIds", "updatedAt" ],
         "type" : "object"
       },
       "AssignmentStudentGradeResponse" : {
@@ -1124,10 +1119,6 @@
               "type" : "integer"
             },
             "type" : "array"
-          },
-          "classId" : {
-            "format" : "int64",
-            "type" : "integer"
           },
           "dueDate" : {
             "format" : "date-time",

@@ -162,7 +162,8 @@ class FileServiceAdapterLifecycleTest {
     @Test
     void discardingPreparedFilesContinuesWhenStorageCleanupFails() {
         PreparedTemporaryFile prepared = new PreparedTemporaryFile(
-                UPLOAD_ID, "notes.pdf", "application/pdf", 10L, "files/demo/notes.pdf");
+                UPLOAD_ID, "notes.pdf", "application/pdf", 10L,
+                "tmp/demo/uploads/upload-1/notes.pdf", "files/demo/notes.pdf", null, null);
         org.mockito.BDDMockito.willThrow(new RuntimeException("storage down"))
                 .given(storage).deleteObject("files/demo/notes.pdf");
 

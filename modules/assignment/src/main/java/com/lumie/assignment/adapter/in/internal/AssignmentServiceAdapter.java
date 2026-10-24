@@ -50,7 +50,6 @@ public class AssignmentServiceAdapter implements AssignmentService {
         return new AssignmentData(
                 response.id(),
                 response.examName(),
-                response.classId(),
                 response.status() != null ? response.status().name() : "ACTIVE",
                 response.createdAt() != null ? response.createdAt().toString() : "",
                 response.updatedAt() != null ? response.updatedAt().toString() : ""

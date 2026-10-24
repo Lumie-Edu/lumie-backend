@@ -105,7 +105,8 @@ class FileCommandServiceTest {
     @Test
     void registerTextbookFilesDiscardsPreparedDescriptorsWhenMetadataCannotBeReloaded() {
         PreparedTemporaryFile prepared = new PreparedTemporaryFile(
-                FILE_ID, "notes.pdf", "application/pdf", 10L, OBJECT_KEY);
+                FILE_ID, "notes.pdf", "application/pdf", 10L,
+                "tmp/demo/uploads/upload-1/notes.pdf", OBJECT_KEY, null, null);
         when(fileService.prepareTemporaryFiles("textbook", List.of())).thenReturn(List.of(prepared));
         when(fileService.attachPreparedFiles("textbook", null, List.of(prepared), null)).thenReturn(List.of(FILE_ID));
         when(fileMetadataRepository.findById(FILE_ID)).thenReturn(Optional.empty());
