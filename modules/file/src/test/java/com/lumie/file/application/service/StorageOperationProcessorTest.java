@@ -6,7 +6,6 @@ import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
-import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileStorageOperationStatus;
 import com.lumie.file.domain.vo.FileUploadStatus;
@@ -40,11 +39,10 @@ class StorageOperationProcessorTest {
     private static final String TARGET = "files/demo/announcement/file-1/notes.pdf";
 
     private final FileStorageOperationPersistencePort operations = mock(FileStorageOperationPersistencePort.class);
-    private final FileMetadataRepository files = mock(FileMetadataRepository.class);
     private final StoragePort storage = mock(StoragePort.class);
     private final StorageOperationMetrics metrics = mock(StorageOperationMetrics.class);
     private final StorageOperationProcessor processor = new StorageOperationProcessor(
-            operations, files, storage, Clock.fixed(NOW, ZoneOffset.UTC), metrics);
+            operations, storage, Clock.fixed(NOW, ZoneOffset.UTC), metrics);
 
     @AfterEach
     void clearTenant() {
@@ -57,7 +55,7 @@ class StorageOperationProcessorTest {
         FileStorageOperation operation = operation(NOW.minus(Duration.ofMinutes(1)));
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(SOURCE)).thenReturn(true);
         when(storage.objectExists(TARGET)).thenReturn(false, true);
         when(storage.objectSize(TARGET)).thenReturn(10L);
@@ -75,7 +73,7 @@ class StorageOperationProcessorTest {
         FileStorageOperation operation = operation(NOW.minus(Duration.ofMinutes(1)));
         FileMetadata metadata = metadata(FileUploadStatus.READY);
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
 
         processor.processDueOperations(10);
 
@@ -85,15 +83,15 @@ class StorageOperationProcessorTest {
     }
 
     @Test
-    void missingMetadataFinalizesPromotionThroughTheRaceSafetyPort() {
+    void missingMetadataDelegatesToStalePromotionPort() {
         setTenant();
         FileStorageOperation operation = operation(NOW.minus(Duration.ofMinutes(1)));
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.empty());
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.empty());
 
         processor.processDueOperations(10);
 
-        verify(operations).finalizePromotion(OPERATION_ID, FILE_ID, null);
+        verify(operations).finalizeStalePromotion(OPERATION_ID, FILE_ID, null);
         verify(storage, never()).objectExists(anyString());
     }
 
@@ -103,7 +101,7 @@ class StorageOperationProcessorTest {
         FileStorageOperation operation = operation(NOW.minus(Duration.ofHours(23)));
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
 
         assertThat(processor.processDueOperations(10)).isEqualTo(1);
 
@@ -120,7 +118,7 @@ class StorageOperationProcessorTest {
         FileStorageOperation operation = operation(NOW.minus(Duration.ofMinutes(1)));
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(SOURCE)).thenReturn(true);
         when(storage.objectExists(TARGET)).thenReturn(false);
         org.mockito.BDDMockito.willThrow(new BusinessException(com.lumie.file.domain.exception.FileErrorCode.STORAGE_ERROR))
@@ -141,7 +139,7 @@ class StorageOperationProcessorTest {
         ReflectionTestUtils.setField(operation, "deadlineAt", NOW.plusSeconds(10));
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(SOURCE)).thenReturn(true);
         when(storage.objectExists(TARGET)).thenReturn(false);
         org.mockito.BDDMockito.willThrow(new BusinessException(com.lumie.file.domain.exception.FileErrorCode.STORAGE_ERROR))
@@ -165,7 +163,7 @@ class StorageOperationProcessorTest {
         }
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(TARGET)).thenReturn(false);
         when(storage.objectExists(SOURCE)).thenReturn(true);
         org.mockito.BDDMockito.willThrow(new BusinessException(com.lumie.file.domain.exception.FileErrorCode.STORAGE_ERROR))
@@ -185,7 +183,7 @@ class StorageOperationProcessorTest {
         }
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
 
         processor.processDueOperations(10);
 
@@ -201,13 +199,13 @@ class StorageOperationProcessorTest {
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         metadata.markDeleting();
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
 
         assertThat(processor.processDueOperations(10)).isEqualTo(1);
 
         assertThat(metadata.getUploadStatus()).isEqualTo(FileUploadStatus.DELETING);
         verify(storage, never()).objectExists(anyString());
-        verify(operations).finalizePromotion(OPERATION_ID, FILE_ID, null);
+        verify(operations).finalizeStalePromotion(OPERATION_ID, FILE_ID, null);
     }
 
     @Test
@@ -216,7 +214,7 @@ class StorageOperationProcessorTest {
         FileStorageOperation operation = operation(NOW.minus(Duration.ofMinutes(1)));
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(TARGET)).thenReturn(true);
         when(storage.objectSize(TARGET)).thenReturn(11L);
 
@@ -235,7 +233,7 @@ class StorageOperationProcessorTest {
         FileStorageOperation operation = operation(NOW.minus(Duration.ofMinutes(1)));
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(TARGET)).thenReturn(true);
         when(storage.objectSize(TARGET)).thenReturn(10L);
         when(storage.objectContentType(TARGET)).thenReturn("text/plain");
@@ -253,7 +251,7 @@ class StorageOperationProcessorTest {
         FileStorageOperation operation = operation(NOW.minus(Duration.ofMinutes(1)));
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(TARGET)).thenReturn(true);
         when(storage.objectSize(TARGET)).thenReturn(10L);
         when(storage.objectContentType(TARGET)).thenReturn("application/pdf");
@@ -271,7 +269,7 @@ class StorageOperationProcessorTest {
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         metadata.markDeleting();
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(TARGET)).thenReturn(false);
 
         assertThat(processor.processDueOperations(10)).isEqualTo(1);
@@ -288,7 +286,7 @@ class StorageOperationProcessorTest {
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         metadata.markDeleting();
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(TARGET)).thenReturn(true, false);
 
         assertThat(processor.processDueOperations(10)).isEqualTo(1);
@@ -304,7 +302,7 @@ class StorageOperationProcessorTest {
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         metadata.markDeleting();
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(TARGET)).thenReturn(true);
         org.mockito.BDDMockito.willThrow(new BusinessException(com.lumie.file.domain.exception.FileErrorCode.STORAGE_ERROR))
                 .given(storage).deleteObject(TARGET);
@@ -323,7 +321,7 @@ class StorageOperationProcessorTest {
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         metadata.markDeleting();
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(storage.objectExists(TARGET)).thenReturn(true, true);
 
         processor.processDueOperations(10);
@@ -340,7 +338,7 @@ class StorageOperationProcessorTest {
         FileMetadata metadata = metadata(FileUploadStatus.PENDING);
         metadata.markDeleting();
         when(operations.claimDueOperations(any(), anyInt(), anyString(), any())).thenReturn(List.of(operation));
-        when(files.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+        when(operations.findMetadataById(FILE_ID)).thenReturn(Optional.of(metadata));
         when(operations.hasActivePromotionLease(FILE_ID, NOW)).thenReturn(true);
 
         processor.processDueOperations(10);
