@@ -34,6 +34,7 @@ val lifecycleClassNames = listOf(
 dependencies {
     implementation(project(":libs:common"))
     implementation(project(":libs:internal-api"))
+    implementation(project(":libs:messaging"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -41,6 +42,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-amqp")
+    implementation(libs.spring.modulith.events.api)
+    implementation("jakarta.inject:jakarta.inject-api")
     implementation(libs.shedlock.spring)
 
     // MinIO SDK

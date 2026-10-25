@@ -1061,6 +1061,13 @@
               "$ref" : "#/components/schemas/TemporaryAttachment"
             },
             "type" : "array"
+          },
+          "uploadSessionIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
           }
         },
         "required" : [ "announcementContent", "announcementTitle" ],
@@ -1371,6 +1378,13 @@
               "$ref" : "#/components/schemas/TemporaryAttachment"
             },
             "type" : "array"
+          },
+          "uploadSessionIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
           }
         },
         "required" : [ "qnaContent", "qnaTitle" ],
@@ -1511,6 +1525,26 @@
           }
         },
         "required" : [ "name" ],
+        "type" : "object"
+      },
+      "CreateUploadSessionRequest" : {
+        "properties" : {
+          "contentType" : {
+            "type" : "string"
+          },
+          "entityType" : {
+            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
+            "type" : "string"
+          },
+          "fileSize" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "filename" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contentType", "entityType", "fileSize", "filename" ],
         "type" : "object"
       },
       "CurrentResult" : {
@@ -4024,6 +4058,13 @@
           "folderId" : {
             "format" : "uuid",
             "type" : "string"
+          },
+          "uploadSessionIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"
@@ -5878,6 +5919,13 @@
               "$ref" : "#/components/schemas/TemporaryAttachment"
             },
             "type" : "array"
+          },
+          "uploadSessionIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"
@@ -6146,6 +6194,13 @@
               "$ref" : "#/components/schemas/TemporaryAttachment"
             },
             "type" : "array"
+          },
+          "uploadSessionIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"
@@ -6264,6 +6319,64 @@
           }
         },
         "required" : [ "expiresAt", "fileKey", "requiredHeaders", "uploadUrl" ],
+        "type" : "object"
+      },
+      "UploadSessionResponse" : {
+        "properties" : {
+          "objectKey" : {
+            "type" : "string"
+          },
+          "sessionExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "sessionId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "uploadUrl" : {
+            "type" : "string"
+          },
+          "uploadUrlExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "objectKey", "sessionExpiresAt", "sessionId", "status", "uploadUrl", "uploadUrlExpiresAt" ],
+        "type" : "object"
+      },
+      "UploadSessionStatusResponse" : {
+        "properties" : {
+          "contentType" : {
+            "type" : "string"
+          },
+          "fileSize" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "filename" : {
+            "type" : "string"
+          },
+          "sessionExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "sessionId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "uploadUrlExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "contentType", "fileSize", "filename", "sessionExpiresAt", "sessionId", "status", "uploadUrlExpiresAt" ],
         "type" : "object"
       },
       "UpsertSmsSenderSettingRequest" : {
@@ -7107,6 +7220,14 @@
       },
       "post" : {
         "operationId" : "createAnnouncement",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -10546,6 +10667,135 @@
         "tags" : [ "file-controller" ]
       }
     },
+    "/v1/files/upload-sessions" : {
+      "post" : {
+        "operationId" : "createUploadSession",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateUploadSessionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadSessionResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "file-controller" ]
+      }
+    },
+    "/v1/files/upload-sessions/{sessionId}" : {
+      "get" : {
+        "operationId" : "getUploadSession",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "sessionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadSessionStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "file-controller" ]
+      }
+    },
+    "/v1/files/upload-sessions/{sessionId}/cancel" : {
+      "post" : {
+        "operationId" : "cancelUploadSession",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "sessionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "file-controller" ]
+      }
+    },
+    "/v1/files/upload-sessions/{sessionId}/complete" : {
+      "post" : {
+        "operationId" : "completeUploadSession",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "sessionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadSessionStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "file-controller" ]
+      }
+    },
+    "/v1/files/upload-sessions/{sessionId}/renew-url" : {
+      "post" : {
+        "operationId" : "renewUploadSessionUrl",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "sessionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadSessionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "file-controller" ]
+      }
+    },
     "/v1/files/uploads" : {
       "post" : {
         "operationId" : "createTemporaryUpload",
@@ -11453,6 +11703,14 @@
       "post" : {
         "description" : "Requires the STUDENT role. The author is derived from the session.",
         "operationId" : "createQna",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -11546,6 +11804,14 @@
       "post" : {
         "description" : "Requires the STUDENT role.",
         "operationId" : "createMyQna",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {

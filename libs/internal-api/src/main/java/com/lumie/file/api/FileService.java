@@ -11,10 +11,16 @@ public interface FileService {
     /** Validates and copies tmp objects outside the caller's DB transaction. */
     List<PreparedTemporaryFile> prepareTemporaryFiles(String entityType, List<TemporaryAttachment> attachments);
 
+    /** Verifies already-uploaded session objects outside the caller's post-save transaction. */
+    List<PreparedUploadSession> prepareUploadSessions(String entityType, List<UUID> sessionIds);
+
     /** Persists metadata for objects prepared before the current DB transaction. */
     List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files);
 
     List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files, UUID folderId);
+
+    /** Claims verified sessions and persists READY metadata in the caller's transaction. */
+    List<UUID> attachUploadSessions(String entityType, Long entityId, List<PreparedUploadSession> sessions, UUID folderId);
 
     /** Best-effort compensation for prepared objects when the DB transaction fails. */
     void discardPreparedFiles(List<PreparedTemporaryFile> files);
@@ -22,6 +28,9 @@ public interface FileService {
     /** Reconciles retained direct attachments and attaches already-prepared replacements. */
     void reconcilePreparedDirectFiles(String entityType, Long entityId, List<UUID> retainedFileIds,
                                       List<PreparedTemporaryFile> preparedFiles);
+
+    void reconcileUploadSessions(String entityType, Long entityId, List<UUID> retainedFileIds,
+                                 List<PreparedUploadSession> sessions);
 
     /**
      * Deletes all files (MinIO objects + metadata) associated with the given entity.

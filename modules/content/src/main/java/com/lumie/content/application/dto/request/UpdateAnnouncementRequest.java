@@ -12,6 +12,7 @@ public record UpdateAnnouncementRequest(
         Boolean isItImportantAnnouncement,
         List<UUID> attachmentFileIds,
         List<TemporaryAttachment> temporaryAttachments,
+        List<UUID> uploadSessionIds,
         List<Long> classIds,
         AnnouncementAudienceScope audienceScope
 ) {
@@ -20,6 +21,14 @@ public record UpdateAnnouncementRequest(
                                      List<UUID> attachmentFileIds, List<TemporaryAttachment> temporaryAttachments,
                                      List<Long> classIds) {
         this(announcementTitle, announcementContent, isItAssetAnnouncement,
-                isItImportantAnnouncement, attachmentFileIds, temporaryAttachments, classIds, null);
+                isItImportantAnnouncement, attachmentFileIds, temporaryAttachments, null, classIds, null);
+    }
+
+    public UpdateAnnouncementRequest(String announcementTitle, String announcementContent,
+                                     Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement,
+                                     List<UUID> attachmentFileIds, List<TemporaryAttachment> temporaryAttachments,
+                                     List<Long> classIds, AnnouncementAudienceScope audienceScope) {
+        this(announcementTitle, announcementContent, isItAssetAnnouncement, isItImportantAnnouncement,
+                attachmentFileIds, temporaryAttachments, null, classIds, audienceScope);
     }
 }

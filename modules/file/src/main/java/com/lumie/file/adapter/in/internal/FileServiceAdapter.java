@@ -6,6 +6,7 @@ import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.api.PreparedTemporaryFile;
+import com.lumie.file.api.PreparedUploadSession;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
@@ -13,7 +14,6 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.api.FileService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -26,10 +26,16 @@ import java.util.Objects;
 import java.util.UUID;
 import java.time.Duration;
 import java.time.Instant;
+import com.lumie.file.application.service.UploadSessionService;
+import com.lumie.file.application.service.UploadSessionStateService;
+import com.lumie.file.domain.entity.FileUploadSession;
+import com.lumie.file.domain.vo.UploadSessionStatus;
+import jakarta.inject.Inject;
+import lombok.RequiredArgsConstructor;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Inject)
 public class FileServiceAdapter implements FileService {
 
     private static final int MAX_ATTACHMENTS = 5;
@@ -38,6 +44,35 @@ public class FileServiceAdapter implements FileService {
     private final FileMetadataRepository fileMetadataRepository;
     private final StoragePort storagePort;
     private final FileStorageOperationPersistencePort operationPersistencePort;
+    private final UploadSessionService uploadSessionService;
+    private final UploadSessionStateService uploadSessionStateService;
+
+    /** Compatibility constructor for isolated legacy adapter fixtures. */
+    public FileServiceAdapter(FileMetadataRepository fileMetadataRepository, StoragePort storagePort,
+                              FileStorageOperationPersistencePort operationPersistencePort) {
+        this(fileMetadataRepository, storagePort, operationPersistencePort, null, null);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public List<PreparedUploadSession> prepareUploadSessions(String entityType, List<UUID> sessionIds) {
+        if (sessionIds == null || sessionIds.isEmpty()) return List.of();
+        EntityType type = parseEntityType(entityType);
+        if (sessionIds.size() > MAX_ATTACHMENTS || sessionIds.stream().distinct().count() != sessionIds.size()) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
+        }
+        List<PreparedUploadSession> prepared = new ArrayList<>();
+        for (UUID sessionId : sessionIds) {
+            uploadSessionService.complete(sessionId);
+            FileUploadSession session = uploadSessionStateService.findAuthorized(sessionId);
+            if (session.getEntityType() != type || session.getStatus() != UploadSessionStatus.UPLOADED) {
+                throw new BusinessException(FileErrorCode.UPLOAD_SESSION_INVALID);
+            }
+            prepared.add(new PreparedUploadSession(session.getId(), session.getFilename(), session.getContentType(),
+                    session.getFileSize(), session.getObjectKey(), session.getUploadedEtag()));
+        }
+        return List.copyOf(prepared);
+    }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -88,6 +123,24 @@ public class FileServiceAdapter implements FileService {
     }
 
     @Override
+    @Transactional
+    public List<UUID> attachUploadSessions(String entityType, Long entityId,
+                                           List<PreparedUploadSession> sessions, UUID folderId) {
+        if (sessions == null || sessions.isEmpty()) return List.of();
+        EntityType type = parseEntityType(entityType);
+        List<UUID> ids = new ArrayList<>();
+        for (PreparedUploadSession prepared : sessions) {
+            uploadSessionStateService.claim(prepared.sessionId(), prepared.sessionId(), type);
+            FileMetadata metadata = FileMetadata.createWithId(prepared.sessionId(), type, entityId,
+                    prepared.filename(), prepared.contentType(), prepared.fileSize(), prepared.objectKey(), folderId);
+            metadata.markReady();
+            fileMetadataRepository.save(metadata);
+            ids.add(metadata.getId());
+        }
+        return ids;
+    }
+
+    @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void discardPreparedFiles(List<PreparedTemporaryFile> files) {
         if (files == null) return;
@@ -117,6 +170,27 @@ public class FileServiceAdapter implements FileService {
         }
         deleteFilesByEntityAndIds(entityType, entityId, existingIds.stream().filter(id -> !requested.contains(id)).toList());
         attachPreparedFiles(entityType, entityId, preparedFiles);
+    }
+
+    @Override
+    @Transactional
+    public void reconcileUploadSessions(String entityType, Long entityId, List<UUID> retainedFileIds,
+                                        List<PreparedUploadSession> sessions) {
+        if (retainedFileIds == null && (sessions == null || sessions.isEmpty())) return;
+        EntityType type = parseEntityType(entityType);
+        List<UUID> requested = retainedFileIds == null ? List.of() : retainedFileIds.stream().distinct().toList();
+        List<FileMetadata> existing = fileMetadataRepository.findByEntityTypeAndEntityId(type, entityId);
+        List<UUID> existingIds = existing.stream().map(FileMetadata::getId).toList();
+        if (!existingIds.containsAll(requested)) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "Retained attachments must belong to this post");
+        }
+        int preparedCount = sessions == null ? 0 : sessions.size();
+        if (requested.size() + preparedCount > MAX_ATTACHMENTS) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "A post can have at most five attachments");
+        }
+        deleteFilesByEntityAndIds(entityType, entityId,
+                existingIds.stream().filter(id -> !requested.contains(id)).toList());
+        attachUploadSessions(entityType, entityId, sessions, null);
     }
 
     @Override

@@ -9,6 +9,7 @@ import com.lumie.content.domain.entity.Announcement;
 import com.lumie.content.domain.entity.AnnouncementClassTarget;
 import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.domain.exception.ContentErrorCode;
@@ -16,6 +17,7 @@ import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
 import com.lumie.content.domain.repository.AnnouncementRepository;
 import com.lumie.file.api.FileService;
 import com.lumie.file.api.PreparedTemporaryFile;
+import com.lumie.file.api.PreparedUploadSession;
 import com.lumie.staff.api.StaffService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +45,9 @@ public class AnnouncementCommandService {
         log.info("Creating announcement: {}", request.announcementTitle());
         List<Long> requestedClassIds = normalizeClassIds(request.classIds());
         AnnouncementAudienceScope audienceScope = createScope(request.audienceScope(), requestedClassIds);
+        rejectMixedUploadContracts(request.temporaryAttachments(), request.uploadSessionIds());
         List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("announcement", request.temporaryAttachments());
+        List<PreparedUploadSession> preparedSessions = fileService.prepareUploadSessions("announcement", request.uploadSessionIds());
 
         try {
         Announcement announcement = Announcement.create(
@@ -58,6 +62,7 @@ public class AnnouncementCommandService {
         Announcement saved = announcementRepository.save(announcement);
         List<Long> classIds = replaceClassTargets(saved.getId(), requestedClassIds);
         fileService.attachPreparedFiles("announcement", saved.getId(), preparedFiles);
+        fileService.attachUploadSessions("announcement", saved.getId(), preparedSessions, null);
         announcementRepository.flush();
         log.info("Announcement created with id: {}", saved.getId());
 
@@ -72,7 +77,9 @@ public class AnnouncementCommandService {
     public AnnouncementResponse updateAnnouncement(Long id, UpdateAnnouncementRequest request) {
         AuthorizationGuard.requireStaff();
         log.info("Updating announcement: {}", id);
+        rejectMixedUploadContracts(request.temporaryAttachments(), request.uploadSessionIds());
         List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("announcement", request.temporaryAttachments());
+        List<PreparedUploadSession> preparedSessions = fileService.prepareUploadSessions("announcement", request.uploadSessionIds());
 
         try {
         Announcement announcement = announcementRepository.findById(id)
@@ -95,7 +102,11 @@ public class AnnouncementCommandService {
         );
         announcement.changeAudienceScope(audienceScope);
 
-        fileService.reconcilePreparedDirectFiles("announcement", id, request.attachmentFileIds(), preparedFiles);
+        if (request.uploadSessionIds() != null) {
+            fileService.reconcileUploadSessions("announcement", id, request.attachmentFileIds(), preparedSessions);
+        } else {
+            fileService.reconcilePreparedDirectFiles("announcement", id, request.attachmentFileIds(), preparedFiles);
+        }
 
         if (request.classIds() != null || audienceScope == AnnouncementAudienceScope.ALL) {
             classIds = replaceClassTargets(id, audienceScope == AnnouncementAudienceScope.ALL ? List.of() : classIds);
@@ -193,6 +204,12 @@ public class AnnouncementCommandService {
         return classIds.stream()
                 .distinct()
                 .toList();
+    }
+
+    private void rejectMixedUploadContracts(Object temporary, Object sessions) {
+        if (temporary != null && sessions != null) {
+            throw new BusinessException(CommonErrorCode.INVALID_INPUT);
+        }
     }
 
     private String authorNameOrFallback(Long authorId) {

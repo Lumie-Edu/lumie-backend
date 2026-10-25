@@ -12,6 +12,7 @@ import com.lumie.content.application.service.QnaQueryService;
 import com.lumie.file.api.FileService;
 import com.lumie.common.api.AllowedSortFields;
 import com.lumie.common.api.PageResponse;
+import com.lumie.common.idempotency.IdempotencyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
@@ -31,6 +32,7 @@ public class QnaController {
     private final QnaCommandService commandService;
     private final QnaQueryService queryService;
     private final FileService fileService;
+    private final IdempotencyService idempotencyService;
 
     @GetMapping
     @Operation(description = "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).")
@@ -61,9 +63,11 @@ public class QnaController {
     @PostMapping("/me")
     @Operation(summary = "Create a Q&A for the current student", description = "Requires the STUDENT role.")
     @ApiResponse(responseCode = "201", description = "Created")
-    public ResponseEntity<QnaBoardResponse> createMyQna(@Valid @RequestBody CreateQnaRequest request) {
-        QnaBoardResponse response = commandService.createQna(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<QnaBoardResponse> createMyQna(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody CreateQnaRequest request) {
+        return idempotencyService.executeOnceAtomically(idempotencyKey, "POST /v1/qna/me", request,
+                () -> ResponseEntity.status(HttpStatus.CREATED).body(commandService.createQna(request)));
     }
 
     @PatchMapping("/me/{id}")
@@ -115,9 +119,11 @@ public class QnaController {
     @PostMapping
     @Operation(description = "Requires the STUDENT role. The author is derived from the session.")
     @ApiResponse(responseCode = "201", description = "Created")
-    public ResponseEntity<QnaBoardResponse> createQna(@Valid @RequestBody CreateQnaRequest request) {
-        QnaBoardResponse response = commandService.createQna(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<QnaBoardResponse> createQna(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody CreateQnaRequest request) {
+        return idempotencyService.executeOnceAtomically(idempotencyKey, "POST /v1/qna", request,
+                () -> ResponseEntity.status(HttpStatus.CREATED).body(commandService.createQna(request)));
     }
 
     @PatchMapping("/{id}")

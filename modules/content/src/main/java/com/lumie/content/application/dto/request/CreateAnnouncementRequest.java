@@ -24,6 +24,8 @@ public record CreateAnnouncementRequest(
 
         List<TemporaryAttachment> temporaryAttachments,
 
+        List<java.util.UUID> uploadSessionIds,
+
         List<Long> classIds,
 
         AnnouncementAudienceScope audienceScope
@@ -32,6 +34,14 @@ public record CreateAnnouncementRequest(
                                      Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement,
                                      List<TemporaryAttachment> temporaryAttachments, List<Long> classIds) {
         this(authorId, announcementTitle, announcementContent, isItAssetAnnouncement,
-                isItImportantAnnouncement, temporaryAttachments, classIds, null);
+                isItImportantAnnouncement, temporaryAttachments, null, classIds, null);
+    }
+
+    public CreateAnnouncementRequest(Long authorId, String announcementTitle, String announcementContent,
+                                     Boolean isItAssetAnnouncement, Boolean isItImportantAnnouncement,
+                                     List<TemporaryAttachment> temporaryAttachments, List<Long> classIds,
+                                     AnnouncementAudienceScope audienceScope) {
+        this(authorId, announcementTitle, announcementContent, isItAssetAnnouncement,
+                isItImportantAnnouncement, temporaryAttachments, null, classIds, audienceScope);
     }
 }

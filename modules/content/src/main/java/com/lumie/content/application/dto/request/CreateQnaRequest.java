@@ -17,6 +17,11 @@ public record CreateQnaRequest(
         @NotBlank(message = "Content is required")
         String qnaContent,
 
-        List<TemporaryAttachment> temporaryAttachments
+        List<TemporaryAttachment> temporaryAttachments,
+        List<java.util.UUID> uploadSessionIds
 ) {
+    public CreateQnaRequest(Long qnaUserId, String qnaTitle, String qnaContent,
+                            List<TemporaryAttachment> temporaryAttachments) {
+        this(qnaUserId, qnaTitle, qnaContent, temporaryAttachments, null);
+    }
 }

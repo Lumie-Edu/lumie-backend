@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -152,6 +153,49 @@ public class IdempotencyService {
                             "Idempotency row vanished after duplicate-key on key=" + idempotencyKey));
             return replay(winner, idempotencyKey, fingerprint);
         }
+        return response;
+    }
+
+    /**
+     * Execute and record idempotency in the caller transaction. Use for a
+     * local database write whose result must commit atomically with its key.
+     */
+    @Transactional
+    public <T> ResponseEntity<T> executeOnceAtomically(
+            String idempotencyKey,
+            String endpointPath,
+            Object requestBody,
+            Supplier<ResponseEntity<T>> action
+    ) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) return action.get();
+        String tenantSlug = TenantContextHolder.getRequiredTenant();
+        String fingerprint = fingerprint(requestBody);
+        Optional<IdempotencyKeyRecord> existing = findExisting(tenantSlug, endpointPath, idempotencyKey);
+        if (existing.isPresent()) return replay(existing.get(), idempotencyKey, fingerprint);
+
+        int reserved = jdbcTemplate.update(
+                """
+                INSERT INTO public.idempotency_keys
+                    (tenant_slug, endpoint_path, idempotency_key, request_fingerprint, response_status)
+                VALUES (?, ?, ?, ?, 200)
+                ON CONFLICT (tenant_slug, endpoint_path, idempotency_key) DO NOTHING
+                """,
+                tenantSlug, endpointPath, idempotencyKey, fingerprint);
+        if (reserved == 0) {
+            IdempotencyKeyRecord winner = findExisting(tenantSlug, endpointPath, idempotencyKey)
+                    .orElseThrow(() -> new IllegalStateException("Idempotency reservation vanished"));
+            return replay(winner, idempotencyKey, fingerprint);
+        }
+
+        ResponseEntity<T> response = action.get();
+        jdbcTemplate.update(
+                """
+                UPDATE public.idempotency_keys
+                   SET response_status = ?, response_body = ?
+                 WHERE tenant_slug = ? AND endpoint_path = ? AND idempotency_key = ?
+                """,
+                response.getStatusCode().value(), serialize(response.getBody()),
+                tenantSlug, endpointPath, idempotencyKey);
         return response;
     }
 
