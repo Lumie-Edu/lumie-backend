@@ -4,6 +4,7 @@ import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.application.dto.request.RegisterTextbookFilesRequest;
 import com.lumie.file.api.FileService;
 import com.lumie.file.api.PreparedTemporaryFile;
+import com.lumie.file.api.PreparedUploadSession;
 import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
@@ -35,9 +36,15 @@ public class FileCommandService {
         if (request.folderId() != null && textbookFolderRepository.findById(request.folderId()).isEmpty()) {
             throw new BusinessException(FileErrorCode.FOLDER_NOT_FOUND);
         }
+        if (request.attachments() != null && request.uploadSessionIds() != null) {
+            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
+        }
         List<PreparedTemporaryFile> prepared = fileService.prepareTemporaryFiles("textbook", request.attachments());
+        List<PreparedUploadSession> preparedSessions = fileService.prepareUploadSessions("textbook", request.uploadSessionIds());
         try {
-            List<UUID> fileIds = fileService.attachPreparedFiles("textbook", null, prepared, request.folderId());
+            List<UUID> fileIds = preparedSessions.isEmpty()
+                    ? fileService.attachPreparedFiles("textbook", null, prepared, request.folderId())
+                    : fileService.attachUploadSessions("textbook", null, preparedSessions, request.folderId());
             fileMetadataRepository.flush();
             return fileIds.stream()
                     .map(fileId -> fileMetadataRepository.findById(fileId)

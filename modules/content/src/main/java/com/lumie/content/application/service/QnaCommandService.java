@@ -17,6 +17,7 @@ import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.api.FileService;
 import com.lumie.file.api.PreparedTemporaryFile;
+import com.lumie.file.api.PreparedUploadSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class QnaCommandService {
     @Transactional
     public QnaBoardResponse createQna(CreateQnaRequest request) {
         requireCurrentStudent();
+        rejectMixedUploadContracts(request.temporaryAttachments(), request.uploadSessionIds());
         return createForCurrentUser(request);
     }
 
@@ -58,6 +60,7 @@ public class QnaCommandService {
     private QnaBoardResponse createForCurrentUser(CreateQnaRequest request) {
         log.info("Creating Q&A: {}", request.qnaTitle());
         List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("qna", request.temporaryAttachments());
+        List<PreparedUploadSession> preparedSessions = fileService.prepareUploadSessions("qna", request.uploadSessionIds());
 
         try {
         QnaBoard qnaBoard = QnaBoard.create(
@@ -68,6 +71,7 @@ public class QnaCommandService {
 
         QnaBoard saved = qnaBoardRepository.save(qnaBoard);
         fileService.attachPreparedFiles("qna", saved.getId(), preparedFiles);
+        fileService.attachUploadSessions("qna", saved.getId(), preparedSessions, null);
         qnaBoardRepository.flush();
         log.info("Q&A created with id: {}", saved.getId());
 
@@ -81,6 +85,7 @@ public class QnaCommandService {
     @Transactional
     public QnaBoardResponse updateQna(Long id, UpdateQnaRequest request) {
         log.info("Updating Q&A: {}", id);
+        rejectMixedUploadContracts(request.temporaryAttachments(), request.uploadSessionIds());
         QnaBoard qnaBoard = qnaBoardRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ContentErrorCode.QNA_NOT_FOUND));
         requireStudentOwnerOrStaff(qnaBoard);
@@ -89,11 +94,16 @@ public class QnaCommandService {
 
     private QnaBoardResponse updateQna(QnaBoard qnaBoard, Long id, UpdateQnaRequest request) {
         List<PreparedTemporaryFile> preparedFiles = fileService.prepareTemporaryFiles("qna", request.temporaryAttachments());
+        List<PreparedUploadSession> preparedSessions = fileService.prepareUploadSessions("qna", request.uploadSessionIds());
 
         try {
         qnaBoard.update(request.qnaTitle(), request.qnaContent());
 
-        fileService.reconcilePreparedDirectFiles("qna", id, request.attachmentFileIds(), preparedFiles);
+        if (request.uploadSessionIds() != null) {
+            fileService.reconcileUploadSessions("qna", id, request.attachmentFileIds(), preparedSessions);
+        } else {
+            fileService.reconcilePreparedDirectFiles("qna", id, request.attachmentFileIds(), preparedFiles);
+        }
 
         QnaBoard updated = qnaBoardRepository.save(qnaBoard);
         qnaBoardRepository.flush();
@@ -179,6 +189,10 @@ public class QnaCommandService {
             throw new BusinessException(CommonErrorCode.FORBIDDEN);
         }
         UserContextHolder.getRequiredUserId();
+    }
+
+    private void rejectMixedUploadContracts(Object temporary, Object sessions) {
+        if (temporary != null && sessions != null) throw new BusinessException(CommonErrorCode.INVALID_INPUT);
     }
 
     private void requireCurrentStudentOwns(QnaBoard qna) {

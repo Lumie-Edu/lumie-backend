@@ -29,4 +29,11 @@ public final class RabbitMqConstants {
     public static final String REPORT_REQUEST_ROUTING_KEY = "report.generation.request";
     public static final String REPORT_CALLBACK_ROUTING_KEY = "report.generation.callback";
 
+    // Upload-session cleanup uses a TTL delay queue and a durable consumer queue.
+    public static final String FILE_UPLOAD_CLEANUP_QUEUE = "file.upload-session-cleanup";
+    public static final String FILE_UPLOAD_CLEANUP_DELAY_QUEUE = "file.upload-session-cleanup.delay";
+    public static final String FILE_UPLOAD_CLEANUP_DLQ = "file.upload-session-cleanup.dlq";
+    public static final String FILE_UPLOAD_CLEANUP_ROUTING_KEY = "file.upload-session.cleanup";
+    public static final String FILE_UPLOAD_CLEANUP_DELAY_ROUTING_KEY = "file.upload-session.cleanup.delay";
+
 }

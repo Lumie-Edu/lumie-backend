@@ -23,6 +23,7 @@ public enum FileErrorCode implements ErrorCode {
     // 409 Conflict
     DUPLICATE_FOLDER_NAME("FILE_007", "같은 이름의 폴더가 이미 있습니다.", 409),
     FILE_IN_USE("FILE_008", "다른 자료에서 사용 중인 파일은 처리할 수 없습니다.", 409),
+    UPLOAD_SESSION_INVALID("FILE_009", "업로드 세션이 만료되었거나 사용할 수 없습니다.", 409),
 
     // 403 Forbidden
     TENANT_INVALID("FILE_301", "학원 정보를 확인할 수 없습니다.", 403),

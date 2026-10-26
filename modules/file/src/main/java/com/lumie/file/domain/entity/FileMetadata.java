@@ -18,7 +18,6 @@ import java.util.UUID;
 public class FileMetadata extends TenantScopedEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Version
@@ -62,6 +61,7 @@ public class FileMetadata extends TenantScopedEntity {
     private FileMetadata(EntityType entityType, Long entityId,
                          String originalFilename, String storedFilename, String contentType,
                          Long fileSize, String objectKey, UUID folderId) {
+        this.id = UUID.randomUUID();
         this.entityType = entityType;
         this.entityId = entityId;
         this.originalFilename = originalFilename;
@@ -95,7 +95,6 @@ public class FileMetadata extends TenantScopedEntity {
                                              String objectKey, UUID folderId) {
         FileMetadata metadata = create(entityType, entityId, originalFilename, contentType, fileSize, objectKey, folderId);
         metadata.id = id;
-        metadata.version = 0L;
         return metadata;
     }
 

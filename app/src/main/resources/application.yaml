@@ -86,6 +86,8 @@ spring:
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: /
+    publisher-confirm-type: correlated
+    publisher-returns: true
 
   servlet:
     multipart:

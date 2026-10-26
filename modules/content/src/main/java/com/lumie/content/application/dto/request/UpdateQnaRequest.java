@@ -8,6 +8,11 @@ public record UpdateQnaRequest(
         String qnaTitle,
         String qnaContent,
         List<UUID> attachmentFileIds,
-        List<TemporaryAttachment> temporaryAttachments
+        List<TemporaryAttachment> temporaryAttachments,
+        List<UUID> uploadSessionIds
 ) {
+    public UpdateQnaRequest(String qnaTitle, String qnaContent, List<UUID> attachmentFileIds,
+                            List<TemporaryAttachment> temporaryAttachments) {
+        this(qnaTitle, qnaContent, attachmentFileIds, temporaryAttachments, null);
+    }
 }
