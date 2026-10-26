@@ -23,10 +23,22 @@ class FileMetadataTest {
     }
 
     @Test
+    void newMetadataUsesAnAssignedIdAndUninitializedVersion() {
+        UUID id = UUID.randomUUID();
+
+        FileMetadata metadata = FileMetadata.createWithId(id, EntityType.ANNOUNCEMENT, 5L,
+                "notice.pdf", "application/pdf", 10L, "files/key", null);
+
+        assertThat(metadata.getId()).isEqualTo(id);
+        assertThat(metadata.getVersion()).isNull();
+    }
+
+    @Test
     void readyFailedAndDeletingTransitionsKeepTheLegacyBooleanInSync() {
         FileMetadata metadata = FileMetadata.createWithId(UUID.randomUUID(), EntityType.ANNOUNCEMENT, 5L,
                 "notice.pdf", "application/pdf", 10L, "files/key", null);
 
+        assertThat(metadata.getVersion()).isNull();
         metadata.markReady();
         assertThat(metadata.isReady()).isTrue();
         assertThat(metadata.isDeleting()).isFalse();
