@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.AntPathMatcher;
@@ -19,9 +20,9 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 /**
  * Filter that logs each HTTP request with method, path, status, and latency.
  *
- * <p>Runs after {@link RequestContextFilter} so MDC already contains
- * tenant, user, and request correlation context. Request-specific access fields
- * are emitted as structured arguments to avoid duplicate JSON keys with MDC.
+ * <p>Runs after {@link RequestContextFilter}; the downstream security chain has
+ * completed when this filter writes the access event. Request-specific access
+ * fields are emitted as structured arguments to avoid duplicate JSON keys with MDC.
  */
 public class AccessLogFilter extends OncePerRequestFilter {
 
@@ -48,6 +49,7 @@ public class AccessLogFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
+            refreshIdentityMdc(request);
             long latencyMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             String method = request.getMethod();
             String path = request.getRequestURI();
@@ -68,6 +70,36 @@ public class AccessLogFilter extends OncePerRequestFilter {
                     keyValue("outcome", outcome),
                     keyValue("clientIp", clientIp(request)),
                     keyValue("userAgent", request.getHeader("User-Agent")));
+        }
+    }
+
+    /**
+     * Servlet filters run before Spring Security, so RequestContextFilter's
+     * initial MDC snapshot may predate session authentication. Read the
+     * request-scoped holders after the downstream chain has completed.
+     */
+    private void refreshIdentityMdc(HttpServletRequest request) {
+        MDC.remove("tenantId");
+        MDC.remove("tenantSlug");
+        MDC.remove("userId");
+        MDC.remove("userRole");
+
+        if (request.getRequestURI().startsWith("/internal/")) {
+            return;
+        }
+
+        Long tenantId = TenantContextHolder.getTenantId();
+        String tenantSlug = TenantContextHolder.getTenant();
+        if (tenantId != null) MDC.put("tenantId", tenantId.toString());
+        if (tenantSlug != null && !tenantSlug.isBlank()) MDC.put("tenantSlug", tenantSlug);
+
+        if (!Boolean.TRUE.equals(request.getAttribute(RequestContextFilter.AUTHENTICATED_SESSION_ATTRIBUTE))) {
+            return;
+        }
+        Long userId = UserContextHolder.getUserId();
+        if (userId != null) MDC.put("userId", userId.toString());
+        if (UserContextHolder.getUserRole() != null) {
+            MDC.put("userRole", UserContextHolder.getUserRole().name());
         }
     }
 
