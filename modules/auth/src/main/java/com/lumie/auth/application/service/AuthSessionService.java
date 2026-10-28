@@ -2,6 +2,7 @@ package com.lumie.auth.application.service;
 
 import com.lumie.auth.application.dto.request.LoginRequest;
 import com.lumie.auth.application.dto.response.LoginResponse;
+import com.lumie.auth.application.dto.response.UserResponse;
 import com.lumie.auth.application.exception.AuthErrors.InvalidCredentialsException;
 import com.lumie.auth.application.exception.AuthErrors.TenantInactiveException;
 import com.lumie.auth.application.exception.AuthErrors.UserDisabledException;
@@ -17,6 +18,7 @@ import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.api.TenantService.TenantData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +39,7 @@ public class AuthSessionService {
 
     public LoginResponse login(LoginRequest request, SessionMetadata metadata) {
         TenantData tenant = resolveLoginTenant(request);
-        return TenantContextHolder.withinContext(tenant.slug(), tenant.id(), () -> {
+        LoginResponse response = TenantContextHolder.withinContext(tenant.slug(), tenant.id(), () -> {
             UserData user = userLookupPort.findByUserLoginId(request.userLoginId())
                     .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
             if (!user.enabled()) {
@@ -49,6 +51,29 @@ public class AuthSessionService {
             AuthSession session = loginSessionHelper.create(user, tenant.slug(), tenant.id(), metadata);
             return LoginResponse.of(session, user.toUserResponse(tenant.slug(), tenant.onboardingCompletedAt()));
         });
+        logLoginSuccess(tenant, response.user());
+        return response;
+    }
+
+    private void logLoginSuccess(TenantData tenant, UserResponse user) {
+        String[] keys = {"eventType", "tenantId", "tenantSlug", "userId", "userRole"};
+        String[] previous = new String[keys.length];
+        for (int i = 0; i < keys.length; i++) {
+            previous[i] = MDC.get(keys[i]);
+            MDC.remove(keys[i]);
+        }
+        MDC.put("eventType", "login_success");
+        MDC.put("tenantId", tenant.id().toString());
+        MDC.put("tenantSlug", tenant.slug());
+        MDC.put("userId", user.id().toString());
+        MDC.put("userRole", user.role().name());
+        try {
+            log.info("User login succeeded");
+        } finally {
+            for (int i = 0; i < keys.length; i++) {
+                if (previous[i] != null) MDC.put(keys[i], previous[i]);
+            }
+        }
     }
 
     public void logout(String sessionId) {

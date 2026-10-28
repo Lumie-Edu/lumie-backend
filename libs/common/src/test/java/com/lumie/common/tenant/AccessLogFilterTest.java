@@ -8,6 +8,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.HandlerMapping;
@@ -27,6 +28,74 @@ class AccessLogFilterTest {
     void tearDown() {
         accessLogger.detachAppender(appender);
         appender.stop();
+        MDC.clear();
+        TenantContextHolder.clear();
+        UserContextHolder.clear();
+    }
+
+    @Test
+    @DisplayName("access log snapshots authenticated context after the downstream security chain")
+    void accessLog_recordsAuthenticatedContextAndDoesNotReuseStaleMdcValues() throws ServletException, IOException {
+        AccessLogFilter filter = new AccessLogFilter(List.of());
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/v1/me");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        appender.start();
+        accessLogger.addAppender(appender);
+        MDC.put("userId", "999");
+        MDC.put("tenantSlug", "stale-tenant");
+        request.setAttribute(RequestContextFilter.AUTHENTICATED_SESSION_ATTRIBUTE, Boolean.TRUE);
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            TenantContextHolder.setTenant("inst-academy");
+            TenantContextHolder.setTenantId(42L);
+            UserContextHolder.setUserId(123L);
+            UserContextHolder.setUserRole(com.lumie.common.auth.Role.MANAGER);
+        });
+
+        assertThat(appender.list).hasSize(1);
+        assertThat(appender.list.getFirst().getMDCPropertyMap())
+                .containsEntry("tenantId", "42")
+                .containsEntry("tenantSlug", "inst-academy")
+                .containsEntry("userId", "123")
+                .containsEntry("userRole", "MANAGER");
+    }
+
+    @Test
+    @DisplayName("anonymous requests cannot inherit user identity from stale MDC")
+    void accessLog_removesUserIdentityForAnonymousRequest() throws ServletException, IOException {
+        AccessLogFilter filter = new AccessLogFilter(List.of());
+        MDC.put("userId", "999");
+        MDC.put("userRole", "OWNER");
+        appender.start();
+        accessLogger.addAppender(appender);
+
+        filter.doFilter(new MockHttpServletRequest("GET", "/v1/public"),
+                new MockHttpServletResponse(), (servletRequest, servletResponse) -> { });
+
+        assertThat(appender.list.getFirst().getMDCPropertyMap())
+                .doesNotContainKeys("userId", "userRole");
+    }
+
+    @Test
+    @DisplayName("internal requests do not log caller-supplied tenant or user identity")
+    void accessLog_omitsIdentityForInternalRequests() throws ServletException, IOException {
+        AccessLogFilter filter = new AccessLogFilter(List.of());
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/internal/worker/callback");
+        request.setAttribute(RequestContextFilter.AUTHENTICATED_SESSION_ATTRIBUTE, Boolean.TRUE);
+        TenantContextHolder.setTenant("untrusted-tenant");
+        TenantContextHolder.setTenantId(999L);
+        UserContextHolder.setUserId(999L);
+        MDC.put("tenantId", "999");
+        MDC.put("tenantSlug", "untrusted-tenant");
+        MDC.put("userId", "999");
+        MDC.put("userRole", "OWNER");
+        appender.start();
+        accessLogger.addAppender(appender);
+
+        filter.doFilter(request, new MockHttpServletResponse(), (servletRequest, servletResponse) -> { });
+
+        assertThat(appender.list.getFirst().getMDCPropertyMap())
+                .doesNotContainKeys("tenantId", "tenantSlug", "userId", "userRole");
     }
 
     @Test

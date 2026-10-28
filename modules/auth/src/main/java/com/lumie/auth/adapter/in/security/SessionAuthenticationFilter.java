@@ -46,6 +46,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
                 authenticate(session);
+                request.setAttribute(RequestContextFilter.AUTHENTICATED_SESSION_ATTRIBUTE, Boolean.TRUE);
             }
         }
         filterChain.doFilter(request, response);
