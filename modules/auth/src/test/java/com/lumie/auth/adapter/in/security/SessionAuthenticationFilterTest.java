@@ -128,6 +128,9 @@ class SessionAuthenticationFilterTest {
 
         assertThat(UserContextHolder.getUserId()).isEqualTo(20L);
         assertThat(request.getAttribute(RequestContextFilter.AUTHENTICATED_SESSION_ATTRIBUTE)).isEqualTo(true);
+        assertThat(request.getAttribute(RequestContextFilter.AUTHENTICATED_TENANT_ID_ATTRIBUTE)).isEqualTo(10L);
+        assertThat(request.getAttribute(RequestContextFilter.AUTHENTICATED_TENANT_SLUG_ATTRIBUTE))
+                .isEqualTo("inst-academy");
         assertThat(TenantContextHolder.getTenant()).isEqualTo("inst-academy");
         assertThat(SecurityContextHolder.getContext().getAuthentication().getAuthorities())
                 .extracting(Object::toString).containsExactly("ROLE_STUDENT");

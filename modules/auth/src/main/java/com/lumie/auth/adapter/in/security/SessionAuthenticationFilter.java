@@ -47,6 +47,8 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                 }
                 authenticate(session);
                 request.setAttribute(RequestContextFilter.AUTHENTICATED_SESSION_ATTRIBUTE, Boolean.TRUE);
+                request.setAttribute(RequestContextFilter.AUTHENTICATED_TENANT_SLUG_ATTRIBUTE, session.tenantSlug());
+                request.setAttribute(RequestContextFilter.AUTHENTICATED_TENANT_ID_ATTRIBUTE, session.tenantId());
             }
         }
         filterChain.doFilter(request, response);

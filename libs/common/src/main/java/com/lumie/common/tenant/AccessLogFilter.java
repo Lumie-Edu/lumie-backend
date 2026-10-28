@@ -88,12 +88,18 @@ public class AccessLogFilter extends OncePerRequestFilter {
             return;
         }
 
-        Long tenantId = TenantContextHolder.getTenantId();
-        String tenantSlug = TenantContextHolder.getTenant();
-        if (tenantId != null) MDC.put("tenantId", tenantId.toString());
-        if (tenantSlug != null && !tenantSlug.isBlank()) MDC.put("tenantSlug", tenantSlug);
+        boolean authenticated = Boolean.TRUE.equals(
+                request.getAttribute(RequestContextFilter.AUTHENTICATED_SESSION_ATTRIBUTE));
+        Object tenantId = request.getAttribute(authenticated
+                ? RequestContextFilter.AUTHENTICATED_TENANT_ID_ATTRIBUTE
+                : RequestContextFilter.HOST_TENANT_ID_ATTRIBUTE);
+        Object tenantSlug = request.getAttribute(authenticated
+                ? RequestContextFilter.AUTHENTICATED_TENANT_SLUG_ATTRIBUTE
+                : RequestContextFilter.HOST_TENANT_SLUG_ATTRIBUTE);
+        if (tenantId instanceof Number value) MDC.put("tenantId", value.toString());
+        if (tenantSlug instanceof String value && !value.isBlank()) MDC.put("tenantSlug", value);
 
-        if (!Boolean.TRUE.equals(request.getAttribute(RequestContextFilter.AUTHENTICATED_SESSION_ATTRIBUTE))) {
+        if (!authenticated) {
             return;
         }
         Long userId = UserContextHolder.getUserId();

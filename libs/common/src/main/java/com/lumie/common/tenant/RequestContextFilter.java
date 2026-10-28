@@ -32,6 +32,8 @@ public class RequestContextFilter extends OncePerRequestFilter {
     public static final String HOST_TENANT_ID_ATTRIBUTE = "lumie.hostTenantId";
     public static final String HOST_TENANT_RESOLUTION_ATTRIBUTE = "lumie.hostTenantResolution";
     public static final String AUTHENTICATED_SESSION_ATTRIBUTE = "lumie.authenticatedSession";
+    public static final String AUTHENTICATED_TENANT_SLUG_ATTRIBUTE = "lumie.authenticatedTenantSlug";
+    public static final String AUTHENTICATED_TENANT_ID_ATTRIBUTE = "lumie.authenticatedTenantId";
 
     private static final String TRACEPARENT_HEADER = "traceparent";
     private static final int MAX_REQUEST_ID_LENGTH = 128;
