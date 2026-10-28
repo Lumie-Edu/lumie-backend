@@ -44,12 +44,16 @@ class AccessLogFilterTest {
         MDC.put("userId", "999");
         MDC.put("tenantSlug", "stale-tenant");
         request.setAttribute(RequestContextFilter.AUTHENTICATED_SESSION_ATTRIBUTE, Boolean.TRUE);
+        request.setAttribute(RequestContextFilter.AUTHENTICATED_TENANT_ID_ATTRIBUTE, 42L);
+        request.setAttribute(RequestContextFilter.AUTHENTICATED_TENANT_SLUG_ATTRIBUTE, "inst-academy");
 
         filter.doFilter(request, response, (servletRequest, servletResponse) -> {
             TenantContextHolder.setTenant("inst-academy");
             TenantContextHolder.setTenantId(42L);
             UserContextHolder.setUserId(123L);
             UserContextHolder.setUserRole(com.lumie.common.auth.Role.MANAGER);
+            // HostTenantFilter clears this context before the outer access logger runs.
+            TenantContextHolder.clear();
         });
 
         assertThat(appender.list).hasSize(1);
@@ -58,6 +62,25 @@ class AccessLogFilterTest {
                 .containsEntry("tenantSlug", "inst-academy")
                 .containsEntry("userId", "123")
                 .containsEntry("userRole", "MANAGER");
+    }
+
+    @Test
+    @DisplayName("anonymous tenant-host requests keep the resolved host tenant after context cleanup")
+    void accessLog_recordsResolvedHostTenantWithoutAddingUserIdentity() throws ServletException, IOException {
+        AccessLogFilter filter = new AccessLogFilter(List.of());
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/v1/public");
+        request.setAttribute(RequestContextFilter.HOST_TENANT_ID_ATTRIBUTE, 42L);
+        request.setAttribute(RequestContextFilter.HOST_TENANT_SLUG_ATTRIBUTE, "inst-academy");
+        appender.start();
+        accessLogger.addAppender(appender);
+
+        filter.doFilter(request, new MockHttpServletResponse(), (servletRequest, servletResponse) ->
+                TenantContextHolder.clear());
+
+        assertThat(appender.list.getFirst().getMDCPropertyMap())
+                .containsEntry("tenantId", "42")
+                .containsEntry("tenantSlug", "inst-academy")
+                .doesNotContainKeys("userId", "userRole");
     }
 
     @Test
