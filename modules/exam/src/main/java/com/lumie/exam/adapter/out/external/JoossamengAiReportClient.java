@@ -11,17 +11,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Objects;
 
 @Slf4j
 @Component
 public class JoossamengAiReportClient {
 
+    // Keep the long timeout scoped to this temporary joossameng-only batch path.
+    private static final Duration AI_REPORT_READ_TIMEOUT = Duration.ofMinutes(15);
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+
     private final RestClient restClient;
+    private final RestClient aiReportRestClient;
     private final String analysisServiceUrl;
 
     public JoossamengAiReportClient(
@@ -29,6 +37,15 @@ public class JoossamengAiReportClient {
             @Value("${lumie.services.analysis.url}") String analysisServiceUrl
     ) {
         this.restClient = restClientBuilder.build();
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(AI_REPORT_READ_TIMEOUT);
+        this.aiReportRestClient = restClientBuilder.clone()
+                .requestFactory(requestFactory)
+                .build();
         this.analysisServiceUrl = analysisServiceUrl;
     }
 
@@ -83,7 +100,7 @@ public class JoossamengAiReportClient {
 
     public byte[] generateBatch(Long examId, ReportBatchRequest request, String tenantSlug) {
         try {
-            ResponseEntity<byte[]> response = restClient.post()
+            ResponseEntity<byte[]> response = aiReportRestClient.post()
                     .uri("%s/api/joossameng/ai-reports/exams/%d/batch".formatted(analysisServiceUrl, examId))
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("X-Tenant-Slug", tenantSlug)
