@@ -1,9 +1,10 @@
 package com.lumie.exam.adapter.out.external;
 
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.application.dto.request.UpdateAiCommentaryRequest;
 import com.lumie.exam.application.dto.request.ReportBatchRequest;
+import com.lumie.exam.application.dto.request.UpdateAiCommentaryRequest;
 import com.lumie.exam.application.dto.response.AiCommentaryResponse;
+import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -12,6 +13,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -137,15 +144,44 @@ class JoossamengAiReportClientTest {
     }
 
     @Test
-    void generateBatch_postsStudentsAndReturnsZipBytes() {
-        server.expect(requestTo("http://analysis-svc/api/joossameng/ai-reports/exams/55/batch"))
-                .andExpect(method(HttpMethod.POST))
-                .andExpect(header("X-Tenant-Slug", "inst-joossameng"))
-                .andExpect(content().json("{\"studentIds\":[7,8]}"))
-                .andRespond(withSuccess(new byte[]{1, 2, 3}, MediaType.parseMediaType("application/zip")));
+    void generateBatch_postsStudentsAndReturnsZipBytes() throws IOException {
+        String expectedPath = "/api/joossameng/ai-reports/exams/55/batch";
+        AtomicReference<String> requestPath = new AtomicReference<>();
+        AtomicReference<String> tenantHeader = new AtomicReference<>();
+        AtomicReference<String> requestBody = new AtomicReference<>();
+        HttpServer worker = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        worker.createContext(expectedPath, exchange -> {
+            requestPath.set(exchange.getRequestURI().getPath());
+            tenantHeader.set(exchange.getRequestHeaders().getFirst("X-Tenant-Slug"));
+            requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            byte[] zipBytes = {1, 2, 3};
+            exchange.getResponseHeaders().set("Content-Type", "application/zip");
+            exchange.sendResponseHeaders(HttpStatus.OK.value(), zipBytes.length);
+            exchange.getResponseBody().write(zipBytes);
+            exchange.close();
+        });
+        worker.start();
 
-        assertThat(client.generateBatch(55L, new ReportBatchRequest(java.util.List.of(7L, 8L)), "inst-joossameng"))
-                .containsExactly(1, 2, 3);
-        server.verify();
+        try {
+            String workerHost = worker.getAddress().getAddress().getHostAddress();
+            if (workerHost.contains(":")) {
+                workerHost = "[" + workerHost + "]";
+            }
+            client = new JoossamengAiReportClient(
+                    RestClient.builder(),
+                    "http://" + workerHost + ":" + worker.getAddress().getPort()
+            );
+
+            assertThat(client.generateBatch(
+                    55L,
+                    new ReportBatchRequest(java.util.List.of(7L, 8L)),
+                    "inst-joossameng"
+            )).containsExactly(1, 2, 3);
+            assertThat(requestPath).hasValue(expectedPath);
+            assertThat(tenantHeader).hasValue("inst-joossameng");
+            assertThat(requestBody).hasValue("{\"studentIds\":[7,8]}");
+        } finally {
+            worker.stop(0);
+        }
     }
 }
