@@ -1,28 +1,26 @@
 package com.lumie.ai.application.service;
 
+import com.lumie.ai.adapter.out.persistence.SchemaMetadataPersistenceAdapter;
+import com.lumie.ai.application.port.out.SchemaMetadataPort.SchemaColumn;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class SchemaDiscoveryServiceTest {
 
     @Test
     void excludesRetiredTextbookTableFromChatbotSchema() {
         JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
-        when(jdbcTemplate.queryForList(anyString())).thenReturn(List.of());
-
-        new SchemaDiscoveryService(jdbcTemplate).getSchemaDescription("joossameng");
+        new SchemaMetadataPersistenceAdapter(jdbcTemplate).discoverColumns();
 
         ArgumentCaptor<String> query = ArgumentCaptor.forClass(String.class);
-        verify(jdbcTemplate).queryForList(query.capture());
+        verify(jdbcTemplate).<SchemaColumn>query(
+                query.capture(), ArgumentMatchers.<org.springframework.jdbc.core.RowMapper<SchemaColumn>>any());
         assertTrue(query.getValue().contains("t.table_name NOT IN ('flyway_schema_history', 'textbooks')"));
     }
 }
