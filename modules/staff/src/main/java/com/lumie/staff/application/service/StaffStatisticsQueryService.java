@@ -1,7 +1,7 @@
 package com.lumie.staff.application.service;
 
 import com.lumie.staff.application.dto.response.statistics.StaffDashboardResponse;
-import com.lumie.staff.domain.repository.StaffRepository;
+import com.lumie.staff.application.port.out.StaffPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class StaffStatisticsQueryService {
 
-    private final StaffRepository staffRepository;
+    private final StaffPersistencePort staffRepository;
 
     public StaffDashboardResponse getDashboardStatistics() {
         log.debug("Getting staff dashboard statistics");

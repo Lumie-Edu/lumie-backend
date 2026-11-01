@@ -1,8 +1,8 @@
 package com.lumie.staff.application.service;
 
 import com.lumie.auth.api.AuthService;
-import com.lumie.staff.domain.repository.StaffPermissionRepository;
-import com.lumie.staff.domain.repository.StaffRepository;
+import com.lumie.staff.application.port.out.StaffPermissionPersistencePort;
+import com.lumie.staff.application.port.out.StaffPersistencePort;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,8 +21,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @ExtendWith(MockitoExtension.class)
 class StaffQueryServiceTest {
 
-    @Mock private StaffRepository staffRepository;
-    @Mock private StaffPermissionRepository staffPermissionRepository;
+    @Mock private StaffPersistencePort staffRepository;
+    @Mock private StaffPermissionPersistencePort staffPermissionRepository;
     @Mock private AuthService authService;
     @InjectMocks private StaffQueryService service;
 

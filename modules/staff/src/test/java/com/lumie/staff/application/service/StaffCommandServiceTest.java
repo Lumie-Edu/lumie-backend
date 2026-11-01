@@ -12,8 +12,8 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.staff.application.dto.request.StaffRequest;
 import com.lumie.staff.domain.entity.Staff;
 import com.lumie.staff.domain.exception.StaffErrorCode;
-import com.lumie.staff.domain.repository.StaffPermissionRepository;
-import com.lumie.staff.domain.repository.StaffRepository;
+import com.lumie.staff.application.port.out.StaffPermissionPersistencePort;
+import com.lumie.staff.application.port.out.StaffPersistencePort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,10 +45,10 @@ class StaffCommandServiceTest {
     private static final String TENANT = "inst-test";
 
     @Mock
-    private StaffRepository staffRepository;
+    private StaffPersistencePort staffRepository;
 
     @Mock
-    private StaffPermissionRepository staffPermissionRepository;
+    private StaffPermissionPersistencePort staffPermissionRepository;
 
     @Mock
     private AuthService authService;
