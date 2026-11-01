@@ -32,6 +32,8 @@ public interface UserLookupPort {
 
     Map<Long, String> getAvatarSeeds(Collection<Long> userIds);
 
+    Map<Long, String> getUserRoles(Collection<Long> userIds);
+
     /**
      * Create a new user in the current tenant's RLS-scoped {@code users}
      * rows. The caller must bind the target {@code tenantId} in

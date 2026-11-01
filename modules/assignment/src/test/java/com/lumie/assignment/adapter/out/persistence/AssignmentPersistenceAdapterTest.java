@@ -108,6 +108,7 @@ class AssignmentPersistenceAdapterTest {
         assertThat(adapter.closeOverdueActiveAssignments(now)).isEqualTo(1);
         assertThat(repository.findById(overdueBulk.getId()).orElseThrow().getStatus()).isEqualTo(AssignmentStatus.CLOSED);
         assertThat(adapter.save(active).getId()).isEqualTo(active.getId());
+        adapter.flush();
         adapter.delete(active);
         assertThat(adapter.findById(active.getId())).isEmpty();
     }

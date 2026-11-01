@@ -34,6 +34,11 @@ public class AuthServiceAdapter implements AuthService {
     }
 
     @Override
+    public Map<Long, String> getUserRoles(Collection<Long> userIds) {
+        return userLookupPort.getUserRoles(userIds);
+    }
+
+    @Override
     public CreateUserResult createUser(String name, String phone, String role, Long tenantId) {
         // The caller (admin-svc / student-svc) is already running in the right
         // tenant context. Validate that the explicit tenantId argument matches

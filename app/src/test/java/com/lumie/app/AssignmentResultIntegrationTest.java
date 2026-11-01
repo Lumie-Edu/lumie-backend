@@ -4,6 +4,7 @@ import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.application.port.out.AssignmentPersistencePort;
 import com.lumie.assignment.application.port.out.AssignmentSubmissionPersistencePort;
+import com.lumie.assignment.application.service.AssignmentCommandService;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.SubmissionMode;
 import com.lumie.assignment.domain.vo.EvaluationMode;
@@ -47,6 +48,7 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
     @Autowired ExamPersistencePort exams;
     @Autowired ExamResultPersistencePort results;
     @Autowired AssignmentPersistencePort assignments;
+    @Autowired AssignmentCommandService assignmentCommands;
     @Autowired AssignmentSubmissionPersistencePort submissions;
     @Autowired ResultCommandService commands;
     @Autowired ExamCommandService examCommands;
@@ -82,6 +84,43 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
             commands.deleteResult(ids.exam(), ids.result());
             assertThat(results.findById(ids.result())).isEmpty();
             assertThat(submissions.findById(ids.submission())).isEmpty();
+        });
+    }
+
+    @Test
+    void deletingAssignmentRemovesItsPrivateExamAndResults() {
+        withinTenant(() -> {
+            var ids = seed();
+            Long assignmentId = submissions.findById(ids.submission()).orElseThrow().getAssignmentId();
+
+            assignmentCommands.deleteAssignment(assignmentId);
+
+            assertThat(assignments.findById(assignmentId)).isEmpty();
+            assertThat(submissions.findById(ids.submission())).isEmpty();
+            assertThat(exams.findById(ids.exam())).isEmpty();
+            assertThat(results.findById(ids.result())).isEmpty();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM assignment_class_targets WHERE assignment_id = ?",
+                    Integer.class, assignmentId)).isZero();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM question_results WHERE id = ?",
+                    Integer.class, ids.question())).isZero();
+        });
+    }
+
+    @Test
+    void failedPrivateExamDeletionRollsBackAssignmentDeletion() {
+        withinTenant(() -> {
+            var ids = seed();
+            Long assignmentId = submissions.findById(ids.submission()).orElseThrow().getAssignmentId();
+            transactions.executeWithoutResult(status -> jdbc.update(
+                    "UPDATE exams SET source = 'EXAM_MANAGEMENT' WHERE id = ?", ids.exam()));
+
+            assertThatThrownBy(() -> assignmentCommands.deleteAssignment(assignmentId))
+                    .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+
+            assertThat(assignments.findById(assignmentId)).isPresent();
+            assertThat(submissions.findById(ids.submission())).isPresent();
+            assertThat(exams.findById(ids.exam())).isPresent();
+            assertThat(results.findById(ids.result())).isPresent();
         });
     }
 

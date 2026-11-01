@@ -59,7 +59,7 @@ jobs:
              ! git cat-file -e "${base}^{commit}"; then
             base="$(git rev-parse HEAD^)"
           fi
-          ./gradlew :modules:ai:test :modules:assignment:test :modules:class:test :modules:content:test :modules:exam:test :modules:file:test :modules:lecture:test :modules:staff:test :modules:student:test -Pintegration --no-configuration-cache --no-daemon --console=plain
+          ./gradlew :modules:ai:test :modules:assignment:test :modules:auth:test :modules:class:test :modules:content:test :modules:exam:test :modules:file:test :modules:lecture:test :modules:staff:test :modules:student:test -Pintegration --no-configuration-cache --no-daemon --console=plain
           ./gradlew jacocoTestCoverageVerification -Pintegration --no-configuration-cache --no-daemon --console=plain
           python3 scripts/lumie-lint/check-changed-coverage.py --base "$base" --allow-empty
 

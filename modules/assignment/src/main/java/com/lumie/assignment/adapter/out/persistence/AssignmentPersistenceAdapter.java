@@ -71,4 +71,5 @@ public class AssignmentPersistenceAdapter implements AssignmentPersistencePort {
     @Override public Optional<Assignment> findById(Long id) { return repository.findById(id); }
     @Override public Assignment save(Assignment assignment) { return repository.save(assignment); }
     @Override public void delete(Assignment assignment) { repository.delete(assignment); }
+    @Override public void flush() { repository.flush(); }
 }

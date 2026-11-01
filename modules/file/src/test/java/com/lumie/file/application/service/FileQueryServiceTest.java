@@ -1,5 +1,6 @@
 package com.lumie.file.application.service;
 
+import com.lumie.auth.api.AuthService;
 import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -25,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.io.ByteArrayInputStream;
@@ -43,6 +45,7 @@ class FileQueryServiceTest {
     @Mock private FileMetadataPersistencePort fileMetadataRepository;
     @Mock private FileDownloadPersistencePort fileDownloadRepository;
     @Mock private StudentService studentService;
+    @Mock private AuthService authService;
     @Mock private FileMetadataLookupService fileMetadataLookupService;
     @Mock private StoragePort storagePort;
     @InjectMocks private FileQueryService queryService;
@@ -60,7 +63,7 @@ class FileQueryServiceTest {
     }
 
     @Test
-    @DisplayName("다운로드한 학생을 찾을 수 없으면 '삭제된 학생'으로 반환한다")
+    @DisplayName("사용자를 찾을 수 없으면 학생이라고 단정하지 않는다")
     void getFileDownloaders_deletedStudentName() {
         UUID fileId = UUID.randomUUID();
         FileMetadata metadata = FileMetadata.create(EntityType.ANNOUNCEMENT, 1L, "file.pdf", "application/pdf", 1L, "object", null);
@@ -69,11 +72,12 @@ class FileQueryServiceTest {
         given(fileDownloadRepository.findByFileIdOrderByUpdatedAtDesc(fileId)).willReturn(List.of(download));
         given(studentService.getStudentsByUserIds("test-tenant", List.of(100L)))
                 .willReturn(new StudentService.StudentListData(List.of(), 0, 0, 0));
+        given(authService.getUserRoles(List.of(100L))).willReturn(Map.of());
 
         var response = queryService.getFileDownloaders(fileId);
 
         assertThat(response).hasSize(1);
-        assertThat(response.get(0).userName()).isEqualTo("삭제된 학생");
+        assertThat(response.get(0).userName()).isEqualTo("사용자 정보 없음");
     }
 
     @Test
@@ -86,6 +90,7 @@ class FileQueryServiceTest {
         assertThat(queryService.getFileDownloaders(fileId)).isEmpty();
 
         verifyNoInteractions(studentService);
+        verifyNoInteractions(authService);
     }
 
     @Test
@@ -100,6 +105,27 @@ class FileQueryServiceTest {
                         List.of(new StudentService.StudentData(1L, 100L, "학생 이름", null, true, null, null)), 1, 0, 1));
 
         assertThat(queryService.getFileDownloaders(fileId).getFirst().userName()).isEqualTo("학생 이름");
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void getFileDownloadersExcludesHistoricalStaffRows() {
+        UUID fileId = UUID.randomUUID();
+        given(fileMetadataRepository.findById(fileId)).willReturn(Optional.of(
+                FileMetadata.create(EntityType.TEXTBOOK, null, "file.pdf", "application/pdf", 1L, "object", null)));
+        given(fileDownloadRepository.findByFileIdOrderByUpdatedAtDesc(fileId)).willReturn(List.of(
+                FileDownload.create(fileId, 100L), FileDownload.create(fileId, 101L),
+                FileDownload.create(fileId, 102L)));
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(100L, 101L, 102L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(1L, 101L, "학생 이름", null, true, null, null)),
+                        1, 0, 1));
+        given(authService.getUserRoles(List.of(100L, 102L)))
+                .willReturn(Map.of(100L, "OWNER", 102L, "STUDENT"));
+
+        assertThat(queryService.getFileDownloaders(fileId))
+                .extracting(response -> response.userName())
+                .containsExactly("학생 이름", "사용자 정보 없음");
     }
 
     @Test
