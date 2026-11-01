@@ -7,6 +7,9 @@ import com.lumie.auth.application.service.AuthQueryService;
 import com.lumie.auth.domain.vo.AuthSession;
 import com.lumie.auth.domain.vo.DeviceCategory;
 import com.lumie.common.auth.Role;
+import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.student.application.port.out.StudentPersistencePort;
+import com.lumie.student.domain.entity.Student;
 import jakarta.servlet.http.Cookie;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
@@ -26,6 +29,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import javax.sql.DataSource;
 import java.sql.DriverManager;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,17 +70,20 @@ class BackendTenantHttpIsolationIntegrationTest extends FullContextTestBase {
     private final MockMvc mockMvc;
     private final SessionConfig sessionConfig;
     private final ObjectMapper objectMapper;
+    private final StudentPersistencePort students;
     private final JdbcTemplate primaryJdbc;
     private final JdbcTemplate readOnlyJdbc;
 
     BackendTenantHttpIsolationIntegrationTest(MockMvc mockMvc,
                                               SessionConfig sessionConfig,
                                               ObjectMapper objectMapper,
+                                              StudentPersistencePort students,
                                               @Qualifier("primaryDataSource") DataSource primaryDataSource,
                                               @Qualifier("readOnlyDataSource") DataSource readOnlyDataSource) {
         this.mockMvc = mockMvc;
         this.sessionConfig = sessionConfig;
         this.objectMapper = objectMapper;
+        this.students = students;
         this.primaryJdbc = new JdbcTemplate(primaryDataSource);
         this.readOnlyJdbc = new JdbcTemplate(readOnlyDataSource);
     }
@@ -91,6 +98,26 @@ class BackendTenantHttpIsolationIntegrationTest extends FullContextTestBase {
 
         assertThat(first).contains("Tenant one class").doesNotContain("Tenant two class");
         assertThat(second).contains("Tenant two class").doesNotContain("Tenant one class");
+    }
+
+    @Test
+    void deletionLookupSeesItsTenantOutsideTheCommandTransaction() {
+        TenantContextHolder.setTenant("tenant-one");
+        TenantContextHolder.setTenantId(1L);
+        try {
+            assertThat(primaryJdbc.queryForObject("SELECT current_user", String.class)).isEqualTo(ROLE);
+            assertThat(students.findAllById(List.of(990101L)))
+                    .extracting(Student::getId)
+                    .containsExactly(990101L);
+            assertThat(students.findById(990101L)).isPresent();
+
+            TenantContextHolder.setTenant("tenant-two");
+            TenantContextHolder.setTenantId(2L);
+            assertThat(students.findAllById(List.of(990101L))).isEmpty();
+            assertThat(students.findById(990101L)).isEmpty();
+        } finally {
+            TenantContextHolder.clear();
+        }
     }
 
     private String listClassNames(String sessionId, String tenantSlug, Long tenantId) throws Exception {
@@ -147,6 +174,10 @@ class BackendTenantHttpIsolationIntegrationTest extends FullContextTestBase {
             statement.execute("INSERT INTO classes (id, name, tenant_id) "
                     + "VALUES (990001, 'Tenant one class', 1), (990002, 'Tenant two class', 2) "
                     + "ON CONFLICT (id) DO NOTHING");
+            statement.execute("INSERT INTO users (id, user_login_id, password_hash, name, role, tenant_id) "
+                    + "VALUES (990101, 'boundary_student_990101', 'test-hash', 'Boundary Student', 'STUDENT', 1)");
+            statement.execute("INSERT INTO students (id, user_id, user_login_id, is_active, tenant_id) "
+                    + "VALUES (990101, 990101, 'boundary_student_990101', false, 1)");
         } catch (Exception e) {
             throw new IllegalStateException("Failed to prepare tenant HTTP fixtures", e);
         }

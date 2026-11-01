@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -115,6 +116,22 @@ class StudentCommandServiceTest {
 
         assertThat(result.success()).isEqualTo(1);
         assertThat(result.failures()).extracting(BatchOperationResult.FailedItem::id).containsExactly(43L);
+    }
+
+    @Test
+    void batchDelete_dropsEnrollmentBeforeDeletingLinkedUser() {
+        Student student = inactiveStudent(42L, 100L);
+        given(studentRepository.findAllById(java.util.List.of(42L)))
+                .willReturn(java.util.List.of(student));
+        given(authService.deleteUser(100L))
+                .willReturn(new AuthService.DeleteUserResult(true, "ok"));
+
+        BatchOperationResult result = service.batchDelete(java.util.List.of(42L));
+
+        assertThat(result.success()).isEqualTo(1);
+        var order = inOrder(classService, authService);
+        order.verify(classService).dropActiveEnrollmentsForStudent(TENANT, 42L);
+        order.verify(authService).deleteUser(100L);
     }
 
     @Test

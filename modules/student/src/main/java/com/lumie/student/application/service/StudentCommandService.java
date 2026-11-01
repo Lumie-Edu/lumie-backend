@@ -311,6 +311,7 @@ public class StudentCommandService {
         int successCount = 0;
         // Delete users from auth-svc (FK CASCADE automatically deletes students)
         for (Student student : toDelete) {
+            classService.dropActiveEnrollmentsForStudent(tenantSlug, student.getId());
             AuthService.DeleteUserResult deleteResult = authService.deleteUser(student.getUserId());
             if (!deleteResult.success()) {
                 log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());

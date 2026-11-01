@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,8 +27,14 @@ public class StudentPersistenceAdapter implements StudentPersistencePort {
 
     @Override public Student save(Student student) { return repository.save(student); }
     @Override public List<Student> saveAll(Iterable<Student> students) { return repository.saveAll(students); }
-    @Override public Optional<Student> findById(Long id) { return repository.findById(id); }
-    @Override public List<Student> findAllById(Iterable<Long> ids) { return repository.findAllById(ids); }
+    // Deletion suspends its service transaction; keep these lookups RLS-bound on the primary.
+    @Override
+    @Transactional
+    public Optional<Student> findById(Long id) { return repository.findById(id); }
+
+    @Override
+    @Transactional
+    public List<Student> findAllById(Iterable<Long> ids) { return repository.findAllById(ids); }
     @Override public Page<Student> findAll(Pageable pageable) { return repository.findAll(pageable); }
     @Override public Optional<Student> findByUserId(Long userId) { return repository.findByUserId(userId); }
     @Override public List<Student> findByUserIdIn(Collection<Long> userIds) { return repository.findByUserIdIn(userIds); }
