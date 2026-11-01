@@ -3,7 +3,7 @@ package com.lumie.exam.application.service;
 import com.lumie.common.test.TenantContextExtension;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.OmrStoragePort;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
 import com.lumie.exam.domain.vo.JobStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 class OmrGradingJobProcessorTest {
 
     @Mock private OmrStoragePort storagePort;
-    @Mock private OmrGradingJobRepository jobRepository;
+    @Mock private OmrGradingJobPersistencePort jobRepository;
     @Mock private OmrSubmissionService submissionService;
 
     private OmrGradingJobProcessor processor;

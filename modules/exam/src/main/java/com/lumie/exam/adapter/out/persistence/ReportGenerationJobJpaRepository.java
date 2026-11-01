@@ -1,4 +1,4 @@
-package com.lumie.exam.domain.repository;
+package com.lumie.exam.adapter.out.persistence;
 
 import com.lumie.exam.domain.entity.ReportGenerationJob;
 import com.lumie.exam.domain.vo.JobStatus;
@@ -13,7 +13,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
-public interface ReportGenerationJobRepository extends JpaRepository<ReportGenerationJob, Long> {
+public interface ReportGenerationJobJpaRepository extends JpaRepository<ReportGenerationJob, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select job from ReportGenerationJob job where job.id = :jobId")

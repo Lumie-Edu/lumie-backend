@@ -18,8 +18,8 @@ import com.lumie.exam.api.ExamService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
@@ -41,8 +41,8 @@ import static org.assertj.core.api.Assertions.*;
 class AssignmentResultIntegrationTest extends FullContextTestBase {
     @Autowired TransactionTemplate transactions;
     @Autowired JdbcTemplate jdbc;
-    @Autowired ExamRepository exams;
-    @Autowired ExamResultRepository results;
+    @Autowired ExamPersistencePort exams;
+    @Autowired ExamResultPersistencePort results;
     @Autowired AssignmentRepository assignments;
     @Autowired AssignmentSubmissionRepository submissions;
     @Autowired ResultCommandService commands;
@@ -77,7 +77,7 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
         withinTenant(() -> {
             var ids = seed();
             commands.deleteResult(ids.exam(), ids.result());
-            assertThat(results.existsById(ids.result())).isFalse();
+            assertThat(results.findById(ids.result())).isEmpty();
             assertThat(submissions.existsById(ids.submission())).isFalse();
         });
     }
@@ -90,7 +90,7 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
                 commands.deleteResult(ids.exam(), ids.result());
                 throw new IllegalStateException("Simulated failure after result deletion");
             })).isInstanceOf(IllegalStateException.class);
-            assertThat(results.existsById(ids.result())).isTrue();
+            assertThat(results.findById(ids.result())).isPresent();
             assertThat(submissions.existsById(ids.submission())).isTrue();
         });
     }

@@ -9,8 +9,8 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
@@ -34,8 +34,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ExamCommandServiceTest {
-    @Mock ExamRepository examRepository;
-    @Mock ExamResultRepository resultRepository;
+    @Mock ExamPersistencePort examRepository;
+    @Mock ExamResultPersistencePort resultRepository;
     @Spy GradeCalculator gradeCalculator;
     @Mock ApplicationEventPublisher eventPublisher;
     @InjectMocks ExamCommandService service;

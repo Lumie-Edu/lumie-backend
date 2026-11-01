@@ -5,8 +5,8 @@ import com.lumie.exam.application.dto.response.statistics.ClassComparisonRespons
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.exam.domain.entity.ExamResult;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.test.ExamFixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,8 +26,8 @@ import static org.mockito.BDDMockito.given;
 @DisplayName("ClassComparisonQueryService 단위 테스트")
 class ClassComparisonQueryServiceTest {
 
-    @Mock private ExamRepository examRepository;
-    @Mock private ExamResultRepository resultRepository;
+    @Mock private ExamPersistencePort examRepository;
+    @Mock private ExamResultPersistencePort resultRepository;
     @org.mockito.Spy private GradeCalculator gradeCalculator = new GradeCalculator();
     @Mock private ClassService classService;
     @Mock private ExamResultCohortResolver cohortResolver;

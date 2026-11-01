@@ -8,9 +8,9 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
 import com.lumie.exam.domain.entity.ReportGenerationItem;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
-import com.lumie.exam.domain.repository.ReportGenerationItemRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationJobPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationItemPersistencePort;
 import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.exam.domain.vo.ReportGenerationItemStatus;
 import com.lumie.exam.test.ExamFixtures;
@@ -43,11 +43,11 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class ReportJobServiceTest {
 
     @Mock
-    private ExamRepository examRepository;
+    private ExamPersistencePort examRepository;
     @Mock
-    private ReportGenerationJobRepository jobRepository;
+    private ReportGenerationJobPersistencePort jobRepository;
     @Mock
-    private ReportGenerationItemRepository itemRepository;
+    private ReportGenerationItemPersistencePort itemRepository;
     @Mock
     private OmrStoragePort storagePort;
     @Mock

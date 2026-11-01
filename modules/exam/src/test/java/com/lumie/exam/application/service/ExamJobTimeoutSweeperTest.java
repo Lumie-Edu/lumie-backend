@@ -4,9 +4,9 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ReportGenerationItem;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
-import com.lumie.exam.domain.repository.ReportGenerationItemRepository;
-import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationItemPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationJobPersistencePort;
 import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.exam.domain.vo.ReportGenerationItemStatus;
 import com.lumie.exam.test.ExamFixtures;
@@ -42,11 +42,11 @@ class ExamJobTimeoutSweeperTest {
     private ExamJobTimeoutSweeper sweeper;
 
     @Mock
-    private OmrGradingJobRepository omrJobRepository;
+    private OmrGradingJobPersistencePort omrJobRepository;
     @Mock
-    private ReportGenerationJobRepository reportJobRepository;
+    private ReportGenerationJobPersistencePort reportJobRepository;
     @Mock
-    private ReportGenerationItemRepository itemRepository;
+    private ReportGenerationItemPersistencePort itemRepository;
 
     @AfterEach
     void clearContext() {

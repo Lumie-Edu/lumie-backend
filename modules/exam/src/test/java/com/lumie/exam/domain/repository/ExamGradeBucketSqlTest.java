@@ -1,5 +1,6 @@
 package com.lumie.exam.domain.repository;
 
+import com.lumie.exam.adapter.out.persistence.ExamResultJpaRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.repository.Query;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -41,7 +42,7 @@ class ExamGradeBucketSqlTest {
                           (3, 10, -1), (3, 0, 0)
                         """);
 
-                String sql = ExamResultRepository.class.getMethod("aggregateGradeBuckets")
+                String sql = ExamResultJpaRepository.class.getMethod("aggregateGradeBuckets")
                         .getAnnotation(Query.class).value();
                 Map<String, Integer> buckets = new HashMap<>();
                 try (var rows = statement.executeQuery(sql)) {

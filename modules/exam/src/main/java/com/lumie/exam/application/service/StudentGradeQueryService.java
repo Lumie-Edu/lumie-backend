@@ -9,8 +9,8 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
@@ -35,8 +35,8 @@ public class StudentGradeQueryService {
     public static final String SORT_FIELD_RANK = "rank";
     public static final String SORT_FIELD_TOTAL_SCORE = "totalScore";
 
-    private final ExamRepository examRepository;
-    private final ExamResultRepository resultRepository;
+    private final ExamPersistencePort examRepository;
+    private final ExamResultPersistencePort resultRepository;
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
     private final StudentService studentService;

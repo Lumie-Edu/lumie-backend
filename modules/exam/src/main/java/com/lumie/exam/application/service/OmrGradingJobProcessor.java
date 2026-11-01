@@ -4,7 +4,7 @@ import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.exam.application.dto.request.OmrGradingCallbackRequest;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.OmrGradingJob;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
 import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ import java.util.List;
 public class OmrGradingJobProcessor {
 
     private final OmrStoragePort storagePort;
-    private final OmrGradingJobRepository jobRepository;
+    private final OmrGradingJobPersistencePort jobRepository;
     private final Tx tx;
 
     public void processGradingCallback(OmrGradingCallbackRequest request) {
@@ -107,7 +107,7 @@ public class OmrGradingJobProcessor {
 
         record SuccessPrep(String sourceImageKey, String permanentKey) {}
 
-        private final OmrGradingJobRepository jobRepository;
+        private final OmrGradingJobPersistencePort jobRepository;
         private final OmrSubmissionService submissionService;
 
         @Transactional

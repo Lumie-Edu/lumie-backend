@@ -8,11 +8,11 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository.GradeBucketRow;
-import com.lumie.exam.domain.repository.ExamResultRepository.QuestionChoiceCountRow;
-import com.lumie.exam.domain.repository.ExamResultRepository.ResultAggregateRow;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort.GradeBucketRow;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort.QuestionChoiceCountRow;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort.ResultAggregateRow;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.vo.GradeScale;
@@ -48,8 +48,8 @@ public class ExamSummaryStatisticsService {
     private static final int MIN_ATTEMPTS_FOR_TOP_INCORRECT = 5;
     private static final int TOP_INCORRECT_LIMIT = 10;
 
-    private final ExamRepository examRepository;
-    private final ExamResultRepository resultRepository;
+    private final ExamPersistencePort examRepository;
+    private final ExamResultPersistencePort resultRepository;
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
     private final ExamResultCohortResolver cohortResolver;

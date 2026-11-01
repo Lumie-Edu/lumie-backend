@@ -24,10 +24,10 @@ import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.quota.MetricType;
 import com.lumie.common.util.PhoneNumberUtils;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
-import com.lumie.exam.domain.repository.OmrSubmissionRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
+import com.lumie.exam.application.port.out.OmrSubmissionPersistencePort;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.exam.domain.vo.ExamCategory;
@@ -36,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -51,10 +52,10 @@ import java.util.Objects;
 @Slf4j
 public class ResultCommandService {
 
-    private final ExamRepository examRepository;
-    private final ExamResultRepository resultRepository;
-    private final OmrGradingJobRepository jobRepository;
-    private final OmrSubmissionRepository submissionRepository;
+    private final ExamPersistencePort examRepository;
+    private final ExamResultPersistencePort resultRepository;
+    private final OmrGradingJobPersistencePort jobRepository;
+    private final OmrSubmissionPersistencePort submissionRepository;
     private final GradeCalculator gradeCalculator;
     private final StudentService studentService;
     private final BillingService billingService;
@@ -62,6 +63,7 @@ public class ResultCommandService {
     private final OmrStoragePort storagePort;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
+    private final Tx tx;
 
     public ExamResultResponse processOmrGrading(Long examId, Long studentId, byte[] imageData) {
         log.info("Processing OMR grading for exam: {}, student: {}", examId, studentId);
@@ -117,7 +119,6 @@ public class ResultCommandService {
         return response;
     }
 
-    @Transactional(readOnly = true)
     public OmrPresignResponse generatePresignedUrls(Long examId, OmrPresignRequest request) {
         log.info("Generating presigned URLs for exam: {}, files: {}", examId, request.fileNames().size());
 
@@ -240,29 +241,16 @@ public class ResultCommandService {
         return toManualGradeResult(saved, exam, studentId);
     }
 
-    @Transactional
     public void deleteResult(Long examId, Long resultId) {
         log.info("Deleting exam result: examId={}, resultId={}", examId, resultId);
-
-        ExamResult result = resultRepository.findById(resultId)
-                .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
-
-        if (!result.getExam().getId().equals(examId)) {
-            throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
-        }
-
-        eventPublisher.publishEvent(new ExamResultDeletingEvent(
-                TenantContextHolder.getTenantId(), examId, resultId));
-
-        if (result.getOmrImageKey() != null) {
+        String imageKey = tx.deleteResult(examId, resultId);
+        if (imageKey != null) {
             try {
-                storagePort.deleteObjects(java.util.List.of(result.getOmrImageKey()));
+                storagePort.deleteObjects(java.util.List.of(imageKey));
             } catch (Exception e) {
-                log.warn("Failed to delete OMR image from MinIO: {}", result.getOmrImageKey(), e);
+                log.warn("Failed to delete OMR image from MinIO: {}", imageKey, e);
             }
         }
-
-        resultRepository.deleteById(resultId);
     }
 
     @Transactional
@@ -479,6 +467,28 @@ public class ResultCommandService {
             return uploadId.toString().equals(pathParts[0]);
         } catch (IllegalArgumentException exception) {
             return false;
+        }
+    }
+
+    /** Owns the result deletion transaction so storage cleanup begins after commit. */
+    @Component
+    @RequiredArgsConstructor
+    public static class Tx {
+        private final ExamResultPersistencePort resultRepository;
+        private final ApplicationEventPublisher eventPublisher;
+
+        @Transactional
+        public String deleteResult(Long examId, Long resultId) {
+            ExamResult result = resultRepository.findById(resultId)
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+            if (!result.getExam().getId().equals(examId)) {
+                throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
+            }
+            eventPublisher.publishEvent(new ExamResultDeletingEvent(
+                    TenantContextHolder.getTenantId(), examId, resultId));
+            String imageKey = result.getOmrImageKey();
+            resultRepository.deleteById(resultId);
+            return imageKey;
         }
     }
 
