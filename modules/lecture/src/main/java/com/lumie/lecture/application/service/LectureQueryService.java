@@ -10,8 +10,8 @@ import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.lecture.domain.exception.LectureErrorCode;
-import com.lumie.lecture.domain.repository.LectureClassTargetRepository;
-import com.lumie.lecture.domain.repository.LectureRepository;
+import com.lumie.lecture.application.port.out.LectureClassTargetPersistencePort;
+import com.lumie.lecture.application.port.out.LecturePersistencePort;
 import com.lumie.lecture.domain.vo.LectureSearchCriteria;
 import com.lumie.lecture.domain.vo.LectureVisibility;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -34,8 +34,8 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class LectureQueryService {
 
-    private final LectureRepository lectureRepository;
-    private final LectureClassTargetRepository targetRepository;
+    private final LecturePersistencePort lectureRepository;
+    private final LectureClassTargetPersistencePort targetRepository;
     private final StudentService studentService;
     private final ClassService classService;
 
@@ -122,8 +122,8 @@ public class LectureQueryService {
         List<Long> lectureIds = lectures.stream().map(Lecture::getId).toList();
         Map<Long, List<Long>> grouped = new HashMap<>();
         targetRepository.findRowsByLectureIds(lectureIds).forEach(row ->
-                grouped.computeIfAbsent(row.getLectureId(), ignored -> new java.util.ArrayList<>())
-                        .add(row.getClassId())
+                grouped.computeIfAbsent(row.lectureId(), ignored -> new java.util.ArrayList<>())
+                        .add(row.classId())
         );
         return grouped;
     }

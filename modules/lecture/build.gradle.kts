@@ -18,4 +18,5 @@ dependencies {
 
     // Shared test fixtures (ReflectionTestUtils, TenantContextExtension)
     testImplementation(testFixtures(project(":libs:common")))
+    testRuntimeOnly("org.postgresql:postgresql")
 }
