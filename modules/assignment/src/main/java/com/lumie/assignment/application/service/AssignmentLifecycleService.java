@@ -1,6 +1,6 @@
 package com.lumie.assignment.application.service;
 
-import com.lumie.assignment.domain.repository.AssignmentRepository;
+import com.lumie.assignment.application.port.out.AssignmentPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,7 +14,7 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class AssignmentLifecycleService {
 
-    private final AssignmentRepository assignmentRepository;
+    private final AssignmentPersistencePort assignmentRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int closeOverdueAssignments() {
