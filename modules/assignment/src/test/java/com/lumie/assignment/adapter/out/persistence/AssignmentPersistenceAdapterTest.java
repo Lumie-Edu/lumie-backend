@@ -79,7 +79,7 @@ class AssignmentPersistenceAdapterTest {
         targetRepository.save(AssignmentClassTarget.create(active.getId(), 55L));
         targetRepository.save(AssignmentClassTarget.create(overdue.getId(), 55L));
         targetRepository.save(AssignmentClassTarget.create(active.getId(), 56L));
-        repository.flush();
+        adapter.flush();
 
         assertThat(adapter.findByTargetClassId(55L, PageRequest.of(0, 1)).getTotalElements()).isEqualTo(2);
         assertThat(adapter.findByTargetClassId(999L, PageRequest.of(0, 10)).getContent()).isEmpty();
@@ -108,7 +108,6 @@ class AssignmentPersistenceAdapterTest {
         assertThat(adapter.closeOverdueActiveAssignments(now)).isEqualTo(1);
         assertThat(repository.findById(overdueBulk.getId()).orElseThrow().getStatus()).isEqualTo(AssignmentStatus.CLOSED);
         assertThat(adapter.save(active).getId()).isEqualTo(active.getId());
-        adapter.flush();
         adapter.delete(active);
         assertThat(adapter.findById(active.getId())).isEmpty();
     }
