@@ -1,6 +1,7 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.RlsTenantTransactionBinder;
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.UpdateResultPhoneRequest;
 import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
@@ -77,6 +78,10 @@ class ResultCommandServiceTest {
     @Mock
     private TransactionTemplate transactionTemplate;
     @Mock
+    private RlsTenantTransactionBinder tenantTransactionBinder;
+    @Mock
+    private ExamQueryService examQueryService;
+    @Mock
     private ResultCommandService.Tx tx;
 
     @InjectMocks
@@ -149,6 +154,7 @@ class ResultCommandServiceTest {
         verify(resultRepository).save(captor.capture());
         // 가입 학생의 결과에는 등록된 전화번호가 저장되어야 한다.
         assertThat(captor.getValue().getPhoneNumber()).isEqualTo("01012345678");
+        verify(tenantTransactionBinder, times(2)).bindRequiredTenantToCurrentTransaction();
     }
 
     @Test
@@ -297,11 +303,10 @@ class ResultCommandServiceTest {
 
     @Test
     void generatePresignedUrls_usesUniqueUuidKeysForSameAndSanitizedFileNames() {
-        given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
-
         var response = resultCommandService.generatePresignedUrls(1L,
                 new OmrPresignRequest(List.of("same name.jpg", "same name.jpg", "same@name.jpg")));
 
+        verify(examQueryService).getExam(1L);
         assertThat(response.uploads()).hasSize(3);
         assertThat(response.uploads()).extracting(upload -> upload.objectKey()).doesNotHaveDuplicates();
         assertThat(response.uploads()).extracting(upload -> upload.objectKey())
@@ -309,6 +314,19 @@ class ResultCommandServiceTest {
                         .matches("tmp/test-academy/omr/[0-9a-f]{8}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/same_name.jpg"));
         assertThat(response.uploads()).extracting(upload -> upload.fileName())
                 .containsExactly("same name.jpg", "same name.jpg", "same@name.jpg");
+    }
+
+    @Test
+    void generatePresignedUrls_doesNotCallStorageForMissingExam() {
+        given(examQueryService.getExam(1L))
+                .willThrow(new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
+
+        assertThatThrownBy(() -> resultCommandService.generatePresignedUrls(1L,
+                new OmrPresignRequest(List.of("sheet.jpg"))))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ExamErrorCode.EXAM_NOT_FOUND);
+        verifyNoInteractions(storagePort);
     }
 
     @Test

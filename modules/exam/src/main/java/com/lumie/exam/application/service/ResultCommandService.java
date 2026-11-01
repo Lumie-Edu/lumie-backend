@@ -29,6 +29,7 @@ import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
 import com.lumie.exam.application.port.out.OmrSubmissionPersistencePort;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.common.tenant.RlsTenantTransactionBinder;
 import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradingType;
@@ -63,6 +64,8 @@ public class ResultCommandService {
     private final OmrStoragePort storagePort;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
+    private final RlsTenantTransactionBinder tenantTransactionBinder;
+    private final ExamQueryService examQueryService;
     private final Tx tx;
 
     public ExamResultResponse processOmrGrading(Long examId, Long studentId, byte[] imageData) {
@@ -72,9 +75,11 @@ public class ResultCommandService {
         // Held outside the persistence transaction so the long-running OMR HTTP
         // call below does not pin a Hikari connection.
         String tenantSlug = TenantContextHolder.getRequiredTenant();
-        Exam exam = transactionTemplate.execute(status ->
-                examRepository.findById(examId)
-                        .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND)));
+        Exam exam = transactionTemplate.execute(status -> {
+            tenantTransactionBinder.bindRequiredTenantToCurrentTransaction();
+            return examRepository.findById(examId)
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
+        });
         // validateStudent also rejects inactive students; keep it as the gate.
         if (!studentService.validateStudent(tenantSlug, studentId).valid()) {
             throw new BusinessException(ExamErrorCode.STUDENT_NOT_FOUND);
@@ -107,6 +112,7 @@ public class ResultCommandService {
         // Phase 3 — persist results in a fresh write transaction.
         // Re-fetch exam inside the tx so resolveResult works on a managed entity.
         ExamResultResponse response = transactionTemplate.execute(status -> {
+            tenantTransactionBinder.bindRequiredTenantToCurrentTransaction();
             Exam managedExam = examRepository.findById(examId)
                     .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
             ExamResult result = resolveResult(examId, managedExam, studentId, omrResult);
@@ -122,9 +128,7 @@ public class ResultCommandService {
     public OmrPresignResponse generatePresignedUrls(Long examId, OmrPresignRequest request) {
         log.info("Generating presigned URLs for exam: {}, files: {}", examId, request.fileNames().size());
 
-        if (examRepository.findById(examId).isEmpty()) {
-            throw new BusinessException(ExamErrorCode.EXAM_NOT_FOUND);
-        }
+        examQueryService.getExam(examId);
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         String tenantId = TenantContextHolder.toStorageTenantId(tenantSlug);
