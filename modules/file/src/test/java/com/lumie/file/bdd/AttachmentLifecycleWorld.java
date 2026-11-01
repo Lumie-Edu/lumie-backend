@@ -312,6 +312,7 @@ public class AttachmentLifecycleWorld {
                 fileMetadataRepository,
                 mock(FileDownloadPersistencePort.class),
                 mock(StudentService.class),
+                mock(com.lumie.auth.api.AuthService.class),
                 lookup,
                 storagePort);
         metrics.initializeMeters();

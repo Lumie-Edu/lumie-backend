@@ -8,6 +8,7 @@ import com.lumie.auth.domain.vo.AuthSession;
 import com.lumie.auth.domain.vo.DeviceCategory;
 import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
+import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.student.application.port.out.StudentPersistencePort;
 import com.lumie.student.domain.entity.Student;
 import jakarta.servlet.http.Cookie;
@@ -23,6 +24,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestConstructor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -34,7 +36,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Tag("integration")
@@ -66,6 +73,9 @@ class BackendTenantHttpIsolationIntegrationTest extends FullContextTestBase {
 
     @MockitoBean
     AuthQueryService authQueryService;
+
+    @MockitoBean
+    OmrStoragePort omrStoragePort;
 
     private final MockMvc mockMvc;
     private final SessionConfig sessionConfig;
@@ -118,6 +128,31 @@ class BackendTenantHttpIsolationIntegrationTest extends FullContextTestBase {
         } finally {
             TenantContextHolder.clear();
         }
+    }
+
+    @Test
+    void omrPresignSeesOnlyTheAuthenticatedTenantsExam() throws Exception {
+        Instant now = Instant.now();
+        given(authQueryService.findActiveSession("omr-session")).willReturn(Optional.of(new AuthSession(
+                "omr-session", 901L, "Owner", "tenant-one", 1L, Role.OWNER, "test",
+                DeviceCategory.UNKNOWN, now, now.plusSeconds(3600))));
+        given(omrStoragePort.getPresignedPutUrl(anyString(), eq(900)))
+                .willReturn("https://storage.example.invalid/upload");
+
+        presign(990201L).andExpect(status().isOk());
+        presign(990202L).andExpect(status().isNotFound());
+        presign(990999L).andExpect(status().isNotFound());
+        verify(omrStoragePort, times(1)).getPresignedPutUrl(anyString(), eq(900));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions presign(Long examId) throws Exception {
+        return mockMvc.perform(post("/v1/exams/{examId}/results/omr/batch/presign", examId)
+                .header("Host", "localhost")
+                .header("Origin", "http://localhost")
+                .header("Idempotency-Key", "omr-presign-" + examId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"fileNames\":[\"sheet.jpg\"]}")
+                .cookie(new Cookie(sessionConfig.getCookieName(), "omr-session")));
     }
 
     private String listClassNames(String sessionId, String tenantSlug, Long tenantId) throws Exception {
@@ -178,6 +213,15 @@ class BackendTenantHttpIsolationIntegrationTest extends FullContextTestBase {
                     + "VALUES (990101, 'boundary_student_990101', 'test-hash', 'Boundary Student', 'STUDENT', 1)");
             statement.execute("INSERT INTO students (id, user_id, user_login_id, is_active, tenant_id) "
                     + "VALUES (990101, 990101, 'boundary_student_990101', false, 1)");
+            statement.execute("""
+                    INSERT INTO exams (id, name, category, grading_type, grade_scale,
+                                       total_questions, correct_answers, question_scores, tenant_id, source)
+                    VALUES (990201, 'Tenant one exam', 'GRADED', 'ABSOLUTE', 'NINE_GRADE', 1,
+                            '{"1":"1"}'::jsonb, '{"1":2}'::jsonb, 1, 'EXAM_MANAGEMENT'),
+                           (990202, 'Tenant two exam', 'GRADED', 'ABSOLUTE', 'NINE_GRADE', 1,
+                            '{"1":"1"}'::jsonb, '{"1":2}'::jsonb, 2, 'EXAM_MANAGEMENT')
+                    ON CONFLICT (id) DO NOTHING
+                    """);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to prepare tenant HTTP fixtures", e);
         }

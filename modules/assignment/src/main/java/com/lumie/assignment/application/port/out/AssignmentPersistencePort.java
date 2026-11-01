@@ -19,4 +19,5 @@ public interface AssignmentPersistencePort {
     Optional<Assignment> findById(Long id);
     Assignment save(Assignment assignment);
     void delete(Assignment assignment);
+    void flush();
 }

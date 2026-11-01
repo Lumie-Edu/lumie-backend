@@ -377,7 +377,10 @@ class AssignmentCommandServiceTest {
 
             commandService.deleteAssignment(1L);
 
-            verify(assignmentRepository).delete(entity);
+            var ordered = inOrder(assignmentRepository, examService);
+            ordered.verify(assignmentRepository).delete(entity);
+            ordered.verify(assignmentRepository).flush();
+            ordered.verify(examService).deleteExamForAssignment("test-tenant", 10L);
         }
     }
 

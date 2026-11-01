@@ -1,6 +1,8 @@
 package com.lumie.file.application.service;
 
 import com.lumie.common.auth.AuthorizationGuard;
+import com.lumie.common.auth.Role;
+import com.lumie.auth.api.AuthService;
 import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.application.port.out.StoragePort;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -23,11 +26,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileQueryService {
 
-    private static final String DELETED_STUDENT_NAME = "삭제된 학생";
+    private static final String UNKNOWN_USER_NAME = "사용자 정보 없음";
 
     private final FileMetadataPersistencePort fileMetadataRepository;
     private final com.lumie.file.application.port.out.FileDownloadPersistencePort fileDownloadRepository;
     private final com.lumie.student.api.StudentService studentService;
+    private final AuthService authService;
     private final FileMetadataLookupService fileMetadataLookupService;
     private final StoragePort storagePort;
 
@@ -104,21 +108,27 @@ public class FileQueryService {
         List<com.lumie.file.domain.entity.FileDownload> downloads = fileDownloadRepository.findByFileIdOrderByUpdatedAtDesc(fileId);
         if (downloads.isEmpty()) return List.of();
 
-        List<Long> userIds = downloads.stream().map(d -> d.getUserId()).toList();
+        List<Long> userIds = downloads.stream().map(d -> d.getUserId()).distinct().toList();
         String tenantSlug = com.lumie.common.tenant.TenantContextHolder.getRequiredTenant();
 
         var studentDataList = studentService.getStudentsByUserIds(tenantSlug, userIds).students();
-        java.util.Map<Long, String> nameMap = studentDataList.stream()
+        Map<Long, String> nameMap = studentDataList.stream()
                 .collect(java.util.stream.Collectors.toMap(
                         com.lumie.student.api.StudentService.StudentData::userId,
                         com.lumie.student.api.StudentService.StudentData::studentName,
                         (a, b) -> a
                 ));
+        List<Long> unresolvedIds = userIds.stream().filter(id -> !nameMap.containsKey(id)).toList();
+        Map<Long, String> roles = unresolvedIds.isEmpty() ? Map.of() : authService.getUserRoles(unresolvedIds);
 
         return downloads.stream()
+                .filter(d -> {
+                    String role = roles.get(d.getUserId());
+                    return role == null || Role.STUDENT.name().equals(role);
+                })
                 .map(d -> new com.lumie.file.application.dto.response.FileDownloaderResponse(
                         d.getUserId(),
-                        nameMap.getOrDefault(d.getUserId(), DELETED_STUDENT_NAME),
+                        nameMap.getOrDefault(d.getUserId(), UNKNOWN_USER_NAME),
                         d.getUpdatedAt()
                 ))
                 .toList();

@@ -13,6 +13,7 @@ import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.StudentGradeQueryService;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -79,6 +80,21 @@ public class ExamServiceAdapter implements ExamService {
     @Transactional
     public Long createExamForAssignment(String tenantSlug, CreateExamData request) {
         return withinTenant(tenantSlug, () -> examCommandService.createAssignmentExam(toCreateExamRequest(request)));
+    }
+
+    @Override
+    @Transactional
+    public void deleteExamForAssignment(String tenantSlug, Long examId) {
+        withinTenant(tenantSlug, () -> {
+            if (examId == null) {
+                throw new BusinessException(ExamErrorCode.EXAM_NOT_FOUND);
+            }
+            Exam exam = examRepository.findById(examId)
+                    .filter(candidate -> candidate.getSource() == ExamSource.ASSIGNMENT)
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
+            examCommandService.deleteExam(exam.getId());
+            return null;
+        });
     }
 
     @Override

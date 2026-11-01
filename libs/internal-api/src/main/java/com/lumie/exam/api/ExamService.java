@@ -11,6 +11,8 @@ public interface ExamService {
 
     Long createExamForAssignment(String tenantSlug, CreateExamData request);
 
+    void deleteExamForAssignment(String tenantSlug, Long examId);
+
     Optional<ExamAssignmentData> getExamForAssignment(String tenantSlug, Long examId);
 
     ManualGradeResult gradeManualAnswers(String tenantSlug, Long examId, Long studentId, Map<String, String> answers);

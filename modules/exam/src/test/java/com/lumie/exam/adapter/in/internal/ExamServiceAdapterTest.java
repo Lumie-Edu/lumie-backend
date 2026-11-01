@@ -10,6 +10,7 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.application.port.out.ExamPersistencePort;
 import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.test.ExamFixtures;
@@ -27,9 +28,11 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ExamServiceAdapter 단위 테스트")
@@ -114,6 +117,34 @@ class ExamServiceAdapterTest {
                 Map.of("1", "객관식", "2", "객관식"),
                 60
         ));
+    }
+
+    @Test
+    void deleteExamForAssignment_deletesOnlyPrivateExam() {
+        Exam exam = ExamFixtures.aGradedExam();
+        ReflectionTestUtils.setField(exam, "id", 99L);
+        ReflectionTestUtils.setField(exam, "source", ExamSource.ASSIGNMENT);
+        given(examRepository.findById(99L)).willReturn(Optional.of(exam));
+
+        examServiceAdapter.deleteExamForAssignment("tenant-a", 99L);
+
+        verify(examCommandService).deleteExam(99L);
+    }
+
+    @Test
+    void deleteExamForAssignment_rejectsManagedExam() {
+        given(examRepository.findById(99L)).willReturn(Optional.of(ExamFixtures.aGradedExam()));
+
+        assertThatThrownBy(() -> examServiceAdapter.deleteExamForAssignment("tenant-a", 99L))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+        verifyNoInteractions(examCommandService);
+    }
+
+    @Test
+    void deleteExamForAssignment_rejectsMissingExamId() {
+        assertThatThrownBy(() -> examServiceAdapter.deleteExamForAssignment("tenant-a", null))
+                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
+        verifyNoInteractions(examRepository, examCommandService);
     }
 
     @Test

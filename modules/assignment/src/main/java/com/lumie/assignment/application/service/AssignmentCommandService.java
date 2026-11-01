@@ -163,6 +163,8 @@ public class AssignmentCommandService {
                 "Assignment not found with id: %d".formatted(id)));
 
         assignmentRepository.delete(entity);
+        assignmentRepository.flush();
+        examService.deleteExamForAssignment(TenantContextHolder.getRequiredTenant(), entity.getLinkedExamId());
 
         log.info("Assignment deleted: {}", id);
     }

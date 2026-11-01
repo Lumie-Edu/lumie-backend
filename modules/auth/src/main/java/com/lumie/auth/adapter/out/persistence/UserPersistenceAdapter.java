@@ -44,6 +44,15 @@ public class UserPersistenceAdapter implements UserLookupPort {
 
     @Override
     @Transactional(readOnly = true)
+    public Map<Long, String> getUserRoles(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) return Collections.emptyMap();
+        return userRepository.findRolesByIds(userIds).stream()
+                .collect(Collectors.toMap(UserJpaRepository.UserRoleRow::getId,
+                        row -> row.getRole().name()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<UserData> findByUserLoginId(String userLoginId) {
         log.debug("Looking up user by login ID: {}", userLoginId);
         return userRepository.findByUserLoginId(userLoginId)

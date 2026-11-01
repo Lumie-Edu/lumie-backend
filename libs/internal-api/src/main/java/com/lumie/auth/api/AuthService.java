@@ -21,6 +21,9 @@ public interface AuthService {
      */
     Map<Long, String> getAvatarSeeds(Collection<Long> userIds);
 
+    /** Existing tenant users only; absent IDs are omitted from the result. */
+    Map<Long, String> getUserRoles(Collection<Long> userIds);
+
     record CreateUserResult(
             boolean success,
             String message,

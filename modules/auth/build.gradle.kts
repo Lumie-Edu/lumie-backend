@@ -23,4 +23,5 @@ dependencies {
 
     // Test (module-specific only — common test deps in root build.gradle.kts)
     testImplementation("org.springframework.security:spring-security-test")
+    testRuntimeOnly("org.postgresql:postgresql")
 }

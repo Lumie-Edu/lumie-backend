@@ -1,6 +1,7 @@
 package com.lumie.auth.adapter.out.persistence;
 
 import com.lumie.auth.domain.entity.User;
+import com.lumie.common.auth.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,8 +28,16 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
     @Query("SELECT u.id AS id, u.avatarSeed AS avatarSeed FROM User u WHERE u.id IN :ids AND u.avatarSeed IS NOT NULL")
     List<UserAvatarRow> findAvatarSeedsByIds(@Param("ids") Collection<Long> ids);
 
+    @Query("SELECT u.id AS id, u.role AS role FROM User u WHERE u.id IN :ids")
+    List<UserRoleRow> findRolesByIds(@Param("ids") Collection<Long> ids);
+
     interface UserAvatarRow {
         Long getId();
         String getAvatarSeed();
+    }
+
+    interface UserRoleRow {
+        Long getId();
+        Role getRole();
     }
 }
