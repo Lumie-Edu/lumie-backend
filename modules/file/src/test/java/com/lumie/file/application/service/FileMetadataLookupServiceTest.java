@@ -6,7 +6,7 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.api.ContentService;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileUploadStatus;
 import org.junit.jupiter.api.AfterEach;
@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class FileMetadataLookupServiceTest {
 
-    @Mock private FileMetadataRepository repository;
+    @Mock private FileMetadataPersistencePort repository;
     @Mock private ContentService contentService;
     @InjectMocks private FileMetadataLookupService lookup;
 

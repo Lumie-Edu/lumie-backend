@@ -5,7 +5,7 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.application.dto.request.CreateUploadSessionRequest;
 import com.lumie.file.application.event.UploadSessionCleanupDueEvent;
 import com.lumie.file.domain.entity.FileUploadSession;
-import com.lumie.file.domain.repository.FileUploadSessionRepository;
+import com.lumie.file.application.port.out.FileUploadSessionPersistencePort;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class UploadSessionReservationService {
-    private final FileUploadSessionRepository sessionRepository;
+    private final FileUploadSessionPersistencePort sessionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional

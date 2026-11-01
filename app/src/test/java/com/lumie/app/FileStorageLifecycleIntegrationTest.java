@@ -7,12 +7,12 @@ import com.lumie.file.adapter.out.persistence.FileStorageOperationJpaRepository;
 import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.application.port.out.StoragePort;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
 import com.lumie.file.adapter.in.internal.FileServiceAdapter;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
-import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileStorageOperationStatus;
 import com.lumie.file.domain.vo.FileUploadStatus;
@@ -72,7 +72,7 @@ class FileStorageLifecycleIntegrationTest extends FullContextTestBase {
     @Autowired private FileServiceAdapter fileServiceAdapter;
     @Autowired private FileCommandService fileCommandService;
     @Autowired private FileQueryService fileQueryService;
-    @Autowired private FileMetadataRepository fileMetadataRepository;
+    @Autowired private FileMetadataPersistencePort fileMetadataRepository;
     @Autowired private FileStorageOperationJpaRepository operationRepository;
     @Autowired private StorageOperationProcessor processor;
 

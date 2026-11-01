@@ -17,9 +17,9 @@ import com.lumie.file.application.service.TextbookFolderCommandService;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
 import com.lumie.file.domain.entity.TextbookFolder;
-import com.lumie.file.domain.repository.FileDownloadRepository;
-import com.lumie.file.domain.repository.FileMetadataRepository;
-import com.lumie.file.domain.repository.TextbookFolderRepository;
+import com.lumie.file.application.port.out.FileDownloadPersistencePort;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
+import com.lumie.file.application.port.out.TextbookFolderPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileUploadStatus;
 import com.lumie.student.api.StudentService;
@@ -44,8 +44,8 @@ public class AttachmentLifecycleWorld {
 
     public final UUID fileId = UUID.fromString("c264c122-a715-47a7-8e80-2d7ddac8476a");
     public final List<FileMetadata> files = new ArrayList<>();
-    public final FileMetadataRepository fileMetadataRepository = mock(FileMetadataRepository.class);
-    public final TextbookFolderRepository textbookFolderRepository = mock(TextbookFolderRepository.class);
+    public final FileMetadataPersistencePort fileMetadataRepository = mock(FileMetadataPersistencePort.class);
+    public final TextbookFolderPersistencePort textbookFolderRepository = mock(TextbookFolderPersistencePort.class);
     public final StoragePort storagePort = mock(StoragePort.class);
     public final FileStorageOperationPersistencePort operationPersistencePort =
             mock(FileStorageOperationPersistencePort.class);
@@ -57,7 +57,7 @@ public class AttachmentLifecycleWorld {
             new FileServiceAdapter(fileMetadataRepository, storagePort, operationPersistencePort);
     public final FileCommandService fileCommandService = new FileCommandService(
             fileMetadataRepository, textbookFolderRepository,
-            mock(com.lumie.file.domain.repository.FileDownloadRepository.class), mock(com.lumie.file.api.FileService.class),
+            mock(com.lumie.file.application.port.out.FileDownloadPersistencePort.class), mock(com.lumie.file.api.FileService.class),
             operationPersistencePort);
     public final FileQueryService fileQueryService;
     public final StorageOperationProcessor storageOperationProcessor;
@@ -310,7 +310,7 @@ public class AttachmentLifecycleWorld {
                 fileMetadataRepository, mock(ContentService.class));
         fileQueryService = new FileQueryService(
                 fileMetadataRepository,
-                mock(FileDownloadRepository.class),
+                mock(FileDownloadPersistencePort.class),
                 mock(StudentService.class),
                 lookup,
                 storagePort);

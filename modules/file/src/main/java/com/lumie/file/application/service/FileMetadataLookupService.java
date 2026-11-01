@@ -7,7 +7,7 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.api.ContentService;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,7 +19,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileMetadataLookupService {
 
-    private final FileMetadataRepository fileMetadataRepository;
+    private final FileMetadataPersistencePort fileMetadataRepository;
     private final ContentService contentService;
 
     @Transactional(readOnly = true)

@@ -11,7 +11,7 @@ import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.api.FileService;
 import lombok.extern.slf4j.Slf4j;
@@ -41,14 +41,14 @@ public class FileServiceAdapter implements FileService {
     private static final int MAX_ATTACHMENTS = 5;
     private static final Duration TEMPORARY_SOURCE_SAFETY_WINDOW = Duration.ofHours(22);
 
-    private final FileMetadataRepository fileMetadataRepository;
+    private final FileMetadataPersistencePort fileMetadataRepository;
     private final StoragePort storagePort;
     private final FileStorageOperationPersistencePort operationPersistencePort;
     private final UploadSessionService uploadSessionService;
     private final UploadSessionStateService uploadSessionStateService;
 
     /** Compatibility constructor for isolated legacy adapter fixtures. */
-    public FileServiceAdapter(FileMetadataRepository fileMetadataRepository, StoragePort storagePort,
+    public FileServiceAdapter(FileMetadataPersistencePort fileMetadataRepository, StoragePort storagePort,
                               FileStorageOperationPersistencePort operationPersistencePort) {
         this(fileMetadataRepository, storagePort, operationPersistencePort, null, null);
     }
