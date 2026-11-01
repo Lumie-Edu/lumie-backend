@@ -14,7 +14,7 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.quota.MetricType;
 import com.lumie.common.exception.QuotaExceededException;
 import com.lumie.student.domain.exception.StudentErrorCode;
-import com.lumie.student.domain.repository.StudentRepository;
+import com.lumie.student.application.port.out.StudentPersistencePort;
 import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.common.validation.PersonNamePolicy;
 import com.lumie.common.auth.Role;
@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -47,7 +48,7 @@ public class StudentCommandService {
 
     private static final int FINGERPRINT_BUFFER_SIZE = 8_192;
 
-    private final StudentRepository studentRepository;
+    private final StudentPersistencePort studentRepository;
     private final AuthService authService;
     private final BillingService billingService;
     private final ClassService classService;
@@ -164,6 +165,7 @@ public class StudentCommandService {
         log.info("Student reactivated: {} in tenant: {}", id, tenantSlug);
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void deleteStudent(Long id) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
 
@@ -183,6 +185,8 @@ public class StudentCommandService {
         AuthService.DeleteUserResult deleteResult = authService.deleteUser(userId);
         if (!deleteResult.success()) {
             log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
+            throw new BusinessException(StudentErrorCode.AUTH_OP_FAILED,
+                    "Failed to delete linked user: " + deleteResult.message());
         }
 
         log.info("Student permanently deleted: {} in tenant: {}", id, tenantSlug);
@@ -280,6 +284,7 @@ public class StudentCommandService {
         return BatchOperationResult.partial(ids.size(), successCount, failures);
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public BatchOperationResult batchDelete(List<Long> ids) {
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         List<BatchOperationResult.FailedItem> failures = new ArrayList<>();
@@ -308,10 +313,12 @@ public class StudentCommandService {
             AuthService.DeleteUserResult deleteResult = authService.deleteUser(student.getUserId());
             if (!deleteResult.success()) {
                 log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
+                failures.add(new BatchOperationResult.FailedItem(student.getId(),
+                        "Failed to delete linked user: " + deleteResult.message()));
             }
         }
 
-        int successCount = toDelete.size();
+        int successCount = toDelete.size() - failures.size();
         log.info("Batch delete completed: {} success, {} failures in tenant: {}", successCount, failures.size(), tenantSlug);
         return BatchOperationResult.partial(ids.size(), successCount, failures);
     }

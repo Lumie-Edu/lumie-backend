@@ -3,7 +3,7 @@ package com.lumie.student.adapter.in.internal;
 import com.lumie.student.api.StudentService;
 import com.lumie.common.util.PhoneNumberUtils;
 import com.lumie.student.domain.entity.Student;
-import com.lumie.student.domain.repository.StudentRepository;
+import com.lumie.student.application.port.out.StudentPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -28,7 +28,7 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class StudentServiceAdapter implements StudentService {
 
-    private final StudentRepository studentRepository;
+    private final StudentPersistencePort studentRepository;
 
     @Override
     public Optional<StudentData> getStudent(String tenantSlug, Long studentId) {
