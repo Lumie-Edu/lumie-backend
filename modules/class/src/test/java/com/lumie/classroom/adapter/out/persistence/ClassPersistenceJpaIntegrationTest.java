@@ -120,7 +120,6 @@ class ClassPersistenceJpaIntegrationTest {
     }
 
     @Test
-    @DisplayName("ATDD-US1-002:example-001 tenant boundary fails closed")
     void foreignAndMissingTenantCannotReadClassOrEnrollment() {
         ClassEntity ownClass = classes.save(ClassEntity.create("Tenant one", 7L, null, null));
         ClassEnrollment ownEnrollment = enrollments.save(ClassEnrollment.create(ownClass, 99L));
