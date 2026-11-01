@@ -1,11 +1,11 @@
-package com.lumie.content.domain.repository;
+package com.lumie.content.adapter.out.persistence;
 
 import com.lumie.content.domain.entity.QnaComment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface QnaCommentRepository extends JpaRepository<QnaComment, Long> {
+public interface QnaCommentJpaRepository extends JpaRepository<QnaComment, Long> {
 
     List<QnaComment> findByQnaBoardId(Long qnaBoardId);
 }

@@ -13,7 +13,7 @@ import com.lumie.staff.api.StaffService;
 import com.lumie.student.api.StudentService;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.repository.QnaBoardRepository;
+import com.lumie.content.application.port.out.QnaBoardPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,7 +35,7 @@ public class QnaQueryService {
     private static final String DELETED_STUDENT_NAME = "삭제된 학생";
     private static final String DELETED_STAFF_NAME = "삭제된 선생님";
 
-    private final QnaBoardRepository qnaBoardRepository;
+    private final QnaBoardPersistencePort qnaBoardRepository;
     private final StudentService studentService;
     private final StaffService staffService;
 

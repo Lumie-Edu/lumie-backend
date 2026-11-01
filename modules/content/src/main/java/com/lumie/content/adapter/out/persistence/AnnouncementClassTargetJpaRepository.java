@@ -1,4 +1,4 @@
-package com.lumie.content.domain.repository;
+package com.lumie.content.adapter.out.persistence;
 
 import com.lumie.content.domain.entity.AnnouncementClassTarget;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Collection;
 import java.util.List;
 
-public interface AnnouncementClassTargetRepository extends JpaRepository<AnnouncementClassTarget, Long> {
+public interface AnnouncementClassTargetJpaRepository extends JpaRepository<AnnouncementClassTarget, Long> {
 
     List<AnnouncementClassTarget> findByAnnouncementId(Long announcementId);
 

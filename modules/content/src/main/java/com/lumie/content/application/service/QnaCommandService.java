@@ -9,8 +9,8 @@ import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.repository.QnaBoardRepository;
-import com.lumie.content.domain.repository.QnaCommentRepository;
+import com.lumie.content.application.port.out.QnaBoardPersistencePort;
+import com.lumie.content.application.port.out.QnaCommentPersistencePort;
 import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.auth.Role;
 import com.lumie.common.exception.CommonErrorCode;
@@ -30,8 +30,8 @@ import java.util.List;
 @Slf4j
 public class QnaCommandService {
 
-    private final QnaBoardRepository qnaBoardRepository;
-    private final QnaCommentRepository qnaCommentRepository;
+    private final QnaBoardPersistencePort qnaBoardRepository;
+    private final QnaCommentPersistencePort qnaCommentRepository;
     private final FileService fileService;
 
     @Transactional

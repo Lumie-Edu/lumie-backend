@@ -13,8 +13,8 @@ import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import com.lumie.staff.api.StaffService;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
-import com.lumie.content.domain.repository.AnnouncementRepository;
+import com.lumie.content.application.port.out.AnnouncementClassTargetPersistencePort;
+import com.lumie.content.application.port.out.AnnouncementPersistencePort;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,9 +36,9 @@ public class AnnouncementQueryService {
     private static final String DELETED_STUDENT_NAME = "삭제된 학생";
     private static final String DELETED_STAFF_NAME = "삭제된 직원";
 
-    private final AnnouncementRepository announcementRepository;
-    private final AnnouncementClassTargetRepository classTargetRepository;
-    private final com.lumie.content.domain.repository.AnnouncementReadRepository announcementReadRepository;
+    private final AnnouncementPersistencePort announcementRepository;
+    private final AnnouncementClassTargetPersistencePort classTargetRepository;
+    private final com.lumie.content.application.port.out.AnnouncementReadPersistencePort announcementReadRepository;
     private final StaffService staffService;
     private final StudentService studentService;
     private final ClassService classService;

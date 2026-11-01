@@ -1,0 +1,3 @@
+package com.lumie.content.adapter.out.persistence;
+import com.lumie.content.application.port.out.ReviewPersistencePort; import com.lumie.content.domain.entity.Review; import lombok.RequiredArgsConstructor; import org.springframework.data.domain.*; import org.springframework.stereotype.Repository;
+@Repository @RequiredArgsConstructor public class ReviewPersistenceAdapter implements ReviewPersistencePort { private final ReviewJpaRepository repository; @Override public Review save(Review r){return repository.save(r);} @Override public boolean existsById(Long id){return repository.existsById(id);} @Override public void deleteById(Long id){repository.deleteById(id);} @Override public Page<Review> findAll(Pageable p){return repository.findAll(p);} }

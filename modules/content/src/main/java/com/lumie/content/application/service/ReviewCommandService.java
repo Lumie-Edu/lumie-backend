@@ -8,7 +8,7 @@ import com.lumie.content.domain.entity.Review;
 import com.lumie.student.api.StudentService;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.repository.ReviewRepository;
+import com.lumie.content.application.port.out.ReviewPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ import java.util.List;
 @Slf4j
 public class ReviewCommandService {
 
-    private final ReviewRepository reviewRepository;
+    private final ReviewPersistencePort reviewRepository;
     private final StudentService studentService;
 
     @Transactional

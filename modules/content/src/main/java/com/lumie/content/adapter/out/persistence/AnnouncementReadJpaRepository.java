@@ -1,4 +1,4 @@
-package com.lumie.content.domain.repository;
+package com.lumie.content.adapter.out.persistence;
 
 import com.lumie.content.domain.entity.AnnouncementRead;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface AnnouncementReadRepository extends JpaRepository<AnnouncementRead, Long> {
+public interface AnnouncementReadJpaRepository extends JpaRepository<AnnouncementRead, Long> {
 
     @Modifying
     @Query(value = """
