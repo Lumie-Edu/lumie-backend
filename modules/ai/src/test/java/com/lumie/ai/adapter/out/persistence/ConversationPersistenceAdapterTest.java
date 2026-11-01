@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.auditing.DateTimeProvider;
@@ -19,6 +18,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestConstructor;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("integration")
 @Testcontainers
+@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 @DataJpaTest(
         excludeAutoConfiguration = FlywayAutoConfiguration.class,
         properties = {
@@ -56,7 +57,6 @@ class ConversationPersistenceAdapterTest {
     private final JdbcTemplate jdbcTemplate;
     private final EntityManager entityManager;
 
-    @Autowired
     ConversationPersistenceAdapterTest(ConversationJpaRepository repository,
                                        ConversationPersistenceAdapter adapter,
                                        JdbcTemplate jdbcTemplate,

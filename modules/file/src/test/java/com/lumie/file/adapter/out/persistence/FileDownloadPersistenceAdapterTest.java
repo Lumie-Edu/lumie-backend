@@ -1,6 +1,5 @@
 package com.lumie.file.adapter.out.persistence;
 
-import com.lumie.file.domain.entity.FileDownload;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

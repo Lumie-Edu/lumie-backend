@@ -1,9 +1,7 @@
 package com.lumie.assignment.adapter.out.persistence;
 
 import com.lumie.assignment.domain.entity.Assignment;
-import com.lumie.assignment.domain.entity.AssignmentClassTarget;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
-import com.lumie.assignment.domain.vo.SubmissionMode;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;

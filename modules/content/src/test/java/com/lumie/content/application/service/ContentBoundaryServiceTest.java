@@ -4,7 +4,6 @@ import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.application.port.out.QnaBoardPersistencePort;
-import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.staff.api.StaffService;
 import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.AfterEach;

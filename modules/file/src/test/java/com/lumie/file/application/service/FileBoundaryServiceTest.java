@@ -4,7 +4,6 @@ import java.lang.reflect.Method;
 import com.lumie.file.adapter.out.persistence.FileUploadSessionJpaRepository;
 import jakarta.persistence.LockModeType;
 import org.junit.jupiter.api.Test;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.Lock;
 
