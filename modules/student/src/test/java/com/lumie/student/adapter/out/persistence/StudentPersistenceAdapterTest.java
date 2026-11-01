@@ -5,6 +5,7 @@ import com.lumie.student.application.port.out.StudentPersistencePort;
 import com.lumie.student.domain.entity.Student;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +69,7 @@ class StudentPersistenceAdapterTest {
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-013 student listing")
     void preservesCrudDerivedSearchAndStatisticsOperations() {
         Student alpha = students.save(Student.create(10L, "alpha-login", "Alpha", "01011111111", "Alpha High", 2008, null, null));
         Student beta = Student.create(11L, "beta-login", "Beta", "01022222222", "Beta High", 2009, null, null);

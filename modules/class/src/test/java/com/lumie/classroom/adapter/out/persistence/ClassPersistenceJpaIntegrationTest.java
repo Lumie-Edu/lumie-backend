@@ -9,6 +9,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -99,6 +100,7 @@ class ClassPersistenceJpaIntegrationTest {
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-003 class enrollment lookup")
     void enrolledClassQueryPreservesStatusAndLocking() {
         ClassEntity enrolled = classes.save(ClassEntity.create("Enrolled", 7L, null, null));
         ClassEntity dropped = classes.save(ClassEntity.create("Dropped", 7L, null, null));
@@ -118,6 +120,7 @@ class ClassPersistenceJpaIntegrationTest {
     }
 
     @Test
+    @DisplayName("ATDD-US1-002:example-001 tenant boundary fails closed")
     void foreignAndMissingTenantCannotReadClassOrEnrollment() {
         ClassEntity ownClass = classes.save(ClassEntity.create("Tenant one", 7L, null, null));
         ClassEnrollment ownEnrollment = enrollments.save(ClassEnrollment.create(ownClass, 99L));

@@ -9,6 +9,7 @@ import com.lumie.lecture.domain.vo.LectureSearchCriteria;
 import com.lumie.lecture.domain.vo.LectureVisibility;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -24,6 +25,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -71,17 +73,21 @@ class LecturePersistenceAdapterTest {
     private final LecturePersistencePort lectures;
     private final LectureClassTargetPersistencePort targets;
     private final EntityManager entityManager;
+    private final JdbcTemplate jdbc;
 
     LecturePersistenceAdapterTest(
             LecturePersistencePort lectures,
             LectureClassTargetPersistencePort targets,
-            EntityManager entityManager) {
+            EntityManager entityManager,
+            JdbcTemplate jdbc) {
         this.lectures = lectures;
         this.targets = targets;
         this.entityManager = entityManager;
+        this.jdbc = jdbc;
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-010 lecture class-visible listing")
     void visibleByTargetClassFiltersVisibilityAndPreservesPageMetadata() {
         Lecture visible = persistLecture("Visible", 7L, LectureVisibility.STUDENT,
                 LocalDate.of(2025, 1, 10), Instant.parse("2025-01-01T00:00:00Z"));
@@ -170,6 +176,32 @@ class LecturePersistenceAdapterTest {
             lectures.save(invalid);
             entityManager.flush();
         }).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void foreignAndMissingTenantCannotReadLectureThroughAdapter() {
+        Lecture saved = lectures.save(Lecture.create(7L, "Tenant one", null, null,
+                LectureVisibility.STUDENT, null));
+        entityManager.flush();
+        entityManager.clear();
+
+        jdbc.execute("ALTER TABLE lectures ENABLE ROW LEVEL SECURITY");
+        jdbc.execute("ALTER TABLE lectures FORCE ROW LEVEL SECURITY");
+        jdbc.execute("""
+                CREATE POLICY tenant_isolation ON lectures
+                USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::bigint)
+                WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::bigint)
+                """);
+        jdbc.execute("CREATE ROLE lecture_rls_test NOSUPERUSER NOBYPASSRLS");
+        jdbc.execute("GRANT USAGE ON SCHEMA public TO lecture_rls_test");
+        jdbc.execute("GRANT SELECT ON lectures TO lecture_rls_test");
+        jdbc.execute("SET LOCAL ROLE lecture_rls_test");
+        assertThat(jdbc.queryForObject("SELECT current_user", String.class)).isEqualTo("lecture_rls_test");
+
+        jdbc.execute("SET LOCAL app.tenant_id = '2'");
+        assertThat(lectures.findById(saved.getId())).isEmpty();
+        jdbc.execute("SET LOCAL app.tenant_id = ''");
+        assertThat(lectures.findById(saved.getId())).isEmpty();
     }
 
     private Lecture persistLecture(String title, Long teacherId, LectureVisibility visibility,

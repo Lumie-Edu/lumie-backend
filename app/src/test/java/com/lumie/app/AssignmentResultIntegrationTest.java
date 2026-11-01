@@ -30,6 +30,7 @@ import java.util.Map;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -154,6 +155,7 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-006 exam result lookup")
     void gradeSettingsUseTheSameCohortInAssignmentAndDashboard() {
         withinTenant(() -> {
             var ids = seed();

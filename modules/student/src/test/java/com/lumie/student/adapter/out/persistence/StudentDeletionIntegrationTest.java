@@ -12,6 +12,7 @@ import com.lumie.student.domain.exception.StudentErrorCode;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringBootConfiguration;
@@ -108,6 +109,7 @@ class StudentDeletionIntegrationTest {
     }
 
     @Test
+    @DisplayName("ATDD-US1-004:example-001 service boundary drift blocks integration")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void failedLinkedUserDeletionIsNotReportedAsSuccessOrRemovedFromDatabase() {
         Student inactive = Student.create(10L, "student_10", "Student",
@@ -125,6 +127,7 @@ class StudentDeletionIntegrationTest {
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-014 student deletion outcome")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void batchDeletionCountsOnlySuccessfulLinkedUserOutcomes() {
         Student inactive = Student.create(11L, "student_11", "Student Two",

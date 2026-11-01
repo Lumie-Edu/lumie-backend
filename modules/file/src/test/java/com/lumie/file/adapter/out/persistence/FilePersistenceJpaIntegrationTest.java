@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.sql.Timestamp;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +78,7 @@ class FilePersistenceJpaIntegrationTest {
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-009 file download lookup")
     void downloadUpsertIsAtomicAndDownloaderRowsRemainNewestFirst() {
         tenant(72L);
         FileMetadata file = metadata("download.pdf", null);
@@ -91,6 +93,7 @@ class FilePersistenceJpaIntegrationTest {
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-008 file upload-session lookup")
     void uploadSessionForUpdateAndFolderNullAwareQueriesRemainUsable() {
         tenant(73L);
         TextbookFolder z = folderAdapter.save(TextbookFolder.create("Zeta", null, 0));

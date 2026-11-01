@@ -5,6 +5,7 @@ import com.lumie.content.application.port.out.*;
 import com.lumie.content.domain.entity.*;
 import com.lumie.content.domain.vo.AnnouncementAudienceScope;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -92,6 +93,7 @@ class ContentPersistenceAdapterIntegrationTest {
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-004 content announcement lookup")
     void announcementQueriesPreserveAudienceFiltersOrderingAndTenantIsolation() {
         Announcement global = persistAnnouncement("global", true, AnnouncementAudienceScope.ALL);
         Announcement targeted = persistAnnouncement("targeted", false, AnnouncementAudienceScope.TARGETED);
@@ -162,6 +164,7 @@ class ContentPersistenceAdapterIntegrationTest {
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-005 content Q&A lookup")
     void qnaBoardQueriesPreserveSearchFetchAndAbsenceBehavior() {
         QnaBoard alpha = qnaBoards.save(QnaBoard.create(101L, "Alpha question", "Need help"));
         QnaBoard beta = qnaBoards.save(QnaBoard.create(102L, "Beta", "alpha details"));

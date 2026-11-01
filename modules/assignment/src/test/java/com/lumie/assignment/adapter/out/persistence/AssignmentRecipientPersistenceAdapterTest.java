@@ -9,6 +9,7 @@ import com.lumie.assignment.domain.entity.AssignmentRecipient;
 import com.lumie.common.tenant.TenantContextHolder;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -57,7 +58,9 @@ class AssignmentRecipientPersistenceAdapterTest {
 
     @AfterEach void clearTenant() { TenantContextHolder.clear(); }
 
-    @Test void allRecipientQueriesAndBulkSavePreserveResultsAndEmptyCases() {
+    @Test
+    @DisplayName("ATDD-US1-001:example-002 assignment recipient listing")
+    void allRecipientQueriesAndBulkSavePreserveResultsAndEmptyCases() {
         TenantContextHolder.setTenantId(11L);
         AssignmentPersistenceTestApplication.enableTenantRls(jdbcTemplate, "assignment_recipients");
         var one = repository.save(AssignmentRecipient.create(101L, 7L));

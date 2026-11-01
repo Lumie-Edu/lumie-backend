@@ -5,6 +5,7 @@ import com.lumie.common.tenant.TenantContextHolder;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
@@ -78,6 +79,7 @@ class ConversationPersistenceAdapterTest {
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-001 conversation lookup")
     void findsOwnedConversationAndPagesOnlyActiveConversations() {
         TenantContextHolder.setTenant("tenant-a");
         TenantContextHolder.setTenantId(1L);

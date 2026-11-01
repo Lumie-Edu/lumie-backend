@@ -11,6 +11,7 @@ import com.lumie.staff.domain.vo.AccessLevel;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -116,12 +117,10 @@ class StaffPersistenceJpaIntegrationTest {
     }
 
     @Test
-    void profileAndPermissionQueriesReadCanonicalIdentity() {
+    @DisplayName("ATDD-US1-001:example-012 staff profile lookup")
+    void profileLookupReadsCanonicalIdentity() {
         Staff saved = staff.save(Staff.create(901L, "staff_901", "Teacher",
                 "01087654321", "teacher@example.com", null));
-        Permission permission = Permission.create("REPORT_VIEW", "Report view", "reports", null);
-        entityManager.persist(permission);
-        staffPermissions.saveAll(List.of(StaffPermission.of(saved.getId(), "REPORT_VIEW", AccessLevel.READ)));
         entityManager.flush();
         entityManager.clear();
 
@@ -130,6 +129,20 @@ class StaffPersistenceJpaIntegrationTest {
         assertThat(loaded.getStaffPhone()).isEqualTo("01087654321");
         assertThat(staff.search(true, "teacher@example.com", PageRequest.of(0, 10)))
                 .hasSize(1);
+        assertThat(saved.getId()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("ATDD-US1-001:example-011 staff permission lookup")
+    void permissionLookupPreservesCodeAndAccessLevel() {
+        Staff saved = staff.save(Staff.create(901L, "staff_901", "Teacher",
+                "01087654321", "teacher@example.com", null));
+        Permission permission = Permission.create("REPORT_VIEW", "Report view", "reports", null);
+        entityManager.persist(permission);
+        staffPermissions.saveAll(List.of(StaffPermission.of(saved.getId(), "REPORT_VIEW", AccessLevel.READ)));
+        entityManager.flush();
+        entityManager.clear();
+
         assertThat(permissions.findByCategory("reports"))
                 .extracting(Permission::getCode).containsExactly("REPORT_VIEW");
         assertThat(staffPermissions.findByStaffId(saved.getId()))

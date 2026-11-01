@@ -21,6 +21,7 @@ import jakarta.persistence.EntityManager;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -116,6 +117,7 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-007 exam report callback")
     void itemTransitionsAreTenantScopedAndDuplicateOutcomesDoNotRecount() {
         JobData data = createJob(List.of(991_001L, 991_002L, 991_003L));
         byte[] pdf = "%PDF-1.7\nreport".getBytes(StandardCharsets.US_ASCII);
