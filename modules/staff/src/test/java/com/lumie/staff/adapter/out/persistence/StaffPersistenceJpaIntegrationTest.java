@@ -24,6 +24,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.auditing.DateTimeProvider;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -92,8 +94,11 @@ class StaffPersistenceJpaIntegrationTest {
                     email varchar(255),
                     role varchar(20))
                 """);
-        jdbc.update("INSERT INTO users (id, name, phone, email, role) VALUES (901, ?, ?, ?, ?)",
-                "Teacher", "01087654321", "teacher@example.com", "INSTRUCTOR");
+        jdbc.update("""
+                INSERT INTO users (id, name, phone, email, role)
+                VALUES (901, 'Teacher', '01087654321', 'teacher@example.com', 'INSTRUCTOR'),
+                       (902, 'Second', '01087654322', 'second@example.com', 'INSTRUCTOR')
+                """);
         for (String table : new String[]{"staff", "permissions", "staff_permissions"}) {
             jdbc.execute("ALTER TABLE " + table + " ENABLE ROW LEVEL SECURITY");
             jdbc.execute("ALTER TABLE " + table + " FORCE ROW LEVEL SECURITY");
@@ -147,6 +152,24 @@ class StaffPersistenceJpaIntegrationTest {
                 .extracting(Permission::getCode).containsExactly("REPORT_VIEW");
         assertThat(staffPermissions.findByStaffId(saved.getId()))
                 .extracting(StaffPermission::getAccessLevel).containsExactly(AccessLevel.READ);
+    }
+
+    @Test
+    void searchPreservesActiveFilterAndCanonicalSortMappings() {
+        staff.save(Staff.create(901L, "staff_901", "Teacher",
+                "01087654321", "teacher@example.com", null));
+        Staff inactive = Staff.create(902L, "staff_902", "Second",
+                "01087654322", "second@example.com", null);
+        inactive.deactivate();
+        staff.save(inactive);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(staff.search(null, null, Pageable.unpaged()).getContent()).hasSize(2);
+        assertThat(staff.search(false, " ", PageRequest.of(0, 10, Sort.by("name"))).getContent())
+                .extracting(Staff::getStaffName).containsExactly("Second");
+        assertThat(staff.search(true, "TEACHER", PageRequest.of(0, 10, Sort.by("createdAt"))).getContent())
+                .extracting(Staff::getStaffName).containsExactly("Teacher");
     }
 
     @Test

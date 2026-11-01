@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -94,6 +95,14 @@ class StudentPersistenceAdapterTest {
                 .extracting(Student::getUserId).containsExactly(10L);
         assertThat(students.search(null, null, List.of(alpha.getId()), List.of(beta.getId()), PageRequest.of(0, 10)).getContent())
                 .extracting(Student::getUserId).containsExactly(10L);
+        assertThat(students.search(null, null, null, null, Pageable.unpaged()).getContent())
+                .hasSize(2);
+        assertThat(students.search(null, " ", List.of(), List.of(), PageRequest.of(0, 10)).getContent())
+                .hasSize(2);
+        assertThat(students.search(null, null, null, null, PageRequest.of(0, 10, Sort.by("phone"))).getContent())
+                .extracting(Student::getUserId).containsExactly(10L, 11L);
+        assertThat(students.search(null, null, null, null, PageRequest.of(0, 10, Sort.by("createdAt"))).getContent())
+                .hasSize(2);
 
         Instant now = Instant.now().plusSeconds(1);
         assertThat(students.countByCreatedAtBetween(Instant.EPOCH, now)).isEqualTo(2);

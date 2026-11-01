@@ -322,6 +322,28 @@ class ResultCommandServiceTest {
     }
 
     @Test
+    void deleteResultWithoutImageDoesNotCallStorage() {
+        when(tx.deleteResult(1L, 2L)).thenReturn(null);
+
+        resultCommandService.deleteResult(1L, 2L);
+
+        verify(tx).deleteResult(1L, 2L);
+        verifyNoInteractions(storagePort);
+    }
+
+    @Test
+    void storageDeletionFailureDoesNotUndoCommittedResultDeletion() {
+        when(tx.deleteResult(1L, 2L)).thenReturn("tenant/exam/image.jpg");
+        org.mockito.Mockito.doThrow(new IllegalStateException("storage unavailable"))
+                .when(storagePort).deleteObjects(List.of("tenant/exam/image.jpg"));
+
+        resultCommandService.deleteResult(1L, 2L);
+
+        verify(tx).deleteResult(1L, 2L);
+        verify(storagePort).deleteObjects(List.of("tenant/exam/image.jpg"));
+    }
+
+    @Test
     void confirmBatchOmrGrading_rejectsWrongTenantAndNonUuidObjectKeys() {
         given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
 

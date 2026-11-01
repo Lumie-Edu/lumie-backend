@@ -167,6 +167,22 @@ class ResultControllerTest {
     }
 
     @Test
+    void instructorImageRequestUsesValidatedSubmissionImageBytes() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        byte[] image = new byte[]{1, 2, 3};
+        org.mockito.BDDMockito.given(omrSubmissionService.getImage(55L, 77L))
+                .willReturn(image);
+
+        var response = controller.getOmrSubmissionImage(55L, 77L);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(org.springframework.http.MediaType.IMAGE_PNG);
+        assertThat(response.getHeaders().getContentLength()).isEqualTo(image.length);
+        assertThat(response.getBody()).containsExactly(image);
+        then(omrSubmissionService).should().getImage(55L, 77L);
+    }
+
+    @Test
     void instructorCanStartEachOmrIngestRoute() throws Exception {
         UserContextHolder.setUserRole(Role.INSTRUCTOR);
         org.mockito.BDDMockito.given(resultCommandService.confirmBatchOmrGrading(
