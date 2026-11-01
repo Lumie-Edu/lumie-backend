@@ -3,13 +3,13 @@ package com.lumie.app;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.application.dto.request.ReportCallbackRequest;
 import com.lumie.exam.application.port.out.OmrStoragePort;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationItemPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationJobPersistencePort;
 import com.lumie.exam.application.service.ReportJobService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ReportGenerationItem;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ReportGenerationItemRepository;
-import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
@@ -17,6 +17,7 @@ import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.exam.domain.vo.ReportGenerationItemStatus;
 import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.student.api.StudentService;
+import jakarta.persistence.EntityManager;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,11 +51,12 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
     private static final String TENANT_SLUG = "report-callback-it";
 
     private final TransactionTemplate transactions;
-    private final ExamRepository examRepository;
-    private final ReportGenerationJobRepository jobRepository;
-    private final ReportGenerationItemRepository itemRepository;
+    private final ExamPersistencePort examRepository;
+    private final ReportGenerationJobPersistencePort jobRepository;
+    private final ReportGenerationItemPersistencePort itemRepository;
     private final ReportJobService reportJobService;
     private final JdbcTemplate jdbc;
+    private final EntityManager entityManager;
     @MockitoBean
     private OmrStoragePort storagePort;
     @MockitoBean
@@ -62,17 +64,19 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
 
     ReportCallbackStateIntegrationTest(
             @Autowired TransactionTemplate transactions,
-            @Autowired ExamRepository examRepository,
-            @Autowired ReportGenerationJobRepository jobRepository,
-            @Autowired ReportGenerationItemRepository itemRepository,
+            @Autowired ExamPersistencePort examRepository,
+            @Autowired ReportGenerationJobPersistencePort jobRepository,
+            @Autowired ReportGenerationItemPersistencePort itemRepository,
             @Autowired ReportJobService reportJobService,
-            @Autowired JdbcTemplate jdbc) {
+            @Autowired JdbcTemplate jdbc,
+            @Autowired EntityManager entityManager) {
         this.transactions = transactions;
         this.examRepository = examRepository;
         this.jobRepository = jobRepository;
         this.itemRepository = itemRepository;
         this.reportJobService = reportJobService;
         this.jdbc = jdbc;
+        this.entityManager = entityManager;
     }
 
     @BeforeAll
@@ -276,16 +280,19 @@ class ReportCallbackStateIntegrationTest extends FullContextTestBase {
 
     private JobData createJob(List<Long> studentIds) {
         return withinTenant(() -> transactions.execute(status -> {
-            Exam exam = examRepository.saveAndFlush(Exam.create(
+            Exam exam = examRepository.save(Exam.create(
                     "Report callback integration test", ExamCategory.GRADED, GradingType.ABSOLUTE,
                     GradeScale.NINE_GRADE, 1, Map.of("1", "1"), Map.of("1", 100), Map.of("1", "단답"), null));
-            ReportGenerationJob job = jobRepository.saveAndFlush(
+            entityManager.flush();
+            ReportGenerationJob job = jobRepository.save(
                     ReportGenerationJob.create(exam, TENANT_SLUG, studentIds));
+            entityManager.flush();
             List<ReportGenerationItem> items = java.util.stream.IntStream.range(0, studentIds.size())
                     .mapToObj(index -> ReportGenerationItem.pending(
                             job.getId(), exam.getId(), index, studentIds.get(index)))
                     .toList();
-            itemRepository.saveAllAndFlush(items);
+            itemRepository.saveAll(items);
+            entityManager.flush();
             return new JobData(job.getId(), exam.getId(), studentIds.size());
         }));
     }

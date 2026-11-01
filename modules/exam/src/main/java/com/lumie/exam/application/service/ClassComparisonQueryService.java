@@ -7,8 +7,8 @@ import com.lumie.classroom.api.ClassService;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,8 +39,8 @@ public class ClassComparisonQueryService {
     private static final Long UNASSIGNED_CLASS_ID = null;
     private static final String UNASSIGNED_CLASS_NAME = "미배정";
 
-    private final ExamRepository examRepository;
-    private final ExamResultRepository resultRepository;
+    private final ExamPersistencePort examRepository;
+    private final ExamResultPersistencePort resultRepository;
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
     private final ClassService classService;

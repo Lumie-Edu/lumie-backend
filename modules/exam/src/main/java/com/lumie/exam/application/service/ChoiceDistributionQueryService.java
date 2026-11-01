@@ -6,8 +6,8 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,8 +31,8 @@ public class ChoiceDistributionQueryService {
 
     private static final String NO_ANSWER = "NO_ANSWER";
 
-    private final ExamRepository examRepository;
-    private final ExamResultRepository resultRepository;
+    private final ExamPersistencePort examRepository;
+    private final ExamResultPersistencePort resultRepository;
     private final StatisticsCalculator statisticsCalculator;
     private final ExamResultCohortResolver cohortResolver;
 

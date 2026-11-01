@@ -1,6 +1,7 @@
-package com.lumie.exam.domain.repository;
+package com.lumie.exam.adapter.out.persistence;
 
 import com.lumie.exam.domain.entity.OmrGradingJob;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
 import com.lumie.exam.domain.vo.JobStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -11,7 +12,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
-public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Long> {
+public interface OmrGradingJobJpaRepository extends JpaRepository<OmrGradingJob, Long> {
 
     List<OmrGradingJob> findByExamIdOrderByCreatedAtDesc(Long examId);
 
@@ -52,7 +53,7 @@ public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Lo
          ORDER BY recent_exams.updated_at DESC
          LIMIT 4
         """, nativeQuery = true)
-    List<RecentCompletedExamRow> findRecentCompletedExams();
+    List<OmrGradingJobPersistencePort.RecentCompletedExamRow> findRecentCompletedExams();
 
     boolean existsByIdAndStatusIn(Long id, Collection<JobStatus> statuses);
 
@@ -88,17 +89,6 @@ public interface OmrGradingJobRepository extends JpaRepository<OmrGradingJob, Lo
         return markProcessingIfPending(jobId) > 0;
     }
 
-    interface RecentCompletedExamRow {
-        Long getExamId();
-
-        String getExamName();
-
-        Instant getCompletedAt();
-
-        long getParticipantCount();
-
-        Double getAverageScore();
-    }
 
     /**
      * Idempotently transition to a terminal state once every image's callback has

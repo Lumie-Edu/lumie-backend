@@ -18,8 +18,8 @@ import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
-import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,8 +40,8 @@ public class ResultQueryService {
 
     private static final String DELETED_STUDENT_NAME = "삭제된 학생";
 
-    private final ExamResultRepository resultRepository;
-    private final OmrGradingJobRepository jobRepository;
+    private final ExamResultPersistencePort resultRepository;
+    private final OmrGradingJobPersistencePort jobRepository;
     private final OmrStoragePort storagePort;
     private final StudentService studentService;
     private final GradeCalculator gradeCalculator;
@@ -276,7 +276,7 @@ public class ResultQueryService {
         }
         return resultRepository.countOfficializedByJobIds(jobIds).stream()
                 .collect(Collectors.toMap(
-                        ExamResultRepository.JobSavedCountRow::getJobId,
+                        ExamResultPersistencePort.JobSavedCountRow::getJobId,
                         row -> Math.toIntExact(row.getSavedCount())
                 ));
     }

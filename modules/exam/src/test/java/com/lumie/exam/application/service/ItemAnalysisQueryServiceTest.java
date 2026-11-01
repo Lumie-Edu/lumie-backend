@@ -4,8 +4,8 @@ import com.lumie.exam.application.dto.response.statistics.ItemAnalysisResponse;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.test.ExamFixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,8 +25,8 @@ import static org.mockito.BDDMockito.given;
 @DisplayName("ItemAnalysisQueryService 단위 테스트")
 class ItemAnalysisQueryServiceTest {
 
-    @Mock private ExamRepository examRepository;
-    @Mock private ExamResultRepository resultRepository;
+    @Mock private ExamPersistencePort examRepository;
+    @Mock private ExamResultPersistencePort resultRepository;
     @org.mockito.Spy private StatisticsCalculator statisticsCalculator = new StatisticsCalculator();
 
     @InjectMocks private ItemAnalysisQueryService service;

@@ -1,9 +1,9 @@
 package com.lumie.exam.application.service;
 
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
-import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
-import com.lumie.exam.domain.repository.ReportGenerationItemRepository;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationJobPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationItemPersistencePort;
 import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.exam.domain.vo.ReportGenerationItemStatus;
 import com.lumie.tenant.api.TenantService;
@@ -96,9 +96,9 @@ public class ExamJobTimeoutSweeper {
     @Component
     @RequiredArgsConstructor
     static class Tx {
-        private final OmrGradingJobRepository omrGradingJobRepository;
-        private final ReportGenerationJobRepository reportGenerationJobRepository;
-        private final ReportGenerationItemRepository reportGenerationItemRepository;
+        private final OmrGradingJobPersistencePort omrGradingJobRepository;
+        private final ReportGenerationJobPersistencePort reportGenerationJobRepository;
+        private final ReportGenerationItemPersistencePort reportGenerationItemRepository;
 
         @Transactional
         public int sweepOmrJobs(Instant cutoff) {

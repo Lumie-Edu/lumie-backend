@@ -1,4 +1,4 @@
-package com.lumie.exam.domain.repository;
+package com.lumie.exam.adapter.out.persistence;
 
 import com.lumie.exam.domain.entity.ReportGenerationItem;
 import com.lumie.exam.domain.vo.ReportGenerationItemStatus;
@@ -11,7 +11,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface ReportGenerationItemRepository extends JpaRepository<ReportGenerationItem, Long> {
+public interface ReportGenerationItemJpaRepository extends JpaRepository<ReportGenerationItem, Long> {
 
     Optional<ReportGenerationItem> findByJobIdAndReportIndex(Long jobId, Integer reportIndex);
 

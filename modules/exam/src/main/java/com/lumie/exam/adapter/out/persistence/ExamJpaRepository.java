@@ -1,4 +1,4 @@
-package com.lumie.exam.domain.repository;
+package com.lumie.exam.adapter.out.persistence;
 
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.vo.ExamSource;
@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface ExamRepository extends JpaRepository<Exam, Long> {
+public interface ExamJpaRepository extends JpaRepository<Exam, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select exam from Exam exam where exam.id = :id")
     Optional<Exam> findByIdForUpdate(@Param("id") Long id);

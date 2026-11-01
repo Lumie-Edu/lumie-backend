@@ -13,9 +13,9 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationJobPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.student.api.StudentService;
@@ -40,9 +40,9 @@ public class ReportBatchDataQueryService {
 
     public static final int MAX_BATCH_SIZE = 30;
 
-    private final ExamRepository examRepository;
-    private final ExamResultRepository resultRepository;
-    private final ReportGenerationJobRepository jobRepository;
+    private final ExamPersistencePort examRepository;
+    private final ExamResultPersistencePort resultRepository;
+    private final ReportGenerationJobPersistencePort jobRepository;
     private final ExamSummaryStatisticsService examSummaryStatisticsService;
     private final StudentService studentService;
     private final StatisticsCalculator statisticsCalculator;

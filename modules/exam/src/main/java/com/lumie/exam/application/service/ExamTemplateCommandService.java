@@ -9,7 +9,7 @@ import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamTemplateRepository;
+import com.lumie.exam.application.port.out.ExamTemplatePersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ import java.util.Map;
 @Slf4j
 public class ExamTemplateCommandService {
 
-    private final ExamTemplateRepository examTemplateRepository;
+    private final ExamTemplatePersistencePort examTemplateRepository;
 
     @Transactional
     public ExamTemplateResponse create(CreateExamTemplateRequest request) {

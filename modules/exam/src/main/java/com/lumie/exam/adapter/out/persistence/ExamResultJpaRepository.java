@@ -1,6 +1,7 @@
-package com.lumie.exam.domain.repository;
+package com.lumie.exam.adapter.out.persistence;
 
 import com.lumie.exam.domain.entity.ExamResult;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -10,7 +11,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
+public interface ExamResultJpaRepository extends JpaRepository<ExamResult, Long> {
 
     @EntityGraph(attributePaths = {"exam"})
     Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
@@ -34,7 +35,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
            and r.currentSubmissionId is not null
          group by r.omrGradingJobId
         """)
-    List<JobSavedCountRow> countOfficializedByJobIds(@Param("jobIds") Collection<Long> jobIds);
+    List<ExamResultPersistencePort.JobSavedCountRow> countOfficializedByJobIds(@Param("jobIds") Collection<Long> jobIds);
 
     @EntityGraph(attributePaths = {"exam", "questionResults"})
     List<ExamResult> findByExamId(Long examId);
@@ -97,18 +98,9 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
          ORDER BY AVG(r.total_score) DESC, COUNT(*) DESC
          LIMIT :limit
         """, nativeQuery = true)
-    List<TopStudentAggregateRow> findTopStudentsForCurrentMonth(@Param("limit") int limit);
+    List<ExamResultPersistencePort.TopStudentAggregateRow> findTopStudentsForCurrentMonth(@Param("limit") int limit);
 
-    interface TopStudentAggregateRow {
-        Long getStudentId();
-        Double getAvgScore();
-        Integer getAttemptCount();
-    }
 
-    interface JobSavedCountRow {
-        Long getJobId();
-        long getSavedCount();
-    }
 
     // ---------------------------------------------------------------------
     // Dashboard statistics — compact SQL aggregates over the whole tenant.
@@ -127,7 +119,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
           JOIN exams e ON e.id = r.exam_id
          WHERE e.source = 'EXAM_MANAGEMENT'
         """, nativeQuery = true)
-    ResultAggregateRow aggregateResults();
+    ExamResultPersistencePort.ResultAggregateRow aggregateResults();
 
     /** Current academic-grade buckets, derived from raw scores rather than historical stored grades. */
     @Query(value = """
@@ -167,7 +159,7 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
           FROM graded
          GROUP BY grade_scale, grade
         """, nativeQuery = true)
-    List<GradeBucketRow> aggregateGradeBuckets();
+    List<ExamResultPersistencePort.GradeBucketRow> aggregateGradeBuckets();
 
     /**
      * Per (examId, questionNumber, selectedChoice, isCorrect) counts across the
@@ -186,24 +178,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
          WHERE e.source = 'EXAM_MANAGEMENT'
          GROUP BY r.exam_id, qr.question_number, qr.selected_choice, qr.is_correct
         """, nativeQuery = true)
-    List<QuestionChoiceCountRow> aggregateQuestionChoices();
+    List<ExamResultPersistencePort.QuestionChoiceCountRow> aggregateQuestionChoices();
 
-    interface ResultAggregateRow {
-        long getResultCount();
-        long getScoreSum();
-    }
 
-    interface GradeBucketRow {
-        String getGradeScale();
-        Integer getGrade();
-        Integer getCnt();
-    }
 
-    interface QuestionChoiceCountRow {
-        Long getExamId();
-        Integer getQuestionNumber();
-        String getSelectedChoice();
-        Boolean getCorrect();
-        Integer getCnt();
-    }
 }

@@ -16,15 +16,17 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.OmrSubmission;
 import com.lumie.exam.domain.entity.OmrSubmissionQuestion;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
-import com.lumie.exam.domain.repository.OmrSubmissionRepository;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
+import com.lumie.exam.application.port.out.OmrSubmissionPersistencePort;
+import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.vo.OmrGradingStatus;
 import com.lumie.exam.domain.vo.OmrReconciliationStatus;
 import com.lumie.student.api.StudentService;
 import com.lumie.student.api.StudentRegistrationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,12 +38,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OmrSubmissionService {
 
-    private final OmrSubmissionRepository submissionRepository;
-    private final ExamResultRepository resultRepository;
-    private final OmrGradingJobRepository jobRepository;
+    private final OmrSubmissionPersistencePort submissionRepository;
+    private final ExamResultPersistencePort resultRepository;
+    private final OmrGradingJobPersistencePort jobRepository;
     private final ResultCommandService resultCommandService;
     private final StudentService studentService;
     private final StudentRegistrationService studentRegistrationService;
+    private final OmrStoragePort storagePort;
+    private final Tx tx;
 
     @Transactional
     public void createPendingSubmissions(Exam exam, Long jobId, List<String> imageKeys, Instant batchAcceptedAt) {
@@ -295,13 +299,9 @@ public class OmrSubmissionService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
-    public byte[] getImage(Long examId, Long submissionId, com.lumie.exam.application.port.out.OmrStoragePort storagePort) {
-        OmrSubmission submission = requireSubmission(examId, submissionId);
-        if (submission.getOmrImageKey() == null) {
-            throw new BusinessException(ExamErrorCode.OMR_IMAGE_NOT_FOUND);
-        }
-        return storagePort.getObject(submission.getOmrImageKey());
+    public byte[] getImage(Long examId, Long submissionId) {
+        String imageKey = tx.loadImageKey(examId, submissionId);
+        return storagePort.getObject(imageKey);
     }
 
     @Transactional(readOnly = true)
@@ -443,5 +443,25 @@ public class OmrSubmissionService {
     private static boolean isUniqueViolation(DataIntegrityViolationException exception) {
         Throwable cause = exception.getMostSpecificCause();
         return cause instanceof SQLException sqlException && "23505".equals(sqlException.getSQLState());
+    }
+
+    /** Loads and validates the storage key in a short transaction before external I/O. */
+    @Component
+    @RequiredArgsConstructor
+    public static class Tx {
+        private final OmrSubmissionPersistencePort submissionRepository;
+
+        @Transactional(readOnly = true)
+        public String loadImageKey(Long examId, Long submissionId) {
+            OmrSubmission submission = submissionRepository.findById(submissionId)
+                    .orElseThrow(() -> new BusinessException(ExamErrorCode.RESULT_NOT_FOUND));
+            if (!submission.getExam().getId().equals(examId)) {
+                throw new BusinessException(ExamErrorCode.RESULT_NOT_FOUND);
+            }
+            if (submission.getOmrImageKey() == null) {
+                throw new BusinessException(ExamErrorCode.OMR_IMAGE_NOT_FOUND);
+            }
+            return submission.getOmrImageKey();
+        }
     }
 }

@@ -1,4 +1,4 @@
-package com.lumie.exam.domain.repository;
+package com.lumie.exam.adapter.out.persistence;
 
 import com.lumie.exam.domain.entity.OmrSubmission;
 import com.lumie.exam.domain.vo.OmrReconciliationStatus;
@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface OmrSubmissionRepository extends JpaRepository<OmrSubmission, Long> {
+public interface OmrSubmissionJpaRepository extends JpaRepository<OmrSubmission, Long> {
 
     @EntityGraph(attributePaths = {"exam", "questions"})
     Optional<OmrSubmission> findByJobIdAndImageIndex(Long jobId, Integer imageIndex);

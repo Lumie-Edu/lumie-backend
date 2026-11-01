@@ -11,9 +11,9 @@ import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
 import com.lumie.exam.domain.vo.JobStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +31,9 @@ import java.util.Objects;
 @Slf4j
 public class ExamCommandService {
 
-    private final ExamRepository examRepository;
-    private final ExamResultRepository resultRepository;
-    private final OmrGradingJobRepository omrGradingJobRepository;
+    private final ExamPersistencePort examRepository;
+    private final ExamResultPersistencePort resultRepository;
+    private final OmrGradingJobPersistencePort omrGradingJobRepository;
     private final GradeCalculator gradeCalculator;
     private final ApplicationEventPublisher eventPublisher;
 
