@@ -2,12 +2,12 @@ package com.lumie.ai.application.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lumie.ai.application.port.out.ChatMessagePersistencePort;
+import com.lumie.ai.application.port.out.ConversationPersistencePort;
 import com.lumie.ai.domain.entity.ChatMessage;
 import com.lumie.ai.domain.entity.Conversation;
 import com.lumie.ai.domain.exception.AiErrorCode;
 import com.lumie.ai.domain.exception.AiException;
-import com.lumie.ai.domain.repository.ChatMessageRepository;
-import com.lumie.ai.domain.repository.ConversationRepository;
 import com.lumie.ai.domain.vo.MessageRole;
 import com.lumie.ai.domain.vo.PendingAction;
 import lombok.RequiredArgsConstructor;
@@ -33,9 +33,9 @@ import java.util.UUID;
  *   <li>{@code InternalChatbotController} can persist conversations / messages /
  *       pending actions on behalf of the worker. Every write method runs under
  *       {@code @Transactional} so {@code RlsTenantContextAspect} sets
- *       {@code app.tenant_id} on the insert connection — calling the
- *       repositories directly skips the aspect and the insert fails the RLS
- *       {@code WITH CHECK} policy.</li>
+ *       {@code app.tenant_id} on the insert connection. Bypassing this
+ *       transactional service boundary skips the aspect, so the insert fails
+ *       the RLS {@code WITH CHECK} policy.</li>
  * </ul>
  */
 @Slf4j
@@ -43,8 +43,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ChatService {
 
-    private final ConversationRepository conversationRepository;
-    private final ChatMessageRepository chatMessageRepository;
+    private final ConversationPersistencePort conversationPersistencePort;
+    private final ChatMessagePersistencePort chatMessagePersistencePort;
     private final ObjectMapper objectMapper;
 
     /**
@@ -54,7 +54,7 @@ public class ChatService {
      */
     @Transactional(readOnly = true)
     public Long resolveConversationId(Long messageId) {
-        return chatMessageRepository.findById(messageId)
+        return chatMessagePersistencePort.findById(messageId)
                 .map(ChatMessage::getConversationId)
                 .orElseThrow(() -> new AiException(AiErrorCode.MESSAGE_NOT_FOUND));
     }
@@ -63,7 +63,7 @@ public class ChatService {
     @Transactional(readOnly = true)
     public List<ChatMessage> getRecentMessages(Long conversationId, int limit) {
         List<ChatMessage> all =
-                chatMessageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+                chatMessagePersistencePort.findByConversationIdOrderByCreatedAtAsc(conversationId);
         int from = Math.max(0, all.size() - limit);
         return all.subList(from, all.size());
     }
@@ -71,7 +71,7 @@ public class ChatService {
     /** Create a conversation under RLS and return its id. */
     @Transactional
     public Long createConversation(Long userId, String title) {
-        return conversationRepository.save(Conversation.builder()
+        return conversationPersistencePort.save(Conversation.builder()
                 .userId(userId)
                 .title(title)
                 .build()).getId();
@@ -81,7 +81,7 @@ public class ChatService {
     @Transactional
     public Long saveInternalMessage(Long conversationId, MessageRole role, String content,
                                     String toolCallId) {
-        return chatMessageRepository.save(ChatMessage.builder()
+        return chatMessagePersistencePort.save(ChatMessage.builder()
                 .conversationId(conversationId)
                 .role(role)
                 .content(content)
@@ -107,7 +107,7 @@ public class ChatService {
         } catch (JsonProcessingException e) {
             throw new AiException(AiErrorCode.TOOL_EXECUTION_ERROR, "Failed to serialize pending action");
         }
-        return chatMessageRepository.save(ChatMessage.builder()
+        return chatMessagePersistencePort.save(ChatMessage.builder()
                 .conversationId(conversationId)
                 .role(MessageRole.ASSISTANT)
                 .pendingAction(pendingJson)
