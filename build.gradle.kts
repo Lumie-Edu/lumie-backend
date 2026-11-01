@@ -221,6 +221,43 @@ tasks.named("check") {
     dependsOn("lumieLint")
 }
 
+tasks.register("verifyModuleProjectDependencies") {
+    description = "Reject direct production dependencies between backend modules."
+    group = "verification"
+    doLast {
+        val scopes = listOf("api", "implementation", "compileOnly", "runtimeOnly")
+        val violations = subprojects
+            .filter { it.path.startsWith(":modules:") }
+            .flatMap { module ->
+                scopes.flatMap { scope ->
+                    module.configurations.findByName(scope)
+                        ?.dependencies
+                        ?.withType(org.gradle.api.artifacts.ProjectDependency::class.java)
+                        ?.mapNotNull { dependency ->
+                            val target = dependency.path
+                            if (target.startsWith(":modules:") && target != module.path) {
+                                "${module.path} ${scope} -> ${target}"
+                            } else {
+                                null
+                            }
+                        }
+                        .orEmpty()
+                }
+            }
+            .sorted()
+        if (violations.isNotEmpty()) {
+            throw GradleException(
+                "Backend modules must depend on libs/internal-api rather than other modules:\n"
+                    + violations.joinToString("\n")
+            )
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("verifyModuleProjectDependencies")
+}
+
 // Tilt syncs source into the running development Pod. Rebuild every project
 // JAR after an incremental compile because the direct development classpath
 // contains the module artifacts rather than Gradle's bootRun class directories.
