@@ -44,7 +44,7 @@ public class AttachmentLifecycleSteps {
                 "tmp/demo/uploads/upload-1/notes.pdf",
                 "files/demo/announcement/file-1/notes.pdf",
                 "source-etag",
-                Instant.parse("2026-10-20T00:00:00Z"));
+                Instant.now().minus(Duration.ofMinutes(1)));
     }
 
     @When("a Staff member registers the attachment")

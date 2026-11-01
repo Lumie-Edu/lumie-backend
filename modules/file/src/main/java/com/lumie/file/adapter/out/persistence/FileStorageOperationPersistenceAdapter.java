@@ -3,7 +3,7 @@ package com.lumie.file.adapter.out.persistence;
 import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class FileStorageOperationPersistenceAdapter implements FileStorageOperationPersistencePort {
 
     private final FileStorageOperationJpaRepository operationRepository;
-    private final FileMetadataRepository fileMetadataRepository;
+    private final FileMetadataPersistencePort fileMetadataRepository;
 
     @Override
     @Transactional

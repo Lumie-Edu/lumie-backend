@@ -4,9 +4,9 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
-import com.lumie.file.domain.repository.FileDownloadRepository;
-import com.lumie.file.domain.repository.FileMetadataRepository;
-import com.lumie.file.domain.repository.TextbookFolderRepository;
+import com.lumie.file.application.port.out.FileDownloadPersistencePort;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
+import com.lumie.file.application.port.out.TextbookFolderPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileStorageOperationType;
 import com.lumie.file.domain.vo.FileUploadStatus;
@@ -39,9 +39,9 @@ class FileCommandServiceTest {
     private static final UUID FILE_ID = UUID.fromString("d14b9d11-eaab-4f37-bac5-3d4d205e65d0");
     private static final String OBJECT_KEY = "files/demo/textbook/file-1/notes.pdf";
 
-    @Mock private FileMetadataRepository fileMetadataRepository;
-    @Mock private TextbookFolderRepository textbookFolderRepository;
-    @Mock private FileDownloadRepository fileDownloadRepository;
+    @Mock private FileMetadataPersistencePort fileMetadataRepository;
+    @Mock private TextbookFolderPersistencePort textbookFolderRepository;
+    @Mock private FileDownloadPersistencePort fileDownloadRepository;
     @Mock private FileService fileService;
     @Mock private FileStorageOperationPersistencePort operationPersistencePort;
     @InjectMocks private FileCommandService commandService;
@@ -74,7 +74,7 @@ class FileCommandServiceTest {
         assertThat(operation.getValue().getFileId()).isEqualTo(FILE_ID);
         assertThat(operation.getValue().getOperationType()).isEqualTo(FileStorageOperationType.DELETE);
         assertThat(operation.getValue().getTargetObjectKey()).isEqualTo(OBJECT_KEY);
-        verify(fileMetadataRepository, never()).deleteById(FILE_ID);
+        verify(fileMetadataRepository, never()).delete(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

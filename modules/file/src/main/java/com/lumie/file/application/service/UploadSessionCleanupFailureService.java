@@ -3,7 +3,7 @@ package com.lumie.file.application.service;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.file.application.event.UploadSessionCleanupRetryEvent;
 import com.lumie.file.domain.entity.FileUploadSession;
-import com.lumie.file.domain.repository.FileUploadSessionRepository;
+import com.lumie.file.application.port.out.FileUploadSessionPersistencePort;
 import com.lumie.file.domain.vo.UploadSessionStatus;
 import java.time.Instant;
 import java.util.UUID;
@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UploadSessionCleanupFailureService {
     private static final int MAX_ATTEMPTS = 5;
-    private final FileUploadSessionRepository repository;
+    private final FileUploadSessionPersistencePort repository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional

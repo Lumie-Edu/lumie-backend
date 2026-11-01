@@ -7,7 +7,7 @@ import com.lumie.file.api.PreparedTemporaryFile;
 import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.application.port.out.StoragePort;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -27,7 +27,7 @@ class FileServiceAdapterSourceValidationTest {
     private static final String SOURCE = FileObjectKeyFactory.temporaryUpload("demo", UPLOAD_ID, "notes.pdf");
     private final StoragePort storage = mock(StoragePort.class);
     private final FileServiceAdapter adapter = new FileServiceAdapter(
-            mock(FileMetadataRepository.class), storage, mock(FileStorageOperationPersistencePort.class));
+            mock(FileMetadataPersistencePort.class), storage, mock(FileStorageOperationPersistencePort.class));
 
     @AfterEach
     void clearTenant() {

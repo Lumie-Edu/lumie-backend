@@ -9,7 +9,7 @@ import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.domain.entity.FileMetadata;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ class FileServiceAdapterLifecycleTest {
     private static final UUID UPLOAD_ID = UUID.fromString("10e28afa-87c1-47ee-847d-8940d85058ff");
     private static final String SOURCE = FileObjectKeyFactory.temporaryUpload("demo", UPLOAD_ID, "notes.pdf");
 
-    @Mock private FileMetadataRepository metadataRepository;
+    @Mock private FileMetadataPersistencePort metadataRepository;
     @Mock private StoragePort storage;
     @Mock private FileStorageOperationPersistencePort operationPersistencePort;
 

@@ -5,8 +5,8 @@ import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
 import com.lumie.file.domain.entity.TextbookFolder;
-import com.lumie.file.domain.repository.FileMetadataRepository;
-import com.lumie.file.domain.repository.TextbookFolderRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
+import com.lumie.file.application.port.out.TextbookFolderPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileStorageOperationType;
 import com.lumie.file.domain.vo.FileUploadStatus;
@@ -36,8 +36,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ExtendWith(MockitoExtension.class)
 class TextbookFolderCommandServiceTest {
 
-    @Mock private TextbookFolderRepository folderRepository;
-    @Mock private FileMetadataRepository fileRepository;
+    @Mock private TextbookFolderPersistencePort folderRepository;
+    @Mock private FileMetadataPersistencePort fileRepository;
     @Mock private StoragePort storagePort;
     @Mock private FileStorageOperationPersistencePort operationPersistencePort;
     @InjectMocks private TextbookFolderCommandService commandService;
