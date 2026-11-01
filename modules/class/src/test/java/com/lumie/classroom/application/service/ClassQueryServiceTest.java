@@ -6,9 +6,9 @@ import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.classroom.domain.entity.ClassEntity;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
-import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
 import com.lumie.staff.api.StaffService;
-import com.lumie.classroom.domain.repository.ClassRepository;
+import com.lumie.classroom.application.port.out.ClassEnrollmentPersistencePort;
+import com.lumie.classroom.application.port.out.ClassPersistencePort;
 import com.lumie.classroom.domain.vo.ClassSearchCriteria;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import com.lumie.common.tenant.UserContextHolder;
@@ -44,8 +44,8 @@ import static org.mockito.Mockito.verify;
 @DisplayName("ClassQueryService 테스트")
 class ClassQueryServiceTest {
 
-    @Mock private ClassRepository classRepository;
-    @Mock private ClassEnrollmentRepository enrollmentRepository;
+    @Mock private ClassPersistencePort classRepository;
+    @Mock private ClassEnrollmentPersistencePort enrollmentRepository;
     @Mock private StaffService staffService;
     @Mock private StudentService studentService;
     @InjectMocks private ClassQueryService queryService;
