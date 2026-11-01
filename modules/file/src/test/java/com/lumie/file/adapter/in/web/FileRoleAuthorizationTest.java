@@ -16,11 +16,13 @@ import com.lumie.file.application.service.FileQueryService;
 import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.application.service.TextbookFolderCommandService;
 import com.lumie.file.application.service.TextbookFolderQueryService;
+import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.request.CreateTemporaryUploadRequest;
 import com.lumie.file.application.dto.response.TemporaryObjectUploadResponse;
 import com.lumie.file.domain.vo.EntityType;
 import java.util.UUID;
 import java.util.List;
+import java.io.ByteArrayInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -56,6 +58,27 @@ class FileRoleAuthorizationTest {
     @AfterEach
     void clearUserContext() {
         UserContextHolder.clear();
+    }
+
+    @Test
+    void onlyStudentDownloadsAreRecordedAsStudentDownloaders() {
+        UUID fileId = UUID.randomUUID();
+        var controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
+        given(fileQueryService.downloadFile(fileId)).willReturn(
+                new FileDownloadResult(new ByteArrayInputStream(new byte[0]), "test.pdf", "application/pdf", 0));
+        UserContextHolder.setUserRole(Role.STUDENT);
+        controller.downloadFile(fileId);
+        verifyNoInteractions(fileCommandService);
+
+        UserContextHolder.setUserId(77L);
+        UserContextHolder.setUserRole(Role.OWNER);
+
+        controller.downloadFile(fileId);
+        verify(fileCommandService, never()).recordDownload(fileId, 77L);
+
+        UserContextHolder.setUserRole(Role.STUDENT);
+        controller.downloadFile(fileId);
+        verify(fileCommandService).recordDownload(fileId, 77L);
     }
 
     @Test

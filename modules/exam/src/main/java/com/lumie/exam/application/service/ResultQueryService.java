@@ -13,6 +13,7 @@ import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.vo.ExamCategory;
+import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
@@ -97,11 +98,15 @@ public class ResultQueryService {
     public List<ExamResultResponse> getCurrentStudentResults() {
         requireStudentRole();
         Long studentId = currentStudentId();
-        List<ExamResultResponse> results = getStudentResults(studentId);
-        if (results.stream().anyMatch(result -> !studentId.equals(result.studentId()))) {
+        List<ExamResult> studentResults = resultRepository.findByStudentId(studentId);
+        if (studentResults.stream().anyMatch(result -> !studentId.equals(result.getStudentId()))) {
             throw new BusinessException(CommonErrorCode.FORBIDDEN);
         }
-        return results;
+        List<ExamResult> examResults = studentResults.stream()
+                .filter(result -> result.getExam().getSource() != ExamSource.ASSIGNMENT)
+                .toList();
+        return toResponses(examResults, resolveStudentNames(examResults),
+                fullRelativeCohorts(examResults));
     }
 
     public void requireStudentAccess(Long studentId) {

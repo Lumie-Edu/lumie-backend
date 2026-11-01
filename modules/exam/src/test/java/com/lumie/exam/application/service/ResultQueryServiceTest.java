@@ -8,6 +8,7 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
+import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.test.ExamFixtures;
 import com.lumie.exam.domain.entity.OmrGradingJob;
@@ -116,6 +117,50 @@ class ResultQueryServiceTest {
 
         verify(resultRepository).findByStudentId(123L);
         assertThat(responses).singleElement().extracting("studentId").isEqualTo(123L);
+    }
+
+    @Test
+    void getCurrentStudentResults_excludesAssignmentOnlyExams() {
+        UserContextHolder.setUserRole(Role.STUDENT);
+        given(studentService.getStudentsByUserIds("test-academy", List.of(77L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(123L, 77L, "학생", null, true, null, null)),
+                        1, 0, 1));
+        Exam regularExam = ExamFixtures.aGradedExam();
+        org.springframework.test.util.ReflectionTestUtils.setField(regularExam, "id", 5L);
+        Exam assignmentExam = ExamFixtures.aGradedExam();
+        org.springframework.test.util.ReflectionTestUtils.setField(assignmentExam, "id", 6L);
+        org.springframework.test.util.ReflectionTestUtils.setField(assignmentExam, "source", ExamSource.ASSIGNMENT);
+        given(resultRepository.findByStudentId(123L)).willReturn(List.of(
+                ExamResult.create(regularExam, 123L, 65),
+                ExamResult.create(assignmentExam, 123L, 2)));
+        given(studentService.getStudentsByIds("test-academy", List.of(123L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(123L, 77L, "학생", null, true, null, null)),
+                        1, 0, 1));
+
+        assertThat(resultQueryService.getCurrentStudentResults())
+                .singleElement()
+                .extracting("examId")
+                .isEqualTo(5L);
+    }
+
+    @Test
+    void getCurrentStudentResults_rejectsOtherStudentsAssignmentResultBeforeFiltering() {
+        UserContextHolder.setUserRole(Role.STUDENT);
+        given(studentService.getStudentsByUserIds("test-academy", List.of(77L)))
+                .willReturn(new StudentService.StudentListData(
+                        List.of(new StudentService.StudentData(123L, 77L, "학생", null, true, null, null)),
+                        1, 0, 1));
+        Exam assignmentExam = ExamFixtures.aGradedExam();
+        org.springframework.test.util.ReflectionTestUtils.setField(assignmentExam, "source", ExamSource.ASSIGNMENT);
+        given(resultRepository.findByStudentId(123L))
+                .willReturn(List.of(ExamResult.create(assignmentExam, 456L, 2)));
+
+        assertThatThrownBy(() -> resultQueryService.getCurrentStudentResults())
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(CommonErrorCode.FORBIDDEN);
     }
 
     @Test
