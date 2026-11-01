@@ -308,6 +308,7 @@ public class StudentCommandService {
         // Detach students from persistence context before user deletion
         toDelete.forEach(entityManager::detach);
 
+        int successCount = 0;
         // Delete users from auth-svc (FK CASCADE automatically deletes students)
         for (Student student : toDelete) {
             AuthService.DeleteUserResult deleteResult = authService.deleteUser(student.getUserId());
@@ -315,10 +316,11 @@ public class StudentCommandService {
                 log.warn("Failed to delete user from auth-svc: {}", deleteResult.message());
                 failures.add(new BatchOperationResult.FailedItem(student.getId(),
                         "Failed to delete linked user: " + deleteResult.message()));
+            } else {
+                successCount++;
             }
         }
 
-        int successCount = toDelete.size() - failures.size();
         log.info("Batch delete completed: {} success, {} failures in tenant: {}", successCount, failures.size(), tenantSlug);
         return BatchOperationResult.partial(ids.size(), successCount, failures);
     }

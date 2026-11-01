@@ -118,6 +118,20 @@ class StudentCommandServiceTest {
     }
 
     @Test
+    void batchDelete_missingIdsDoNotReduceSuccessfulDeletionCount() {
+        Student deleted = inactiveStudent(42L, 100L);
+        given(studentRepository.findAllById(java.util.List.of(42L, 999L)))
+                .willReturn(java.util.List.of(deleted));
+        given(authService.deleteUser(100L))
+                .willReturn(new AuthService.DeleteUserResult(true, "ok"));
+
+        BatchOperationResult result = service.batchDelete(java.util.List.of(42L, 999L));
+
+        assertThat(result.success()).isEqualTo(1);
+        assertThat(result.failures()).extracting(BatchOperationResult.FailedItem::id).containsExactly(999L);
+    }
+
+    @Test
     @DisplayName("registerStudent는 학부모 연락처 중복을 허용한다")
     void registerStudent_duplicateParentPhone_allowsRegistration() {
         StudentRequest request = new StudentRequest(
