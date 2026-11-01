@@ -73,6 +73,9 @@ jobs:
       - name: Run full app integration tests
         run: ./gradlew :app:integrationTest --no-configuration-cache --no-daemon --console=plain
 
+      - name: Verify boundary acceptance scenarios
+        run: python3 scripts/lumie-lint/check-boundary-atdd.py
+
   build-push:
     name: Build and push ARM image
     runs-on: ubuntu-24.04-arm
