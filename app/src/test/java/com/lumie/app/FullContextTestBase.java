@@ -62,11 +62,15 @@ public abstract class FullContextTestBase {
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
         registry.add("app.datasource.primary.url", POSTGRES::getJdbcUrl);
-        registry.add("app.datasource.primary.username", POSTGRES::getUsername);
-        registry.add("app.datasource.primary.password", POSTGRES::getPassword);
+        registry.add("app.datasource.primary.username",
+                () -> System.getProperty("lumie.test.db.username", POSTGRES.getUsername()));
+        registry.add("app.datasource.primary.password",
+                () -> System.getProperty("lumie.test.db.password", POSTGRES.getPassword()));
         registry.add("app.datasource.readonly.url", POSTGRES::getJdbcUrl);
-        registry.add("app.datasource.readonly.username", POSTGRES::getUsername);
-        registry.add("app.datasource.readonly.password", POSTGRES::getPassword);
+        registry.add("app.datasource.readonly.username",
+                () -> System.getProperty("lumie.test.db.username", POSTGRES.getUsername()));
+        registry.add("app.datasource.readonly.password",
+                () -> System.getProperty("lumie.test.db.password", POSTGRES.getPassword()));
 
         registry.add("spring.flyway.enabled", () -> "false");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
@@ -82,7 +86,8 @@ public abstract class FullContextTestBase {
         registry.add("spring.rabbitmq.virtual-host", () -> "/");
 
         registry.add("spring.modulith.events.republish-outstanding-events-on-restart", () -> "false");
-        registry.add("spring.modulith.events.jdbc.schema-initialization.enabled", () -> "true");
+        registry.add("spring.modulith.events.jdbc.schema-initialization.enabled",
+                () -> System.getProperty("lumie.test.modulith.schema-initialization.enabled", "true"));
         registry.add("lumie.rabbitmq.missing-queues-fatal", () -> "false");
         registry.add("lumie.rabbitmq.listener-auto-startup", () -> "false");
 
