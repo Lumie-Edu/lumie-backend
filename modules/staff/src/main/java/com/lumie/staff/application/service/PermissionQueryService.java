@@ -1,7 +1,7 @@
 package com.lumie.staff.application.service;
 
 import com.lumie.staff.application.dto.response.PermissionResponse;
-import com.lumie.staff.domain.repository.PermissionRepository;
+import com.lumie.staff.application.port.out.PermissionPersistencePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class PermissionQueryService {
 
-    private final PermissionRepository permissionRepository;
+    private final PermissionPersistencePort permissionRepository;
 
     public List<PermissionResponse> getAllPermissions() {
         return permissionRepository.findAll().stream()

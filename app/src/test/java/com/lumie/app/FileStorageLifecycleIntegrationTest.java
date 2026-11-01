@@ -7,12 +7,12 @@ import com.lumie.file.adapter.out.persistence.FileStorageOperationJpaRepository;
 import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.application.port.out.StoragePort;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
 import com.lumie.file.adapter.in.internal.FileServiceAdapter;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
-import com.lumie.file.domain.repository.FileMetadataRepository;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileStorageOperationStatus;
 import com.lumie.file.domain.vo.FileUploadStatus;
@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
 import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -46,6 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag("integration")
 @Testcontainers
 @Timeout(value = 180, unit = TimeUnit.SECONDS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 class FileStorageLifecycleIntegrationTest extends FullContextTestBase {
 
     private static final String BUCKET = "lumie-files";
@@ -72,7 +74,7 @@ class FileStorageLifecycleIntegrationTest extends FullContextTestBase {
     @Autowired private FileServiceAdapter fileServiceAdapter;
     @Autowired private FileCommandService fileCommandService;
     @Autowired private FileQueryService fileQueryService;
-    @Autowired private FileMetadataRepository fileMetadataRepository;
+    @Autowired private FileMetadataPersistencePort fileMetadataRepository;
     @Autowired private FileStorageOperationJpaRepository operationRepository;
     @Autowired private StorageOperationProcessor processor;
 
@@ -115,6 +117,7 @@ class FileStorageLifecycleIntegrationTest extends FullContextTestBase {
     }
 
     @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void temporaryUploadPromotesToReadyThenDeletesThroughTheDurableOutbox() {
         UUID uploadId = UUID.randomUUID();
         String sourceKey = FileObjectKeyFactory.temporaryUpload("file-smoke", uploadId, "notes.pdf");

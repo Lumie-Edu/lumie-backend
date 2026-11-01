@@ -11,8 +11,9 @@ import com.lumie.lecture.application.dto.response.WatchResponse;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.entity.LectureClassTarget;
 import com.lumie.lecture.domain.exception.LectureErrorCode;
-import com.lumie.lecture.domain.repository.LectureClassTargetRepository;
-import com.lumie.lecture.domain.repository.LectureRepository;
+import com.lumie.lecture.application.port.out.LectureClassTargetPersistencePort;
+import com.lumie.lecture.application.port.out.LectureClassTargetPersistencePort.LectureClassTargetRow;
+import com.lumie.lecture.application.port.out.LecturePersistencePort;
 import com.lumie.lecture.domain.vo.LectureVisibility;
 import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.AfterEach;
@@ -25,6 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.mockito.ArgumentMatchers;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,8 +39,8 @@ import static org.mockito.BDDMockito.given;
 @DisplayName("LectureQueryService 테스트")
 class LectureQueryServiceTest {
 
-    @Mock private LectureRepository lectureRepository;
-    @Mock private LectureClassTargetRepository targetRepository;
+    @Mock private LecturePersistencePort lectureRepository;
+    @Mock private LectureClassTargetPersistencePort targetRepository;
     @Mock private StudentService studentService;
     @Mock private ClassService classService;
     @InjectMocks private LectureQueryService queryService;
@@ -153,6 +155,23 @@ class LectureQueryServiceTest {
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).classIds()).containsExactly(2L);
+    }
+
+    @Test
+    void staffListGroupsClassTargetsIntoEachLectureResponse() throws Exception {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        Lecture lecture = studentLecture(1L);
+        var pageable = PageRequest.of(0, 20);
+        given(lectureRepository.findAll(ArgumentMatchers.any(), ArgumentMatchers.eq(pageable)))
+                .willReturn(new PageImpl<>(List.of(lecture), pageable, 1));
+        given(targetRepository.findRowsByLectureIds(List.of(1L)))
+                .willReturn(List.of(new LectureClassTargetRow(1L, 2L),
+                        new LectureClassTargetRow(1L, 3L)));
+
+        var page = queryService.findAll(null, null, null, null, null, pageable);
+
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().getFirst().classIds()).containsExactly(2L, 3L);
     }
 
     private static StudentService.StudentListData studentList(Long studentId) {

@@ -5,7 +5,7 @@ import com.lumie.exam.application.dto.response.ExamResponse;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
 import com.lumie.exam.domain.vo.ExamSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class ExamQueryService {
 
-    private final ExamRepository examRepository;
+    private final ExamPersistencePort examRepository;
 
     public ExamResponse getExam(Long examId) {
         log.debug("Getting exam: {}", examId);

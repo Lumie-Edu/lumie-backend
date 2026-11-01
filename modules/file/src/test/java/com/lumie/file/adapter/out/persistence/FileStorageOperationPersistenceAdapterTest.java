@@ -2,7 +2,7 @@ package com.lumie.file.adapter.out.persistence;
 
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileStorageOperationStatus;
 import com.lumie.file.domain.vo.FileStorageOperationType;
@@ -30,7 +30,7 @@ class FileStorageOperationPersistenceAdapterTest {
     private static final UUID OPERATION_ID = UUID.fromString("bc2f446f-7633-4e8c-aeae-580734cf4f55");
 
     private final FileStorageOperationJpaRepository operationRepository = mock(FileStorageOperationJpaRepository.class);
-    private final FileMetadataRepository fileRepository = mock(FileMetadataRepository.class);
+    private final FileMetadataPersistencePort fileRepository = mock(FileMetadataPersistencePort.class);
     private final FileStorageOperationPersistenceAdapter adapter =
             new FileStorageOperationPersistenceAdapter(operationRepository, fileRepository);
 

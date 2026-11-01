@@ -5,8 +5,8 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
-import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationJobPersistencePort;
 import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.file.api.FileObjectService;
 import com.lumie.file.api.FileObjectKeyFactory;
@@ -29,8 +29,8 @@ import java.time.Instant;
 @Slf4j
 public class InternalWorkerFileController {
     private static final int URL_EXPIRY_SECONDS = 15 * 60;
-    private final OmrGradingJobRepository omrJobs;
-    private final ReportGenerationJobRepository reportJobs;
+    private final OmrGradingJobPersistencePort omrJobs;
+    private final ReportGenerationJobPersistencePort reportJobs;
     private final FileObjectService fileObjectService;
 
     @GetMapping("/omr-jobs/{jobId}/items/{imageIndex}/download-url")

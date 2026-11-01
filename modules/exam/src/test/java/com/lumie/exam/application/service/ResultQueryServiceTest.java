@@ -12,8 +12,8 @@ import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.test.ExamFixtures;
 import com.lumie.exam.domain.entity.OmrGradingJob;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
 import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,9 +38,9 @@ import static org.mockito.Mockito.mock;
 class ResultQueryServiceTest {
 
     @Mock
-    private ExamResultRepository resultRepository;
+    private ExamResultPersistencePort resultRepository;
     @Mock
-    private OmrGradingJobRepository jobRepository;
+    private OmrGradingJobPersistencePort jobRepository;
     @Mock
     private OmrStoragePort storagePort;
     @Mock
@@ -193,7 +193,7 @@ class ResultQueryServiceTest {
     void getOmrJobs_usesDerivedOfficializedCounts() {
         OmrGradingJob first = job(41L, 9L);
         OmrGradingJob second = job(42L, 9L);
-        ExamResultRepository.JobSavedCountRow row = mock(ExamResultRepository.JobSavedCountRow.class);
+        ExamResultPersistencePort.JobSavedCountRow row = mock(ExamResultPersistencePort.JobSavedCountRow.class);
         given(row.getJobId()).willReturn(41L);
         given(row.getSavedCount()).willReturn(2L);
         given(jobRepository.findByExamIdOrderByCreatedAtDesc(9L)).willReturn(List.of(first, second));

@@ -4,8 +4,8 @@ import com.lumie.exam.application.dto.response.statistics.ExamStatisticsResponse
 import com.lumie.exam.application.dto.response.statistics.StabilityIndexResponse;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
@@ -47,8 +47,8 @@ class GradeProjectionTest {
                 GradeScale.NINE_GRADE, 1, Map.of("1", "1"), Map.of("1", 100), Map.of("1", "단답"), null);
         ExamResult highest = ExamFixtures.anExamResult(exam, 1L, 100, List.of(true));
         ExamResult lowest = ExamFixtures.anExamResult(exam, 2L, 60, List.of(false));
-        ExamRepository examRepository = mock(ExamRepository.class);
-        ExamResultRepository resultRepository = mock(ExamResultRepository.class);
+        ExamPersistencePort examRepository = mock(ExamPersistencePort.class);
+        ExamResultPersistencePort resultRepository = mock(ExamResultPersistencePort.class);
         ExamResultCohortResolver cohortResolver = mock(ExamResultCohortResolver.class);
         given(examRepository.findById(1L)).willReturn(java.util.Optional.of(exam));
         given(resultRepository.findByExamId(1L)).willReturn(List.of(highest, lowest));
@@ -99,7 +99,7 @@ class GradeProjectionTest {
         ExamResult studentResult = ExamFixtures.anExamResult(exam, 1L, 60);
         ReflectionTestUtils.setField(studentResult, "createdAt", Instant.parse("2026-01-01T00:00:00Z"));
         ExamResult peerResult = ExamFixtures.anExamResult(exam, 2L, 100);
-        ExamResultRepository resultRepository = mock(ExamResultRepository.class);
+        ExamResultPersistencePort resultRepository = mock(ExamResultPersistencePort.class);
         given(resultRepository.findByStudentId(1L)).willReturn(List.of(studentResult));
         given(resultRepository.findByExamIdIn(Set.of(2L))).willReturn(List.of(studentResult, peerResult));
         StudentAnalyticsQueryService service = new StudentAnalyticsQueryService(

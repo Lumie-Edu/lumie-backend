@@ -18,7 +18,6 @@ import com.lumie.exam.application.dto.request.OmrBatchConfirmRequest;
 import com.lumie.exam.application.dto.response.OmrJobResponse;
 import com.lumie.exam.application.dto.request.UpdateQuestionAnswerRequest;
 import com.lumie.exam.application.service.StudentGradeQueryService;
-import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.common.idempotency.IdempotencyService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +66,6 @@ class ResultControllerTest {
     @Mock private ResultCommandService resultCommandService;
     @Mock private ResultQueryService resultQueryService;
     @Mock private OmrSubmissionService omrSubmissionService;
-    @Mock private OmrStoragePort omrStoragePort;
     @Mock private ExamExportService examExportService;
     @Mock private IdempotencyService idempotencyService;
     @Mock private OmrUploadTelemetryService omrUploadTelemetryService;
@@ -81,7 +79,6 @@ class ResultControllerTest {
             resultCommandService,
             resultQueryService,
             omrSubmissionService,
-            omrStoragePort,
             examExportService,
             idempotencyService,
             omrUploadTelemetryService
@@ -167,6 +164,22 @@ class ResultControllerTest {
                         assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.FORBIDDEN));
 
         org.mockito.Mockito.verifyNoInteractions(resultCommandService, idempotencyService);
+    }
+
+    @Test
+    void instructorImageRequestUsesValidatedSubmissionImageBytes() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        byte[] image = new byte[]{1, 2, 3};
+        org.mockito.BDDMockito.given(omrSubmissionService.getImage(55L, 77L))
+                .willReturn(image);
+
+        var response = controller.getOmrSubmissionImage(55L, 77L);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(org.springframework.http.MediaType.IMAGE_PNG);
+        assertThat(response.getHeaders().getContentLength()).isEqualTo(image.length);
+        assertThat(response.getBody()).containsExactly(image);
+        then(omrSubmissionService).should().getImage(55L, 77L);
     }
 
     @Test

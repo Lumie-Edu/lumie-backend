@@ -31,7 +31,6 @@ import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.ResultQueryService;
 import com.lumie.exam.application.service.OmrSubmissionService;
 import com.lumie.exam.application.service.OmrUploadTelemetryService;
-import com.lumie.exam.application.port.out.OmrStoragePort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -75,7 +74,6 @@ public class ResultController {
     private final ResultCommandService resultCommandService;
     private final ResultQueryService resultQueryService;
     private final OmrSubmissionService omrSubmissionService;
-    private final OmrStoragePort omrStoragePort;
     private final ExamExportService examExportService;
     private final IdempotencyService idempotencyService;
     private final OmrUploadTelemetryService omrUploadTelemetryService;
@@ -309,7 +307,7 @@ public class ResultController {
             @PathVariable Long examId,
             @PathVariable Long submissionId) {
         AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
-        byte[] imageData = omrSubmissionService.getImage(examId, submissionId, omrStoragePort);
+        byte[] imageData = omrSubmissionService.getImage(examId, submissionId);
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_PNG)
                 .contentLength(imageData.length)

@@ -59,6 +59,7 @@ dependencies {
     testImplementation(libs.cucumber.junit.platform)
     testImplementation(libs.cucumber.picocontainer)
     testImplementation("org.junit.platform:junit-platform-suite")
+    testRuntimeOnly("org.postgresql:postgresql")
 }
 
 tasks.withType<Test>().configureEach {

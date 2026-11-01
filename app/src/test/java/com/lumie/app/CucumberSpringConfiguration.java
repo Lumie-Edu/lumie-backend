@@ -7,8 +7,8 @@ import com.lumie.student.application.service.StudentQueryService;
 import com.lumie.classroom.application.service.ClassQueryService;
 import com.lumie.ai.application.service.SchemaDiscoveryService;
 import com.lumie.tenant.api.TenantService;
-import com.lumie.content.domain.repository.AnnouncementRepository;
-import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
+import com.lumie.content.application.port.out.AnnouncementPersistencePort;
+import com.lumie.content.application.port.out.AnnouncementClassTargetPersistencePort;
 import com.lumie.file.api.FileService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.staff.api.StaffService;
@@ -41,10 +41,10 @@ public class CucumberSpringConfiguration extends FullContextTestBase {
     TenantService tenantService;
 
     @MockitoBean(reset = MockReset.NONE)
-    AnnouncementRepository announcementRepository;
+    AnnouncementPersistencePort announcementRepository;
 
     @MockitoBean(reset = MockReset.NONE)
-    AnnouncementClassTargetRepository announcementClassTargetRepository;
+    AnnouncementClassTargetPersistencePort announcementClassTargetRepository;
 
     @MockitoBean(reset = MockReset.NONE)
     FileService fileService;

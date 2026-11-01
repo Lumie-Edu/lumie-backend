@@ -8,8 +8,8 @@ import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.domain.entity.FileDownload;
 import com.lumie.file.domain.entity.FileMetadata;
-import com.lumie.file.domain.repository.FileDownloadRepository;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileDownloadPersistencePort;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileUploadStatus;
@@ -40,8 +40,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @DisplayName("FileQueryService 테스트")
 class FileQueryServiceTest {
 
-    @Mock private FileMetadataRepository fileMetadataRepository;
-    @Mock private FileDownloadRepository fileDownloadRepository;
+    @Mock private FileMetadataPersistencePort fileMetadataRepository;
+    @Mock private FileDownloadPersistencePort fileDownloadRepository;
     @Mock private StudentService studentService;
     @Mock private FileMetadataLookupService fileMetadataLookupService;
     @Mock private StoragePort storagePort;

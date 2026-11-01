@@ -8,8 +8,8 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
@@ -46,8 +46,8 @@ import static org.mockito.BDDMockito.then;
 @DisplayName("StudentGradeQueryService 단위 테스트")
 class StudentGradeQueryServiceTest {
 
-    @Mock private ExamRepository examRepository;
-    @Mock private ExamResultRepository resultRepository;
+    @Mock private ExamPersistencePort examRepository;
+    @Mock private ExamResultPersistencePort resultRepository;
     @Spy  private StatisticsCalculator statisticsCalculator = new StatisticsCalculator();
     @Spy private GradeCalculator gradeCalculator = new GradeCalculator();
     @Mock private StudentService studentService;

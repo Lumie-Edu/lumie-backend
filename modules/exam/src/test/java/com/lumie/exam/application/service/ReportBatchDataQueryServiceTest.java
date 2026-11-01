@@ -6,9 +6,9 @@ import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.entity.ReportGenerationJob;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationJobPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
@@ -37,11 +37,11 @@ import static org.mockito.Mockito.verify;
 class ReportBatchDataQueryServiceTest {
 
     @Mock
-    private ExamRepository examRepository;
+    private ExamPersistencePort examRepository;
     @Mock
-    private ExamResultRepository resultRepository;
+    private ExamResultPersistencePort resultRepository;
     @Mock
-    private ReportGenerationJobRepository jobRepository;
+    private ReportGenerationJobPersistencePort jobRepository;
     @Mock
     private StudentService studentService;
 

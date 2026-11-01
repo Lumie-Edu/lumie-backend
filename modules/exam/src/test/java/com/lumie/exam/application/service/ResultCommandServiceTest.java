@@ -20,10 +20,10 @@ import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.quota.MetricType;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
-import com.lumie.exam.domain.repository.OmrSubmissionRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
+import com.lumie.exam.application.port.out.OmrSubmissionPersistencePort;
 import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,13 +55,13 @@ import static org.mockito.Mockito.*;
 class ResultCommandServiceTest {
 
     @Mock
-    private ExamRepository examRepository;
+    private ExamPersistencePort examRepository;
     @Mock
-    private ExamResultRepository resultRepository;
+    private ExamResultPersistencePort resultRepository;
     @Mock
-    private OmrGradingJobRepository jobRepository;
+    private OmrGradingJobPersistencePort jobRepository;
     @Mock
-    private OmrSubmissionRepository submissionRepository;
+    private OmrSubmissionPersistencePort submissionRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
     @Spy
@@ -76,6 +76,8 @@ class ResultCommandServiceTest {
     private OmrStoragePort storagePort;
     @Mock
     private TransactionTemplate transactionTemplate;
+    @Mock
+    private ResultCommandService.Tx tx;
 
     @InjectMocks
     private ResultCommandService resultCommandService;
@@ -307,6 +309,38 @@ class ResultCommandServiceTest {
                         .matches("tmp/test-academy/omr/[0-9a-f]{8}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/same_name.jpg"));
         assertThat(response.uploads()).extracting(upload -> upload.fileName())
                 .containsExactly("same name.jpg", "same name.jpg", "same@name.jpg");
+    }
+
+    @Test
+    void deleteResultCommitsDatabaseWorkBeforeDeletingTheImage() {
+        when(tx.deleteResult(1L, 2L)).thenReturn("tenant/exam/image.jpg");
+
+        resultCommandService.deleteResult(1L, 2L);
+
+        verify(tx).deleteResult(1L, 2L);
+        verify(storagePort).deleteObjects(List.of("tenant/exam/image.jpg"));
+    }
+
+    @Test
+    void deleteResultWithoutImageDoesNotCallStorage() {
+        when(tx.deleteResult(1L, 2L)).thenReturn(null);
+
+        resultCommandService.deleteResult(1L, 2L);
+
+        verify(tx).deleteResult(1L, 2L);
+        verifyNoInteractions(storagePort);
+    }
+
+    @Test
+    void storageDeletionFailureDoesNotUndoCommittedResultDeletion() {
+        when(tx.deleteResult(1L, 2L)).thenReturn("tenant/exam/image.jpg");
+        org.mockito.Mockito.doThrow(new IllegalStateException("storage unavailable"))
+                .when(storagePort).deleteObjects(List.of("tenant/exam/image.jpg"));
+
+        resultCommandService.deleteResult(1L, 2L);
+
+        verify(tx).deleteResult(1L, 2L);
+        verify(storagePort).deleteObjects(List.of("tenant/exam/image.jpg"));
     }
 
     @Test

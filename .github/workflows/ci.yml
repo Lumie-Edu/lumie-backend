@@ -1,6 +1,10 @@
 name: Backend CI
 
 on:
+  pull_request:
+    branches:
+      - develop
+      - main
   push:
     branches:
       - develop
@@ -43,32 +47,34 @@ jobs:
       - name: Run checks
         run: |
           chmod +x ./gradlew
-          ./gradlew check --no-daemon --console=plain
+          ./gradlew check --no-configuration-cache --no-daemon --console=plain
 
-      - name: Select Flyway integration check
-        id: flyway
+      - name: Run changed-module integration and coverage gates
         env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
           BEFORE: ${{ github.event.before }}
         run: |
-          run=false
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [ -z "$BEFORE" ] ||
-             [ "$BEFORE" = 0000000000000000000000000000000000000000 ]; then
-            run=true
-          elif ! git cat-file -e "${BEFORE}^{commit}"; then
-            run=true
-          elif ! git diff --quiet "$BEFORE" "$GITHUB_SHA" -- \
-             'app/src/main/resources/db/migration/public/*.sql' \
-             'app/src/test/java/com/lumie/app/migration/MigrationsRlsIntegrationTest.java' \
-             'app/src/main/resources/application.yaml' \
-             'app/build.gradle.kts' 'build.gradle.kts' \
-             'gradle/libs.versions.toml'; then
-            run=true
+          base="${PR_BASE:-${BEFORE:-}}"
+          if [ -z "$base" ] || [ "$base" = 0000000000000000000000000000000000000000 ] ||
+             ! git cat-file -e "${base}^{commit}"; then
+            base="$(git rev-parse HEAD^)"
           fi
-          echo "run=$run" >> "$GITHUB_OUTPUT"
+          ./gradlew :modules:ai:test :modules:assignment:test :modules:class:test :modules:content:test :modules:exam:test :modules:file:test :modules:lecture:test :modules:staff:test :modules:student:test -Pintegration --no-configuration-cache --no-daemon --console=plain
+          ./gradlew jacocoTestCoverageVerification -Pintegration --no-configuration-cache --no-daemon --console=plain
+          python3 scripts/lumie-lint/check-changed-coverage.py --base "$base" --allow-empty
 
-      - name: Apply Flyway chain and check RLS on PostgreSQL
-        if: steps.flyway.outputs.run == 'true'
-        run: ./gradlew :app:integrationTest --tests '*MigrationsRlsIntegrationTest' --no-daemon --console=plain
+      - name: Log in to Zot for integration fixtures
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ZOT_USERNAME }}
+          password: ${{ secrets.ZOT_PASSWORD }}
+
+      - name: Run full app integration tests
+        run: ./gradlew :app:integrationTest --no-configuration-cache --no-daemon --console=plain
+
+      - name: Verify boundary acceptance scenarios
+        run: python3 scripts/lumie-lint/check-boundary-atdd.py
 
   build-push:
     name: Build and push ARM image

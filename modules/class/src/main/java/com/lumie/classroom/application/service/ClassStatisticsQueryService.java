@@ -1,7 +1,7 @@
 package com.lumie.classroom.application.service;
 
 import com.lumie.classroom.application.dto.response.statistics.ClassDashboardResponse;
-import com.lumie.classroom.domain.repository.ClassRepository;
+import com.lumie.classroom.application.port.out.ClassPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class ClassStatisticsQueryService {
 
-    private final ClassRepository classRepository;
+    private final ClassPersistencePort classRepository;
 
     public ClassDashboardResponse getDashboardStatistics() {
         log.debug("Getting class dashboard statistics");

@@ -7,7 +7,7 @@ import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.domain.vo.FileStorageOperationType;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileUploadStatus;
@@ -41,7 +41,7 @@ class FileServiceAdapterTest {
     private static final String SOURCE_KEY = "tmp/demo/uploads/upload-1/notes.pdf";
     private static final String TARGET_KEY = "files/demo/announcement/file-1/notes.pdf";
 
-    @Mock private FileMetadataRepository fileMetadataRepository;
+    @Mock private FileMetadataPersistencePort fileMetadataRepository;
     @Mock private StoragePort storagePort;
     @Mock private FileStorageOperationPersistencePort operationPersistencePort;
     @InjectMocks private FileServiceAdapter adapter;
@@ -103,7 +103,7 @@ class FileServiceAdapterTest {
         assertThat(operations.getAllValues()).allSatisfy(operation ->
                 assertThat(operation.getOperationType()).isEqualTo(FileStorageOperationType.DELETE));
         verifyNoInteractions(storagePort);
-        verify(fileMetadataRepository, never()).deleteById(FILE_ID);
+        verify(fileMetadataRepository, never()).delete(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

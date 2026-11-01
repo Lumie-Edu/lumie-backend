@@ -5,7 +5,7 @@ import com.lumie.file.application.dto.response.TextbookFolderResponse;
 import com.lumie.file.domain.entity.TextbookFolder;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.file.domain.repository.TextbookFolderRepository;
+import com.lumie.file.application.port.out.TextbookFolderPersistencePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +21,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TextbookFolderQueryService {
 
-    private final TextbookFolderRepository textbookFolderRepository;
+    private final TextbookFolderPersistencePort textbookFolderRepository;
 
     @Transactional(readOnly = true)
     public List<TextbookFolderResponse> listFolders(UUID parentId) {

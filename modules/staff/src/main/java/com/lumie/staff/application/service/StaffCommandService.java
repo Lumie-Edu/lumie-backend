@@ -11,8 +11,8 @@ import com.lumie.staff.domain.entity.StaffPermission;
 import com.lumie.common.quota.MetricType;
 import com.lumie.common.exception.QuotaExceededException;
 import com.lumie.staff.domain.exception.StaffErrorCode;
-import com.lumie.staff.domain.repository.StaffPermissionRepository;
-import com.lumie.staff.domain.repository.StaffRepository;
+import com.lumie.staff.application.port.out.StaffPermissionPersistencePort;
+import com.lumie.staff.application.port.out.StaffPersistencePort;
 import com.lumie.staff.domain.vo.AccessLevel;
 import com.lumie.common.auth.Role;
 import com.lumie.common.cache.CacheConfig;
@@ -41,8 +41,8 @@ public class StaffCommandService {
     /** Roles a staff member can be created with via the staff module (OWNER is system-managed). */
     private static final EnumSet<Role> CREATABLE_ROLES = EnumSet.of(Role.MANAGER, Role.INSTRUCTOR);
 
-    private final StaffRepository staffRepository;
-    private final StaffPermissionRepository staffPermissionRepository;
+    private final StaffPersistencePort staffRepository;
+    private final StaffPermissionPersistencePort staffPermissionRepository;
     private final AuthService authService;
     private final BillingService billingService;
     private final ClassService classService;

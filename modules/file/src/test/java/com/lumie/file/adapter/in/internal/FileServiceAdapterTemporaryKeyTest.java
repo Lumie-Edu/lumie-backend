@@ -6,7 +6,7 @@ import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +23,7 @@ class FileServiceAdapterTemporaryKeyTest {
     private static final UUID FILE_ID = UUID.fromString("10e28afa-87c1-47ee-847d-8940d85058ff");
     private final StoragePort storage = mock(StoragePort.class);
     private final FileServiceAdapter adapter = new FileServiceAdapter(
-            mock(FileMetadataRepository.class), storage, mock(FileStorageOperationPersistencePort.class));
+            mock(FileMetadataPersistencePort.class), storage, mock(FileStorageOperationPersistencePort.class));
 
     @AfterEach
     void clearContext() {

@@ -12,9 +12,9 @@ import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.vo.JobStatus;
 import com.lumie.exam.domain.vo.ReportGenerationItemStatus;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ReportGenerationJobRepository;
-import com.lumie.exam.domain.repository.ReportGenerationItemRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationJobPersistencePort;
+import com.lumie.exam.application.port.out.ReportGenerationItemPersistencePort;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.student.api.StudentService;
 import lombok.RequiredArgsConstructor;
@@ -41,8 +41,8 @@ public class ReportJobService {
     private static final int REPORT_BATCH_CHUNK_SIZE = 30;
     private static final Duration ZIP_DOWNLOAD_WINDOW = Duration.ofHours(24);
 
-    private final ExamRepository examRepository;
-    private final ReportGenerationJobRepository jobRepository;
+    private final ExamPersistencePort examRepository;
+    private final ReportGenerationJobPersistencePort jobRepository;
     private final OmrStoragePort storagePort;
     private final ApplicationEventPublisher eventPublisher;
     private final StudentService studentService;
@@ -414,8 +414,8 @@ public class ReportJobService {
     @Component
     @RequiredArgsConstructor
     static class Tx {
-        private final ReportGenerationJobRepository jobRepository;
-        private final ReportGenerationItemRepository itemRepository;
+        private final ReportGenerationJobPersistencePort jobRepository;
+        private final ReportGenerationItemPersistencePort itemRepository;
         private final StudentService studentService;
 
         @Transactional

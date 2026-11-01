@@ -10,8 +10,8 @@ import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.exception.ClassErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
-import com.lumie.classroom.domain.repository.ClassRepository;
+import com.lumie.classroom.application.port.out.ClassEnrollmentPersistencePort;
+import com.lumie.classroom.application.port.out.ClassPersistencePort;
 import com.lumie.classroom.domain.vo.ClassSearchCriteria;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import com.lumie.student.api.StudentService;
@@ -37,8 +37,8 @@ public class ClassQueryService {
 
     private static final String DELETED_TEACHER_NAME = "삭제된 강사";
 
-    private final ClassRepository classRepository;
-    private final ClassEnrollmentRepository enrollmentRepository;
+    private final ClassPersistencePort classRepository;
+    private final ClassEnrollmentPersistencePort enrollmentRepository;
     private final StaffService staffService;
     private final StudentService studentService;
 

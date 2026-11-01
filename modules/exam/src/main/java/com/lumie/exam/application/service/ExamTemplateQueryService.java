@@ -4,7 +4,7 @@ import com.lumie.exam.application.dto.response.ExamTemplateResponse;
 import com.lumie.exam.domain.entity.ExamTemplate;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamTemplateRepository;
+import com.lumie.exam.application.port.out.ExamTemplatePersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class ExamTemplateQueryService {
 
-    private final ExamTemplateRepository examTemplateRepository;
+    private final ExamTemplatePersistencePort examTemplateRepository;
 
     public ExamTemplateResponse getTemplate(Long id) {
         log.debug("Getting exam template: {}", id);

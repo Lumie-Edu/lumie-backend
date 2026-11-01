@@ -9,10 +9,10 @@ import com.lumie.common.test.TenantContextExtension;
 import com.lumie.lecture.application.dto.request.CreateLectureRequest;
 import com.lumie.lecture.application.dto.request.UpdateLectureRequest;
 import com.lumie.lecture.application.dto.response.LectureResponse;
+import com.lumie.lecture.application.port.out.LecturePersistencePort;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.entity.LectureClassTarget;
-import com.lumie.lecture.domain.repository.LectureClassTargetRepository;
-import com.lumie.lecture.domain.repository.LectureRepository;
+import com.lumie.lecture.application.port.out.LectureClassTargetPersistencePort;
 import com.lumie.lecture.domain.vo.LectureVisibility;
 import com.lumie.staff.api.StaffService;
 import org.junit.jupiter.api.AfterEach;
@@ -40,8 +40,8 @@ import static org.mockito.Mockito.never;
 @DisplayName("LectureCommandService 테스트")
 class LectureCommandServiceTest {
 
-    @Mock private LectureRepository lectureRepository;
-    @Mock private LectureClassTargetRepository targetRepository;
+    @Mock private LecturePersistencePort lectureRepository;
+    @Mock private LectureClassTargetPersistencePort targetRepository;
     @Mock private StaffService staffService;
     @Mock private ClassService classService;
     @InjectMocks private LectureCommandService commandService;

@@ -1,0 +1,3 @@
+package com.lumie.content.adapter.out.persistence;
+import com.lumie.content.application.port.out.QnaCommentPersistencePort; import com.lumie.content.domain.entity.QnaComment; import lombok.RequiredArgsConstructor; import org.springframework.stereotype.Repository; import java.util.List;
+@Repository @RequiredArgsConstructor public class QnaCommentPersistenceAdapter implements QnaCommentPersistencePort { private final QnaCommentJpaRepository repository; @Override public List<QnaComment> findByQnaBoardId(Long id){return repository.findByQnaBoardId(id);} @Override public QnaComment save(QnaComment q){return repository.save(q);} @Override public void delete(QnaComment q){repository.delete(q);} }

@@ -17,8 +17,8 @@ import com.lumie.common.test.ReflectionTestUtils;
 import com.lumie.common.test.TenantContextExtension;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
-import com.lumie.assignment.domain.repository.AssignmentRepository;
-import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
+import com.lumie.assignment.application.port.out.AssignmentPersistencePort;
+import com.lumie.assignment.application.port.out.AssignmentSubmissionPersistencePort;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
 import com.lumie.common.exception.BusinessException;
@@ -51,8 +51,8 @@ import static org.mockito.Mockito.verify;
 @DisplayName("AssignmentCommandService 테스트")
 class AssignmentCommandServiceTest {
 
-    @Mock private AssignmentRepository assignmentRepository;
-    @Mock private AssignmentSubmissionRepository submissionRepository;
+    @Mock private AssignmentPersistencePort assignmentRepository;
+    @Mock private AssignmentSubmissionPersistencePort submissionRepository;
     @Mock private AssignmentAudienceReadPort audienceReadPort;
     @Mock private AssignmentAudienceWritePort audienceWritePort;
     @Mock private AssignmentRecipientService recipientService;

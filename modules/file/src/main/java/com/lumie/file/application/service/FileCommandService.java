@@ -10,8 +10,8 @@ import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.file.domain.repository.FileMetadataRepository;
-import com.lumie.file.domain.repository.TextbookFolderRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
+import com.lumie.file.application.port.out.TextbookFolderPersistencePort;
 import com.lumie.file.domain.entity.FileStorageOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +25,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FileCommandService {
 
-    private final FileMetadataRepository fileMetadataRepository;
-    private final TextbookFolderRepository textbookFolderRepository;
-    private final com.lumie.file.domain.repository.FileDownloadRepository fileDownloadRepository;
+    private final FileMetadataPersistencePort fileMetadataRepository;
+    private final TextbookFolderPersistencePort textbookFolderRepository;
+    private final com.lumie.file.application.port.out.FileDownloadPersistencePort fileDownloadRepository;
     private final FileService fileService;
     private final FileStorageOperationPersistencePort operationPersistencePort;
 

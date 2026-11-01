@@ -2,8 +2,8 @@ package com.lumie.app;
 
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
-import com.lumie.assignment.domain.repository.AssignmentRepository;
-import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
+import com.lumie.assignment.application.port.out.AssignmentPersistencePort;
+import com.lumie.assignment.application.port.out.AssignmentSubmissionPersistencePort;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.SubmissionMode;
 import com.lumie.assignment.domain.vo.EvaluationMode;
@@ -18,17 +18,19 @@ import com.lumie.exam.api.ExamService;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
-import com.lumie.exam.domain.repository.ExamRepository;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
+import jakarta.persistence.EntityManager;
 import java.sql.DriverManager;
 import java.time.Instant;
 import java.util.Map;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,10 +43,11 @@ import static org.assertj.core.api.Assertions.*;
 class AssignmentResultIntegrationTest extends FullContextTestBase {
     @Autowired TransactionTemplate transactions;
     @Autowired JdbcTemplate jdbc;
-    @Autowired ExamRepository exams;
-    @Autowired ExamResultRepository results;
-    @Autowired AssignmentRepository assignments;
-    @Autowired AssignmentSubmissionRepository submissions;
+    @Autowired EntityManager entityManager;
+    @Autowired ExamPersistencePort exams;
+    @Autowired ExamResultPersistencePort results;
+    @Autowired AssignmentPersistencePort assignments;
+    @Autowired AssignmentSubmissionPersistencePort submissions;
     @Autowired ResultCommandService commands;
     @Autowired ExamCommandService examCommands;
     @Autowired ExamService examApi;
@@ -77,8 +80,8 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
         withinTenant(() -> {
             var ids = seed();
             commands.deleteResult(ids.exam(), ids.result());
-            assertThat(results.existsById(ids.result())).isFalse();
-            assertThat(submissions.existsById(ids.submission())).isFalse();
+            assertThat(results.findById(ids.result())).isEmpty();
+            assertThat(submissions.findById(ids.submission())).isEmpty();
         });
     }
 
@@ -90,8 +93,8 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
                 commands.deleteResult(ids.exam(), ids.result());
                 throw new IllegalStateException("Simulated failure after result deletion");
             })).isInstanceOf(IllegalStateException.class);
-            assertThat(results.existsById(ids.result())).isTrue();
-            assertThat(submissions.existsById(ids.submission())).isTrue();
+            assertThat(results.findById(ids.result())).isPresent();
+            assertThat(submissions.findById(ids.submission())).isPresent();
         });
     }
 
@@ -123,7 +126,7 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
             assertThat(jdbc.queryForObject(
                     "SELECT count(*) FROM assignment_class_targets WHERE assignment_id = ?",
                     Integer.class, assignmentId)).isZero();
-            assertThat(submissions.existsById(ids.submission())).isTrue();
+            assertThat(submissions.findById(ids.submission())).isPresent();
         });
     }
 
@@ -137,19 +140,22 @@ class AssignmentResultIntegrationTest extends FullContextTestBase {
             var result = ExamResult.create(exam, null, 0);
             result.addQuestionResult(QuestionResult.create(1, "1", "2", 100));
             result = results.saveAndFlush(result);
-            var assignment = assignments.saveAndFlush(Assignment.create(Instant.now().plusSeconds(3600), 100, null,
+            var assignment = assignments.save(Assignment.create(Instant.now().plusSeconds(3600), 100, null,
                     AssignmentStatus.ACTIVE, SubmissionMode.EXAM_MANUAL, EvaluationMode.EXAM_AUTO, exam.getId(),
                     true, true, false, true, false));
+            entityManager.flush();
             jdbc.update("INSERT INTO assignment_class_targets (assignment_id, class_id, tenant_id) VALUES (?, ?, 1)",
                     assignment.getId(), classId);
             var submission = AssignmentSubmission.create(assignment.getId(), null);
             submission.submitExam(Map.of("1", "1"), result.getId(), 0);
-            submission = submissions.saveAndFlush(submission);
+            submission = submissions.save(submission);
+            entityManager.flush();
             return new Ids(exam.getId(), result.getId(), submission.getId(), result.getQuestionResults().get(0).getId());
         });
     }
 
     @Test
+    @DisplayName("ATDD-US1-001:example-006 exam result lookup")
     void gradeSettingsUseTheSameCohortInAssignmentAndDashboard() {
         withinTenant(() -> {
             var ids = seed();

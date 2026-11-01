@@ -21,4 +21,6 @@ dependencies {
 
     // Observability
     implementation("io.micrometer:micrometer-registry-prometheus")
+
+    testRuntimeOnly("org.postgresql:postgresql")
 }

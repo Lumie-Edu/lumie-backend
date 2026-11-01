@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -45,6 +46,7 @@ class OpenApiSnapshotTest extends FullContextTestBase {
     }
 
     @Test
+    @DisplayName("ATDD-US1-003:example-001 shared contract drift blocks integration")
     void specMatchesCommittedSnapshot() throws Exception {
         final String raw = mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())

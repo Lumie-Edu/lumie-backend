@@ -7,7 +7,7 @@ import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.file.domain.repository.FileMetadataRepository;
+import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +25,8 @@ public class FileQueryService {
 
     private static final String DELETED_STUDENT_NAME = "삭제된 학생";
 
-    private final FileMetadataRepository fileMetadataRepository;
-    private final com.lumie.file.domain.repository.FileDownloadRepository fileDownloadRepository;
+    private final FileMetadataPersistencePort fileMetadataRepository;
+    private final com.lumie.file.application.port.out.FileDownloadPersistencePort fileDownloadRepository;
     private final com.lumie.student.api.StudentService studentService;
     private final FileMetadataLookupService fileMetadataLookupService;
     private final StoragePort storagePort;

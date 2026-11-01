@@ -1,0 +1,3 @@
+package com.lumie.content.adapter.out.persistence;
+import com.lumie.content.application.port.out.ReviewPopupSettingPersistencePort; import com.lumie.content.domain.entity.ReviewPopupSetting; import lombok.RequiredArgsConstructor; import org.springframework.stereotype.Repository; import java.util.Optional;
+@Repository @RequiredArgsConstructor public class ReviewPopupSettingPersistenceAdapter implements ReviewPopupSettingPersistencePort { private final ReviewPopupSettingJpaRepository repository; @Override public Optional<ReviewPopupSetting> findFirst(){return repository.findFirst();} @Override public ReviewPopupSetting save(ReviewPopupSetting s){return repository.save(s);} }

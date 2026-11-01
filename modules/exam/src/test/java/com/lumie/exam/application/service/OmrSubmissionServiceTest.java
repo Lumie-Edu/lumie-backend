@@ -12,9 +12,10 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.OmrSubmission;
 import com.lumie.exam.application.dto.response.OmrSubmissionResponse;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.repository.ExamResultRepository;
-import com.lumie.exam.domain.repository.OmrGradingJobRepository;
-import com.lumie.exam.domain.repository.OmrSubmissionRepository;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
+import com.lumie.exam.application.port.out.OmrGradingJobPersistencePort;
+import com.lumie.exam.application.port.out.OmrSubmissionPersistencePort;
+import com.lumie.exam.application.port.out.OmrStoragePort;
 import com.lumie.exam.domain.vo.OmrGradingStatus;
 import com.lumie.exam.domain.vo.OmrReconciliationStatus;
 import com.lumie.student.api.StudentService;
@@ -47,12 +48,14 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @DisplayName("OmrSubmissionService manual reconciliation")
 class OmrSubmissionServiceTest {
 
-    @Mock private OmrSubmissionRepository submissionRepository;
-    @Mock private ExamResultRepository resultRepository;
-    @Mock private OmrGradingJobRepository jobRepository;
+    @Mock private OmrSubmissionPersistencePort submissionRepository;
+    @Mock private ExamResultPersistencePort resultRepository;
+    @Mock private OmrGradingJobPersistencePort jobRepository;
     @Mock private ResultCommandService resultCommandService;
     @Mock private StudentService studentService;
     @Mock private StudentRegistrationService studentRegistrationService;
+    @Mock private OmrStoragePort storagePort;
+    @Mock private OmrSubmissionService.Tx tx;
     @InjectMocks private OmrSubmissionService service;
 
     @BeforeEach
@@ -63,6 +66,18 @@ class OmrSubmissionServiceTest {
     @AfterEach
     void clearTenant() {
         TenantContextHolder.clear();
+    }
+
+    @Test
+    void loadsImageKeyBeforeCallingStorage() {
+        given(tx.loadImageKey(3L, 9L)).willReturn("tenant/exam/image.jpg");
+        given(storagePort.getObject("tenant/exam/image.jpg")).willReturn(new byte[] {1, 2});
+
+        assertThat(service.getImage(3L, 9L)).containsExactly(1, 2);
+
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(tx, storagePort);
+        order.verify(tx).loadImageKey(3L, 9L);
+        order.verify(storagePort).getObject("tenant/exam/image.jpg");
     }
 
     @Test

@@ -13,11 +13,11 @@ import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort;
 import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort.Targets;
 import com.lumie.assignment.application.port.out.AssignmentAudienceWritePort;
+import com.lumie.assignment.application.port.out.AssignmentPersistencePort;
+import com.lumie.assignment.application.port.out.AssignmentSubmissionPersistencePort;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
-import com.lumie.assignment.domain.repository.AssignmentRepository;
-import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.EvaluationMode;
 import com.lumie.assignment.domain.vo.SubmissionMode;
@@ -43,8 +43,8 @@ import java.util.Set;
 @Transactional
 public class AssignmentCommandService {
 
-    private final AssignmentRepository assignmentRepository;
-    private final AssignmentSubmissionRepository submissionRepository;
+    private final AssignmentPersistencePort assignmentRepository;
+    private final AssignmentSubmissionPersistencePort submissionRepository;
     private final AssignmentAudienceReadPort audienceReadPort;
     private final AssignmentAudienceWritePort audienceWritePort;
     private final AssignmentRecipientService recipientService;

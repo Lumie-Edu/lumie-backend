@@ -9,10 +9,11 @@ import com.lumie.common.quota.MetricType;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.student.application.dto.request.StudentRequest;
 import com.lumie.student.application.dto.response.BulkImportResult;
+import com.lumie.student.application.dto.response.BatchOperationResult;
 import com.lumie.student.api.StudentRegisteredEvent;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.student.domain.exception.StudentErrorCode;
-import com.lumie.student.domain.repository.StudentRepository;
+import com.lumie.student.application.port.out.StudentPersistencePort;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +48,7 @@ class StudentCommandServiceTest {
     private static final String TENANT = "inst-test";
 
     @Mock
-    private StudentRepository studentRepository;
+    private StudentPersistencePort studentRepository;
 
     @Mock
     private AuthService authService;
@@ -89,6 +90,45 @@ class StudentCommandServiceTest {
 
         verify(classService).dropActiveEnrollmentsForStudent(TENANT, 42L);
         verify(authService).deleteUser(100L);
+    }
+
+    @Test
+    void deleteStudent_linkedUserDeletionFails_reportsFailure() {
+        Student student = inactiveStudent(42L, 100L);
+        given(studentRepository.findById(42L)).willReturn(Optional.of(student));
+        given(authService.deleteUser(100L)).willReturn(new AuthService.DeleteUserResult(false, "auth unavailable"));
+
+        assertThatThrownBy(() -> service.deleteStudent(42L))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.AUTH_OP_FAILED));
+    }
+
+    @Test
+    void batchDelete_countsOnlySuccessfulLinkedUserDeletions() {
+        Student deleted = inactiveStudent(42L, 100L);
+        Student failed = inactiveStudent(43L, 101L);
+        given(studentRepository.findAllById(java.util.List.of(42L, 43L))).willReturn(java.util.List.of(deleted, failed));
+        given(authService.deleteUser(100L)).willReturn(new AuthService.DeleteUserResult(true, "ok"));
+        given(authService.deleteUser(101L)).willReturn(new AuthService.DeleteUserResult(false, "auth unavailable"));
+
+        BatchOperationResult result = service.batchDelete(java.util.List.of(42L, 43L));
+
+        assertThat(result.success()).isEqualTo(1);
+        assertThat(result.failures()).extracting(BatchOperationResult.FailedItem::id).containsExactly(43L);
+    }
+
+    @Test
+    void batchDelete_missingIdsDoNotReduceSuccessfulDeletionCount() {
+        Student deleted = inactiveStudent(42L, 100L);
+        given(studentRepository.findAllById(java.util.List.of(42L, 999L)))
+                .willReturn(java.util.List.of(deleted));
+        given(authService.deleteUser(100L))
+                .willReturn(new AuthService.DeleteUserResult(true, "ok"));
+
+        BatchOperationResult result = service.batchDelete(java.util.List.of(42L, 999L));
+
+        assertThat(result.success()).isEqualTo(1);
+        assertThat(result.failures()).extracting(BatchOperationResult.FailedItem::id).containsExactly(999L);
     }
 
     @Test

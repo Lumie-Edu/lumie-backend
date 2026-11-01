@@ -6,7 +6,7 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.application.dto.response.UploadSessionStatusResponse;
 import com.lumie.file.domain.entity.FileUploadSession;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.repository.FileUploadSessionRepository;
+import com.lumie.file.application.port.out.FileUploadSessionPersistencePort;
 import com.lumie.file.domain.vo.UploadSessionStatus;
 import com.lumie.file.domain.vo.EntityType;
 import java.time.Instant;
@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class UploadSessionStateService {
-    private final FileUploadSessionRepository repository;
+    private final FileUploadSessionPersistencePort repository;
 
     @Transactional(readOnly = true)
     public FileUploadSession findAuthorized(UUID id) {

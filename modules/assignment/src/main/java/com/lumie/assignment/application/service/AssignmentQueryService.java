@@ -11,13 +11,13 @@ import com.lumie.assignment.application.dto.response.StudentAssignmentDetailResp
 import com.lumie.assignment.application.dto.response.SubmissionResponse;
 import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort;
 import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort.Targets;
+import com.lumie.assignment.application.port.out.AssignmentPersistencePort;
+import com.lumie.assignment.application.port.out.AssignmentRecipientPersistencePort;
+import com.lumie.assignment.application.port.out.AssignmentSubmissionPersistencePort;
 import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.assignment.domain.entity.AssignmentRecipient;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
-import com.lumie.assignment.domain.repository.AssignmentRepository;
-import com.lumie.assignment.domain.repository.AssignmentRecipientRepository;
-import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
@@ -49,10 +49,10 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class AssignmentQueryService {
 
-    private final AssignmentRepository assignmentRepository;
-    private final AssignmentSubmissionRepository submissionRepository;
+    private final AssignmentPersistencePort assignmentRepository;
+    private final AssignmentSubmissionPersistencePort submissionRepository;
     private final AssignmentAudienceReadPort audienceReadPort;
-    private final AssignmentRecipientRepository recipientRepository;
+    private final AssignmentRecipientPersistencePort recipientRepository;
     private final AssignmentRecipientService recipientService;
     private final ClassService classService;
     private final StudentService studentService;

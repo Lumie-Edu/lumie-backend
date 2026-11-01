@@ -5,7 +5,7 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.common.auth.Role;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
-import com.lumie.content.domain.repository.QnaBoardRepository;
+import com.lumie.content.application.port.out.QnaBoardPersistencePort;
 import com.lumie.staff.api.StaffService;
 import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.AfterEach;
@@ -31,7 +31,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @DisplayName("QnaQueryService 테스트")
 class QnaQueryServiceTest {
 
-    @Mock private QnaBoardRepository qnaBoardRepository;
+    @Mock private QnaBoardPersistencePort qnaBoardRepository;
     @Mock private StudentService studentService;
     @Mock private StaffService staffService;
     @InjectMocks private QnaQueryService queryService;

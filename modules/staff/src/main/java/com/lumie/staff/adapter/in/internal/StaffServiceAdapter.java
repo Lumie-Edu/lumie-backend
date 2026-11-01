@@ -6,8 +6,8 @@ import com.lumie.staff.application.service.StaffQueryService;
 import com.lumie.staff.domain.entity.Staff;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.staff.domain.exception.StaffErrorCode;
-import com.lumie.staff.domain.repository.StaffPermissionRepository;
-import com.lumie.staff.domain.repository.StaffRepository;
+import com.lumie.staff.application.port.out.StaffPermissionPersistencePort;
+import com.lumie.staff.application.port.out.StaffPersistencePort;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.staff.api.StaffService;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +24,8 @@ import java.util.Optional;
 public class StaffServiceAdapter implements StaffService {
 
     private final StaffQueryService staffQueryService;
-    private final StaffRepository staffRepository;
-    private final StaffPermissionRepository staffPermissionRepository;
+    private final StaffPersistencePort staffRepository;
+    private final StaffPermissionPersistencePort staffPermissionRepository;
 
     @Override
     public Optional<StaffData> getStaff(String tenantSlug, Long staffId) {

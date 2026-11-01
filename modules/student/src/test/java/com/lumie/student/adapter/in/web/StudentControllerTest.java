@@ -7,6 +7,9 @@ import com.lumie.common.idempotency.IdempotencyService;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.student.application.service.StudentCommandService;
 import com.lumie.student.application.service.StudentQueryService;
+import com.lumie.student.application.dto.request.BatchOperationRequest;
+import com.lumie.student.application.dto.response.BatchOperationResult;
+import com.lumie.student.domain.exception.StudentErrorCode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,5 +63,56 @@ class StudentControllerTest {
                         assertThat(e.getErrorCode()).isEqualTo(CommonErrorCode.FORBIDDEN));
 
         verify(studentCommandService, never()).hashBulkImportFile(file);
+    }
+
+    @Test
+    void deletionScenario1_singleLinkedUserDeletionSucceeds() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        StudentController controller = controller();
+
+        var response = controller.deleteStudent(42L);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(204);
+        verify(studentCommandService).deleteStudent(42L);
+    }
+
+    @Test
+    void deletionScenario2_singleLinkedUserDeletionFailureIsVisible() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        org.mockito.BDDMockito.willThrow(new BusinessException(StudentErrorCode.AUTH_OP_FAILED, "Failed to delete linked user"))
+                .given(studentCommandService).deleteStudent(42L);
+
+        assertThatThrownBy(() -> controller().deleteStudent(42L))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(StudentErrorCode.AUTH_OP_FAILED));
+    }
+
+    @Test
+    void deletionScenario3_batchMixedLinkedUserOutcomesAreReturned() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        var expected = BatchOperationResult.partial(2, 1,
+                java.util.List.of(new BatchOperationResult.FailedItem(43L, "Failed to delete linked user")));
+        org.mockito.BDDMockito.given(studentCommandService.batchDelete(java.util.List.of(42L, 43L))).willReturn(expected);
+
+        var response = controller().batchDelete(new BatchOperationRequest(java.util.List.of(42L, 43L)));
+
+        assertThat(response.getStatusCode().value()).isEqualTo(207);
+        assertThat(response.getBody()).isEqualTo(expected);
+    }
+
+    @Test
+    void deletionScenario4_batchAllLinkedUserDeletionsSucceed() {
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        var expected = BatchOperationResult.success(2);
+        org.mockito.BDDMockito.given(studentCommandService.batchDelete(java.util.List.of(42L, 43L))).willReturn(expected);
+
+        var response = controller().batchDelete(new BatchOperationRequest(java.util.List.of(42L, 43L)));
+
+        assertThat(response.getStatusCode().value()).isEqualTo(207);
+        assertThat(response.getBody()).isEqualTo(expected);
+    }
+
+    private StudentController controller() {
+        return new StudentController(studentCommandService, studentQueryService, idempotencyService);
     }
 }

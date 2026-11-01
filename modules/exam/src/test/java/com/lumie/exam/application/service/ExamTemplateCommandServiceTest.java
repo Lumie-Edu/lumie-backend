@@ -5,7 +5,7 @@ import com.lumie.exam.application.dto.request.CreateExamTemplateRequest;
 import com.lumie.exam.application.dto.request.UpdateExamTemplateRequest;
 import com.lumie.exam.domain.entity.ExamTemplate;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.repository.ExamTemplateRepository;
+import com.lumie.exam.application.port.out.ExamTemplatePersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ExamTemplateCommandServiceTest {
-    @Mock ExamTemplateRepository repository;
+    @Mock ExamTemplatePersistencePort repository;
     @InjectMocks ExamTemplateCommandService service;
 
     @Test

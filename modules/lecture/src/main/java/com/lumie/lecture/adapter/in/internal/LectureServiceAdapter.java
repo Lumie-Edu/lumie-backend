@@ -4,8 +4,8 @@ import com.lumie.lecture.domain.vo.LectureTargets;
 import com.lumie.lecture.api.LectureService;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.entity.LectureClassTarget;
-import com.lumie.lecture.domain.repository.LectureClassTargetRepository;
-import com.lumie.lecture.domain.repository.LectureRepository;
+import com.lumie.lecture.application.port.out.LectureClassTargetPersistencePort;
+import com.lumie.lecture.application.port.out.LecturePersistencePort;
 import com.lumie.lecture.domain.vo.LectureSearchCriteria;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,8 +24,8 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class LectureServiceAdapter implements LectureService {
 
-    private final LectureRepository lectureRepository;
-    private final LectureClassTargetRepository targetRepository;
+    private final LecturePersistencePort lectureRepository;
+    private final LectureClassTargetPersistencePort targetRepository;
 
     @Override
     public Optional<LectureData> getLecture(String tenantSlug, Long lectureId) {
@@ -87,8 +87,8 @@ public class LectureServiceAdapter implements LectureService {
         }
         Map<Long, List<Long>> grouped = new HashMap<>();
         targetRepository.findRowsByLectureIds(lectures.stream().map(Lecture::getId).toList())
-                .forEach(row -> grouped.computeIfAbsent(row.getLectureId(), ignored -> new java.util.ArrayList<>())
-                        .add(row.getClassId()));
+                .forEach(row -> grouped.computeIfAbsent(row.lectureId(), ignored -> new java.util.ArrayList<>())
+                        .add(row.classId()));
         return grouped;
     }
 

@@ -13,8 +13,8 @@ import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.domain.exception.ContentErrorCode;
-import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
-import com.lumie.content.domain.repository.AnnouncementRepository;
+import com.lumie.content.application.port.out.AnnouncementClassTargetPersistencePort;
+import com.lumie.content.application.port.out.AnnouncementPersistencePort;
 import com.lumie.file.api.FileService;
 import com.lumie.file.api.PreparedTemporaryFile;
 import com.lumie.file.api.PreparedUploadSession;
@@ -33,8 +33,8 @@ public class AnnouncementCommandService {
 
     private static final String DELETED_STAFF_NAME = "삭제된 직원";
 
-    private final AnnouncementRepository announcementRepository;
-    private final AnnouncementClassTargetRepository classTargetRepository;
+    private final AnnouncementPersistencePort announcementRepository;
+    private final AnnouncementClassTargetPersistencePort classTargetRepository;
     private final FileService fileService;
     private final ClassService classService;
     private final StaffService staffService;

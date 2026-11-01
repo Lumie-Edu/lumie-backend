@@ -2,7 +2,7 @@ package com.lumie.assignment.application.service;
 
 import com.lumie.common.util.ReportingTime;
 import com.lumie.assignment.application.dto.response.statistics.AssignmentDashboardResponse;
-import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
+import com.lumie.assignment.application.port.out.AssignmentSubmissionPersistencePort;
 import com.lumie.assignment.domain.vo.SubmissionStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class AssignmentStatisticsQueryService {
 
     private static final ZoneId REPORTING_ZONE = ReportingTime.ZONE;
 
-    private final AssignmentSubmissionRepository submissionRepository;
+    private final AssignmentSubmissionPersistencePort submissionRepository;
 
     public AssignmentDashboardResponse getDashboardStatistics() {
         log.debug("Getting assignment dashboard statistics");

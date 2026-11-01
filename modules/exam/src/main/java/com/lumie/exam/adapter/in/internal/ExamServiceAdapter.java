@@ -1,6 +1,6 @@
 package com.lumie.exam.adapter.in.internal;
 
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
 import com.lumie.exam.application.service.ExamCommandService;
@@ -8,7 +8,7 @@ import com.lumie.exam.application.service.GradeCalculator;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.Exam;
 import com.lumie.exam.domain.exception.ExamErrorCode;
-import com.lumie.exam.domain.repository.ExamRepository;
+import com.lumie.exam.application.port.out.ExamPersistencePort;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.application.service.StudentGradeQueryService;
 import com.lumie.common.exception.BusinessException;
@@ -36,8 +36,8 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class ExamServiceAdapter implements ExamService {
 
-    private final ExamResultRepository examResultRepository;
-    private final ExamRepository examRepository;
+    private final ExamResultPersistencePort examResultRepository;
+    private final ExamPersistencePort examRepository;
     private final ResultCommandService resultCommandService;
     private final ExamCommandService examCommandService;
     private final GradeCalculator gradeCalculator;

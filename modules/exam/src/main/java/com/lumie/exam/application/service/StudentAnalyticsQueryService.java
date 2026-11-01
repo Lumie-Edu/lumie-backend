@@ -6,7 +6,7 @@ import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.QuestionResult;
 import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.exam.domain.repository.ExamResultRepository;
+import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.domain.vo.ExamCategory;
 import com.lumie.exam.domain.vo.GradingType;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ import java.util.*;
 @Transactional(readOnly = true)
 public class StudentAnalyticsQueryService {
 
-    private final ExamResultRepository resultRepository;
+    private final ExamResultPersistencePort resultRepository;
     private final StatisticsCalculator statisticsCalculator;
     private final GradeCalculator gradeCalculator;
 
