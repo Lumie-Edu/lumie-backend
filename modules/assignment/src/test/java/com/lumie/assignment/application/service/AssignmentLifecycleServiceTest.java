@@ -1,6 +1,6 @@
 package com.lumie.assignment.application.service;
 
-import com.lumie.assignment.domain.repository.AssignmentRepository;
+import com.lumie.assignment.application.port.out.AssignmentPersistencePort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.verify;
 @DisplayName("AssignmentLifecycleService 테스트")
 class AssignmentLifecycleServiceTest {
 
-    @Mock private AssignmentRepository assignmentRepository;
+    @Mock private AssignmentPersistencePort assignmentRepository;
     @InjectMocks private AssignmentLifecycleService lifecycleService;
 
     @Test

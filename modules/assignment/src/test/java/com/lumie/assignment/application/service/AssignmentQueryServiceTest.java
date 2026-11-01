@@ -9,9 +9,9 @@ import com.lumie.assignment.domain.entity.Assignment;
 import com.lumie.assignment.domain.entity.AssignmentRecipient;
 import com.lumie.assignment.domain.entity.AssignmentSubmission;
 import com.lumie.common.exception.BusinessException;
-import com.lumie.assignment.domain.repository.AssignmentRepository;
-import com.lumie.assignment.domain.repository.AssignmentRecipientRepository;
-import com.lumie.assignment.domain.repository.AssignmentSubmissionRepository;
+import com.lumie.assignment.application.port.out.AssignmentPersistencePort;
+import com.lumie.assignment.application.port.out.AssignmentRecipientPersistencePort;
+import com.lumie.assignment.application.port.out.AssignmentSubmissionPersistencePort;
 import com.lumie.assignment.domain.vo.AssignmentSearchCriteria;
 import com.lumie.assignment.domain.vo.AssignmentStatus;
 import com.lumie.assignment.domain.vo.EvaluationMode;
@@ -49,10 +49,10 @@ import static org.mockito.Mockito.verify;
 @DisplayName("AssignmentQueryService 테스트")
 class AssignmentQueryServiceTest {
 
-    @Mock private AssignmentRepository assignmentRepository;
-    @Mock private AssignmentSubmissionRepository submissionRepository;
+    @Mock private AssignmentPersistencePort assignmentRepository;
+    @Mock private AssignmentSubmissionPersistencePort submissionRepository;
     @Mock private AssignmentAudienceReadPort audienceReadPort;
-    @Mock private AssignmentRecipientRepository recipientRepository;
+    @Mock private AssignmentRecipientPersistencePort recipientRepository;
     @Mock private AssignmentRecipientService recipientService;
     @Mock private ClassService classService;
     @Mock private StudentService studentService;

@@ -1,8 +1,8 @@
 package com.lumie.assignment.application.service;
 
 import com.lumie.assignment.domain.entity.AssignmentRecipient;
-import com.lumie.assignment.domain.repository.AssignmentRecipientRepository;
-import com.lumie.assignment.domain.repository.AssignmentRepository;
+import com.lumie.assignment.application.port.out.AssignmentRecipientPersistencePort;
+import com.lumie.assignment.application.port.out.AssignmentPersistencePort;
 import com.lumie.assignment.application.port.out.AssignmentAudienceReadPort;
 import com.lumie.assignment.application.port.out.AssignmentRecipientSourcePersistencePort;
 import com.lumie.assignment.domain.exception.AssignmentErrorCode;
@@ -26,8 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class AssignmentRecipientService {
 
-    private final AssignmentRecipientRepository recipientRepository;
-    private final AssignmentRepository assignmentRepository;
+    private final AssignmentRecipientPersistencePort recipientRepository;
+    private final AssignmentPersistencePort assignmentRepository;
     private final ClassService classService;
     private final AssignmentAudienceReadPort audienceReadPort;
     private final AssignmentRecipientSourcePersistencePort sourcePort;
