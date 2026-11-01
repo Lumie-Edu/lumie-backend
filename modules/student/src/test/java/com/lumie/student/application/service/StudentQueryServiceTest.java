@@ -3,7 +3,7 @@ package com.lumie.student.application.service;
 import com.lumie.auth.api.AuthService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.student.domain.repository.StudentRepository;
+import com.lumie.student.application.port.out.StudentPersistencePort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class StudentQueryServiceTest {
 
-    @Mock private StudentRepository studentRepository;
+    @Mock private StudentPersistencePort studentRepository;
     @Mock private AuthService authService;
     @Mock private ClassService classService;
     @InjectMocks private StudentQueryService studentQueryService;

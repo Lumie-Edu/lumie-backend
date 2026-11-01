@@ -12,7 +12,7 @@ import com.lumie.student.application.dto.response.StudentResponse;
 import com.lumie.student.domain.entity.Student;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.student.domain.exception.StudentErrorCode;
-import com.lumie.student.domain.repository.StudentRepository;
+import com.lumie.student.application.port.out.StudentPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -42,7 +42,7 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class StudentQueryService {
 
-    private final StudentRepository studentRepository;
+    private final StudentPersistencePort studentRepository;
     private final AuthService authService;
     private final ClassService classService;
 
