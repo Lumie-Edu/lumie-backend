@@ -11,8 +11,8 @@ import com.lumie.classroom.api.ClassEnrollmentCreatedEvent;
 import com.lumie.classroom.domain.entity.ClassEnrollment;
 import com.lumie.staff.api.StaffService;
 import com.lumie.classroom.domain.entity.ClassEntity;
-import com.lumie.classroom.domain.repository.ClassEnrollmentRepository;
-import com.lumie.classroom.domain.repository.ClassRepository;
+import com.lumie.classroom.application.port.out.ClassEnrollmentPersistencePort;
+import com.lumie.classroom.application.port.out.ClassPersistencePort;
 import com.lumie.classroom.domain.vo.EnrollmentStatus;
 import com.lumie.classroom.domain.vo.SchedulePattern;
 import com.lumie.common.exception.BusinessException;
@@ -42,8 +42,8 @@ import org.springframework.context.ApplicationEventPublisher;
 @DisplayName("ClassCommandService 테스트")
 class ClassCommandServiceTest {
 
-    @Mock private ClassRepository classRepository;
-    @Mock private ClassEnrollmentRepository enrollmentRepository;
+    @Mock private ClassPersistencePort classRepository;
+    @Mock private ClassEnrollmentPersistencePort enrollmentRepository;
     @Mock private StaffService staffService;
     @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private ClassCommandService commandService;
