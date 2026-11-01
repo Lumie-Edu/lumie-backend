@@ -8,8 +8,8 @@ import com.lumie.content.application.dto.request.CreateAnnouncementRequest;
 import com.lumie.content.application.dto.request.UpdateAnnouncementRequest;
 import com.lumie.content.domain.entity.Announcement;
 import com.lumie.content.domain.vo.AnnouncementAudienceScope;
-import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
-import com.lumie.content.domain.repository.AnnouncementRepository;
+import com.lumie.content.application.port.out.AnnouncementClassTargetPersistencePort;
+import com.lumie.content.application.port.out.AnnouncementPersistencePort;
 import com.lumie.file.api.FileService;
 import com.lumie.staff.api.StaffService;
 import org.junit.jupiter.api.AfterEach;
@@ -37,8 +37,8 @@ import static org.mockito.Mockito.verify;
 @DisplayName("AnnouncementCommandService 테스트")
 class AnnouncementCommandServiceTest {
 
-    @Mock private AnnouncementRepository announcementRepository;
-    @Mock private AnnouncementClassTargetRepository classTargetRepository;
+    @Mock private AnnouncementPersistencePort announcementRepository;
+    @Mock private AnnouncementClassTargetPersistencePort classTargetRepository;
     @Mock private FileService fileService;
     @Mock private ClassService classService;
     @Mock private StaffService staffService;

@@ -7,9 +7,9 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.domain.entity.Announcement;
 import com.lumie.content.domain.entity.AnnouncementClassTarget;
 import com.lumie.content.domain.vo.AnnouncementAudienceScope;
-import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
-import com.lumie.content.domain.repository.AnnouncementReadRepository;
-import com.lumie.content.domain.repository.AnnouncementRepository;
+import com.lumie.content.application.port.out.AnnouncementClassTargetPersistencePort;
+import com.lumie.content.application.port.out.AnnouncementReadPersistencePort;
+import com.lumie.content.application.port.out.AnnouncementPersistencePort;
 import com.lumie.staff.api.StaffService;
 import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.AfterEach;
@@ -34,9 +34,9 @@ import static org.mockito.BDDMockito.given;
 @DisplayName("AnnouncementQueryService 테스트")
 class AnnouncementQueryServiceTest {
 
-    @Mock private AnnouncementRepository announcementRepository;
-    @Mock private AnnouncementClassTargetRepository classTargetRepository;
-    @Mock private AnnouncementReadRepository announcementReadRepository;
+    @Mock private AnnouncementPersistencePort announcementRepository;
+    @Mock private AnnouncementClassTargetPersistencePort classTargetRepository;
+    @Mock private AnnouncementReadPersistencePort announcementReadRepository;
     @Mock private StaffService staffService;
     @Mock private StudentService studentService;
     @Mock private ClassService classService;

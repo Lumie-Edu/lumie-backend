@@ -20,8 +20,8 @@ import com.lumie.classroom.application.service.ClassQueryService;
 import com.lumie.ai.application.service.SchemaDiscoveryService;
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.api.TenantStatus;
-import com.lumie.content.domain.repository.AnnouncementRepository;
-import com.lumie.content.domain.repository.AnnouncementClassTargetRepository;
+import com.lumie.content.application.port.out.AnnouncementPersistencePort;
+import com.lumie.content.application.port.out.AnnouncementClassTargetPersistencePort;
 import com.lumie.content.domain.entity.Announcement;
 import com.lumie.file.api.FileService;
 import com.lumie.classroom.api.ClassService;
@@ -82,11 +82,11 @@ public class StaffApiAuthorizationSteps {
 
     // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
-    private AnnouncementRepository announcementRepository;
+    private AnnouncementPersistencePort announcementRepository;
 
     // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
-    private AnnouncementClassTargetRepository announcementClassTargetRepository;
+    private AnnouncementClassTargetPersistencePort announcementClassTargetRepository;
 
     // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired

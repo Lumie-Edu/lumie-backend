@@ -6,8 +6,8 @@ import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.application.dto.request.CreateCommentRequest;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
-import com.lumie.content.domain.repository.QnaBoardRepository;
-import com.lumie.content.domain.repository.QnaCommentRepository;
+import com.lumie.content.application.port.out.QnaBoardPersistencePort;
+import com.lumie.content.application.port.out.QnaCommentPersistencePort;
 import com.lumie.file.api.FileService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -24,8 +24,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 class QnaCommentAuthorizationTest {
 
-    private final QnaBoardRepository boards = mock(QnaBoardRepository.class);
-    private final QnaCommentRepository comments = mock(QnaCommentRepository.class);
+    private final QnaBoardPersistencePort boards = mock(QnaBoardPersistencePort.class);
+    private final QnaCommentPersistencePort comments = mock(QnaCommentPersistencePort.class);
     private final QnaCommandService service = new QnaCommandService(boards, comments, mock(FileService.class));
 
     @AfterEach
@@ -73,7 +73,6 @@ class QnaCommentAuthorizationTest {
         board.addComment(deletedStaffReply);
         board.addComment(otherReply);
         given(boards.findByIdWithComments(1L)).willReturn(Optional.of(board));
-        given(comments.existsById(3L)).willReturn(true);
 
         service.deleteComment(1L, 3L);
 
@@ -98,7 +97,6 @@ class QnaCommentAuthorizationTest {
         board.addComment(staffReply);
         assertThat(board.getIsAnswered()).isTrue();
         given(boards.findByIdWithComments(1L)).willReturn(Optional.of(board));
-        given(comments.existsById(3L)).willReturn(true);
 
         service.deleteComment(1L, 3L);
 

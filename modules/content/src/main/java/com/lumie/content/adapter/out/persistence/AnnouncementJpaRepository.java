@@ -1,4 +1,4 @@
-package com.lumie.content.domain.repository;
+package com.lumie.content.adapter.out.persistence;
 
 import com.lumie.content.domain.entity.Announcement;
 import org.springframework.data.domain.Page;
@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {
+public interface AnnouncementJpaRepository extends JpaRepository<Announcement, Long> {
 
     @Query("SELECT a FROM Announcement a ORDER BY a.isItImportantAnnouncement DESC, a.createdAt DESC")
     Page<Announcement> findAllOrderByImportantDescCreatedAtDesc(Pageable pageable);

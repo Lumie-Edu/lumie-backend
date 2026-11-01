@@ -1,4 +1,4 @@
-package com.lumie.content.domain.repository;
+package com.lumie.content.adapter.out.persistence;
 
 import com.lumie.content.domain.entity.QnaBoard;
 import org.springframework.data.domain.Page;
@@ -17,7 +17,7 @@ import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
 
-public interface QnaBoardRepository extends JpaRepository<QnaBoard, Long>, JpaSpecificationExecutor<QnaBoard> {
+public interface QnaBoardJpaRepository extends JpaRepository<QnaBoard, Long>, JpaSpecificationExecutor<QnaBoard> {
 
     @EntityGraph(attributePaths = {"comments"})
     @Query("SELECT q FROM QnaBoard q WHERE q.id = :id")

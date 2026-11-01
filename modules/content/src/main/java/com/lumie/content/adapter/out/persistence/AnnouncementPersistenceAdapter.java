@@ -1,0 +1,11 @@
+package com.lumie.content.adapter.out.persistence;
+import com.lumie.content.application.port.out.AnnouncementPersistencePort; import com.lumie.content.domain.entity.Announcement; import lombok.RequiredArgsConstructor; import org.springframework.data.domain.*; import org.springframework.stereotype.Repository; import java.util.*;
+@Repository @RequiredArgsConstructor public class AnnouncementPersistenceAdapter implements AnnouncementPersistencePort {
+ private final AnnouncementJpaRepository repository;
+ @Override public Page<Announcement> findAllOrderByImportantDescCreatedAtDesc(Pageable p){return repository.findAllOrderByImportantDescCreatedAtDesc(p);}
+ @Override public Page<Announcement> findByIsItAssetAnnouncementOrderByImportantDescCreatedAtDesc(Boolean a,Pageable p){return repository.findByIsItAssetAnnouncementOrderByImportantDescCreatedAtDesc(a,p);}
+ @Override public Page<Announcement> findAcademyWide(Pageable p){return repository.findAcademyWide(p);} @Override public Page<Announcement> findVisibleToClasses(List<Long> ids,Pageable p){return repository.findVisibleToClasses(ids,p);}
+ @Override public Page<Announcement> findAcademyWideByIsAsset(Boolean a,Pageable p){return repository.findAcademyWideByIsAsset(a,p);} @Override public Page<Announcement> findVisibleToClassesByIsAsset(Boolean a,List<Long> ids,Pageable p){return repository.findVisibleToClassesByIsAsset(a,ids,p);}
+ @Override public List<Announcement> findImportantAcademyWide(){return repository.findImportantAcademyWide();} @Override public List<Announcement> findImportantVisibleToClasses(List<Long> ids){return repository.findImportantVisibleToClasses(ids);} @Override public List<Announcement> findByIsItImportantAnnouncementTrue(){return repository.findByIsItImportantAnnouncementTrue();}
+ @Override public Optional<Announcement> findById(Long id){return repository.findById(id);} @Override public boolean existsById(Long id){return repository.existsById(id);} @Override public Announcement save(Announcement a){return repository.save(a);} @Override public void flush(){repository.flush();} @Override public void deleteById(Long id){repository.deleteById(id);}
+}

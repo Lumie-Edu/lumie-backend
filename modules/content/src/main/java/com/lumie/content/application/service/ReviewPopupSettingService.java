@@ -3,7 +3,7 @@ package com.lumie.content.application.service;
 import com.lumie.content.application.dto.request.UpdateReviewPopupSettingRequest;
 import com.lumie.content.application.dto.response.ReviewPopupSettingResponse;
 import com.lumie.content.domain.entity.ReviewPopupSetting;
-import com.lumie.content.domain.repository.ReviewPopupSettingRepository;
+import com.lumie.content.application.port.out.ReviewPopupSettingPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ReviewPopupSettingService {
 
-    private final ReviewPopupSettingRepository settingRepository;
+    private final ReviewPopupSettingPersistencePort settingRepository;
 
     @Transactional(readOnly = true)
     public ReviewPopupSettingResponse getPopupSetting() {
