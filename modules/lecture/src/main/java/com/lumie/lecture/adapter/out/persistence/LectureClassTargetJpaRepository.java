@@ -1,4 +1,4 @@
-package com.lumie.lecture.domain.repository;
+package com.lumie.lecture.adapter.out.persistence;
 
 import com.lumie.lecture.domain.entity.LectureClassTarget;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
 
-public interface LectureClassTargetRepository extends JpaRepository<LectureClassTarget, Long> {
+interface LectureClassTargetJpaRepository extends JpaRepository<LectureClassTarget, Long> {
 
     List<LectureClassTarget> findByLectureIdOrderByClassIdAsc(Long lectureId);
 
@@ -33,10 +33,11 @@ public interface LectureClassTargetRepository extends JpaRepository<LectureClass
             WHERE t.lecture.id IN :lectureIds
             ORDER BY t.classId ASC
             """)
-    List<LectureClassTargetRow> findRowsByLectureIds(@Param("lectureIds") Collection<Long> lectureIds);
+    List<LectureClassTargetRowProjection> findRowsByLectureIds(@Param("lectureIds") Collection<Long> lectureIds);
 
-    interface LectureClassTargetRow {
+    interface LectureClassTargetRowProjection {
         Long getLectureId();
+
         Long getClassId();
     }
 }

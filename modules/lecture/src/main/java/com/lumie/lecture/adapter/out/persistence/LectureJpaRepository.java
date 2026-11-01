@@ -1,4 +1,4 @@
-package com.lumie.lecture.domain.repository;
+package com.lumie.lecture.adapter.out.persistence;
 
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.entity.LectureClassTarget;
@@ -18,8 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public interface LectureRepository extends JpaRepository<Lecture, Long>,
-        JpaSpecificationExecutor<Lecture> {
+public interface LectureJpaRepository extends JpaRepository<Lecture, Long>, JpaSpecificationExecutor<Lecture> {
 
     @Query("""
             SELECT DISTINCT l

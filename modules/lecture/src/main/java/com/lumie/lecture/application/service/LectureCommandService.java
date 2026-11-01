@@ -12,8 +12,8 @@ import com.lumie.lecture.domain.entity.LectureClassTarget;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.lecture.domain.exception.LectureErrorCode;
-import com.lumie.lecture.domain.repository.LectureClassTargetRepository;
-import com.lumie.lecture.domain.repository.LectureRepository;
+import com.lumie.lecture.application.port.out.LecturePersistencePort;
+import com.lumie.lecture.application.port.out.LectureClassTargetPersistencePort;
 import com.lumie.lecture.domain.vo.LectureVisibility;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.common.tenant.TenantContextHolder;
@@ -33,8 +33,8 @@ import java.util.Set;
 @Transactional
 public class LectureCommandService {
 
-    private final LectureRepository lectureRepository;
-    private final LectureClassTargetRepository targetRepository;
+    private final LecturePersistencePort lectureRepository;
+    private final LectureClassTargetPersistencePort targetRepository;
     private final StaffService staffService;
     private final ClassService classService;
 

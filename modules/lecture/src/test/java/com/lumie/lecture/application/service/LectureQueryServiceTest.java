@@ -11,8 +11,8 @@ import com.lumie.lecture.application.dto.response.WatchResponse;
 import com.lumie.lecture.domain.entity.Lecture;
 import com.lumie.lecture.domain.entity.LectureClassTarget;
 import com.lumie.lecture.domain.exception.LectureErrorCode;
-import com.lumie.lecture.domain.repository.LectureClassTargetRepository;
-import com.lumie.lecture.domain.repository.LectureRepository;
+import com.lumie.lecture.application.port.out.LectureClassTargetPersistencePort;
+import com.lumie.lecture.application.port.out.LecturePersistencePort;
 import com.lumie.lecture.domain.vo.LectureVisibility;
 import com.lumie.student.api.StudentService;
 import org.junit.jupiter.api.AfterEach;
@@ -37,8 +37,8 @@ import static org.mockito.BDDMockito.given;
 @DisplayName("LectureQueryService 테스트")
 class LectureQueryServiceTest {
 
-    @Mock private LectureRepository lectureRepository;
-    @Mock private LectureClassTargetRepository targetRepository;
+    @Mock private LecturePersistencePort lectureRepository;
+    @Mock private LectureClassTargetPersistencePort targetRepository;
     @Mock private StudentService studentService;
     @Mock private ClassService classService;
     @InjectMocks private LectureQueryService queryService;
