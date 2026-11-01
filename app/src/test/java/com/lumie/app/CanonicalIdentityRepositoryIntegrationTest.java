@@ -1,7 +1,8 @@
 package com.lumie.app;
 
 import com.lumie.common.tenant.TenantContextHolder;
-import com.lumie.staff.domain.repository.StaffRepository;
+import com.lumie.staff.adapter.out.persistence.StaffJpaRepository;
+import com.lumie.staff.application.port.out.StaffPersistencePort;
 import com.lumie.student.domain.repository.StudentRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,15 +20,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Exercises Hibernate @Formula queries against Postgres without duplicate identity columns. */
 class CanonicalIdentityRepositoryIntegrationTest extends FullContextTestBase {
     private final StudentRepository students;
-    private final StaffRepository staff;
+    private final StaffPersistencePort staff;
+    private final StaffJpaRepository staffJpaRepository;
     private final JdbcTemplate jdbc;
 
     CanonicalIdentityRepositoryIntegrationTest(
             @Autowired StudentRepository students,
-            @Autowired StaffRepository staff,
+            @Autowired StaffPersistencePort staff,
+            @Autowired StaffJpaRepository staffJpaRepository,
             @Autowired @Qualifier("primaryDataSource") DataSource primaryDataSource) {
         this.students = students;
         this.staff = staff;
+        this.staffJpaRepository = staffJpaRepository;
         this.jdbc = new JdbcTemplate(primaryDataSource);
     }
 
@@ -100,7 +104,7 @@ class CanonicalIdentityRepositoryIntegrationTest extends FullContextTestBase {
         student.updateInfo(null, null, "Updated School", null, null, null);
         students.saveAndFlush(student);
         teacher.updateInfo(null, null, null, "Updated memo");
-        staff.saveAndFlush(teacher);
+        staffJpaRepository.saveAndFlush(teacher);
 
         assertThat(jdbc.queryForObject(
                 "select count(*) from students where id = 911",
@@ -120,7 +124,7 @@ class CanonicalIdentityRepositoryIntegrationTest extends FullContextTestBase {
         var student = students.saveAndFlush(com.lumie.student.domain.entity.Student.create(
                 903L, "student_903", "New Student", "01012345679",
                 null, null, null, null));
-        var teacher = staff.saveAndFlush(com.lumie.staff.domain.entity.Staff.create(
+        var teacher = staffJpaRepository.saveAndFlush(com.lumie.staff.domain.entity.Staff.create(
                 904L, "staff_904", "New Staff", "01087654322", "new@example.com", null));
 
         assertThat(student.getStudentName()).isEqualTo("New Student");
