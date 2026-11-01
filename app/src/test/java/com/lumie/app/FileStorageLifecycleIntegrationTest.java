@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
 import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -46,6 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag("integration")
 @Testcontainers
 @Timeout(value = 180, unit = TimeUnit.SECONDS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 class FileStorageLifecycleIntegrationTest extends FullContextTestBase {
 
     private static final String BUCKET = "lumie-files";
@@ -115,6 +117,7 @@ class FileStorageLifecycleIntegrationTest extends FullContextTestBase {
     }
 
     @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void temporaryUploadPromotesToReadyThenDeletesThroughTheDurableOutbox() {
         UUID uploadId = UUID.randomUUID();
         String sourceKey = FileObjectKeyFactory.temporaryUpload("file-smoke", uploadId, "notes.pdf");
