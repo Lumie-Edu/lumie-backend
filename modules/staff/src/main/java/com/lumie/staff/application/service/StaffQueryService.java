@@ -6,8 +6,8 @@ import com.lumie.staff.application.dto.response.StaffResponse;
 import com.lumie.staff.domain.entity.Staff;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.staff.domain.exception.StaffErrorCode;
-import com.lumie.staff.domain.repository.StaffPermissionRepository;
-import com.lumie.staff.domain.repository.StaffRepository;
+import com.lumie.staff.application.port.out.StaffPermissionPersistencePort;
+import com.lumie.staff.application.port.out.StaffPersistencePort;
 import com.lumie.auth.api.AuthService;
 import com.lumie.common.cache.CacheConfig;
 import lombok.RequiredArgsConstructor;
@@ -27,8 +27,8 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class StaffQueryService {
 
-    private final StaffRepository staffRepository;
-    private final StaffPermissionRepository staffPermissionRepository;
+    private final StaffPersistencePort staffRepository;
+    private final StaffPermissionPersistencePort staffPermissionRepository;
     private final AuthService authService;
 
     public StaffResponse getStaff(Long id) {
