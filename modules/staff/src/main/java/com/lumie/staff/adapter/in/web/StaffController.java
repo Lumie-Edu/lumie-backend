@@ -45,7 +45,7 @@ public class StaffController {
 
     @GetMapping("/{id}")
     public ResponseEntity<StaffResponse> getStaff(@PathVariable Long id) {
-        AuthorizationGuard.requireAtLeast(Role.MANAGER);
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         StaffResponse response = staffQueryService.getStaff(id);
         return ResponseEntity.ok(response);
     }
@@ -56,7 +56,7 @@ public class StaffController {
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        AuthorizationGuard.requireAtLeast(Role.MANAGER);
+        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
         StaffFilterRequest filter = new StaffFilterRequest(isActive, search);
         Page<StaffResponse> response = staffQueryService.getAllStaff(filter, pageable);
         return ResponseEntity.ok(PageResponse.from(response));
@@ -131,7 +131,7 @@ public class StaffController {
     @DeleteMapping("/{id}")
     @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteStaff(@PathVariable Long id) {
-        AuthorizationGuard.requireAtLeast(Role.MANAGER);
+        AuthorizationGuard.requireAtLeast(Role.OWNER);
         staffCommandService.deleteStaff(id);
         return ResponseEntity.noContent().build();
     }

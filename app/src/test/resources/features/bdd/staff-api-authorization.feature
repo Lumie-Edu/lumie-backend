@@ -44,10 +44,24 @@ Feature: Employee API role boundaries
     Then the response status is 403
     And the error code is "COMMON_006"
 
-  @BDD-US2-001 @FR-005 @FR-008 @EC-004
-  Scenario: An instructor cannot list employee accounts
+  @BDD-US2-001 @FR-008 @EC-004
+  Scenario: An instructor can list employee accounts
     Given an authenticated "INSTRUCTOR" session
     When the client requests "/v1/staff"
+    Then the response status is 200
+    And the staff query service is called
+
+  @BDD-US2-001 @FR-008 @EC-004
+  Scenario: An instructor cannot delete employee accounts
+    Given an authenticated "INSTRUCTOR" session
+    When the client sends "DELETE" to "/v1/staff/1"
+    Then the response status is 403
+    And the error code is "COMMON_006"
+
+  @BDD-US2-001 @FR-008 @EC-004
+  Scenario: A manager cannot delete employee accounts
+    Given an authenticated "MANAGER" session
+    When the client sends "DELETE" to "/v1/staff/1"
     Then the response status is 403
     And the error code is "COMMON_006"
 

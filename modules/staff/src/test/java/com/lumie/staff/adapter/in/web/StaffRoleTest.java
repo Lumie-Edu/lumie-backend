@@ -1,6 +1,9 @@
 package com.lumie.staff.adapter.in.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -8,12 +11,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.lumie.common.auth.Role;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.common.exception.CommonErrorCode;
 import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.staff.application.service.StaffCommandService;
 import com.lumie.staff.application.service.StaffQueryService;
 import com.lumie.staff.application.service.StaffStatisticsQueryService;
 import com.lumie.staff.application.service.PermissionQueryService;
+import com.lumie.staff.application.dto.request.StaffUpdateRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,23 +61,41 @@ class StaffRoleTest {
     }
 
     @Test
-    void instructorCannotListStaffAccountsBeforeQueryService() throws Exception {
+    void instructorCanReadStaffListAndDetails() throws Exception {
         UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        given(queryService.getAllStaff(any(), any()))
+                .willReturn(new PageImpl<>(java.util.List.of(), PageRequest.of(0, 20), 0));
+        given(queryService.getStaff(42L)).willReturn(new StaffResponse(
+                42L, 10L, "instructor_42", "Instructor", "", null, "INSTRUCTOR", null,
+                true, null, null, null, null));
 
         mockMvc.perform(get("/v1/staff"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/v1/staff/42"))
+                .andExpect(status().isOk());
 
-        verify(queryService, never()).getAllStaff(
-                org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any());
+        verify(queryService).getAllStaff(any(), any());
+        verify(queryService).getStaff(42L);
     }
 
     @Test
-    void instructorIsDeniedAtEntryToEveryStaffAccountHandler() throws Exception {
+    void studentCannotReadStaffAccounts() throws Exception {
+        UserContextHolder.setUserRole(Role.STUDENT);
+
+        mockMvc.perform(get("/v1/staff")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/v1/staff/42")).andExpect(status().isForbidden());
+
+        verifyNoInteractions(queryService);
+    }
+
+    @Test
+    void instructorIsDeniedAtEntryToStaffWritesAndPermissions() throws Exception {
         UserContextHolder.setUserRole(Role.INSTRUCTOR);
         StaffController controller = new StaffController(commandService, queryService);
         var handlers = Arrays.stream(StaffController.class.getDeclaredMethods())
                 .filter(StaffRoleTest::isMappedHandler)
+                .filter(handler -> !handler.getName().equals("getStaff")
+                        && !handler.getName().equals("getAllStaff"))
                 .toList();
 
         for (Method handler : handlers) {
@@ -88,6 +112,31 @@ class StaffRoleTest {
         }
 
         verifyNoInteractions(commandService, queryService);
+    }
+
+    @Test
+    void managerCanUpdateButCannotDeleteStaff() {
+        UserContextHolder.setUserRole(Role.MANAGER);
+        StaffController controller = new StaffController(commandService, queryService);
+        StaffUpdateRequest request = new StaffUpdateRequest("Updated", null, null, null);
+
+        assertThat(controller.updateStaff(42L, request).getStatusCode().value()).isEqualTo(200);
+        assertThatThrownBy(() -> controller.deleteStaff(42L))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(CommonErrorCode.FORBIDDEN));
+
+        verify(commandService).updateStaff(42L, request);
+        verify(commandService, never()).deleteStaff(42L);
+    }
+
+    @Test
+    void ownerCanDeleteStaff() {
+        UserContextHolder.setUserRole(Role.OWNER);
+        StaffController controller = new StaffController(commandService, queryService);
+
+        assertThat(controller.deleteStaff(42L).getStatusCode().value()).isEqualTo(204);
+
+        verify(commandService).deleteStaff(42L);
     }
 
     @Test
