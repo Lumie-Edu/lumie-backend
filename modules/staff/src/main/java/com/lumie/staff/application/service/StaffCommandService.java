@@ -14,6 +14,7 @@ import com.lumie.staff.domain.exception.StaffErrorCode;
 import com.lumie.staff.application.port.out.StaffPermissionPersistencePort;
 import com.lumie.staff.application.port.out.StaffPersistencePort;
 import com.lumie.staff.domain.vo.AccessLevel;
+import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.auth.Role;
 import com.lumie.common.cache.CacheConfig;
 import com.lumie.common.exception.BusinessException;
@@ -209,6 +210,7 @@ public class StaffCommandService {
     }
 
     public void deleteStaff(Long id) {
+        AuthorizationGuard.requireOwner();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         Staff staff = staffRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(StaffErrorCode.STAFF_NOT_FOUND, "Staff not found with id: %d".formatted(id)));

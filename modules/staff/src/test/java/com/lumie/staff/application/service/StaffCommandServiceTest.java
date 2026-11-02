@@ -91,6 +91,15 @@ class StaffCommandServiceTest {
     }
 
     @Test
+    void managerCannotDeleteInstructorEvenThroughCommandService() {
+        UserContextHolder.setUserRole(Role.MANAGER);
+
+        assertForbidden(() -> service.deleteStaff(10L));
+
+        verifyNoInteractions(staffRepository, authService);
+    }
+
+    @Test
     @DisplayName("registerStaff는 11자리가 아닌 직원 연락처를 막는다")
     void registerStaff_tenDigitPhone_blocksRegistration() {
         StaffRequest request = new StaffRequest(

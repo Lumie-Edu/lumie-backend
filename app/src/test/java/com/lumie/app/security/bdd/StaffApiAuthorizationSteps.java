@@ -26,6 +26,7 @@ import com.lumie.content.domain.entity.Announcement;
 import com.lumie.file.api.FileService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.staff.api.StaffService;
+import com.lumie.staff.application.service.StaffQueryService;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.nio.charset.StandardCharsets;
@@ -100,6 +101,10 @@ public class StaffApiAuthorizationSteps {
     @Autowired
     private StaffService staffService;
 
+    // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
+    @Autowired
+    private StaffQueryService staffQueryService;
+
     private Cookie sessionCookie;
     private MvcResult result;
     private String sessionId;
@@ -108,7 +113,7 @@ public class StaffApiAuthorizationSteps {
     public void anAuthenticatedSession(String roleName) {
         clearInvocations(authQueryService, temporaryObjectUploadService, studentQueryService, fileCommandService,
                 classQueryService, schemaDiscoveryService, tenantService, announcementRepository,
-                announcementClassTargetRepository, fileService, classService, staffService);
+                announcementClassTargetRepository, fileService, classService, staffService, staffQueryService);
         sessionId = java.util.UUID.randomUUID().toString();
         Role role = Role.valueOf(roleName);
         Instant now = Instant.now();
@@ -122,6 +127,9 @@ public class StaffApiAuthorizationSteps {
                     org.mockito.ArgumentMatchers.any(),
                     org.mockito.ArgumentMatchers.any(),
                     org.mockito.ArgumentMatchers.any()))
+                    .willReturn(org.springframework.data.domain.Page.empty());
+            given(staffQueryService.getAllStaff(
+                    org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                     .willReturn(org.springframework.data.domain.Page.empty());
         }
         given(classQueryService.getClassesForCurrentStudent(org.mockito.ArgumentMatchers.any()))
@@ -287,6 +295,12 @@ public class StaffApiAuthorizationSteps {
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any());
+    }
+
+    @Then("the staff query service is called")
+    public void theStaffQueryServiceIsCalled() {
+        verify(staffQueryService).getAllStaff(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Then("the class query service is called")
