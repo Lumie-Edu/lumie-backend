@@ -22,6 +22,7 @@ public enum TenantErrorCode implements ErrorCode {
     INVALID_TENANT_STATE("TENANT_016", "현재 학원 상태에서는 요청을 처리할 수 없습니다.", 409),
     ONBOARDING_ALREADY_COMPLETED("TENANT_018", "학원 등록 절차가 이미 완료되었습니다.", 409),
     TENANT_CONTEXT_MISMATCH("TENANT_019", "요청한 학원 정보가 일치하지 않습니다.", 403),
+    TENANT_INACTIVE("TENANT_020", "이용이 중지된 학원입니다.", 403),
 
     // 400 Bad Request
     INVALID_CUSTOM_ID("TENANT_007", "사용자 지정 ID 형식이 올바르지 않습니다.", 400),

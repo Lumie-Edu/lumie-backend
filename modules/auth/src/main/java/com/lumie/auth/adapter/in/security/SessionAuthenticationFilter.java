@@ -42,7 +42,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                 Object hostTenant = request.getAttribute(RequestContextFilter.HOST_TENANT_SLUG_ATTRIBUTE);
                 if (hostTenant instanceof String hostTenantSlug && !hostTenantSlug.equals(session.tenantSlug())) {
                     problems.write(request, response, HttpServletResponse.SC_FORBIDDEN,
-                            CommonErrorCode.FORBIDDEN.getCode(), "Tenant context mismatch");
+                            CommonErrorCode.FORBIDDEN.getCode(), "요청한 학원 정보가 일치하지 않습니다.");
                     return;
                 }
                 authenticate(session);

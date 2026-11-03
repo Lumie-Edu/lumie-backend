@@ -33,7 +33,7 @@ public class SameOriginCsrfFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         if (isUnsafeMethod(request) && hasSessionCookie(request) && !sameOriginPolicy.isAllowed(request)) {
             problems.write(request, response, HttpServletResponse.SC_FORBIDDEN,
-                    CommonErrorCode.FORBIDDEN.getCode(), "Cross-origin request rejected");
+                    CommonErrorCode.FORBIDDEN.getCode(), "요청 출처를 확인할 수 없습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.");
             return;
         }
         filterChain.doFilter(request, response);

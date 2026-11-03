@@ -30,6 +30,19 @@ final class UserFacingErrorMessages {
         };
     }
 
+    static String titleForStatus(int status) {
+        return switch (status) {
+            case 400 -> "잘못된 요청";
+            case 401 -> "인증 필요";
+            case 403 -> "접근 거부";
+            case 404 -> "찾을 수 없음";
+            case 409 -> "요청 충돌";
+            case 422 -> "처리할 수 없는 요청";
+            case 429 -> "요청 제한 초과";
+            default -> status >= 500 ? "서버 오류" : "요청 실패";
+        };
+    }
+
     static String preserveOrLocalize(String message, int status) {
         return isKoreanMessage(message) ? message : forStatus(status);
     }
