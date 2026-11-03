@@ -116,7 +116,7 @@ public class AuthSessionService {
         UserDirectoryPort.DirectoryEntry entry = userDirectoryPort.findByUserLoginId(request.userLoginId())
                 .orElseThrow(InvalidCredentialsException::new);
         TenantData tenant = tenantService.getTenant(entry.tenantId())
-                .orElseThrow(InvalidCredentialsException::new);
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
         if (!tenant.isActive()) {
             throw new TenantInactiveException("Tenant is not active");
         }

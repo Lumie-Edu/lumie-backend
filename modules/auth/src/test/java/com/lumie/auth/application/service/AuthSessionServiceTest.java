@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -91,6 +93,37 @@ class AuthSessionServiceTest {
 
         assertCredentialError(() -> service().login(
                 new LoginRequest("student1", "WrongPass123!"), metadata()));
+    }
+
+    @Test
+    void rootLoginUsesNeutralCredentialErrorForUnknownDirectoryId() {
+        TenantContextHolder.clear();
+        when(userDirectoryPort.findByUserLoginId("unknown_owner")).thenReturn(Optional.empty());
+
+        assertCredentialError(() -> service().login(
+                new LoginRequest("unknown_owner", "ValidPass123!"), metadata()));
+    }
+
+    @Test
+    void rootLoginUsesNeutralCredentialErrorWhenDirectoryTenantIsMissing() {
+        TenantContextHolder.clear();
+        when(userDirectoryPort.findByUserLoginId("owner"))
+                .thenReturn(Optional.of(new UserDirectoryPort.DirectoryEntry(99L, "owner", 88L, null)));
+        doReturn(Optional.empty()).when(tenantService).getTenant(88L);
+
+        assertCredentialError(() -> service().login(
+                new LoginRequest("owner", "ValidPass123!"), metadata()));
+        verify(tenantService).getTenant(88L);
+        verify(userLookupPort, never()).findByUserLoginId("owner");
+        assertCredentialError(() -> ReflectionTestUtils.invokeMethod(
+                service(), "resolveLoginTenant", new LoginRequest("owner", "ValidPass123!")));
+    }
+
+    @Test
+    void legacyCredentialDetailIsIgnoredByTheTypedException() {
+        assertCredentialError(() -> {
+            throw new InvalidCredentialsException("Invalid user login ID or password");
+        });
     }
 
     @Test

@@ -16,6 +16,11 @@ public final class AuthErrors {
         public InvalidCredentialsException() {
             super(AuthErrorCode.INVALID_CREDENTIALS);
         }
+
+        /** Compatibility for existing call sites; the supplied detail is intentionally ignored. */
+        public InvalidCredentialsException(String ignoredMessage) {
+            this();
+        }
     }
 
     /** Login id already in use during registration — maps to 409. */
