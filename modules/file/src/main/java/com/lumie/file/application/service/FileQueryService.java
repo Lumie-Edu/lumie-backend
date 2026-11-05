@@ -31,6 +31,7 @@ public class FileQueryService {
     private final FileMetadataPersistencePort fileMetadataRepository;
     private final com.lumie.file.application.port.out.FileDownloadPersistencePort fileDownloadRepository;
     private final com.lumie.student.api.StudentService studentService;
+    private final com.lumie.staff.api.StaffService staffService;
     private final AuthService authService;
     private final FileMetadataLookupService fileMetadataLookupService;
     private final StoragePort storagePort;
@@ -120,18 +121,27 @@ public class FileQueryService {
                 ));
         List<Long> unresolvedIds = userIds.stream().filter(id -> !nameMap.containsKey(id)).toList();
         Map<Long, String> roles = unresolvedIds.isEmpty() ? Map.of() : authService.getUserRoles(unresolvedIds);
+        roles.forEach((userId, role) -> {
+            if (isStaffRole(role)) {
+                staffService.getStaffByUserId(tenantSlug, userId)
+                        .map(com.lumie.staff.api.StaffService.StaffData::name)
+                        .ifPresent(name -> nameMap.put(userId, name));
+            }
+        });
 
         return downloads.stream()
-                .filter(d -> {
-                    String role = roles.get(d.getUserId());
-                    return role == null || Role.STUDENT.name().equals(role);
-                })
                 .map(d -> new com.lumie.file.application.dto.response.FileDownloaderResponse(
                         d.getUserId(),
                         nameMap.getOrDefault(d.getUserId(), UNKNOWN_USER_NAME),
                         d.getUpdatedAt()
                 ))
                 .toList();
+    }
+
+    private boolean isStaffRole(String role) {
+        return Role.OWNER.name().equals(role)
+                || Role.MANAGER.name().equals(role)
+                || Role.INSTRUCTOR.name().equals(role);
     }
 
 
