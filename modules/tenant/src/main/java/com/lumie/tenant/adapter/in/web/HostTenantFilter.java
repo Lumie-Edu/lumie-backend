@@ -3,6 +3,7 @@ package com.lumie.tenant.adapter.in.web;
 import com.lumie.common.tenant.RequestContextFilter;
 import com.lumie.common.exception.ProblemResponseWriter;
 import com.lumie.common.exception.CommonErrorCode;
+import com.lumie.tenant.domain.exception.TenantErrorCode;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.tenant.application.service.HostTenantResolver;
 import jakarta.servlet.FilterChain;
@@ -58,7 +59,8 @@ public class HostTenantFilter extends OncePerRequestFilter {
         if (resolved.isEmpty()) {
             if (!resolver.isRootHost(host)) {
                 problems.write(request, response, HttpStatus.NOT_FOUND.value(),
-                        CommonErrorCode.RESOURCE_NOT_FOUND.getCode(), "Tenant not found");
+                        CommonErrorCode.RESOURCE_NOT_FOUND.getCode(),
+                        "학원 주소를 찾을 수 없습니다. 주소를 확인해 주세요.");
                 return;
             }
             filterChain.doFilter(request, response);
@@ -68,7 +70,7 @@ public class HostTenantFilter extends OncePerRequestFilter {
         HostTenantResolver.ResolvedTenant tenant = resolved.get();
         if (!tenant.isActive()) {
             problems.write(request, response, HttpStatus.FORBIDDEN.value(),
-                    CommonErrorCode.FORBIDDEN.getCode(), "Tenant unavailable");
+                    TenantErrorCode.TENANT_INACTIVE.getCode(), TenantErrorCode.TENANT_INACTIVE.getMessage());
             return;
         }
 

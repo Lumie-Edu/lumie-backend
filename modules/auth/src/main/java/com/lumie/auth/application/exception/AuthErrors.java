@@ -1,7 +1,6 @@
 package com.lumie.auth.application.exception;
 
 import com.lumie.common.exception.BusinessException;
-import com.lumie.common.exception.CommonErrorCode;
 
 /**
  * Application-layer exceptions for the auth flows. Grouped here as nested
@@ -12,10 +11,15 @@ public final class AuthErrors {
 
     private AuthErrors() {}
 
-    /** Wrong login id / password, expired account, etc. — maps to 401. */
+    /** Unknown login ID or incorrect password — maps to the neutral credential error. */
     public static class InvalidCredentialsException extends BusinessException {
-        public InvalidCredentialsException(String message) {
-            super(CommonErrorCode.UNAUTHORIZED, message);
+        public InvalidCredentialsException() {
+            super(AuthErrorCode.INVALID_CREDENTIALS);
+        }
+
+        /** Compatibility for existing call sites; the supplied detail is intentionally ignored. */
+        public InvalidCredentialsException(String ignoredMessage) {
+            this();
         }
     }
 

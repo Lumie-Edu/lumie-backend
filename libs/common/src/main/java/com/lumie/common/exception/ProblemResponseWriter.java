@@ -5,7 +5,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import java.io.IOException;
@@ -22,12 +21,11 @@ public class ProblemResponseWriter {
 
     public void write(HttpServletRequest request, HttpServletResponse response, int status,
                       String code, String detail) throws IOException {
-        HttpStatus known = HttpStatus.resolve(status);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("type", "urn:lumie:error:" + code.toLowerCase(java.util.Locale.ROOT).replace('_', '-'));
-        body.put("title", known == null ? "Request failed" : known.getReasonPhrase());
+        body.put("title", UserFacingErrorMessages.titleForStatus(status));
         body.put("status", status);
-        body.put("detail", detail);
+        body.put("detail", UserFacingErrorMessages.preserveOrLocalize(detail, status));
         body.put("instance", request.getRequestURI());
         body.put("code", code);
         body.put("timestamp", Instant.now().toString());

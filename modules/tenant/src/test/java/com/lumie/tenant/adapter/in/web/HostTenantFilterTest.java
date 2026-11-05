@@ -51,11 +51,18 @@ class HostTenantFilterTest {
     void rejectsUnknownInactiveAndUnavailableTenantHosts() throws Exception {
         MockHttpServletResponse unknownResponse = runWith("unknown.example", Optional.empty());
         assertThat(unknownResponse.getStatus()).isEqualTo(404);
+        var unknownBody = new com.fasterxml.jackson.databind.ObjectMapper().readTree(unknownResponse.getContentAsString());
+        assertThat(unknownBody.path("detail").asText())
+                .isEqualTo("학원 주소를 찾을 수 없습니다. 주소를 확인해 주세요.");
+        assertThat(unknownBody.path("code").asText()).isEqualTo("COMMON_003");
 
         Tenant inactive = Tenant.create("inst-inactive", "Inactive", null);
         MockHttpServletResponse inactiveResponse = runWith("inactive.lumie-edu.com",
                 Optional.of(new HostTenantResolver.ResolvedTenant(inactive, null)));
         assertThat(inactiveResponse.getStatus()).isEqualTo(403);
+        var inactiveBody = new com.fasterxml.jackson.databind.ObjectMapper().readTree(inactiveResponse.getContentAsString());
+        assertThat(inactiveBody.path("code").asText()).isEqualTo("TENANT_020");
+        assertThat(inactiveBody.path("detail").asText()).isEqualTo("이용이 중지된 학원입니다.");
 
         when(resolver.resolve("failure.lumie-edu.com"))
                 .thenThrow(new DataAccessResourceFailureException("database unavailable"));
@@ -63,6 +70,8 @@ class HostTenantFilterTest {
         new HostTenantFilter(resolver, new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper())).doFilter(request("failure.lumie-edu.com"), failureResponse,
                 (ignoredRequest, ignoredResponse) -> { });
         assertThat(failureResponse.getStatus()).isEqualTo(503);
+        var failureBody = new com.fasterxml.jackson.databind.ObjectMapper().readTree(failureResponse.getContentAsString());
+        assertThat(failureBody.path("detail").asText()).isEqualTo("외부 서비스와 통신하지 못했습니다. 잠시 후 다시 시도해 주세요.");
     }
 
     private MockHttpServletResponse runWith(String host, Optional<HostTenantResolver.ResolvedTenant> resolved) throws Exception {

@@ -2,6 +2,8 @@ package com.lumie.auth.application.service;
 
 import com.lumie.auth.application.dto.request.LoginRequest;
 import com.lumie.auth.application.dto.response.LoginResponse;
+import com.lumie.auth.application.exception.AuthErrorCode;
+import com.lumie.auth.application.exception.AuthErrors.InvalidCredentialsException;
 import com.lumie.auth.application.port.out.SessionPersistencePort;
 import com.lumie.auth.application.port.out.UserDirectoryPort;
 import com.lumie.auth.application.port.out.UserLookupPort;
@@ -10,6 +12,7 @@ import com.lumie.auth.domain.vo.AuthSession;
 import com.lumie.auth.domain.vo.DeviceCategory;
 import com.lumie.auth.domain.vo.SessionMetadata;
 import com.lumie.common.auth.Role;
+import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.api.TenantStatus;
@@ -19,14 +22,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -69,6 +75,58 @@ class AuthSessionServiceTest {
     }
 
     @Test
+    void loginUsesNeutralCredentialErrorForUnknownLoginId() {
+        TenantContextHolder.setTenant("inst-academy");
+        when(tenantService.getTenantBySlug("inst-academy")).thenReturn(Optional.of(tenant()));
+        when(userLookupPort.findByUserLoginId("unknown_user")).thenReturn(Optional.empty());
+
+        assertCredentialError(() -> service().login(
+                new LoginRequest("unknown_user", "ValidPass123!"), metadata()));
+    }
+
+    @Test
+    void loginUsesSameNeutralCredentialErrorForWrongPassword() {
+        TenantContextHolder.setTenant("inst-academy");
+        when(tenantService.getTenantBySlug("inst-academy")).thenReturn(Optional.of(tenant()));
+        when(userLookupPort.findByUserLoginId("student1")).thenReturn(Optional.of(user()));
+        when(passwordEncoder.matches("WrongPass123!", "hash")).thenReturn(false);
+
+        assertCredentialError(() -> service().login(
+                new LoginRequest("student1", "WrongPass123!"), metadata()));
+    }
+
+    @Test
+    void rootLoginUsesNeutralCredentialErrorForUnknownDirectoryId() {
+        TenantContextHolder.clear();
+        when(userDirectoryPort.findByUserLoginId("unknown_owner")).thenReturn(Optional.empty());
+
+        assertCredentialError(() -> service().login(
+                new LoginRequest("unknown_owner", "ValidPass123!"), metadata()));
+    }
+
+    @Test
+    void rootLoginUsesNeutralCredentialErrorWhenDirectoryTenantIsMissing() {
+        TenantContextHolder.clear();
+        when(userDirectoryPort.findByUserLoginId("owner"))
+                .thenReturn(Optional.of(new UserDirectoryPort.DirectoryEntry(99L, "owner", 88L, null)));
+        doReturn(Optional.empty()).when(tenantService).getTenant(88L);
+
+        assertCredentialError(() -> service().login(
+                new LoginRequest("owner", "ValidPass123!"), metadata()));
+        verify(tenantService).getTenant(88L);
+        verify(userLookupPort, never()).findByUserLoginId("owner");
+        assertCredentialError(() -> ReflectionTestUtils.invokeMethod(
+                service(), "resolveLoginTenant", new LoginRequest("owner", "ValidPass123!")));
+    }
+
+    @Test
+    void legacyCredentialDetailIsIgnoredByTheTypedException() {
+        assertCredentialError(() -> {
+            throw new InvalidCredentialsException("Invalid user login ID or password");
+        });
+    }
+
+    @Test
     void logoutDeletesTheServerSideSession() {
         AuthSession session = session();
         when(sessionPersistencePort.findById("opaque-session-id")).thenReturn(Optional.of(session));
@@ -90,6 +148,26 @@ class AuthSessionServiceTest {
     private AuthSessionService service() {
         return new AuthSessionService(tenantService, userLookupPort, userDirectoryPort,
                 sessionPersistencePort, passwordEncoder, loginSessionHelper);
+    }
+
+    private void assertCredentialError(Runnable action) {
+        assertThatThrownBy(action::run)
+                .isInstanceOf(InvalidCredentialsException.class)
+                .satisfies(error -> {
+                    BusinessException businessException = (BusinessException) error;
+                    assertThat(businessException.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_CREDENTIALS);
+                    assertThat(businessException.getMessage())
+                            .isEqualTo("아이디 또는 비밀번호가 올바르지 않습니다.");
+                });
+    }
+
+    private TenantService.TenantData tenant() {
+        return new TenantService.TenantData(10L, "inst-academy", "Academy", TenantStatus.ACTIVE,
+                null, Instant.now().toString(), Instant.now().toString());
+    }
+
+    private SessionMetadata metadata() {
+        return new SessionMetadata("Chrome / macOS", DeviceCategory.PC);
     }
 
     private UserData user() {

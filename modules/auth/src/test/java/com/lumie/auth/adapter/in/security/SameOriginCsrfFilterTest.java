@@ -22,6 +22,8 @@ class SameOriginCsrfFilterTest {
         new SameOriginCsrfFilter(new SessionConfig(), new SameOriginPolicy(new SessionConfig()), new com.lumie.common.exception.ProblemResponseWriter(new com.fasterxml.jackson.databind.ObjectMapper())).doFilter(request, response, new MockFilterChain());
 
         assertThat(response.getStatus()).isEqualTo(403);
+        var problem = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getContentAsString());
+        assertThat(problem.path("detail").asText()).isEqualTo("요청 출처를 확인할 수 없습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.");
     }
 
     @Test

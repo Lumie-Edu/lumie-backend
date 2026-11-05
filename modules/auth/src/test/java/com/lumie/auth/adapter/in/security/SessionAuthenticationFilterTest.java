@@ -51,6 +51,8 @@ class SessionAuthenticationFilterTest {
                 (ignoredRequest, ignoredResponse) -> chainCalled.set(true));
 
         assertThat(response.getStatus()).isEqualTo(403);
+        var problem = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getContentAsString());
+        assertThat(problem.path("detail").asText()).isEqualTo("요청한 학원 정보가 일치하지 않습니다.");
         assertThat(chainCalled).isFalse();
     }
 

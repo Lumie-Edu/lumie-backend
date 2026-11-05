@@ -41,12 +41,12 @@ public class AuthSessionService {
         TenantData tenant = resolveLoginTenant(request);
         LoginResponse response = TenantContextHolder.withinContext(tenant.slug(), tenant.id(), () -> {
             UserData user = userLookupPort.findByUserLoginId(request.userLoginId())
-                    .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
+                    .orElseThrow(InvalidCredentialsException::new);
             if (!user.enabled()) {
                 throw new UserDisabledException("User account is disabled");
             }
             if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
-                throw new InvalidCredentialsException("Invalid user login ID or password");
+                throw new InvalidCredentialsException();
             }
             AuthSession session = loginSessionHelper.create(user, tenant.slug(), tenant.id(), metadata);
             return LoginResponse.of(session, user.toUserResponse(tenant.slug(), tenant.onboardingCompletedAt()));
@@ -106,7 +106,7 @@ public class AuthSessionService {
         String hostTenantSlug = TenantContextHolder.getTenant();
         if (hostTenantSlug != null && !hostTenantSlug.isBlank()) {
             TenantData tenant = tenantService.getTenantBySlug(hostTenantSlug)
-                    .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
+                    .orElseThrow(InvalidCredentialsException::new);
             if (!tenant.isActive()) {
                 throw new TenantInactiveException("Tenant is not active");
             }
@@ -114,7 +114,7 @@ public class AuthSessionService {
         }
 
         UserDirectoryPort.DirectoryEntry entry = userDirectoryPort.findByUserLoginId(request.userLoginId())
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
+                .orElseThrow(InvalidCredentialsException::new);
         TenantData tenant = tenantService.getTenant(entry.tenantId())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid user login ID or password"));
         if (!tenant.isActive()) {

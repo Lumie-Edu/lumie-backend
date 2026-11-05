@@ -162,7 +162,7 @@ public class ChatbotClient {
     // ── helpers ──────────────────────────────────────────────────────────
 
     /** Re-emit each SSE frame from the worker verbatim, preserving event names + data. */
-    private void proxyFrames(BufferedReader reader, SseEmitter emitter, AtomicBoolean cancelled)
+    void proxyFrames(BufferedReader reader, SseEmitter emitter, AtomicBoolean cancelled)
             throws IOException {
         String line;
         String eventName = null;
