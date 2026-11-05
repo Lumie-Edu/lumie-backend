@@ -52,7 +52,9 @@ class HostTenantFilterTest {
         MockHttpServletResponse unknownResponse = runWith("unknown.example", Optional.empty());
         assertThat(unknownResponse.getStatus()).isEqualTo(404);
         var unknownBody = new com.fasterxml.jackson.databind.ObjectMapper().readTree(unknownResponse.getContentAsString());
-        assertThat(unknownBody.path("detail").asText()).isEqualTo("요청한 항목을 찾을 수 없습니다.");
+        assertThat(unknownBody.path("detail").asText())
+                .isEqualTo("학원 주소를 찾을 수 없습니다. 주소를 확인해 주세요.");
+        assertThat(unknownBody.path("code").asText()).isEqualTo("COMMON_003");
 
         Tenant inactive = Tenant.create("inst-inactive", "Inactive", null);
         MockHttpServletResponse inactiveResponse = runWith("inactive.lumie-edu.com",

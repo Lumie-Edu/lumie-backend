@@ -59,7 +59,8 @@ public class HostTenantFilter extends OncePerRequestFilter {
         if (resolved.isEmpty()) {
             if (!resolver.isRootHost(host)) {
                 problems.write(request, response, HttpStatus.NOT_FOUND.value(),
-                        CommonErrorCode.RESOURCE_NOT_FOUND.getCode(), "Tenant not found");
+                        CommonErrorCode.RESOURCE_NOT_FOUND.getCode(),
+                        "학원 주소를 찾을 수 없습니다. 주소를 확인해 주세요.");
                 return;
             }
             filterChain.doFilter(request, response);
