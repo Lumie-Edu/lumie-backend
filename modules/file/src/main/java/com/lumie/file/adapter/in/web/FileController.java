@@ -76,7 +76,8 @@ public class FileController {
         FileDownloadResult result = fileQueryService.downloadFile(fileId);
 
         Long userId = com.lumie.common.tenant.UserContextHolder.getUserId();
-        if (userId != null && UserContextHolder.getUserRole() == Role.STUDENT) {
+        Role userRole = UserContextHolder.getUserRole();
+        if (userId != null && userRole != null) {
             fileCommandService.recordDownload(fileId, userId);
         }
 

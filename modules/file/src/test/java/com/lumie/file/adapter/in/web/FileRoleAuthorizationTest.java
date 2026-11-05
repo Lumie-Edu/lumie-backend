@@ -61,24 +61,39 @@ class FileRoleAuthorizationTest {
     }
 
     @Test
-    void onlyStudentDownloadsAreRecordedAsStudentDownloaders() {
+    void downloadsAreRecordedForEveryAuthenticatedRole() {
         UUID fileId = UUID.randomUUID();
         var controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
         given(fileQueryService.downloadFile(fileId)).willReturn(
                 new FileDownloadResult(new ByteArrayInputStream(new byte[0]), "test.pdf", "application/pdf", 0));
-        UserContextHolder.setUserRole(Role.STUDENT);
+        UserContextHolder.setUserId(77L);
+        for (Role role : Role.values()) {
+            UserContextHolder.setUserRole(role);
+            controller.downloadFile(fileId);
+        }
+
+        verify(fileCommandService, org.mockito.Mockito.times(Role.values().length))
+                .recordDownload(fileId, 77L);
+    }
+
+    @Test
+    void downloadIsNotRecordedWithoutAnAuthenticatedUserContext() {
+        UUID fileId = UUID.randomUUID();
+        var controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
+        given(fileQueryService.downloadFile(fileId)).willReturn(
+                new FileDownloadResult(new ByteArrayInputStream(new byte[0]), "test.pdf", "application/pdf", 0));
+
+        UserContextHolder.setUserRole(Role.OWNER);
         controller.downloadFile(fileId);
-        verifyNoInteractions(fileCommandService);
+
+        UserContextHolder.clear();
+        controller.downloadFile(fileId);
 
         UserContextHolder.setUserId(77L);
-        UserContextHolder.setUserRole(Role.OWNER);
-
+        UserContextHolder.setUserRole(null);
         controller.downloadFile(fileId);
-        verify(fileCommandService, never()).recordDownload(fileId, 77L);
 
-        UserContextHolder.setUserRole(Role.STUDENT);
-        controller.downloadFile(fileId);
-        verify(fileCommandService).recordDownload(fileId, 77L);
+        verifyNoInteractions(fileCommandService);
     }
 
     @Test
