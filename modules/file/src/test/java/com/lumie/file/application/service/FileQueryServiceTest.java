@@ -45,6 +45,7 @@ class FileQueryServiceTest {
     @Mock private FileMetadataPersistencePort fileMetadataRepository;
     @Mock private FileDownloadPersistencePort fileDownloadRepository;
     @Mock private StudentService studentService;
+    @Mock private com.lumie.staff.api.StaffService staffService;
     @Mock private AuthService authService;
     @Mock private FileMetadataLookupService fileMetadataLookupService;
     @Mock private StoragePort storagePort;
@@ -109,23 +110,33 @@ class FileQueryServiceTest {
     }
 
     @Test
-    void getFileDownloadersExcludesHistoricalStaffRows() {
+    void getFileDownloadersIncludesStudentsAndStaffWithTheirNames() {
         UUID fileId = UUID.randomUUID();
         given(fileMetadataRepository.findById(fileId)).willReturn(Optional.of(
                 FileMetadata.create(EntityType.TEXTBOOK, null, "file.pdf", "application/pdf", 1L, "object", null)));
         given(fileDownloadRepository.findByFileIdOrderByUpdatedAtDesc(fileId)).willReturn(List.of(
                 FileDownload.create(fileId, 100L), FileDownload.create(fileId, 101L),
-                FileDownload.create(fileId, 102L)));
-        given(studentService.getStudentsByUserIds("test-tenant", List.of(100L, 101L, 102L)))
+                FileDownload.create(fileId, 102L), FileDownload.create(fileId, 103L),
+                FileDownload.create(fileId, 104L)));
+        given(studentService.getStudentsByUserIds("test-tenant", List.of(100L, 101L, 102L, 103L, 104L)))
                 .willReturn(new StudentService.StudentListData(
                         List.of(new StudentService.StudentData(1L, 101L, "학생 이름", null, true, null, null)),
                         1, 0, 1));
-        given(authService.getUserRoles(List.of(100L, 102L)))
-                .willReturn(Map.of(100L, "OWNER", 102L, "STUDENT"));
+        given(authService.getUserRoles(List.of(100L, 102L, 103L, 104L)))
+                .willReturn(Map.of(100L, "OWNER", 102L, "MANAGER", 103L, "INSTRUCTOR", 104L, "STUDENT"));
+        given(staffService.getStaffByUserId("test-tenant", 100L)).willReturn(Optional.of(
+                new com.lumie.staff.api.StaffService.StaffData(
+                        1L, 100L, "owner", "원장", null, null, true, "ACTIVE", null, null)));
+        given(staffService.getStaffByUserId("test-tenant", 102L)).willReturn(Optional.of(
+                new com.lumie.staff.api.StaffService.StaffData(
+                        2L, 102L, "manager", "강사", null, null, true, "ACTIVE", null, null)));
+        given(staffService.getStaffByUserId("test-tenant", 103L)).willReturn(Optional.of(
+                new com.lumie.staff.api.StaffService.StaffData(
+                        3L, 103L, "instructor", "조교", null, null, true, "ACTIVE", null, null)));
 
         assertThat(queryService.getFileDownloaders(fileId))
                 .extracting(response -> response.userName())
-                .containsExactly("학생 이름", "사용자 정보 없음");
+                .containsExactly("원장", "학생 이름", "강사", "조교", "사용자 정보 없음");
     }
 
     @Test
