@@ -170,6 +170,14 @@ public class Exam extends TenantScopedEntity {
                 .sum();
     }
 
+    public void correctAnswerKey(Map<String, String> correctedAnswers) {
+        if (correctedAnswers == null || correctedAnswers.size() != totalQuestions) {
+            throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA,
+                    "Corrected answer key must cover every exam question");
+        }
+        this.correctAnswers = Map.copyOf(correctedAnswers);
+    }
+
     public int getScoreForQuestion(int questionNumber) {
         return questionScores.getOrDefault(String.valueOf(questionNumber), 0);
     }

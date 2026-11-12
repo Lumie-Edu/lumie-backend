@@ -37,6 +37,15 @@ public interface OmrSubmissionJpaRepository extends JpaRepository<OmrSubmission,
     @EntityGraph(attributePaths = {"exam", "questions"})
     @Query("""
             select submission from OmrSubmission submission
+            where submission.exam.id = :examId
+              and submission.gradingStatus = com.lumie.exam.domain.vo.OmrGradingStatus.SUCCEEDED
+            order by submission.createdAt, submission.id
+            """)
+    List<OmrSubmission> findSucceededByExamId(@Param("examId") Long examId);
+
+    @EntityGraph(attributePaths = {"exam", "questions"})
+    @Query("""
+            select submission from OmrSubmission submission
             where submission.reconciliationStatus = :status
               and ((submission.reconciliationPhoneNumber is not null
                     and submission.reconciliationPhoneNumber = :phoneNumber)

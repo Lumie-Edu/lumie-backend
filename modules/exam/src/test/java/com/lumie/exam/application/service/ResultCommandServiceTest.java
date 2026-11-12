@@ -138,6 +138,7 @@ class ResultCommandServiceTest {
         ExamResult savedResult = ExamResult.create(exam, studentId, 100);
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(examRepository.findByIdForUpdate(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
         given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
         given(billingService.checkQuota(any(), eq(MetricType.OMR_MONTHLY))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, MetricType.OMR_MONTHLY, "ok"));
@@ -167,6 +168,7 @@ class ResultCommandServiceTest {
         ExamResult savedResult = ExamResult.create(exam, studentId, 50);
         ExamResult higherResult = ExamResult.create(exam, 101L, 90);
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(examRepository.findByIdForUpdate(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId)))
                 .willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
         given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
@@ -195,6 +197,7 @@ class ResultCommandServiceTest {
         }
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(examRepository.findByIdForUpdate(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
         given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
         given(billingService.checkQuota(any(), eq(MetricType.OMR_MONTHLY))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, MetricType.OMR_MONTHLY, "ok"));
@@ -271,7 +274,7 @@ class ResultCommandServiceTest {
 
     @Test
     void confirmBatchOmrGrading_rejectsKeysOutsideSubmittedBatch() {
-        given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
+        given(examRepository.findByIdForUpdate(1L)).willReturn(Optional.of(buildExam()));
 
         assertThatThrownBy(() -> resultCommandService.confirmBatchOmrGrading(1L,
                 new OmrBatchConfirmRequest("a1b2c3d4", List.of(
@@ -285,20 +288,45 @@ class ResultCommandServiceTest {
 
     @Test
     void confirmBatchOmrGrading_acceptsKeysWithinSubmittedBatch() {
-        given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
+        given(examRepository.findByIdForUpdate(1L)).willReturn(Optional.of(buildExam()));
         given(jobRepository.save(any(OmrGradingJob.class))).willAnswer(invocation -> {
             OmrGradingJob job = invocation.getArgument(0);
             org.springframework.test.util.ReflectionTestUtils.setField(job, "id", 42L);
             return job;
         });
+        clearInvocations(examRepository);
         String key = "tmp/test-academy/omr/a1b2c3d4/01234567-89ab-cdef-0123-456789abcdef/one.jpg";
 
         var response = resultCommandService.confirmBatchOmrGrading(1L,
                 new OmrBatchConfirmRequest("a1b2c3d4", List.of(key)));
 
         assertThat(response.jobId()).isEqualTo(42L);
+        verify(examRepository).findByIdForUpdate(1L);
         verify(submissionRepository).saveAll(any());
         verify(eventPublisher).publishEvent(any(OmrGradingRequestedEvent.class));
+    }
+
+    @Test
+    void resolveResultRecalculatesWorkerAnswersAgainstTheLockedCurrentExamKey() {
+        Exam exam = buildExam();
+        given(examRepository.findByIdForUpdate(1L)).willReturn(Optional.of(exam));
+        given(resultRepository.findByExamIdAndStudentId(1L, 7L)).willReturn(Optional.empty());
+        clearInvocations(examRepository);
+        var staleWorkerResult = new OmrServicePort.OmrGradingResult(
+                100, 1, null, List.of(
+                new OmrServicePort.OmrQuestionResult(1, "2", "2", 20, 20, "SHORT"),
+                new OmrServicePort.OmrQuestionResult(2, "2", "2", 20, 20, "SHORT"),
+                new OmrServicePort.OmrQuestionResult(3, "3", "3", 20, 20, "SHORT"),
+                new OmrServicePort.OmrQuestionResult(4, "4", "4", 20, 20, "SHORT"),
+                new OmrServicePort.OmrQuestionResult(5, "5", "5", 20, 20, "SHORT")));
+
+        ExamResult result = resultCommandService.resolveResult(1L, exam, 7L, staleWorkerResult);
+
+        assertThat(result.getTotalScore()).isEqualTo(80);
+        assertThat(result.getQuestionResults().getFirst().isCorrect()).isFalse();
+        assertThat(result.getQuestionResults().getFirst().getSelectedChoice()).isEqualTo("2");
+        assertThat(result.getQuestionResults().getFirst().getEarnedScore()).isZero();
+        verify(examRepository).findByIdForUpdate(1L);
     }
 
     @Test
@@ -363,7 +391,7 @@ class ResultCommandServiceTest {
 
     @Test
     void confirmBatchOmrGrading_rejectsWrongTenantAndNonUuidObjectKeys() {
-        given(examRepository.findById(1L)).willReturn(Optional.of(buildExam()));
+        given(examRepository.findByIdForUpdate(1L)).willReturn(Optional.of(buildExam()));
 
         for (String key : List.of(
                 "tmp/other-academy/omr/a1b2c3d4/01234567-89ab-cdef-0123-456789abcdef/one.jpg",
@@ -386,6 +414,7 @@ class ResultCommandServiceTest {
         ExamResult savedResult = ExamResult.create(exam, studentId, 100);
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(examRepository.findByIdForUpdate(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
         given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
         given(billingService.checkQuota(any(), eq(MetricType.OMR_MONTHLY))).willReturn(new BillingService.QuotaResult(true, 0L, 1000L, MetricType.OMR_MONTHLY, "ok"));
@@ -618,6 +647,7 @@ class ResultCommandServiceTest {
         }
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(examRepository.findByIdForUpdate(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
         given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.empty());
@@ -658,6 +688,7 @@ class ResultCommandServiceTest {
         ExamResult savedResult = ExamResult.create(exam, studentId, 80);
         savedResult.assignGrade(7);
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(examRepository.findByIdForUpdate(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId)))
                 .willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
         given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
@@ -683,6 +714,7 @@ class ResultCommandServiceTest {
         }
 
         given(examRepository.findById(examId)).willReturn(Optional.of(exam));
+        given(examRepository.findByIdForUpdate(examId)).willReturn(Optional.of(exam));
         given(studentService.validateStudent(any(), eq(studentId))).willReturn(new StudentService.ValidateStudentResult(true, "ok", studentId));
         given(studentService.getStudent(any(), eq(studentId))).willReturn(Optional.of(aStudent(studentId)));
         given(resultRepository.findByExamIdAndStudentId(examId, studentId)).willReturn(Optional.of(existing));

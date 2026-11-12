@@ -69,5 +69,6 @@ public class ExamResultPersistenceAdapter implements ExamResultPersistencePort {
     @Override public void deleteById(Long id) { jpaRepository.deleteById(id); }
     @Override public Optional<ExamResult> findById(Long id) { return jpaRepository.findById(id); }
     @Override public ExamResult save(ExamResult result) { return jpaRepository.save(result); }
+    @Override public List<ExamResult> saveAll(Iterable<ExamResult> results) { return jpaRepository.saveAll(results); }
     @Override public ExamResult saveAndFlush(ExamResult result) { return jpaRepository.saveAndFlush(result); }
 }

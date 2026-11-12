@@ -53,6 +53,8 @@ public interface ExamResultPersistencePort {
 
     ExamResult save(ExamResult result);
 
+    List<ExamResult> saveAll(Iterable<ExamResult> results);
+
     ExamResult saveAndFlush(ExamResult result);
 
     interface TopStudentAggregateRow {

@@ -13,6 +13,7 @@ import com.lumie.file.api.FileService;
 import com.lumie.classroom.api.ClassService;
 import com.lumie.staff.api.StaffService;
 import com.lumie.staff.application.service.StaffQueryService;
+import com.lumie.exam.application.service.ExamRegradeService;
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockReset;
@@ -58,4 +59,8 @@ public class CucumberSpringConfiguration extends FullContextTestBase {
 
     @MockitoBean(reset = MockReset.NONE)
     StaffQueryService staffQueryService;
+
+    @MockitoBean(reset = MockReset.NONE)
+    ExamRegradeService examRegradeService;
+
 }

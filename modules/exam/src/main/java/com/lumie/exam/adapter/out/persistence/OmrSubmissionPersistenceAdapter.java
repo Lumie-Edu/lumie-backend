@@ -28,6 +28,9 @@ public class OmrSubmissionPersistenceAdapter implements OmrSubmissionPersistence
             Long examId, List<OmrReconciliationStatus> statuses) {
         return jpaRepository.findByExamIdAndReconciliationStatusInOrderByCreatedAtDesc(examId, statuses);
     }
+    @Override public List<OmrSubmission> findSucceededByExamId(Long examId) {
+        return jpaRepository.findSucceededByExamId(examId);
+    }
     @Override public List<OmrSubmission> findByEffectivePhoneNumberAndReconciliationStatus(
             String phoneNumber, OmrReconciliationStatus status) {
         return jpaRepository.findByEffectivePhoneNumberAndReconciliationStatus(phoneNumber, status);

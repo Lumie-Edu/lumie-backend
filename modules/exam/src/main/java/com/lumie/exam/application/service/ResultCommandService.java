@@ -152,7 +152,7 @@ public class ResultCommandService {
     public OmrJobResponse confirmBatchOmrGrading(Long examId, OmrBatchConfirmRequest request) {
         log.info("Confirming batch OMR grading for exam: {}, keys: {}", examId, request.objectKeys().size());
 
-        Exam exam = examRepository.findById(examId)
+        Exam exam = examRepository.findByIdForUpdate(examId)
                 .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
 
         String tenantSlug = TenantContextHolder.getRequiredTenant();
@@ -308,27 +308,64 @@ public class ResultCommandService {
     }
 
     public ExamResult resolveResult(Long examId, Exam exam, Long studentId, OmrServicePort.OmrGradingResult omrResult) {
-        List<ExamResult.OmrQuestionUpdate> updates = omrResult.results().stream()
+        Exam lockedExam = examRepository.findByIdForUpdate(examId)
+                .orElseThrow(() -> new BusinessException(ExamErrorCode.EXAM_NOT_FOUND));
+        OmrServicePort.OmrGradingResult currentKeyResult = recalculateAgainstCurrentKey(lockedExam, omrResult);
+        List<ExamResult.OmrQuestionUpdate> updates = currentKeyResult.results().stream()
                 .map(qr -> new ExamResult.OmrQuestionUpdate(
                         qr.questionNumber(), qr.studentAnswer(), qr.correctAnswer(), qr.score()))
                 .toList();
 
         ExamResult result = resultRepository.findByExamIdAndStudentId(examId, studentId)
                 .map(existing -> {
-                    existing.regrade(omrResult.totalScore(), updates);
+                    existing.regrade(currentKeyResult.totalScore(), updates);
                     return existing;
                 })
                 .orElseGet(() -> {
-                    ExamResult newResult = ExamResult.create(exam, studentId, omrResult.totalScore());
-                    for (OmrServicePort.OmrQuestionResult qr : omrResult.results()) {
+                    ExamResult newResult = ExamResult.create(lockedExam, studentId, currentKeyResult.totalScore());
+                    for (OmrServicePort.OmrQuestionResult qr : currentKeyResult.results()) {
                         newResult.addQuestionResult(QuestionResult.create(
                                 qr.questionNumber(), qr.studentAnswer(), qr.correctAnswer(), qr.score()));
                     }
                     return newResult;
                 });
 
-        gradeCalculator.calculateAndAssignGradeIfAbsolute(exam, result);
+        gradeCalculator.calculateAndAssignGradeIfAbsolute(lockedExam, result);
         return result;
+    }
+
+    private OmrServicePort.OmrGradingResult recalculateAgainstCurrentKey(
+            Exam exam, OmrServicePort.OmrGradingResult original) {
+        if (original.results() == null || original.results().size() != exam.getTotalQuestions()) {
+            throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA,
+                    "OMR 채점 결과의 문항 수가 시험과 일치하지 않습니다.");
+        }
+        Map<Integer, OmrServicePort.OmrQuestionResult> byNumber = new java.util.HashMap<>();
+        for (OmrServicePort.OmrQuestionResult result : original.results()) {
+            if (byNumber.putIfAbsent(result.questionNumber(), result) != null) {
+                throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA,
+                        "OMR 채점 결과에 중복된 문항 번호가 있습니다.");
+            }
+        }
+        List<OmrServicePort.OmrQuestionResult> recalculated = new java.util.ArrayList<>(exam.getTotalQuestions());
+        int totalScore = 0;
+        for (int questionNumber = 1; questionNumber <= exam.getTotalQuestions(); questionNumber++) {
+            OmrServicePort.OmrQuestionResult prior = byNumber.get(questionNumber);
+            String correctAnswer = exam.getCorrectAnswerForQuestion(questionNumber);
+            int maxScore = exam.getScoreForQuestion(questionNumber);
+            if (prior == null || correctAnswer == null || correctAnswer.isBlank()) {
+                throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA,
+                        "OMR 채점 결과 또는 현재 시험 정답이 불완전합니다.");
+            }
+            int earnedScore = prior.studentAnswer() != null && prior.studentAnswer().equals(correctAnswer)
+                    ? maxScore : 0;
+            totalScore += earnedScore;
+            recalculated.add(new OmrServicePort.OmrQuestionResult(
+                    questionNumber, prior.studentAnswer(), correctAnswer, maxScore, earnedScore,
+                    exam.getQuestionType(questionNumber)));
+        }
+        return new OmrServicePort.OmrGradingResult(
+                totalScore, original.grade(), original.phoneNumber(), List.copyOf(recalculated));
     }
 
     public ExamResult resolveResultForUnregistered(Exam exam, String phoneNumber, OmrServicePort.OmrGradingResult omrResult) {

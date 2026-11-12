@@ -183,6 +183,30 @@
         "required" : [ "announcementContent", "announcementTitle", "audienceScope", "authorId", "authorName", "classIds", "createdAt", "id", "isItAssetAnnouncement", "isItImportantAnnouncement", "updatedAt" ],
         "type" : "object"
       },
+      "AnswerChange" : {
+        "properties" : {
+          "currentAnswer" : {
+            "type" : "string"
+          },
+          "proposedAnswer" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "currentAnswer", "proposedAnswer" ],
+        "type" : "object"
+      },
+      "AnswerKeyChange" : {
+        "properties" : {
+          "after" : {
+            "type" : "string"
+          },
+          "before" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "after", "before" ],
+        "type" : "object"
+      },
       "ApplyOmrSubmissionRequest" : {
         "properties" : {
           "replaceCurrentResult" : {
@@ -649,6 +673,18 @@
           }
         },
         "required" : [ "newPlanId" ],
+        "type" : "object"
+      },
+      "ChangedAnswer" : {
+        "properties" : {
+          "currentAnswer" : {
+            "type" : "string"
+          },
+          "proposedAnswer" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "currentAnswer", "proposedAnswer" ],
         "type" : "object"
       },
       "ChatReplyResponse" : {
@@ -1668,6 +1704,198 @@
           }
         },
         "required" : [ "months" ],
+        "type" : "object"
+      },
+      "ExamAnswerKeyRevisionResponse" : {
+        "properties" : {
+          "actorUserId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "changedAnswers" : {
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/AnswerKeyChange"
+            },
+            "type" : "object"
+          },
+          "changedFields" : {
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/AnswerKeyChange"
+            },
+            "type" : "object"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "regradedResultCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "skippedManualOverrideCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "updatedSubmissionCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "actorUserId", "changedAnswers", "changedFields", "createdAt", "id", "regradedResultCount", "skippedManualOverrideCount", "updatedSubmissionCount" ],
+        "type" : "object"
+      },
+      "ExamAnswerRegradeConfirmRequest" : {
+        "properties" : {
+          "answerChanges" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "name" : {
+            "maxLength" : 100,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "questionScores" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "questionTypes" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "answerChanges", "name", "questionScores", "questionTypes" ],
+        "type" : "object"
+      },
+      "ExamAnswerRegradePreviewRequest" : {
+        "properties" : {
+          "answerChanges" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "answerChanges" ],
+        "type" : "object"
+      },
+      "ExamAnswerRegradePreviewResponse" : {
+        "properties" : {
+          "changedAnswers" : {
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/AnswerChange"
+            },
+            "type" : "object"
+          },
+          "examId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "examVersion" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "gradeImpact" : {
+            "additionalProperties" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "noOp" : {
+            "type" : "boolean"
+          },
+          "previewFingerprint" : {
+            "type" : "string"
+          },
+          "regradedResultCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "scoreImpact" : {
+            "additionalProperties" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "skippedManualOverrideCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "updatedSubmissionCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "changedAnswers", "examId", "examVersion", "gradeImpact", "noOp", "previewFingerprint", "regradedResultCount", "scoreImpact", "skippedManualOverrideCount", "updatedSubmissionCount" ],
+        "type" : "object"
+      },
+      "ExamAnswerRegradeRevisionResponse" : {
+        "properties" : {
+          "actorUserId" : {
+            "format" : "int64",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "changedAnswers" : {
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/ChangedAnswer"
+            },
+            "type" : "object"
+          },
+          "changedFields" : {
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/ChangedAnswer"
+            },
+            "type" : "object"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "examId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "examVersion" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "noOp" : {
+            "type" : "boolean"
+          },
+          "regradedResultCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "revisionId" : {
+            "format" : "int64",
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "skippedManualOverrideCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "updatedSubmissionCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "actorUserId", "changedAnswers", "changedFields", "createdAt", "examId", "examVersion", "noOp", "regradedResultCount", "revisionId", "skippedManualOverrideCount", "updatedSubmissionCount" ],
         "type" : "object"
       },
       "ExamAssignmentResponse" : {
@@ -3038,6 +3266,37 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/ConversationSummaryResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "perPage" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
+        "type" : "object"
+      },
+      "PageResponseExamAnswerKeyRevisionResponse" : {
+        "properties" : {
+          "hasNext" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ExamAnswerKeyRevisionResponse"
             },
             "type" : "array"
           },
@@ -9421,6 +9680,143 @@
           }
         },
         "tags" : [ "joossameng-ai-report-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/answer-key-revisions" : {
+      "get" : {
+        "operationId" : "listAnswerKeyRevisions",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Zero-based page index (0..N)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The size of the page to be returned",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseExamAnswerKeyRevisionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "exam-controller" ]
+      },
+      "post" : {
+        "operationId" : "confirmAnswerKeyRevision",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExamAnswerRegradeConfirmRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamAnswerRegradeRevisionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "exam-controller" ]
+      }
+    },
+    "/v1/exams/{examId}/answer-key-revisions/preview" : {
+      "post" : {
+        "operationId" : "previewAnswerKeyRevision",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "examId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExamAnswerRegradePreviewRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamAnswerRegradePreviewResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "exam-controller" ]
       }
     },
     "/v1/exams/{examId}/omr-jobs" : {
