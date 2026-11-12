@@ -18,6 +18,8 @@ public interface OmrSubmissionPersistencePort {
     List<OmrSubmission> findByExamIdAndReconciliationStatusInOrderByCreatedAtDesc(
             Long examId, List<OmrReconciliationStatus> statuses);
 
+    List<OmrSubmission> findSucceededByExamId(Long examId);
+
     List<OmrSubmission> findByEffectivePhoneNumberAndReconciliationStatus(
             String phoneNumber, OmrReconciliationStatus status);
 

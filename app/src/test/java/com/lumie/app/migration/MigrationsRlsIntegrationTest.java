@@ -261,6 +261,88 @@ class MigrationsRlsIntegrationTest {
     }
 
     @Test
+    void examAnswerKeyRevisionTableForcesTenantRls() throws Exception {
+        try (Connection admin = adminConnection();
+             Statement st = admin.createStatement();
+             ResultSet rs = st.executeQuery("""
+                     SELECT c.relrowsecurity AS enabled,
+                            c.relforcerowsecurity AS forced,
+                            EXISTS (
+                                SELECT 1 FROM pg_policies p
+                                 WHERE p.schemaname = 'public'
+                                   AND p.tablename = 'exam_answer_key_revisions'
+                                   AND p.policyname = 'tenant_isolation'
+                                   AND p.qual LIKE '%app.tenant_id%'
+                                   AND p.with_check LIKE '%app.tenant_id%'
+                            ) AS tenant_policy
+                       FROM pg_class c
+                       JOIN pg_namespace n ON n.oid = c.relnamespace
+                      WHERE n.nspname = 'public'
+                        AND c.relname = 'exam_answer_key_revisions'
+                     """)) {
+            assertThat(rs.next())
+                    .as("answer-key revision history table exists after Flyway")
+                    .isTrue();
+            assertThat(rs.getBoolean("enabled")).isTrue();
+            assertThat(rs.getBoolean("forced")).isTrue();
+            assertThat(rs.getBoolean("tenant_policy")).isTrue();
+        }
+    }
+
+    @Test
+    void answerKeyRevisionHistoryIsHiddenFromAnotherTenant() throws Exception {
+        try (Connection admin = adminConnection(); Statement st = admin.createStatement()) {
+            st.executeUpdate("""
+                    INSERT INTO tenants (id, slug, name, status, plan_id)
+                    VALUES (893001, 'regrade-rls-a', 'Regrade RLS A', 'ACTIVE', 'BASIC'),
+                           (893002, 'regrade-rls-b', 'Regrade RLS B', 'ACTIVE', 'BASIC')
+                    ON CONFLICT (id) DO NOTHING
+                    """);
+            st.executeUpdate("""
+                    INSERT INTO users (id, user_login_id, password_hash, name, role, status, tenant_id)
+                    VALUES (893003, 'regrade-rls-user', 'test-hash', 'Regrade Staff',
+                            'INSTRUCTOR', 'ACTIVE', 893002)
+                    ON CONFLICT (id) DO NOTHING
+                    """);
+            st.executeUpdate("""
+                    INSERT INTO exams (id, name, category, total_questions, correct_answers,
+                                       question_scores, grading_type, grade_scale, tenant_id)
+                    VALUES (893004, 'Regrade RLS exam', 'GRADED', 1, '{"1":"1"}'::jsonb,
+                            '{"1":100}'::jsonb, 'ABSOLUTE', 'NINE_GRADE', 893002)
+                    ON CONFLICT (id) DO NOTHING
+                    """);
+            st.executeUpdate("""
+                    INSERT INTO exam_answer_key_revisions
+                        (tenant_id, exam_id, actor_user_id, exam_version_before,
+                         exam_version_after, changed_answers, changed_fields,
+                         regraded_result_count, skipped_manual_override_count,
+                         updated_submission_count)
+                    VALUES (893002, 893004, 893003, 0, 1, '{}'::jsonb,
+                            '{"name":{"before":"Old","after":"New"}}'::jsonb, 0, 0, 0)
+                    """);
+            st.execute("GRANT SELECT ON exam_answer_key_revisions TO " + APP_ROLE);
+        }
+
+        try (Connection app = appRoleConnection()) {
+            app.setAutoCommit(true);
+            setTenant(app, "893001");
+            try (Statement st = app.createStatement();
+                 ResultSet rows = st.executeQuery(
+                         "SELECT count(*) FROM exam_answer_key_revisions WHERE exam_id = 893004")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getInt(1)).isZero();
+            }
+            setTenant(app, "893002");
+            try (Statement st = app.createStatement();
+                 ResultSet rows = st.executeQuery(
+                         "SELECT count(*) FROM exam_answer_key_revisions WHERE exam_id = 893004")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getInt(1)).isEqualTo(1);
+            }
+        }
+    }
+
+    @Test
     void fileMetadataRlsPreventsCrossTenantReadAndDelete() throws Exception {
         java.util.UUID tenantOneFile = java.util.UUID.randomUUID();
         java.util.UUID tenantTwoFile = java.util.UUID.randomUUID();

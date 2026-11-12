@@ -35,7 +35,7 @@ public class OmrSubmissionQuestion {
     @Column(name = "earned_score", nullable = false)
     private Integer earnedScore;
 
-    @Column(name = "question_type", length = 30)
+    @Column(name = "question_type", length = 50)
     private String questionType;
 
     @Column(name = "tenant_id", nullable = false, updatable = false)
@@ -58,6 +58,14 @@ public class OmrSubmissionQuestion {
 
     void setOmrSubmission(OmrSubmission omrSubmission) {
         this.omrSubmission = omrSubmission;
+    }
+
+    public void regrade(String correctedAnswer, int configuredMaxScore, String configuredType) {
+        boolean correct = studentAnswer != null && studentAnswer.equals(correctedAnswer);
+        this.correctAnswer = correctedAnswer;
+        this.maxScore = configuredMaxScore;
+        this.questionType = configuredType;
+        this.earnedScore = correct ? configuredMaxScore : 0;
     }
 
     @PrePersist

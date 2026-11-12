@@ -1,6 +1,8 @@
 package com.lumie.exam.domain.entity;
 
 import com.lumie.common.domain.TenantScopedEntity;
+import com.lumie.common.exception.BusinessException;
+import com.lumie.exam.domain.exception.ExamErrorCode;
 import com.lumie.exam.domain.vo.OmrGradingStatus;
 import com.lumie.exam.domain.vo.OmrReconciliationStatus;
 import jakarta.persistence.*;
@@ -100,6 +102,36 @@ public class OmrSubmission extends TenantScopedEntity {
         gradedQuestions.forEach(this::addQuestion);
     }
 
+    public void regrade(List<QuestionRegrade> updates, Integer newGrade) {
+        if (gradingStatus != OmrGradingStatus.SUCCEEDED || questions.size() != updates.size()) {
+            throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA,
+                    "Only complete OMR submissions can be regraded.");
+        }
+        java.util.Map<Integer, QuestionRegrade> byNumber = new java.util.HashMap<>();
+        for (QuestionRegrade update : updates) {
+            if (byNumber.putIfAbsent(update.questionNumber(), update) != null) {
+                throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA,
+                        "OMR submission contains duplicate question numbers.");
+            }
+        }
+        int recalculatedTotal = 0;
+        for (OmrSubmissionQuestion question : questions) {
+            QuestionRegrade update = byNumber.get(question.getQuestionNumber());
+            if (update == null) {
+                throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA,
+                        "OMR submission question numbers are incomplete.");
+            }
+            question.regrade(update.correctAnswer(), update.maxScore(), update.questionType());
+            recalculatedTotal += question.getEarnedScore();
+        }
+        if (byNumber.size() != questions.size()) {
+            throw new BusinessException(ExamErrorCode.INVALID_ANSWER_DATA,
+                    "OMR submission contains duplicate question numbers.");
+        }
+        this.totalScore = recalculatedTotal;
+        this.grade = newGrade;
+    }
+
     public void fail(String reason) {
         this.gradingStatus = OmrGradingStatus.FAILED;
         this.reconciliationReason = reason;
@@ -152,4 +184,6 @@ public class OmrSubmission extends TenantScopedEntity {
         this.questions.add(question);
         question.setOmrSubmission(this);
     }
+
+    public record QuestionRegrade(int questionNumber, String correctAnswer, int maxScore, String questionType) {}
 }
