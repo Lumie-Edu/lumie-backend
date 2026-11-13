@@ -1528,26 +1528,6 @@
         "required" : [ "content", "name" ],
         "type" : "object"
       },
-      "CreateTemporaryUploadRequest" : {
-        "properties" : {
-          "contentType" : {
-            "type" : "string"
-          },
-          "entityType" : {
-            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
-            "type" : "string"
-          },
-          "fileSize" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "filename" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "contentType", "entityType", "fileSize", "filename" ],
-        "type" : "object"
-      },
       "CreateTextbookFolderRequest" : {
         "properties" : {
           "name" : {
@@ -5813,18 +5793,6 @@
           }
         },
         "required" : [ "contentType", "filename", "objectKey" ],
-        "type" : "object"
-      },
-      "TemporaryObjectUploadResponse" : {
-        "properties" : {
-          "objectKey" : {
-            "type" : "string"
-          },
-          "uploadUrl" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "objectKey", "uploadUrl" ],
         "type" : "object"
       },
       "TenantResponse" : {
@@ -11187,34 +11155,6 @@
               }
             },
             "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      }
-    },
-    "/v1/files/uploads" : {
-      "post" : {
-        "operationId" : "createTemporaryUpload",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CreateTemporaryUploadRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TemporaryObjectUploadResponse"
-                }
-              }
-            },
-            "description" : "Created"
           }
         },
         "tags" : [ "file-controller" ]

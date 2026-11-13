@@ -3,7 +3,7 @@ package com.lumie.file.adapter.in.internal;
 import com.lumie.file.api.FileObjectKeyFactory;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
-import com.lumie.file.application.service.TemporaryObjectUploadService;
+import com.lumie.file.application.service.TemporaryUploadPolicy;
 import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.api.PreparedTemporaryFile;
 import com.lumie.file.api.PreparedUploadSession;
@@ -260,10 +260,10 @@ public class FileServiceAdapter implements FileService {
             throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "Invalid attachment list");
         }
         for (TemporaryAttachment attachment : attachments) {
-            if (attachment == null || attachment.fileSize() <= 0 || attachment.fileSize() > TemporaryObjectUploadService.MAX_BYTES
+            if (attachment == null || attachment.fileSize() <= 0 || attachment.fileSize() > TemporaryUploadPolicy.MAX_BYTES
                     || attachment.contentType() == null || attachment.contentType().isBlank()
                     || attachment.filename() == null
-                    || !TemporaryObjectUploadService.isAllowedFilename(attachment.filename())) {
+                    || !TemporaryUploadPolicy.isAllowedFilename(attachment.filename())) {
                 throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
             }
         }
