@@ -1,7 +1,6 @@
 package com.lumie.app;
 
 import com.lumie.auth.application.service.AuthQueryService;
-import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.application.service.FileCommandService;
 import com.lumie.student.application.service.StudentQueryService;
 import com.lumie.classroom.application.service.ClassQueryService;
@@ -23,9 +22,6 @@ public class CucumberSpringConfiguration extends FullContextTestBase {
 
     @MockitoBean(reset = MockReset.NONE)
     AuthQueryService authQueryService;
-
-    @MockitoBean(reset = MockReset.NONE)
-    TemporaryObjectUploadService temporaryObjectUploadService;
 
     @MockitoBean(reset = MockReset.NONE)
     FileCommandService fileCommandService;

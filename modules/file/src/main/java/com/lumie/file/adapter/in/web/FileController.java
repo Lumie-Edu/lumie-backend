@@ -5,15 +5,12 @@ import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.application.dto.response.FileDownloadResult;
 import com.lumie.file.application.dto.response.FileMetadataResponse;
-import com.lumie.file.application.dto.response.TemporaryObjectUploadResponse;
 import com.lumie.file.application.dto.response.UploadSessionResponse;
 import com.lumie.file.application.dto.response.UploadSessionStatusResponse;
 import com.lumie.file.application.dto.request.CreateUploadSessionRequest;
 import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
-import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.application.service.UploadSessionService;
-import com.lumie.file.application.dto.request.CreateTemporaryUploadRequest;
 import com.lumie.file.application.dto.request.RegisterTextbookFilesRequest;
 import com.lumie.file.domain.vo.EntityType;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -35,14 +32,7 @@ public class FileController {
 
     private final FileCommandService fileCommandService;
     private final FileQueryService fileQueryService;
-    private final TemporaryObjectUploadService temporaryObjectUploadService;
     private final UploadSessionService uploadSessionService;
-
-    /** Compatibility constructor for isolated legacy controller fixtures. */
-    public FileController(FileCommandService fileCommandService, FileQueryService fileQueryService,
-                          TemporaryObjectUploadService temporaryObjectUploadService) {
-        this(fileCommandService, fileQueryService, temporaryObjectUploadService, null);
-    }
 
     @PostMapping("/upload-sessions")
     @ApiResponse(responseCode = "201", description = "Created")
@@ -97,17 +87,6 @@ public class FileController {
         AuthorizationGuard.requireStaff();
         List<com.lumie.file.application.dto.response.FileDownloaderResponse> response = fileQueryService.getFileDownloaders(fileId);
         return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/uploads")
-    @ApiResponse(responseCode = "201", description = "Created")
-    public ResponseEntity<TemporaryObjectUploadResponse> createTemporaryUpload(
-            @Valid @RequestBody CreateTemporaryUploadRequest request) {
-        Role role = UserContextHolder.getUserRole();
-        if (role != Role.STUDENT || request.entityType() != EntityType.QNA) {
-            AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
-        }
-        return ResponseEntity.status(HttpStatus.CREATED).body(temporaryObjectUploadService.create(request));
     }
 
     @PostMapping("/textbooks")

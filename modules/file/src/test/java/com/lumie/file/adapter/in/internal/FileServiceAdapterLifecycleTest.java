@@ -7,7 +7,7 @@ import com.lumie.file.api.PreparedTemporaryFile;
 import com.lumie.file.api.TemporaryAttachment;
 import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.application.port.out.StoragePort;
-import com.lumie.file.application.service.TemporaryObjectUploadService;
+import com.lumie.file.application.service.TemporaryUploadPolicy;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.application.port.out.FileMetadataPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
@@ -115,7 +115,7 @@ class FileServiceAdapterLifecycleTest {
         assertThatThrownBy(() -> adapter.prepareTemporaryFiles("announcement",
                 List.of(attachment("upload-1", "notes.pdf", 0L)))).isInstanceOf(BusinessException.class);
         assertThatThrownBy(() -> adapter.prepareTemporaryFiles("announcement",
-                List.of(attachment("upload-1", "notes.pdf", TemporaryObjectUploadService.MAX_BYTES + 1))))
+                List.of(attachment("upload-1", "notes.pdf", TemporaryUploadPolicy.MAX_BYTES + 1))))
                 .isInstanceOf(BusinessException.class);
         assertThatThrownBy(() -> adapter.prepareTemporaryFiles("announcement",
                 List.of(new TemporaryAttachment(SOURCE, "notes.pdf", " ", 10L))))

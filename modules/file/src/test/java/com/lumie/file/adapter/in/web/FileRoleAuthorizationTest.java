@@ -13,12 +13,10 @@ import com.lumie.common.exception.GlobalExceptionHandler;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
-import com.lumie.file.application.service.TemporaryObjectUploadService;
+import com.lumie.file.application.service.UploadSessionService;
 import com.lumie.file.application.service.TextbookFolderCommandService;
 import com.lumie.file.application.service.TextbookFolderQueryService;
 import com.lumie.file.application.dto.response.FileDownloadResult;
-import com.lumie.file.application.dto.request.CreateTemporaryUploadRequest;
-import com.lumie.file.application.dto.response.TemporaryObjectUploadResponse;
 import com.lumie.file.domain.vo.EntityType;
 import java.util.UUID;
 import java.util.List;
@@ -26,7 +24,6 @@ import java.io.ByteArrayInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +38,7 @@ class FileRoleAuthorizationTest {
 
     @Mock private FileCommandService fileCommandService;
     @Mock private FileQueryService fileQueryService;
-    @Mock private TemporaryObjectUploadService temporaryObjectUploadService;
+    @Mock private UploadSessionService uploadSessionService;
     @Mock private TextbookFolderCommandService textbookFolderCommandService;
     @Mock private TextbookFolderQueryService textbookFolderQueryService;
 
@@ -49,7 +46,7 @@ class FileRoleAuthorizationTest {
 
     @BeforeEach
     void setUp() {
-        var controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
+        var controller = new FileController(fileCommandService, fileQueryService, uploadSessionService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -63,7 +60,7 @@ class FileRoleAuthorizationTest {
     @Test
     void downloadsAreRecordedForEveryAuthenticatedRole() {
         UUID fileId = UUID.randomUUID();
-        var controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
+        var controller = new FileController(fileCommandService, fileQueryService, uploadSessionService);
         given(fileQueryService.downloadFile(fileId)).willReturn(
                 new FileDownloadResult(new ByteArrayInputStream(new byte[0]), "test.pdf", "application/pdf", 0));
         UserContextHolder.setUserId(77L);
@@ -79,7 +76,7 @@ class FileRoleAuthorizationTest {
     @Test
     void downloadIsNotRecordedWithoutAnAuthenticatedUserContext() {
         UUID fileId = UUID.randomUUID();
-        var controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
+        var controller = new FileController(fileCommandService, fileQueryService, uploadSessionService);
         given(fileQueryService.downloadFile(fileId)).willReturn(
                 new FileDownloadResult(new ByteArrayInputStream(new byte[0]), "test.pdf", "application/pdf", 0));
 
@@ -146,7 +143,7 @@ class FileRoleAuthorizationTest {
     @Test
     void studentCannotUseFileDownloaderOrTextbookRoutesBeforeServices() {
         UserContextHolder.setUserRole(Role.STUDENT);
-        FileController controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
+        FileController controller = new FileController(fileCommandService, fileQueryService, uploadSessionService);
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> controller.getFileDownloaders(UUID.randomUUID()))
                 .isInstanceOf(com.lumie.common.exception.BusinessException.class);
@@ -157,40 +154,6 @@ class FileRoleAuthorizationTest {
                 .isInstanceOf(com.lumie.common.exception.BusinessException.class);
 
         verifyNoInteractions(fileQueryService, fileCommandService);
-    }
-
-    @Test
-    void studentCannotUploadWhenAuthenticatedRoleIsMissing() {
-        UserContextHolder.clear();
-        CreateTemporaryUploadRequest request = new CreateTemporaryUploadRequest(
-                EntityType.QNA, "question.pdf", "application/pdf", 12L);
-        FileController controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
-
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> controller.createTemporaryUpload(request))
-                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
-
-        verifyNoInteractions(temporaryObjectUploadService);
-    }
-
-    @Test
-    void studentMayRequestOnlyQnaAttachments() {
-        UserContextHolder.setUserRole(Role.STUDENT);
-        CreateTemporaryUploadRequest qnaRequest = new CreateTemporaryUploadRequest(
-                EntityType.QNA, "question.pdf", "application/pdf", 12L);
-        given(temporaryObjectUploadService.create(qnaRequest))
-                .willReturn(new TemporaryObjectUploadResponse("qna/tmp/file", "https://upload.example.test"));
-        FileController controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
-
-        var response = controller.createTemporaryUpload(qnaRequest);
-
-        assertThat(response.getStatusCode().value()).isEqualTo(201);
-        verify(temporaryObjectUploadService).create(qnaRequest);
-
-        CreateTemporaryUploadRequest textbookRequest = new CreateTemporaryUploadRequest(
-                EntityType.TEXTBOOK, "book.pdf", "application/pdf", 12L);
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> controller.createTemporaryUpload(textbookRequest))
-                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
-        verify(temporaryObjectUploadService, never()).create(textbookRequest);
     }
 
     @Test
@@ -278,23 +241,6 @@ class FileRoleAuthorizationTest {
     }
 
     @Test
-    void instructorCanRequestEverySupportedUploadEntityType() {
-        FileController controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
-        for (Role role : List.of(Role.OWNER, Role.MANAGER, Role.INSTRUCTOR)) {
-            UserContextHolder.setUserRole(role);
-            for (EntityType entityType : List.of(EntityType.ANNOUNCEMENT, EntityType.QNA, EntityType.TEXTBOOK)) {
-                CreateTemporaryUploadRequest request = new CreateTemporaryUploadRequest(
-                        entityType, role.name().toLowerCase(Locale.ROOT) + "-file.pdf", "application/pdf", 12L);
-                given(temporaryObjectUploadService.create(request))
-                        .willReturn(new TemporaryObjectUploadResponse("tmp/object", "https://upload.example.test"));
-
-                assertThat(controller.createTemporaryUpload(request).getStatusCode().value()).isEqualTo(201);
-                verify(temporaryObjectUploadService).create(request);
-            }
-        }
-    }
-
-    @Test
     void instructorCanUseTextbookFileManagementRoutes() {
         UserContextHolder.setUserRole(Role.INSTRUCTOR);
         UUID fileId = UUID.randomUUID();
@@ -303,7 +249,7 @@ class FileRoleAuthorizationTest {
                         org.mockito.ArgumentMatchers.any(com.lumie.file.application.dto.request.RegisterTextbookFilesRequest.class)))
                 .willReturn(List.of());
         given(fileQueryService.getFilesByEntity(EntityType.TEXTBOOK, 1L)).willReturn(List.of());
-        FileController controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
+        FileController controller = new FileController(fileCommandService, fileQueryService, uploadSessionService);
 
         assertThat(controller.getFileDownloaders(fileId).getStatusCode().value()).isEqualTo(200);
         assertThat(controller.registerTextbookFiles(
@@ -321,7 +267,7 @@ class FileRoleAuthorizationTest {
         given(fileQueryService.getFilesByEntityAndFolder(EntityType.TEXTBOOK, folderId)).willReturn(List.of());
         given(fileQueryService.getFilesByEntity(EntityType.TEXTBOOK, 1L)).willReturn(List.of());
         given(fileQueryService.getFilesByEntity(EntityType.ANNOUNCEMENT, 2L)).willReturn(List.of());
-        FileController controller = new FileController(fileCommandService, fileQueryService, temporaryObjectUploadService);
+        FileController controller = new FileController(fileCommandService, fileQueryService, uploadSessionService);
 
         controller.getFilesByEntityType(EntityType.TEXTBOOK, null, null, true);
         controller.getFilesByEntityType(EntityType.TEXTBOOK, null, folderId, false);

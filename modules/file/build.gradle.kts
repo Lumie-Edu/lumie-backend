@@ -8,7 +8,7 @@ val cucumberTagFilter = providers.gradleProperty("cucumberTags")
 val lifecycleClassPatterns = listOf(
     "**/FileMetadata*.class",
     "**/FileStorageOperation*.class",
-    "**/TemporaryObjectUploadService*.class",
+    "**/TemporaryUploadPolicy*.class",
     "**/FileCommandService*.class",
     "**/FileQueryService*.class",
     "**/FileMetadataLookupService*.class",
@@ -21,7 +21,7 @@ val lifecycleClassPatterns = listOf(
 val lifecycleClassNames = listOf(
     "com.lumie.file.domain.entity.FileMetadata*",
     "com.lumie.file.domain.entity.FileStorageOperation*",
-    "com.lumie.file.application.service.TemporaryObjectUploadService*",
+    "com.lumie.file.application.service.TemporaryUploadPolicy*",
     "com.lumie.file.application.service.FileCommandService*",
     "com.lumie.file.application.service.FileQueryService*",
     "com.lumie.file.application.service.FileMetadataLookupService*",

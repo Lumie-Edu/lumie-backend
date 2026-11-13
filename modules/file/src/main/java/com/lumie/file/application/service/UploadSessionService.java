@@ -97,8 +97,8 @@ public class UploadSessionService {
     private void validate(CreateUploadSessionRequest request) {
         if (request == null || request.entityType() == null || !SUPPORTED_TYPES.contains(request.entityType())
                 || request.fileSize() == null || request.fileSize() <= 0
-                || request.fileSize() > TemporaryObjectUploadService.MAX_BYTES
-                || !TemporaryObjectUploadService.isAllowedFilename(request.filename())
+                || request.fileSize() > TemporaryUploadPolicy.MAX_BYTES
+                || !TemporaryUploadPolicy.isAllowedFilename(request.filename())
                 || request.contentType() == null || request.contentType().isBlank()) {
             throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
         }
