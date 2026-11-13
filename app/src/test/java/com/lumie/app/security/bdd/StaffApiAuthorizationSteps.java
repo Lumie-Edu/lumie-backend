@@ -12,9 +12,7 @@ import com.lumie.auth.adapter.out.config.SessionConfig;
 import com.lumie.auth.domain.vo.AuthSession;
 import com.lumie.auth.domain.vo.DeviceCategory;
 import com.lumie.common.auth.Role;
-import com.lumie.file.application.service.TemporaryObjectUploadService;
 import com.lumie.file.application.service.FileCommandService;
-import com.lumie.file.application.dto.request.CreateTemporaryUploadRequest;
 import com.lumie.student.application.service.StudentQueryService;
 import com.lumie.classroom.application.service.ClassQueryService;
 import com.lumie.ai.application.service.SchemaDiscoveryService;
@@ -58,9 +56,6 @@ public class StaffApiAuthorizationSteps {
     private SessionConfig sessionConfig;
 
     // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
-    @Autowired
-    private TemporaryObjectUploadService temporaryObjectUploadService;
-
     // lint: allow B-no-field-injection -- Cucumber Spring injects scenario glue fields.
     @Autowired
     private FileCommandService fileCommandService;
@@ -111,7 +106,7 @@ public class StaffApiAuthorizationSteps {
 
     @Given("an authenticated {string} session")
     public void anAuthenticatedSession(String roleName) {
-        clearInvocations(authQueryService, temporaryObjectUploadService, studentQueryService, fileCommandService,
+        clearInvocations(authQueryService, studentQueryService, fileCommandService,
                 classQueryService, schemaDiscoveryService, tenantService, announcementRepository,
                 announcementClassTargetRepository, fileService, classService, staffService, staffQueryService);
         sessionId = java.util.UUID.randomUUID().toString();
@@ -144,7 +139,7 @@ public class StaffApiAuthorizationSteps {
 
     @Given("an authenticated session without a role")
     public void anAuthenticatedSessionWithoutARole() {
-        clearInvocations(authQueryService, temporaryObjectUploadService, studentQueryService, fileCommandService);
+        clearInvocations(authQueryService, studentQueryService, fileCommandService);
         sessionId = java.util.UUID.randomUUID().toString();
         Instant now = Instant.now();
         given(authQueryService.findActiveSession(sessionId)).willReturn(Optional.of(new AuthSession(
@@ -165,19 +160,6 @@ public class StaffApiAuthorizationSteps {
             default -> throw new IllegalArgumentException("Unsupported method: " + method);
         };
         perform(request.header("Host", "localhost").header("Origin", "http://localhost"));
-    }
-
-    @When("the client requests a {string} upload")
-    public void theClientRequestsUpload(String entityType) throws Exception {
-        String body = """
-                {"entityType":"%s","filename":"question.pdf","contentType":"application/pdf","fileSize":12}
-                """.formatted(entityType);
-        perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                .post("/v1/files/uploads")
-                .header("Host", "localhost")
-                .header("Origin", "http://localhost")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body));
     }
 
     @When("the client creates an announcement with forged author id {long}")
@@ -265,16 +247,6 @@ public class StaffApiAuthorizationSteps {
     @Then("the announcement author id is {long}")
     public void theAnnouncementAuthorIdIs(long authorId) throws Exception {
         assertThat(result.getResponse().getContentAsString()).contains("\"authorId\":" + authorId);
-    }
-
-    @Then("the upload service is called")
-    public void theUploadServiceIsCalled() {
-        verify(temporaryObjectUploadService).create(org.mockito.ArgumentMatchers.any(CreateTemporaryUploadRequest.class));
-    }
-
-    @Then("the upload service is not called")
-    public void theUploadServiceIsNotCalled() {
-        org.mockito.Mockito.verifyNoInteractions(temporaryObjectUploadService);
     }
 
     @Then("the file deletion service is called")

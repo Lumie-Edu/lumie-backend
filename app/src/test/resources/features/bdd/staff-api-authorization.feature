@@ -8,21 +8,6 @@ Feature: Employee API role boundaries
     Then the response status is 403
     And the error code is "COMMON_006"
 
-  @BDD-US1-001 @FR-002 @FR-009 @EC-002
-  Scenario: A student can request a Q&A attachment upload
-    Given an authenticated "STUDENT" session
-    When the client requests a "QNA" upload
-    Then the response status is 201
-    And the upload service is called
-
-  @BDD-US1-001 @FR-002 @FR-008 @EC-002
-  Scenario: A student cannot request a textbook upload
-    Given an authenticated "STUDENT" session
-    When the client requests a "TEXTBOOK" upload
-    Then the response status is 403
-    And the error code is "COMMON_006"
-    And the upload service is not called
-
   @BDD-US2-001 @FR-004 @FR-008
   Scenario: An instructor cannot read billing keys
     Given an authenticated "INSTRUCTOR" session

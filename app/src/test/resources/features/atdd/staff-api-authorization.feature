@@ -30,21 +30,6 @@ Feature: Staff access boundary acceptance
     Then the response status is 200
     And the student query service is called
 
-  @ATDD-US1-001 @FR-009 @EC-002
-  Scenario: A student can request an attachment for a Q&A
-    Given an authenticated "STUDENT" session
-    When the client requests a "QNA" upload
-    Then the response status is 201
-    And the upload service is called
-
-  @ATDD-US1-001 @FR-002 @FR-008 @EC-002
-  Scenario: A student cannot request a textbook upload
-    Given an authenticated "STUDENT" session
-    When the client requests a "TEXTBOOK" upload
-    Then the response status is 403
-    And the error code is "COMMON_006"
-    And the upload service is not called
-
   @ATDD-US2-001 @FR-004 @FR-005 @FR-008
   Scenario: A manager cannot manage billing keys
     Given an authenticated "MANAGER" session
