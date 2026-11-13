@@ -254,13 +254,12 @@ public class FileServiceAdapter implements FileService {
     }
 
     private void validateNewAttachments(List<TemporaryAttachment> attachments) {
-        if (attachments == null) return;
         if (attachments.size() > MAX_ATTACHMENTS || attachments.stream().anyMatch(Objects::isNull)
                 || attachments.stream().map(TemporaryAttachment::objectKey).distinct().count() != attachments.size()) {
             throw new BusinessException(FileErrorCode.INVALID_FILE_DATA, "Invalid attachment list");
         }
         for (TemporaryAttachment attachment : attachments) {
-            if (attachment == null || attachment.fileSize() <= 0 || attachment.fileSize() > TemporaryUploadPolicy.MAX_BYTES
+            if (attachment.fileSize() <= 0 || attachment.fileSize() > TemporaryUploadPolicy.MAX_BYTES
                     || attachment.contentType() == null || attachment.contentType().isBlank()
                     || attachment.filename() == null
                     || !TemporaryUploadPolicy.isAllowedFilename(attachment.filename())) {

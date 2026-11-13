@@ -15,6 +15,7 @@ class TemporaryUploadPolicyTest {
     @Test
     void rejectsMissingExtensionsAndPathTraversal() {
         assertThat(TemporaryUploadPolicy.isAllowedFilename("notes")).isFalse();
+        assertThat(TemporaryUploadPolicy.isAllowedFilename("notes..pdf")).isFalse();
         assertThat(TemporaryUploadPolicy.isAllowedFilename("../notes.pdf")).isFalse();
         assertThat(TemporaryUploadPolicy.isAllowedFilename("folder\\notes.pdf")).isFalse();
         assertThat(TemporaryUploadPolicy.isAllowedFilename(null)).isFalse();
