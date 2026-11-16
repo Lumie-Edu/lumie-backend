@@ -118,6 +118,27 @@ class TenantTest {
     }
 
     @Test
+    void createTenantWithAutoSlugStoresSelectedSubjects() {
+        Tenant tenant = Tenant.createWithAutoSlug("Academy", List.of(" KOREAN ", "ENGLISH"));
+
+        assertThat(tenant.getSlugValue()).matches("inst-[0-9a-f]{8}");
+        assertThat(tenant.getSubjects()).containsExactly("KOREAN", "ENGLISH");
+        assertThat(tenant.getInstituteName()).isEqualTo("Academy");
+    }
+
+    @Test
+    void updateSubjectsTrimsRemovesBlanksAndDuplicatesAndAcceptsNull() {
+        Tenant tenant = Tenant.createWithAutoSlug("Academy");
+        tenant.updateSubjects(java.util.Arrays.asList(" KOREAN ", "", "ENGLISH", "KOREAN", null));
+
+        assertThat(tenant.getSubjects()).containsExactly("KOREAN", "ENGLISH");
+
+        tenant.updateSubjects(null);
+
+        assertThat(tenant.getSubjects()).isEmpty();
+    }
+
+    @Test
     @DisplayName("Tenant 생성 시 Plan 지정 가능")
     void createTenantWithCustomPlan() {
         Tenant tenant = Tenant.create("test-academy", "Test Academy", null, TenantPlan.PRO);

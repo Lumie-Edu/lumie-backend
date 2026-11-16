@@ -1,6 +1,10 @@
 package com.lumie.staff.adapter.out.persistence;
 
 import com.lumie.staff.domain.entity.Staff;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Page;
@@ -8,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
@@ -74,6 +79,52 @@ class StaffPersistenceAdapterTest {
         verify(repository).findAll(any(Specification.class), org.mockito.ArgumentMatchers.<Pageable>argThat(pageable ->
                 pageable.getPageNumber() == 1 && pageable.getPageSize() == 2 && pageable.getOffset() == 1
                         && pageable.getSort().getOrderFor("canonicalName") != null));
+    }
+
+    @Test
+    void offsetPageableImplementsNavigationForRosterPages() {
+        Pageable requested = new OffsetPageableForTest(2, 5, 7, Sort.by("name"));
+        when(repository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+        adapter.searchExcludingUserId(true, null, 7L, requested);
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findAll(any(Specification.class), captor.capture());
+        Pageable actual = captor.getValue();
+        assertThat(actual.next().getPageNumber()).isEqualTo(3);
+        assertThat(actual.next().getOffset()).isEqualTo(12);
+        assertThat(actual.previousOrFirst().getPageNumber()).isEqualTo(1);
+        assertThat(actual.previousOrFirst().getOffset()).isEqualTo(2);
+        assertThat(actual.first().getOffset()).isZero();
+        assertThat(actual.withPage(4).getOffset()).isEqualTo(20);
+        assertThat(actual.hasPrevious()).isTrue();
+
+        Pageable firstPage = new OffsetPageableForTest(0, 5, 0, Sort.by("name"));
+        adapter.searchExcludingUserId(true, null, 7L, firstPage);
+        ArgumentCaptor<Pageable> pages = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository, times(2)).findAll(any(Specification.class), pages.capture());
+        assertThat(pages.getAllValues().get(1).previousOrFirst().getPageNumber()).isZero();
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void searchSpecificationBuildsOwnerExclusionAndSearchPredicates() {
+        when(repository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+        adapter.searchExcludingUserId(true, " Teacher ", 7L,
+                PageRequest.of(0, 10, Sort.by("name")));
+        adapter.searchExcludingUserId(null, "   ", null, PageRequest.of(0, 10));
+        adapter.searchExcludingUserId(null, null, null, Pageable.unpaged());
+
+        ArgumentCaptor<Specification<Staff>> specs = ArgumentCaptor.forClass((Class) Specification.class);
+        verify(repository, times(3)).findAll(specs.capture(), any(Pageable.class));
+        Root<Staff> root = mock(Root.class, RETURNS_DEEP_STUBS);
+        CriteriaQuery<?> query = mock(CriteriaQuery.class, RETURNS_DEEP_STUBS);
+        CriteriaBuilder builder = mock(CriteriaBuilder.class, RETURNS_DEEP_STUBS);
+        for (Specification<Staff> spec : specs.getAllValues()) {
+            Predicate predicate = spec.toPredicate(root, query, builder);
+            assertThat(predicate).isNotNull();
+        }
     }
 
     @Test

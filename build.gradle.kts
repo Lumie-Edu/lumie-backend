@@ -38,9 +38,16 @@ allprojects {
 subprojects {
     apply(plugin = "java")
     apply(plugin = "jacoco")
-    apply(plugin = "com.diffplug.spotless")
     apply(plugin = "net.ltgt.errorprone")
     apply(plugin = "io.spring.dependency-management")
+
+    // :modules and :libs are implicit aggregate projects created by Gradle
+    // for nested project paths. Do not let Spotless rooted at those directories
+    // traverse child build outputs (including concurrently generated JaCoCo
+    // reports); configure formatting only on actual leaf projects.
+    if (childProjects.isEmpty()) {
+        apply(plugin = "com.diffplug.spotless")
+    }
 
     java {
         toolchain {
@@ -128,27 +135,29 @@ subprojects {
         shouldRunAfter("test")
     }
 
-    // Spotless: hygiene-only (no full Google-Java-Format reflow yet).
-    // Strips unused imports, normalizes whitespace + line endings, removes tabs.
-    // Ramp to googleJavaFormat() when ready for the larger diff.
-    configure<com.diffplug.gradle.spotless.SpotlessExtension> {
-        java {
-            target("src/**/*.java")
-            targetExclude("**/build/**", "**/generated/**")
-            removeUnusedImports()
-            trimTrailingWhitespace()
-            endWithNewline()
-            indentWithSpaces(4)
+    if (childProjects.isEmpty()) {
+        // Spotless: hygiene-only (no full Google-Java-Format reflow yet).
+        // Strips unused imports, normalizes whitespace + line endings, removes tabs.
+        // Ramp to googleJavaFormat() when ready for the larger diff.
+        configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+            java {
+                target("src/**/*.java")
+                targetExclude("**/build/**", "**/generated/**")
+                removeUnusedImports()
+                trimTrailingWhitespace()
+                endWithNewline()
+                indentWithSpaces(4)
+            }
+            kotlinGradle {
+                target("*.gradle.kts")
+                trimTrailingWhitespace()
+                endWithNewline()
+            }
         }
-        kotlinGradle {
-            target("*.gradle.kts")
-            trimTrailingWhitespace()
-            endWithNewline()
-        }
-    }
 
-    tasks.named("check") {
-        dependsOn("spotlessCheck")
+        tasks.named("check") {
+            dependsOn("spotlessCheck")
+        }
     }
 
     // JaCoCo: coverage report generated after every test run. The 30%

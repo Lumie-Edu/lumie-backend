@@ -3,6 +3,7 @@ package com.lumie.exam.adapter.in.internal;
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
 import com.lumie.exam.application.service.ExamCommandService;
+import com.lumie.exam.application.service.ExamQuestionTypeService;
 import com.lumie.exam.application.service.GradeCalculator;
 import com.lumie.exam.application.service.ResultCommandService;
 import com.lumie.exam.domain.entity.Exam;
@@ -14,6 +15,8 @@ import com.lumie.exam.domain.vo.ExamSource;
 import com.lumie.exam.domain.vo.GradeScale;
 import com.lumie.exam.domain.vo.GradingType;
 import com.lumie.exam.test.ExamFixtures;
+import com.lumie.common.tenant.TenantContextHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ExamServiceAdapter 단위 테스트")
@@ -50,11 +54,27 @@ class ExamServiceAdapterTest {
     @Mock
     private ExamCommandService examCommandService;
 
+    @Mock
+    private ExamQuestionTypeService examQuestionTypeService;
+
     @Spy
     private GradeCalculator gradeCalculator = new GradeCalculator();
 
     @InjectMocks
     private ExamServiceAdapter examServiceAdapter;
+
+    @AfterEach
+    void clearTenantContext() {
+        TenantContextHolder.clear();
+    }
+
+    @Test
+    void seedsQuestionTypeDefaultsSynchronouslyWithinTenantContext() {
+        examServiceAdapter.seedTenantQuestionTypeDefaults("academy-a", 22L, List.of("KOREAN", "ENGLISH"));
+
+        verify(examQuestionTypeService).seedDefaultQuestionTypesIfEmpty(List.of("KOREAN", "ENGLISH"));
+        assertThat(TenantContextHolder.getTenant()).isNull();
+    }
 
     @Test
     void assignmentResultCalculatesAbsoluteGradeForStoredAndUnstoredHistory() {

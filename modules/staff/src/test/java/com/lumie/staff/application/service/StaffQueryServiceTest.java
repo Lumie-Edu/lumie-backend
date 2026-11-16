@@ -8,6 +8,7 @@ import com.lumie.staff.domain.entity.Staff;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -17,12 +18,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.PageImpl;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -119,6 +122,54 @@ class StaffQueryServiceTest {
         assertThat(ownerSearch.getTotalElements()).isEqualTo(2);
         assertThat(inactiveSearch.getContent()).isEmpty();
         assertThat(inactiveSearch.getTotalElements()).isZero();
+    }
+
+    @Test
+    void ownerShiftedPageableSupportsPageNavigationAcrossFirstAndLaterPages() {
+        given(authService.getTenantOwner()).willReturn(Optional.of(owner()));
+        given(authService.getAvatarSeeds(List.of(7L))).willReturn(Map.of(7L, "seed"));
+        given(staffRepository.searchExcludingUserId(eq(null), eq(null), eq(7L), any(Pageable.class)))
+                .willReturn(Page.empty());
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+        service.getAllStaff(null, PageRequest.of(0, 3));
+        service.getAllStaff(null, PageRequest.of(1, 3));
+
+        verify(staffRepository, org.mockito.Mockito.times(2))
+                .searchExcludingUserId(eq(null), eq(null), eq(7L), pageableCaptor.capture());
+        Pageable firstPage = pageableCaptor.getAllValues().get(0);
+        Pageable secondPage = pageableCaptor.getAllValues().get(1);
+        assertThat(firstPage.getPageSize()).isEqualTo(2);
+        assertThat(firstPage.isPaged()).isTrue();
+        assertThat(firstPage.isUnpaged()).isFalse();
+        assertThat(firstPage.getSort().isUnsorted()).isTrue();
+        assertThat(firstPage.getOffset()).isZero();
+        assertThat(firstPage.hasPrevious()).isFalse();
+        assertThat(firstPage.previousOrFirst().getPageNumber()).isZero();
+        assertThat(secondPage.getPageSize()).isEqualTo(3);
+        assertThat(secondPage.getOffset()).isEqualTo(2);
+        assertThat(secondPage.hasPrevious()).isTrue();
+        assertThat(secondPage.next().getOffset()).isEqualTo(5);
+        assertThat(secondPage.previousOrFirst().getOffset()).isZero();
+        assertThat(secondPage.first().getOffset()).isZero();
+        assertThat(secondPage.withPage(4).getOffset()).isEqualTo(12);
+    }
+
+    @Test
+    void ownerVisibilityMatchesNameEmailAndBlankSearch() {
+        given(authService.getTenantOwner()).willReturn(Optional.of(owner()));
+        given(authService.getAvatarSeeds(List.of(7L))).willReturn(Map.of(7L, "seed"));
+        given(staffRepository.searchExcludingUserId(any(), any(), eq(7L), any(Pageable.class)))
+                .willReturn(Page.empty());
+
+        var byName = service.getAllStaff(new StaffFilterRequest(null, "Academy"), PageRequest.of(0, 10));
+        var byEmail = service.getAllStaff(new StaffFilterRequest(true, "owner@example.com"), PageRequest.of(0, 10));
+        var blankSearch = service.getAllStaff(new StaffFilterRequest(null, "   "), PageRequest.of(0, 10));
+
+        assertThat(byName.getContent()).singleElement().satisfies(row -> assertThat(row.role()).isEqualTo("OWNER"));
+        assertThat(byEmail.getContent()).singleElement().satisfies(row -> assertThat(row.role()).isEqualTo("OWNER"));
+        assertThat(blankSearch.getContent()).singleElement()
+                .satisfies(row -> assertThat(row.role()).isEqualTo("OWNER"));
     }
 
     private AuthService.TenantOwnerData owner() {
