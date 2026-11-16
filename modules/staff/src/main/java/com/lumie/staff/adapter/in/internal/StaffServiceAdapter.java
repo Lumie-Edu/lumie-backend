@@ -11,14 +11,12 @@ import com.lumie.staff.application.port.out.StaffPersistencePort;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.staff.api.StaffService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StaffServiceAdapter implements StaffService {
@@ -76,28 +74,6 @@ public class StaffServiceAdapter implements StaffService {
                     .toList();
 
             return new StaffPermissionsData(staff.getId(), permissions);
-        });
-    }
-
-    @Override
-    public StaffData createOwnerStaff(String tenantSlug, Long userId, String userLoginId,
-                                      String name, String phone, String email) {
-        return TenantContextHolder.withinContext(tenantSlug, () -> {
-            // Idempotent: Spring Modulith may re-deliver OwnerRegisteredEvent on
-            // restart if the prior listener invocation didn't mark the publication
-            // complete. Returning the existing staff row keeps the operation safe.
-            return staffRepository.findByUserId(userId)
-                    .map(existing -> {
-                        log.info("OWNER staff already exists for userId={}, tenant={} — idempotent skip",
-                                userId, tenantSlug);
-                        return toStaffDataFromEntity(existing);
-                    })
-                    .orElseGet(() -> {
-                        Staff staff = Staff.create(userId, userLoginId, name, phone, email, null);
-                        Staff saved = staffRepository.save(staff);
-                        log.info("OWNER staff row created: userId={}, tenant={}", userId, tenantSlug);
-                        return toStaffDataFromEntity(saved);
-                    });
         });
     }
 

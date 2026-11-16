@@ -102,6 +102,17 @@ public class TenantServiceAdapter implements TenantService {
     }
 
     @Override
+    public CreateTenantResult createTenant(String instituteName, List<String> subjects) {
+        try {
+            TenantRegistrationResult result = tenantRegistrationService.registerTenant(instituteName, subjects);
+            return new CreateTenantResult(result.success(), result.message(), result.tenantId(), result.tenantSlug());
+        } catch (Exception e) {
+            log.error("Failed to create tenant: {}", instituteName, e);
+            return new CreateTenantResult(false, "Failed to create tenant: " + e.getMessage(), null, null);
+        }
+    }
+
+    @Override
     @Transactional
     @CacheEvict(value = CacheConfig.CACHE_TENANTS_BY_SLUG, key = "#tenantSlug")
     public void updatePlan(String tenantSlug, String planId) {

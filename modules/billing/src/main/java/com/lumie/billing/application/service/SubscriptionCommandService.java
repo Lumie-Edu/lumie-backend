@@ -71,13 +71,13 @@ public class SubscriptionCommandService {
      *
      * <p>Idempotent: if a subscription already exists for {@code tenantSlug},
      * the existing row is returned and no new subscription is created.
-     * Required because Spring Modulith may replay the
-     * {@code TenantCreatedEvent} on application restart if a prior dispatch
-     * was incomplete.
+     * Called synchronously by tenant signup while the new tenant's RLS context
+     * is bound. Idempotency keeps retries safe if signup is retried after an
+     * earlier transaction committed.
      *
      * <p>Plan id is hard-coded to {@code "PRO"} (the V34 seed row). Throws
-     * {@link IllegalStateException} if the PRO plan is missing — the event
-     * stays incomplete and retries on restart.
+     * {@link IllegalStateException} if the PRO plan is missing so the entire
+     * signup transaction rolls back instead of leaving a tenant without billing.
      */
     public SubscriptionResponse provisionTrial(Long tenantId, String tenantSlug) {
         log.info("Provisioning trial for tenant: {}", tenantSlug);

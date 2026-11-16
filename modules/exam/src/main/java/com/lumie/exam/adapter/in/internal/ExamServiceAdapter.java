@@ -4,6 +4,7 @@ import com.lumie.exam.application.port.out.ExamResultPersistencePort;
 import com.lumie.exam.api.ExamService;
 import com.lumie.exam.application.dto.request.CreateExamRequest;
 import com.lumie.exam.application.service.ExamCommandService;
+import com.lumie.exam.application.service.ExamQuestionTypeService;
 import com.lumie.exam.application.service.GradeCalculator;
 import com.lumie.exam.domain.entity.ExamResult;
 import com.lumie.exam.domain.entity.Exam;
@@ -43,6 +44,13 @@ public class ExamServiceAdapter implements ExamService {
     private final ExamCommandService examCommandService;
     private final GradeCalculator gradeCalculator;
     private final StudentGradeQueryService studentGradeQueryService;
+    private final ExamQuestionTypeService examQuestionTypeService;
+
+    @Override
+    public void seedTenantQuestionTypeDefaults(String tenantSlug, Long tenantId, List<String> subjects) {
+        TenantContextHolder.withinContext(tenantSlug, tenantId,
+                () -> examQuestionTypeService.seedDefaultQuestionTypesIfEmpty(subjects));
+    }
 
     @Override
     @Transactional(readOnly = true)

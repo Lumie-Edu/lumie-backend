@@ -22,7 +22,7 @@ import java.util.stream.IntStream;
 @Slf4j
 public class ExamQuestionTypeService {
 
-    private static final List<String> DEFAULT_QUESTION_TYPES = List.of(
+    private static final List<String> ENGLISH_DEFAULTS = List.of(
             "듣기",
             "기초유형",
             "내용파악",
@@ -79,18 +79,37 @@ public class ExamQuestionTypeService {
     }
 
     @Transactional
-    public void seedDefaultQuestionTypesIfEmpty() {
-        List<ExamQuestionType> existingDefaults = examQuestionTypePort.findAllByNameIn(DEFAULT_QUESTION_TYPES);
-        if (!existingDefaults.isEmpty()) {
-            return;
+    public void seedDefaultQuestionTypesIfEmpty(List<String> subjects) {
+        if (subjects == null || subjects.isEmpty()) subjects = List.of("ENGLISH");
+        // Suggested classification labels follow the KICE 2026 CSAT guide's
+        // subject sections and options; they are defaults that tenants can edit.
+        List<List<String>> selectedDefaults = new java.util.ArrayList<>();
+        for (String subject : subjects) {
+            List<String> defaults = switch (subject) {
+                case "KOREAN" -> List.of("독서", "문학", "화법과 작문", "언어와 매체");
+                case "MATH" -> List.of("수학Ⅰ", "수학Ⅱ", "확률과 통계", "미적분", "기하");
+                case "ENGLISH" -> ENGLISH_DEFAULTS;
+                case "SOCIAL_STUDIES" -> List.of("생활과 윤리", "윤리와 사상", "한국지리", "세계지리", "동아시아사", "세계사", "경제", "정치와 법", "사회·문화");
+                case "SCIENCE" -> List.of("물리학Ⅰ", "물리학Ⅱ", "화학Ⅰ", "화학Ⅱ", "생명과학Ⅰ", "생명과학Ⅱ", "지구과학Ⅰ", "지구과학Ⅱ");
+                default -> List.of();
+            };
+            if (!defaults.isEmpty()) selectedDefaults.add(defaults);
         }
-
-        List<ExamQuestionType> defaults = IntStream.range(0, DEFAULT_QUESTION_TYPES.size())
-                .mapToObj(index -> ExamQuestionType.create(DEFAULT_QUESTION_TYPES.get(index), index + 1))
+        List<String> missingTypes = selectedDefaults.stream()
+                .filter(defaults -> examQuestionTypePort.findAllByNameIn(defaults).isEmpty())
+                .flatMap(List::stream)
+                .distinct()
+                .toList();
+        List<ExamQuestionType> defaults = IntStream.range(0, missingTypes.size())
+                .mapToObj(index -> ExamQuestionType.create(missingTypes.get(index), index + 1))
                 .toList();
 
-        examQuestionTypePort.saveAll(defaults);
+        if (!defaults.isEmpty()) examQuestionTypePort.saveAll(defaults);
         log.info("Seeded {} default exam question types", defaults.size());
+    }
+
+    public void seedDefaultQuestionTypesIfEmpty() {
+        seedDefaultQuestionTypesIfEmpty(List.of("ENGLISH"));
     }
 
 

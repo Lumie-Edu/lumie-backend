@@ -20,6 +20,7 @@ public interface StaffPersistencePort {
         return countGroupedByRoleAndIsActive(true);
     }
     Page<Staff> search(Boolean isActive, String search, Pageable pageable);
+    Page<Staff> searchExcludingUserId(Boolean isActive, String search, Long excludedUserId, Pageable pageable);
     Staff save(Staff staff);
     void delete(Staff staff);
 }

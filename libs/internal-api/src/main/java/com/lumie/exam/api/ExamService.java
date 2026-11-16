@@ -23,6 +23,12 @@ public interface ExamService {
 
     List<StudentGradeData> getStudentGradesForAssignment(String tenantSlug, Long examId);
 
+    /**
+     * Creates signup defaults in the caller's transaction and tenant context.
+     * Implementations must propagate failures so tenant signup can roll back.
+     */
+    void seedTenantQuestionTypeDefaults(String tenantSlug, Long tenantId, List<String> subjects);
+
     record AssignmentResultData(Long studentId, Map<String, String> answers,
                                 Integer score, Boolean passed, Integer grade) {}
 

@@ -126,8 +126,8 @@ public class Subscription extends BaseEntity {
     // ─── Factory methods ──────────────────────────────────────────────────────
 
     /**
-     * Create a Free subscription (no billing key, no expiry). Used by TenantCreatedListener
-     * until D7 replaces this with {@link #createTrial}.
+     * Create a Free subscription (no billing key, no expiry) for tenants assigned
+     * the FREE plan.
      */
     public static Subscription createFree(Long tenantId, String tenantSlug, Plan freePlan) {
         return Subscription.builder()

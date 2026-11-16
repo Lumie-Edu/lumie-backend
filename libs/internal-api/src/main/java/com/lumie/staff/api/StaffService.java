@@ -15,8 +15,6 @@ public interface StaffService {
 
     StaffListData getAllStaff(String tenantSlug, int page, int size);
 
-    StaffData createOwnerStaff(String tenantSlug, Long userId, String userLoginId, String name, String phone, String email);
-
     record StaffData(
             Long id,
             Long userId,

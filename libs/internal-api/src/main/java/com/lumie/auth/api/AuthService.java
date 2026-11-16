@@ -2,6 +2,7 @@ package com.lumie.auth.api;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 public interface AuthService {
 
@@ -23,6 +24,14 @@ public interface AuthService {
 
     /** Existing tenant users only; absent IDs are omitted from the result. */
     Map<Long, String> getUserRoles(Collection<Long> userIds);
+
+    default Optional<TenantOwnerData> getTenantOwner() {
+        return Optional.empty();
+    }
+
+    record TenantOwnerData(Long userId, String userLoginId, String name, String phone,
+                           String email, String avatarSeed, java.time.Instant createdAt,
+                           java.time.Instant updatedAt) {}
 
     record CreateUserResult(
             boolean success,

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -36,6 +37,13 @@ public class AuthServiceAdapter implements AuthService {
     @Override
     public Map<Long, String> getUserRoles(Collection<Long> userIds) {
         return userLookupPort.getUserRoles(userIds);
+    }
+
+    @Override
+    public Optional<TenantOwnerData> getTenantOwner() {
+        return userLookupPort.findTenantOwner().map(owner -> new TenantOwnerData(
+                owner.id(), owner.userLoginId(), owner.name(), owner.phone(), owner.email(),
+                owner.avatarSeed(), owner.createdAt(), owner.updatedAt()));
     }
 
     @Override

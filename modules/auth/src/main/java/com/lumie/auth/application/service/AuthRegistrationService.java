@@ -7,21 +7,23 @@ import com.lumie.auth.application.exception.AuthErrors.UserLoginIdAlreadyExistsE
 import com.lumie.auth.application.port.out.UserDirectoryPort;
 import com.lumie.auth.application.port.out.UserLookupPort;
 import com.lumie.auth.application.port.out.UserLookupPort.UserData;
-import com.lumie.auth.api.OwnerRegisteredEvent;
+import com.lumie.billing.api.BillingService;
+import com.lumie.exam.api.ExamService;
 import com.lumie.tenant.api.TenantService;
 import com.lumie.tenant.api.TenantService.CreateTenantResult;
 import com.lumie.auth.domain.vo.SessionMetadata;
 import com.lumie.common.auth.Role;
 import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Owner registration provisions a tenant and issues the owner's initial
- * session.
+ * Owner registration creates the tenant, its required billing and exam
+ * defaults, and the owner identity in one database transaction, then returns
+ * the owner's initial session. Redis session state is compensated on rollback.
  */
 @Slf4j
 @Service
@@ -29,12 +31,14 @@ import org.springframework.stereotype.Service;
 public class AuthRegistrationService {
 
     private final TenantService tenantService;
+    private final BillingService billingService;
+    private final ExamService examService;
     private final UserLookupPort userLookupPort;
     private final UserDirectoryPort userDirectoryPort;
-    private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final LoginSessionHelper loginSessionHelper;
 
+    @Transactional
     public LoginResponse registerOwner(OwnerRegisterRequest request, SessionMetadata metadata) {
         log.info("Owner registration attempt for userLoginId: {}, institute: {}", request.userLoginId(), request.instituteName());
 
@@ -42,12 +46,18 @@ public class AuthRegistrationService {
             throw new UserLoginIdAlreadyExistsException("User login ID already registered: " + request.userLoginId());
         }
 
-        CreateTenantResult tenantResult = tenantService.createTenant(request.instituteName());
+        CreateTenantResult tenantResult = tenantService.createTenant(request.instituteName(), request.subjects());
         if (!tenantResult.success()) {
             throw new TenantCreationFailedException("Failed to create tenant: " + tenantResult.message());
         }
 
         log.info("Tenant created: slug={}, tenantId={}", tenantResult.tenantSlug(), tenantResult.tenantId());
+        TenantContextHolder.withinContext(tenantResult.tenantSlug(), tenantResult.tenantId(), () -> {
+            billingService.createTrialSubscription(tenantResult.tenantId(), tenantResult.tenantSlug());
+            examService.seedTenantQuestionTypeDefaults(
+                    tenantResult.tenantSlug(), tenantResult.tenantId(), request.subjects());
+        });
+
         String passwordHash = passwordEncoder.encode(request.password());
 
         UserData user = TenantContextHolder.withinContext(tenantResult.tenantSlug(), tenantResult.tenantId(), () ->
@@ -58,13 +68,6 @@ public class AuthRegistrationService {
         // resolve this owner's tenant from the OWNER login_id.
         userDirectoryPort.createDirectoryEntry(
                 user.id(), request.userLoginId(), tenantResult.tenantId(), null);
-
-        // Bootstrap of OWNER admin record runs as an AFTER_COMMIT listener on
-        // this event in admin. Breaks the previous auth↔admin cycle
-        // (CIRCULAR_MODULE_DEPS_AUDIT Resolution A, pair 4).
-        eventPublisher.publishEvent(new OwnerRegisteredEvent(
-                user.id(), request.userLoginId(), request.name(), request.phone(), null,
-                tenantResult.tenantSlug(), tenantResult.tenantId()));
 
         var session = loginSessionHelper.create(user, tenantResult.tenantSlug(), tenantResult.tenantId(), metadata);
         log.info("Owner registration successful: userId={}, tenantSlug={}", user.id(), tenantResult.tenantSlug());
