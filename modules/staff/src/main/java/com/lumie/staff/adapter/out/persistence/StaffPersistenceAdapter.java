@@ -5,7 +5,6 @@ import com.lumie.staff.domain.entity.Staff;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -33,8 +32,12 @@ public class StaffPersistenceAdapter implements StaffPersistencePort {
         return repository.countGroupedByRoleAndIsActive(isActive);
     }
     @Override public Page<Staff> search(Boolean isActive, String search, Pageable pageable) {
+        return searchExcludingUserId(isActive, search, null, pageable);
+    }
+    @Override public Page<Staff> searchExcludingUserId(Boolean isActive, String search, Long excludedUserId, Pageable pageable) {
         Specification<Staff> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            if (excludedUserId != null) predicates.add(cb.notEqual(root.get("userId"), excludedUserId));
             if (isActive != null) predicates.add(cb.equal(root.get("isActive"), isActive));
             if (search != null && !search.isBlank()) {
                 String pattern = "%" + search.toLowerCase(Locale.ROOT) + "%";
@@ -48,8 +51,30 @@ public class StaffPersistenceAdapter implements StaffPersistencePort {
         var orders = pageable.getSort().stream()
                 .map(order -> order.withProperty("name".equals(order.getProperty()) ? "canonicalName" : order.getProperty()))
                 .toList();
-        return repository.findAll(spec, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders)));
+        Pageable sortedPageable = new OffsetPageable(pageable.getPageNumber(), pageable.getPageSize(),
+                pageable.getOffset(), Sort.by(orders));
+        return repository.findAll(spec, sortedPageable);
     }
     @Override public Staff save(Staff staff) { return repository.save(staff); }
     @Override public void delete(Staff staff) { repository.delete(staff); }
+
+    private record OffsetPageable(int pageNumber, int pageSize, long offset, Sort sort) implements Pageable {
+        @Override public boolean isPaged() { return true; }
+        @Override public boolean isUnpaged() { return false; }
+        @Override public int getPageNumber() { return pageNumber; }
+        @Override public int getPageSize() { return pageSize; }
+        @Override public long getOffset() { return offset; }
+        @Override public Sort getSort() { return sort; }
+        @Override public Pageable next() { return new OffsetPageable(pageNumber + 1, pageSize, offset + pageSize, sort); }
+        @Override public Pageable previousOrFirst() {
+            return hasPrevious()
+                    ? new OffsetPageable(pageNumber - 1, pageSize, Math.max(0, offset - pageSize), sort)
+                    : first();
+        }
+        @Override public Pageable first() { return new OffsetPageable(0, pageSize, 0, sort); }
+        @Override public Pageable withPage(int nextPage) {
+            return new OffsetPageable(nextPage, pageSize, (long) nextPage * pageSize, sort);
+        }
+        @Override public boolean hasPrevious() { return pageNumber > 0; }
+    }
 }

@@ -22,6 +22,7 @@ public record TenantResponse(
         @Schema(nullable = true) String logoUrl,
         @Schema(nullable = true) Instant onboardingCompletedAt,
         List<String> hiddenSidebarItemIds,
+        List<String> subjects,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -40,6 +41,7 @@ public record TenantResponse(
                 .logoUrl(hasLogo ? "/api/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
                 .onboardingCompletedAt(tenant.getOnboardingCompletedAt())
                 .hiddenSidebarItemIds(tenant.getHiddenSidebarItemIds())
+                .subjects(tenant.getSubjects())
                 .createdAt(tenant.getCreatedAt())
                 .updatedAt(tenant.getUpdatedAt())
                 .build();

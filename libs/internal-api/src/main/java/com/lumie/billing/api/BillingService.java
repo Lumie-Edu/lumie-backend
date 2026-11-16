@@ -15,6 +15,12 @@ public interface BillingService {
 
     SubscriptionData createFreeSubscription(Long tenantId, String tenantSlug);
 
+    /**
+     * Creates the signup trial in the caller's transaction and tenant context.
+     * Implementations must propagate failures so tenant signup can roll back.
+     */
+    SubscriptionData createTrialSubscription(Long tenantId, String tenantSlug);
+
     record SubscriptionData(
             Long id,
             Long tenantId,

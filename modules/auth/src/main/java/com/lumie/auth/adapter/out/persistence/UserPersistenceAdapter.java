@@ -68,6 +68,12 @@ public class UserPersistenceAdapter implements UserLookupPort {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<UserData> findTenantOwner() {
+        return userRepository.findFirstByRoleOrderByIdAsc(Role.OWNER).map(this::toUserData);
+    }
+
+    @Override
     @Transactional
     public UserData createUser(String userLoginId, String name, String phone, String passwordHash, Role role) {
         log.debug("Creating new user: {} in tenant: {}", userLoginId, TenantContextHolder.getTenant());
@@ -184,7 +190,9 @@ public class UserPersistenceAdapter implements UserLookupPort {
                 user.getRole(),
                 tenantId,
                 user.isEnabled(),
-                user.getAvatarSeed()
+                user.getAvatarSeed(),
+                user.getCreatedAt(),
+                user.getUpdatedAt()
         );
     }
 }

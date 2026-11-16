@@ -23,6 +23,8 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUserLoginId(String userLoginId);
 
+    Optional<User> findFirstByRoleOrderByIdAsc(Role role);
+
     boolean existsByUserLoginId(String userLoginId);
 
     @Query("SELECT u.id AS id, u.avatarSeed AS avatarSeed FROM User u WHERE u.id IN :ids AND u.avatarSeed IS NOT NULL")

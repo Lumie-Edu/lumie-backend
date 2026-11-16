@@ -3073,6 +3073,13 @@
           "phone" : {
             "type" : "string"
           },
+          "subjects" : {
+            "items" : {
+              "pattern" : "KOREAN|MATH|ENGLISH|SOCIAL_STUDIES|SCIENCE",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "userLoginId" : {
             "maxLength" : 50,
             "minLength" : 4,
@@ -3080,7 +3087,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "instituteName", "name", "password", "userLoginId" ],
+        "required" : [ "instituteName", "name", "password", "subjects", "userLoginId" ],
         "type" : "object"
       },
       "PageResponseAnnouncementResponse" : {
@@ -5846,12 +5853,18 @@
             "enum" : [ "PENDING", "PROVISIONING", "ACTIVE", "SUSPENDED", "DELETED" ],
             "type" : "string"
           },
+          "subjects" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "updatedAt" : {
             "format" : "date-time",
             "type" : "string"
           }
         },
-        "required" : [ "createdAt", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "slug", "status", "updatedAt" ],
+        "required" : [ "createdAt", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "slug", "status", "subjects", "updatedAt" ],
         "type" : "object"
       },
       "TextbookFolderPathResponse" : {

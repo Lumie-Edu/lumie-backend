@@ -193,4 +193,41 @@ class ExamQuestionTypeServiceTest {
 
         verify(examQuestionTypePort, never()).saveAll(any());
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void seedDefaultQuestionTypesIfEmptyCombinesSelectedCsatSubjectsWithoutDuplicates() {
+        when(examQuestionTypePort.findAllByNameIn(any())).thenReturn(List.of());
+
+        examQuestionTypeService.seedDefaultQuestionTypesIfEmpty(
+                List.of("KOREAN", "MATH", "ENGLISH", "SOCIAL_STUDIES", "SCIENCE", "UNKNOWN"));
+
+        ArgumentCaptor<List<ExamQuestionType>> captor = ArgumentCaptor.forClass(List.class);
+        verify(examQuestionTypePort).saveAll(captor.capture());
+        assertThat(captor.getValue()).extracting(ExamQuestionType::getName)
+                .contains("독서", "문학", "화법과 작문", "언어와 매체", "수학Ⅰ", "확률과 통계",
+                        "듣기", "기초유형", "생활과 윤리", "정치와 법", "물리학Ⅰ", "지구과학Ⅱ")
+                .doesNotContain("UNKNOWN");
+        assertThat(captor.getValue()).extracting(ExamQuestionType::getDisplayOrder)
+                .containsExactlyElementsOf(java.util.stream.IntStream.rangeClosed(1, captor.getValue().size())
+                        .boxed().toList());
+    }
+
+    @Test
+    void seedDefaultQuestionTypesIfEmptyFallsBackToEnglishForNullSubjects() {
+        when(examQuestionTypePort.findAllByNameIn(any())).thenReturn(List.of());
+
+        examQuestionTypeService.seedDefaultQuestionTypesIfEmpty(null);
+
+        verify(examQuestionTypePort).saveAll(any());
+    }
+
+    @Test
+    void seedDefaultQuestionTypesIfEmptyFallsBackToEnglishForEmptySubjects() {
+        when(examQuestionTypePort.findAllByNameIn(any())).thenReturn(List.of());
+
+        examQuestionTypeService.seedDefaultQuestionTypesIfEmpty(List.of());
+
+        verify(examQuestionTypePort).saveAll(any());
+    }
 }

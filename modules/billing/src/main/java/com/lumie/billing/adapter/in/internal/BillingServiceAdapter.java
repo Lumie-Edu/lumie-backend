@@ -9,6 +9,7 @@ import com.lumie.billing.application.service.SubscriptionCommandService;
 import com.lumie.billing.application.service.SubscriptionQueryService;
 import com.lumie.billing.api.BillingService;
 import com.lumie.common.quota.MetricType;
+import com.lumie.common.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -87,6 +88,14 @@ public class BillingServiceAdapter implements BillingService {
     public SubscriptionData createFreeSubscription(Long tenantId, String tenantSlug) {
         SubscriptionResponse sub = subscriptionCommandService.createFreeSubscription(tenantId, tenantSlug);
         return toSubscriptionData(sub);
+    }
+
+    @Override
+    public SubscriptionData createTrialSubscription(Long tenantId, String tenantSlug) {
+        return TenantContextHolder.withinContext(tenantSlug, tenantId, () -> {
+            SubscriptionResponse sub = subscriptionCommandService.provisionTrial(tenantId, tenantSlug);
+            return toSubscriptionData(sub);
+        });
     }
 
     /**

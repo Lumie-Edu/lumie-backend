@@ -30,6 +30,8 @@ public interface UserLookupPort {
 
     Optional<UserData> findById(Long userId);
 
+    Optional<UserData> findTenantOwner();
+
     Map<Long, String> getAvatarSeeds(Collection<Long> userIds);
 
     Map<Long, String> getUserRoles(Collection<Long> userIds);
@@ -68,8 +70,16 @@ public interface UserLookupPort {
             Role role,
             Long tenantId,
             boolean enabled,
-            String avatarSeed
+            String avatarSeed,
+            Instant createdAt,
+            Instant updatedAt
     ) {
+        public UserData(Long id, String userLoginId, String name, String phone, String email,
+                        String passwordHash, Role role, Long tenantId, boolean enabled, String avatarSeed) {
+            this(id, userLoginId, name, phone, email, passwordHash, role, tenantId, enabled,
+                    avatarSeed, null, null);
+        }
+
         public UserResponse toUserResponse(String tenantSlug) {
             return toUserResponse(tenantSlug, null);
         }

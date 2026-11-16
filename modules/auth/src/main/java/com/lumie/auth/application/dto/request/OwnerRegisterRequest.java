@@ -1,6 +1,7 @@
 package com.lumie.auth.application.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import com.lumie.common.validation.PersonName;
 import com.lumie.common.validation.PersonNamePolicy;
 import com.lumie.common.validation.MobilePhone;
@@ -10,6 +11,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
 
 @Builder
 public record OwnerRegisterRequest(
@@ -36,6 +38,16 @@ public record OwnerRegisterRequest(
 
         @NotBlank(message = "Institute name is required")
         @Size(min = 2, max = 200, message = "Institute name must be between 2 and 200 characters")
-        String instituteName
+        String instituteName,
+
+        @NotEmpty(message = "At least one subject is required")
+        List<@jakarta.validation.constraints.Pattern(regexp = "KOREAN|MATH|ENGLISH|SOCIAL_STUDIES|SCIENCE") String> subjects
 ) {
+    public OwnerRegisterRequest {
+        // Keep in-flight older frontend versions working during rollout; the
+        // current signup UI always supplies its explicit subject selection.
+        if (subjects == null || subjects.isEmpty()) {
+            subjects = List.of("ENGLISH");
+        }
+    }
 }

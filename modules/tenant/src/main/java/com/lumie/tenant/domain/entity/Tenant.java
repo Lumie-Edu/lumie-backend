@@ -54,6 +54,10 @@ public class Tenant extends BaseEntity {
     @Column(name = "institute_name", length = 200)
     private String instituteName;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "subjects", columnDefinition = "jsonb", nullable = false)
+    private List<String> subjects = new ArrayList<>();
+
     @Column(name = "phone", length = 30)
     private String phone;
 
@@ -105,14 +109,32 @@ public class Tenant extends BaseEntity {
      * Slug format: inst-{uuid8}
      */
     public static Tenant createWithAutoSlug(String instituteName) {
+        return createWithAutoSlug(instituteName, List.of());
+    }
+
+    public static Tenant createWithAutoSlug(String instituteName, List<String> subjects) {
         String autoSlug = "inst-" + java.util.UUID.randomUUID().toString().substring(0, 8);
-        return Tenant.builder()
+        Tenant tenant = Tenant.builder()
                 .slug(TenantSlug.of(autoSlug))
                 .name(instituteName)
                 .displayName(instituteName)
                 .instituteName(instituteName)
                 .plan(TenantPlan.FREE)
                 .build();
+        tenant.updateSubjects(subjects);
+        return tenant;
+    }
+
+    public void updateSubjects(List<String> subjects) {
+        this.subjects = subjects == null ? new ArrayList<>() : subjects.stream()
+                .filter(subject -> subject != null && !subject.isBlank())
+                .map(String::trim)
+                .distinct()
+                .toList();
+    }
+
+    public List<String> getSubjects() {
+        return subjects == null ? List.of() : List.copyOf(subjects);
     }
 
     public void updateLogoObjectKey(String objectKey) {

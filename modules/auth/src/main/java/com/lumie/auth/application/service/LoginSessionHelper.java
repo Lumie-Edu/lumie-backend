@@ -9,6 +9,8 @@ import com.lumie.auth.domain.vo.SessionMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -44,8 +46,35 @@ public class LoginSessionHelper {
                 now,
                 now.plusSeconds(sessionConfig.getExpiration())
         );
+        registerRollbackCleanup(session);
         sessionPersistencePort.save(session);
         return session;
+    }
+
+    /**
+     * Redis cannot join the owner-signup database transaction. If signup rolls
+     * back after the session write, remove the Redis session and its user index
+     * entry after the database transaction has completed.
+     */
+    private void registerRollbackCleanup(AuthSession session) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == STATUS_COMMITTED) {
+                    return;
+                }
+                try {
+                    sessionPersistencePort.delete(session);
+                } catch (RuntimeException exception) {
+                    log.error("Failed to remove session after owner-signup rollback: sessionId={}",
+                            session.id(), exception);
+                }
+            }
+        });
     }
 
     private void enforceSingleSessionPerDeviceCategory(String tenantSlug, Long userId, DeviceCategory category) {
