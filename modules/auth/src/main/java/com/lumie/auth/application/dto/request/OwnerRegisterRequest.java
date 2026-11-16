@@ -43,4 +43,11 @@ public record OwnerRegisterRequest(
         @NotEmpty(message = "At least one subject is required")
         List<@jakarta.validation.constraints.Pattern(regexp = "KOREAN|MATH|ENGLISH|SOCIAL_STUDIES|SCIENCE") String> subjects
 ) {
+    public OwnerRegisterRequest {
+        // Keep in-flight older frontend versions working during rollout; the
+        // current signup UI always supplies its explicit subject selection.
+        if (subjects == null || subjects.isEmpty()) {
+            subjects = List.of("ENGLISH");
+        }
+    }
 }
