@@ -15,7 +15,6 @@ import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
 import com.lumie.file.application.service.UploadSessionService;
 import com.lumie.file.application.dto.response.FileDownloadResult;
-import com.lumie.file.domain.vo.EntityType;
 import java.util.UUID;
 import java.util.List;
 import java.io.ByteArrayInputStream;
