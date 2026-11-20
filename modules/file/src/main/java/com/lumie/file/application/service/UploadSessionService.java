@@ -4,12 +4,12 @@ import com.lumie.common.auth.Role;
 import com.lumie.common.auth.AuthorizationGuard;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.file.application.dto.request.CreateUploadSessionRequest;
+import com.lumie.file.application.dto.request.UploadableEntityType;
 import com.lumie.file.application.dto.response.UploadSessionResponse;
 import com.lumie.file.application.dto.response.UploadSessionStatusResponse;
 import com.lumie.file.application.port.out.StoragePort;
 import com.lumie.file.domain.entity.FileUploadSession;
 import com.lumie.file.domain.exception.FileErrorCode;
-import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FilePath;
 import com.lumie.file.domain.vo.UploadSessionStatus;
 import java.time.Instant;
@@ -23,7 +23,8 @@ import org.springframework.stereotype.Service;
 public class UploadSessionService {
     private static final long SESSION_SECONDS = 24 * 60 * 60;
     private static final int URL_SECONDS = 15 * 60;
-    private static final Set<EntityType> SUPPORTED_TYPES = Set.of(EntityType.ANNOUNCEMENT, EntityType.QNA);
+    private static final Set<UploadableEntityType> SUPPORTED_TYPES = Set.of(
+            UploadableEntityType.ANNOUNCEMENT, UploadableEntityType.QNA);
     private final StoragePort storage;
     private final UploadSessionReservationService reservationService;
     private final UploadSessionStateService stateService;
@@ -34,7 +35,7 @@ public class UploadSessionService {
         Instant now = Instant.now();
         Instant urlExpiry = now.plusSeconds(URL_SECONDS);
         Instant sessionExpiry = now.plusSeconds(SESSION_SECONDS);
-        String objectKey = FilePath.of(request.entityType(), id, request.filename()).toObjectKey();
+        String objectKey = FilePath.of(request.entityType().toEntityType(), id, request.filename()).toObjectKey();
 
         // Reservation and cleanup event commit before the browser receives this URL.
         reservationService.reserve(id, objectKey, request, urlExpiry, sessionExpiry);
@@ -102,7 +103,7 @@ public class UploadSessionService {
             throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
         }
         Role role = com.lumie.common.tenant.UserContextHolder.getUserRole();
-        if (request.entityType() == EntityType.QNA && role == Role.STUDENT) return;
+        if (request.entityType() == UploadableEntityType.QNA && role == Role.STUDENT) return;
         AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
     }
 

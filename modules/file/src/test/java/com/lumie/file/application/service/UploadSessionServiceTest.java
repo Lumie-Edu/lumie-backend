@@ -9,7 +9,7 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.application.dto.request.CreateUploadSessionRequest;
-import com.lumie.file.domain.vo.EntityType;
+import com.lumie.file.application.dto.request.UploadableEntityType;
 import com.lumie.file.application.port.out.StoragePort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +42,7 @@ class UploadSessionServiceTest {
     @Test
     void rejectsFileLargerThanUploadPolicyLimit() {
         var request = new CreateUploadSessionRequest(
-                EntityType.ANNOUNCEMENT,
+                UploadableEntityType.ANNOUNCEMENT,
                 "notes.pdf",
                 "application/pdf",
                 TemporaryUploadPolicy.MAX_BYTES + 1);
@@ -54,7 +54,7 @@ class UploadSessionServiceTest {
     @Test
     void rejectsFilenameOutsideUploadPolicy() {
         var request = new CreateUploadSessionRequest(
-                EntityType.ANNOUNCEMENT,
+                UploadableEntityType.ANNOUNCEMENT,
                 "notes.exe",
                 "application/pdf",
                 12L);
@@ -69,7 +69,7 @@ class UploadSessionServiceTest {
         TenantContextHolder.setTenantId(1L);
         UserContextHolder.setUserRole(Role.OWNER);
         var request = new CreateUploadSessionRequest(
-                EntityType.ANNOUNCEMENT,
+                UploadableEntityType.ANNOUNCEMENT,
                 "notes.pdf",
                 "application/pdf",
                 12L);
