@@ -23,8 +23,7 @@ import org.springframework.stereotype.Service;
 public class UploadSessionService {
     private static final long SESSION_SECONDS = 24 * 60 * 60;
     private static final int URL_SECONDS = 15 * 60;
-    private static final Set<EntityType> SUPPORTED_TYPES = Set.of(EntityType.ANNOUNCEMENT, EntityType.QNA, EntityType.TEXTBOOK);
-
+    private static final Set<EntityType> SUPPORTED_TYPES = Set.of(EntityType.ANNOUNCEMENT, EntityType.QNA);
     private final StoragePort storage;
     private final UploadSessionReservationService reservationService;
     private final UploadSessionStateService stateService;

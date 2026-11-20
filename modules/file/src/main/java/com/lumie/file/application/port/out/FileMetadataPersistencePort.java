@@ -9,12 +9,6 @@ import java.util.UUID;
 public interface FileMetadataPersistencePort {
     List<FileMetadata> findByEntityTypeAndEntityId(EntityType entityType, Long entityId);
 
-    List<FileMetadata> findByEntityTypeAndFolderId(EntityType entityType, UUID folderId);
-
-    List<FileMetadata> findByEntityType(EntityType entityType);
-
-    boolean existsByFolderId(UUID folderId);
-
     Optional<FileMetadata> findById(UUID id);
 
     FileMetadata save(FileMetadata metadata);

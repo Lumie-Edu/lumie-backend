@@ -17,10 +17,8 @@ public interface FileService {
     /** Persists metadata for objects prepared before the current DB transaction. */
     List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files);
 
-    List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files, UUID folderId);
-
     /** Claims verified sessions and persists READY metadata in the caller's transaction. */
-    List<UUID> attachUploadSessions(String entityType, Long entityId, List<PreparedUploadSession> sessions, UUID folderId);
+    List<UUID> attachUploadSessions(String entityType, Long entityId, List<PreparedUploadSession> sessions);
 
     /** Best-effort compensation for prepared objects when the DB transaction fails. */
     void discardPreparedFiles(List<PreparedTemporaryFile> files);

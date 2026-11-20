@@ -2,7 +2,6 @@ package com.lumie.file.adapter.out.persistence;
 
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileUploadSession;
-import com.lumie.file.domain.entity.TextbookFolder;
 import com.lumie.file.domain.vo.EntityType;
 import java.time.Instant;
 import java.sql.Timestamp;
@@ -29,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest(properties = {"spring.jpa.hibernate.ddl-auto=create-drop", "spring.flyway.enabled=false"})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({FileDownloadPersistenceAdapter.class, FileMetadataPersistenceAdapter.class,
-        FileUploadSessionPersistenceAdapter.class, TextbookFolderPersistenceAdapter.class})
+        FileUploadSessionPersistenceAdapter.class})
 class FilePersistenceJpaIntegrationTest {
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:18-alpine");
@@ -44,7 +43,6 @@ class FilePersistenceJpaIntegrationTest {
     @Autowired private FileDownloadPersistenceAdapter downloadAdapter;
     @Autowired private FileMetadataPersistenceAdapter metadataAdapter;
     @Autowired private FileUploadSessionPersistenceAdapter sessionAdapter;
-    @Autowired private TextbookFolderPersistenceAdapter folderAdapter;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     @AfterEach
@@ -54,7 +52,7 @@ class FilePersistenceJpaIntegrationTest {
     }
 
     @Test
-    void metadataQueriesPreserveNullFolderFilterAndOrdering() {
+    void metadataQueriesPreserveEntityFilteringAndOrdering() {
         tenant(71L);
         FileMetadata z = metadata("z.pdf", null);
         FileMetadata a = metadata("a.pdf", null);
@@ -69,10 +67,6 @@ class FilePersistenceJpaIntegrationTest {
                 Timestamp.from(now.minusSeconds(86_400)), a.getId());
         jdbcTemplate.update("update file_metadata set created_at = ? where id = ?", Timestamp.from(now), nested.getId());
 
-        assertThat(metadataAdapter.findByEntityTypeAndFolderId(EntityType.TEXTBOOK, null))
-                .extracting(FileMetadata::getId).containsExactly(a.getId(), z.getId());
-        assertThat(metadataAdapter.findByEntityType(EntityType.TEXTBOOK))
-                .extracting(FileMetadata::getId).containsExactly(nested.getId(), a.getId(), z.getId());
         assertThat(metadataAdapter.findByEntityTypeAndEntityId(EntityType.TEXTBOOK, null)).hasSize(3);
         assertThat(metadataAdapter.findById(UUID.randomUUID())).isEmpty();
     }
@@ -94,23 +88,10 @@ class FilePersistenceJpaIntegrationTest {
 
     @Test
     @DisplayName("ATDD-US1-001:example-008 file upload-session lookup")
-    void uploadSessionForUpdateAndFolderNullAwareQueriesRemainUsable() {
+    void uploadSessionForUpdateRemainsUsable() {
         tenant(73L);
-        TextbookFolder z = folderAdapter.save(TextbookFolder.create("Zeta", null, 0));
-        TextbookFolder a = folderAdapter.save(TextbookFolder.create("Alpha", null, 0));
-        folderAdapter.save(TextbookFolder.create("Child", a.getId(), a.getDepth()));
-
-        assertThat(folderAdapter.findByParentId(null)).extracting(TextbookFolder::getName)
-                .containsExactly("Alpha", "Zeta");
-        assertThat(folderAdapter.findByParentId(a.getId())).extracting(TextbookFolder::getName)
-                .containsExactly("Child");
-        assertThat(folderAdapter.existsByParentIdAndName(null, "Alpha")).isTrue();
-        assertThat(folderAdapter.existsByParentIdAndName(null, "Missing")).isFalse();
-        assertThat(folderAdapter.existsByParentId(a.getId())).isTrue();
-        assertThat(folderAdapter.existsByParentId(z.getId())).isFalse();
-
         UUID id = UUID.randomUUID();
-        FileUploadSession session = FileUploadSession.issue(id, 14L, EntityType.TEXTBOOK, "object/key",
+        FileUploadSession session = FileUploadSession.issue(id, 14L, EntityType.ANNOUNCEMENT, "object/key",
                 "book.pdf", "application/pdf", 20L, Instant.now().plusSeconds(30), Instant.now().plusSeconds(60));
         sessionAdapter.save(session);
         assertThat(sessionAdapter.findById(id)).contains(session);

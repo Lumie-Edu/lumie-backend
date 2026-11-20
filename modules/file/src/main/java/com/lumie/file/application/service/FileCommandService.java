@@ -1,24 +1,18 @@
 package com.lumie.file.application.service;
 
 import com.lumie.file.application.dto.response.FileMetadataResponse;
-import com.lumie.file.application.dto.request.RegisterTextbookFilesRequest;
-import com.lumie.file.api.FileService;
-import com.lumie.file.api.PreparedTemporaryFile;
-import com.lumie.file.api.PreparedUploadSession;
 import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.file.application.port.out.FileMetadataPersistencePort;
-import com.lumie.file.application.port.out.TextbookFolderPersistencePort;
 import com.lumie.file.domain.entity.FileStorageOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -26,36 +20,8 @@ import java.util.List;
 public class FileCommandService {
 
     private final FileMetadataPersistencePort fileMetadataRepository;
-    private final TextbookFolderPersistencePort textbookFolderRepository;
     private final com.lumie.file.application.port.out.FileDownloadPersistencePort fileDownloadRepository;
-    private final FileService fileService;
     private final FileStorageOperationPersistencePort operationPersistencePort;
-
-    @Transactional
-    public List<FileMetadataResponse> registerTextbookFiles(RegisterTextbookFilesRequest request) {
-        if (request.folderId() != null && textbookFolderRepository.findById(request.folderId()).isEmpty()) {
-            throw new BusinessException(FileErrorCode.FOLDER_NOT_FOUND);
-        }
-        if (request.attachments() != null && request.uploadSessionIds() != null) {
-            throw new BusinessException(FileErrorCode.INVALID_FILE_DATA);
-        }
-        List<PreparedTemporaryFile> prepared = fileService.prepareTemporaryFiles("textbook", request.attachments());
-        List<PreparedUploadSession> preparedSessions = fileService.prepareUploadSessions("textbook", request.uploadSessionIds());
-        try {
-            List<UUID> fileIds = preparedSessions.isEmpty()
-                    ? fileService.attachPreparedFiles("textbook", null, prepared, request.folderId())
-                    : fileService.attachUploadSessions("textbook", null, preparedSessions, request.folderId());
-            fileMetadataRepository.flush();
-            return fileIds.stream()
-                    .map(fileId -> fileMetadataRepository.findById(fileId)
-                            .map(FileMetadataResponse::from)
-                            .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND)))
-                    .toList();
-        } catch (RuntimeException exception) {
-            fileService.discardPreparedFiles(prepared);
-            throw exception;
-        }
-    }
 
     @Transactional
     public void recordDownload(UUID fileId, Long userId) {
@@ -76,6 +42,10 @@ public class FileCommandService {
         FileMetadata fileMetadata = fileMetadataRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
+        // Keep archived textbook metadata deletable without violating the legacy folder FK.
+        if (fileMetadata.getFolderId() != null) {
+            fileMetadata.clearFolder();
+        }
         enqueueDelete(fileMetadata);
 
         log.info("Deleted file: {}", fileId);
