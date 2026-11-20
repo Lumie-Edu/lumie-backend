@@ -4,29 +4,35 @@ import com.lumie.common.auth.Role;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.content.application.dto.request.CreateCommentRequest;
+import com.lumie.content.application.dto.request.CreateQnaRequest;
 import com.lumie.content.domain.entity.QnaBoard;
 import com.lumie.content.domain.entity.QnaComment;
 import com.lumie.content.application.port.out.QnaBoardPersistencePort;
 import com.lumie.content.application.port.out.QnaCommentPersistencePort;
 import com.lumie.file.api.FileService;
+import com.lumie.file.api.PreparedUploadSession;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 class QnaCommentAuthorizationTest {
 
     private final QnaBoardPersistencePort boards = mock(QnaBoardPersistencePort.class);
     private final QnaCommentPersistencePort comments = mock(QnaCommentPersistencePort.class);
-    private final QnaCommandService service = new QnaCommandService(boards, comments, mock(FileService.class));
+    private final FileService files = mock(FileService.class);
+    private final QnaCommandService service = new QnaCommandService(boards, comments, files);
 
     @AfterEach
     void clearUserContext() {
@@ -43,6 +49,25 @@ class QnaCommentAuthorizationTest {
         assertThatThrownBy(() -> service.deleteComment(1L, 2L))
                 .isInstanceOf(BusinessException.class);
         verifyNoInteractions(boards, comments);
+    }
+
+    @Test
+    void qnaCreationAttachesVerifiedUploadSessions() {
+        UserContextHolder.setUserId(10L);
+        UserContextHolder.setUserRole(Role.STUDENT);
+        UUID sessionId = UUID.randomUUID();
+        PreparedUploadSession prepared = new PreparedUploadSession(
+                sessionId, "question.pdf", "application/pdf", 10L, "demo/qna/question.pdf", "etag");
+        given(files.prepareUploadSessions("qna", List.of(sessionId))).willReturn(List.of(prepared));
+        given(boards.save(any(QnaBoard.class))).willAnswer(invocation -> {
+            QnaBoard board = invocation.getArgument(0);
+            ReflectionTestUtils.setField(board, "id", 1L);
+            return board;
+        });
+
+        service.createQna(new CreateQnaRequest(null, "질문", "내용", null, List.of(sessionId)));
+
+        verify(files).attachUploadSessions("qna", 1L, List.of(prepared));
     }
 
     @Test

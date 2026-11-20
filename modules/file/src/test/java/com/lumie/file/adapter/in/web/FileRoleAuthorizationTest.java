@@ -15,6 +15,7 @@ import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
 import com.lumie.file.application.service.UploadSessionService;
 import com.lumie.file.application.dto.response.FileDownloadResult;
+import com.lumie.file.domain.vo.EntityType;
 import java.util.UUID;
 import java.util.List;
 import java.io.ByteArrayInputStream;
@@ -140,5 +141,17 @@ class FileRoleAuthorizationTest {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> controller.getFileDownloaders(UUID.randomUUID()))
                 .isInstanceOf(com.lumie.common.exception.BusinessException.class);
         verifyNoInteractions(fileQueryService, fileCommandService);
+    }
+
+    @Test
+    void listsFilesForAnEntity() {
+        Long entityId = 12L;
+        given(fileQueryService.getFilesByEntity(EntityType.ANNOUNCEMENT, entityId)).willReturn(List.of());
+        FileController controller = new FileController(fileCommandService, fileQueryService, uploadSessionService);
+
+        var response = controller.getFilesByEntityType(EntityType.ANNOUNCEMENT, entityId);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        verify(fileQueryService).getFilesByEntity(EntityType.ANNOUNCEMENT, entityId);
     }
 }

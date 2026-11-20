@@ -88,4 +88,17 @@ class FileCommandServiceTest {
 
         verifyNoInteractions(operationPersistencePort);
     }
+
+    @Test
+    void clearsArchivedFolderReferenceBeforeDeletingFile() {
+        metadata = FileMetadata.createWithId(FILE_ID, EntityType.TEXTBOOK, null,
+                "notes.pdf", "application/pdf", 10L, OBJECT_KEY, UUID.randomUUID());
+        metadata.markReady();
+        when(fileMetadataRepository.findById(FILE_ID)).thenReturn(Optional.of(metadata));
+
+        commandService.deleteFile(FILE_ID);
+
+        assertThat(metadata.getFolderId()).isNull();
+        assertThat(metadata.isDeleting()).isTrue();
+    }
 }
