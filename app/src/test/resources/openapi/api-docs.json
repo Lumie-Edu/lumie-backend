@@ -1528,28 +1528,13 @@
         "required" : [ "content", "name" ],
         "type" : "object"
       },
-      "CreateTextbookFolderRequest" : {
-        "properties" : {
-          "name" : {
-            "maxLength" : 100,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "parentId" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        },
-        "required" : [ "name" ],
-        "type" : "object"
-      },
       "CreateUploadSessionRequest" : {
         "properties" : {
           "contentType" : {
             "type" : "string"
           },
           "entityType" : {
-            "enum" : [ "ANNOUNCEMENT", "QNA", "TEXTBOOK", "OMR" ],
+            "enum" : [ "ANNOUNCEMENT", "QNA" ],
             "type" : "string"
           },
           "fileSize" : {
@@ -2318,11 +2303,6 @@
             "format" : "int64",
             "type" : "integer"
           },
-          "folderId" : {
-            "format" : "uuid",
-            "nullable" : true,
-            "type" : "string"
-          },
           "id" : {
             "format" : "uuid",
             "type" : "string"
@@ -2334,7 +2314,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "contentType", "createdAt", "entityId", "entityType", "fileSize", "folderId", "id", "originalFilename", "uploadCompleted" ],
+        "required" : [ "contentType", "createdAt", "entityId", "entityType", "fileSize", "id", "originalFilename", "uploadCompleted" ],
         "type" : "object"
       },
       "GradeBucket" : {
@@ -4293,39 +4273,6 @@
         "required" : [ "name" ],
         "type" : "object"
       },
-      "RegisterTextbookFilesRequest" : {
-        "properties" : {
-          "attachments" : {
-            "items" : {
-              "$ref" : "#/components/schemas/TemporaryAttachment"
-            },
-            "type" : "array"
-          },
-          "folderId" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "uploadSessionIds" : {
-            "items" : {
-              "format" : "uuid",
-              "type" : "string"
-            },
-            "type" : "array"
-          }
-        },
-        "type" : "object"
-      },
-      "RenameTextbookFolderRequest" : {
-        "properties" : {
-          "name" : {
-            "maxLength" : 100,
-            "minLength" : 0,
-            "type" : "string"
-          }
-        },
-        "required" : [ "name" ],
-        "type" : "object"
-      },
       "ReportBatchDataRequest" : {
         "properties" : {
           "jobId" : {
@@ -5865,44 +5812,6 @@
           }
         },
         "required" : [ "createdAt", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "slug", "status", "subjects", "updatedAt" ],
-        "type" : "object"
-      },
-      "TextbookFolderPathResponse" : {
-        "properties" : {
-          "ancestors" : {
-            "items" : {
-              "$ref" : "#/components/schemas/TextbookFolderResponse"
-            },
-            "type" : "array"
-          }
-        },
-        "required" : [ "ancestors" ],
-        "type" : "object"
-      },
-      "TextbookFolderResponse" : {
-        "properties" : {
-          "createdAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "depth" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "id" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "parentId" : {
-            "format" : "uuid",
-            "nullable" : true,
-            "type" : "string"
-          }
-        },
-        "required" : [ "createdAt", "depth", "id", "name", "parentId" ],
         "type" : "object"
       },
       "ToolExecuteRequest" : {
@@ -10973,26 +10882,10 @@
         }, {
           "in" : "query",
           "name" : "entityId",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "format" : "int64",
             "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "folderId",
-          "required" : false,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "all",
-          "required" : false,
-          "schema" : {
-            "default" : false,
-            "type" : "boolean"
           }
         } ],
         "responses" : {
@@ -11008,37 +10901,6 @@
               }
             },
             "description" : "OK"
-          }
-        },
-        "tags" : [ "file-controller" ]
-      }
-    },
-    "/v1/files/textbooks" : {
-      "post" : {
-        "operationId" : "registerTextbookFiles",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RegisterTextbookFilesRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/FileMetadataResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "Created"
           }
         },
         "tags" : [ "file-controller" ]
@@ -15235,169 +15097,6 @@
           }
         },
         "tags" : [ "tenant-controller" ]
-      }
-    },
-    "/v1/textbook-folders" : {
-      "get" : {
-        "operationId" : "listFolders",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "parentId",
-          "required" : false,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/TextbookFolderResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "textbook-folder-controller" ]
-      },
-      "post" : {
-        "operationId" : "createFolder",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CreateTextbookFolderRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TextbookFolderResponse"
-                }
-              }
-            },
-            "description" : "Created"
-          }
-        },
-        "tags" : [ "textbook-folder-controller" ]
-      }
-    },
-    "/v1/textbook-folders/{id}" : {
-      "delete" : {
-        "operationId" : "deleteFolder",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          }
-        },
-        "tags" : [ "textbook-folder-controller" ]
-      },
-      "get" : {
-        "operationId" : "getFolder",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TextbookFolderResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "textbook-folder-controller" ]
-      },
-      "patch" : {
-        "operationId" : "renameFolder",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RenameTextbookFolderRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TextbookFolderResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "textbook-folder-controller" ]
-      }
-    },
-    "/v1/textbook-folders/{id}/path" : {
-      "get" : {
-        "operationId" : "getFolderPath",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TextbookFolderPathResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "textbook-folder-controller" ]
       }
     }
   },

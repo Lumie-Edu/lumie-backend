@@ -188,36 +188,17 @@ class FileQueryServiceTest {
     }
 
     @Test
-    void staffTextbookCollectionUsesTheSharedAccessPolicy() {
-        queryService.getAllFilesByEntityType(EntityType.TEXTBOOK);
-
-        verify(fileMetadataLookupService).requireAccess(EntityType.TEXTBOOK, null);
-        verify(fileMetadataRepository).findByEntityType(EntityType.TEXTBOOK);
-    }
-
-    @Test
-    void entityListsAndFolderListsExposeReadyFilesOnly() {
+    void entityListsExposeReadyFilesOnly() {
         UUID readyId = UUID.randomUUID();
         UUID pendingId = UUID.randomUUID();
         UUID failedId = UUID.randomUUID();
-        UUID folderId = UUID.randomUUID();
-        FileMetadata ready = file(readyId, FileUploadStatus.READY, true, folderId);
-        FileMetadata pending = file(pendingId, FileUploadStatus.PENDING, false, folderId);
-        FileMetadata failed = file(failedId, FileUploadStatus.FAILED, false, folderId);
-        given(fileMetadataRepository.findByEntityTypeAndEntityId(EntityType.TEXTBOOK, 9L))
-                .willReturn(List.of(ready, pending, failed));
-        given(fileMetadataRepository.findByEntityTypeAndFolderId(EntityType.TEXTBOOK, folderId))
-                .willReturn(List.of(ready, pending, failed));
-        given(fileMetadataRepository.findByEntityType(EntityType.TEXTBOOK))
+        FileMetadata ready = file(readyId, FileUploadStatus.READY, true, null);
+        FileMetadata pending = file(pendingId, FileUploadStatus.PENDING, false, null);
+        FileMetadata failed = file(failedId, FileUploadStatus.FAILED, false, null);
+        given(fileMetadataRepository.findByEntityTypeAndEntityId(EntityType.ANNOUNCEMENT, 9L))
                 .willReturn(List.of(ready, pending, failed));
 
-        assertThat(queryService.getFilesByEntity(EntityType.TEXTBOOK, 9L))
-                .extracting(FileMetadataResponse::id)
-                .containsExactly(readyId);
-        assertThat(queryService.getFilesByEntityAndFolder(EntityType.TEXTBOOK, folderId))
-                .extracting(FileMetadataResponse::id)
-                .containsExactly(readyId);
-        assertThat(queryService.getAllFilesByEntityType(EntityType.TEXTBOOK))
+        assertThat(queryService.getFilesByEntity(EntityType.ANNOUNCEMENT, 9L))
                 .extracting(FileMetadataResponse::id)
                 .containsExactly(readyId);
     }
@@ -234,7 +215,7 @@ class FileQueryServiceTest {
     }
 
     private static FileMetadata file(UUID id, FileUploadStatus status, boolean completed, UUID folderId) {
-        FileMetadata metadata = FileMetadata.createWithId(id, EntityType.TEXTBOOK, null,
+        FileMetadata metadata = FileMetadata.createWithId(id, EntityType.ANNOUNCEMENT, null,
                 "notes.pdf", "application/pdf", 10L, "files/demo/notes.pdf", folderId);
         ReflectionTestUtils.setField(metadata, "uploadStatus", status);
         if (completed) metadata.markUploadCompleted();

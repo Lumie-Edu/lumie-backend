@@ -71,7 +71,7 @@ public class QnaCommandService {
 
         QnaBoard saved = qnaBoardRepository.save(qnaBoard);
         fileService.attachPreparedFiles("qna", saved.getId(), preparedFiles);
-        fileService.attachUploadSessions("qna", saved.getId(), preparedSessions, null);
+        fileService.attachUploadSessions("qna", saved.getId(), preparedSessions);
         qnaBoardRepository.flush();
         log.info("Q&A created with id: {}", saved.getId());
 

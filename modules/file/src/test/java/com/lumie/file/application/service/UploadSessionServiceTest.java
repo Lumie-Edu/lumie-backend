@@ -9,8 +9,8 @@ import com.lumie.common.exception.BusinessException;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.tenant.UserContextHolder;
 import com.lumie.file.application.dto.request.CreateUploadSessionRequest;
+import com.lumie.file.application.dto.request.UploadableEntityType;
 import com.lumie.file.application.port.out.StoragePort;
-import com.lumie.file.domain.vo.EntityType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,7 +42,7 @@ class UploadSessionServiceTest {
     @Test
     void rejectsFileLargerThanUploadPolicyLimit() {
         var request = new CreateUploadSessionRequest(
-                EntityType.ANNOUNCEMENT,
+                UploadableEntityType.ANNOUNCEMENT,
                 "notes.pdf",
                 "application/pdf",
                 TemporaryUploadPolicy.MAX_BYTES + 1);
@@ -54,7 +54,7 @@ class UploadSessionServiceTest {
     @Test
     void rejectsFilenameOutsideUploadPolicy() {
         var request = new CreateUploadSessionRequest(
-                EntityType.ANNOUNCEMENT,
+                UploadableEntityType.ANNOUNCEMENT,
                 "notes.exe",
                 "application/pdf",
                 12L);
@@ -69,7 +69,7 @@ class UploadSessionServiceTest {
         TenantContextHolder.setTenantId(1L);
         UserContextHolder.setUserRole(Role.OWNER);
         var request = new CreateUploadSessionRequest(
-                EntityType.ANNOUNCEMENT,
+                UploadableEntityType.ANNOUNCEMENT,
                 "notes.pdf",
                 "application/pdf",
                 12L);
@@ -83,6 +83,40 @@ class UploadSessionServiceTest {
 
         assertThat(response.uploadUrl()).isEqualTo("https://objects.example.test/upload");
         assertThat(response.objectKey()).endsWith("/notes.pdf");
+        assertThat(response.status()).isEqualTo("ISSUED");
+    }
+
+    @Test
+    void letsStudentsCreateQuestionUploadSessions() {
+        TenantContextHolder.setTenant("test-tenant");
+        TenantContextHolder.setTenantId(1L);
+        UserContextHolder.setUserRole(Role.STUDENT);
+        given(storage.generatePresignedUploadUrl(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.eq("application/pdf"),
+                org.mockito.ArgumentMatchers.eq(900)))
+                .willReturn("https://objects.example.test/upload");
+
+        var response = service.create(new CreateUploadSessionRequest(
+                UploadableEntityType.QNA, "question.pdf", "application/pdf", 12L));
+
+        assertThat(response.status()).isEqualTo("ISSUED");
+    }
+
+    @Test
+    void letsStaffCreateQuestionUploadSessions() {
+        TenantContextHolder.setTenant("test-tenant");
+        TenantContextHolder.setTenantId(1L);
+        UserContextHolder.setUserRole(Role.OWNER);
+        given(storage.generatePresignedUploadUrl(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.eq("application/pdf"),
+                org.mockito.ArgumentMatchers.eq(900)))
+                .willReturn("https://objects.example.test/upload");
+
+        var response = service.create(new CreateUploadSessionRequest(
+                UploadableEntityType.QNA, "question.pdf", "application/pdf", 12L));
+
         assertThat(response.status()).isEqualTo("ISSUED");
     }
 }

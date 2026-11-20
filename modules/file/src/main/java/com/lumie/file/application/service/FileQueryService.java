@@ -74,28 +74,6 @@ public class FileQueryService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
-    public List<FileMetadataResponse> getFilesByEntityAndFolder(EntityType entityType, UUID folderId) {
-        fileMetadataLookupService.requireAccess(entityType, null);
-        List<FileMetadata> files = fileMetadataRepository.findByEntityTypeAndFolderId(entityType, folderId);
-
-        return files.stream()
-                .filter(this::isReady)
-                .map(FileMetadataResponse::from)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<FileMetadataResponse> getAllFilesByEntityType(EntityType entityType) {
-        fileMetadataLookupService.requireAccess(entityType, null);
-        List<FileMetadata> files = fileMetadataRepository.findByEntityType(entityType);
-
-        return files.stream()
-                .filter(this::isReady)
-                .map(FileMetadataResponse::from)
-                .toList();
-    }
-
     private boolean isReady(FileMetadata metadata) {
         return metadata.isReady();
     }

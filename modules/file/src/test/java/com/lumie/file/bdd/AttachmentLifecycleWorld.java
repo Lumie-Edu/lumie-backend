@@ -13,13 +13,10 @@ import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
 import com.lumie.file.application.service.StorageOperationProcessor;
 import com.lumie.file.application.service.StorageOperationMetrics;
-import com.lumie.file.application.service.TextbookFolderCommandService;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
-import com.lumie.file.domain.entity.TextbookFolder;
 import com.lumie.file.application.port.out.FileDownloadPersistencePort;
 import com.lumie.file.application.port.out.FileMetadataPersistencePort;
-import com.lumie.file.application.port.out.TextbookFolderPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileUploadStatus;
 import com.lumie.student.api.StudentService;
@@ -45,7 +42,6 @@ public class AttachmentLifecycleWorld {
     public final UUID fileId = UUID.fromString("c264c122-a715-47a7-8e80-2d7ddac8476a");
     public final List<FileMetadata> files = new ArrayList<>();
     public final FileMetadataPersistencePort fileMetadataRepository = mock(FileMetadataPersistencePort.class);
-    public final TextbookFolderPersistencePort textbookFolderRepository = mock(TextbookFolderPersistencePort.class);
     public final StoragePort storagePort = mock(StoragePort.class);
     public final FileStorageOperationPersistencePort operationPersistencePort =
             mock(FileStorageOperationPersistencePort.class);
@@ -56,13 +52,11 @@ public class AttachmentLifecycleWorld {
     public final FileServiceAdapter fileServiceAdapter =
             new FileServiceAdapter(fileMetadataRepository, storagePort, operationPersistencePort);
     public final FileCommandService fileCommandService = new FileCommandService(
-            fileMetadataRepository, textbookFolderRepository,
-            mock(com.lumie.file.application.port.out.FileDownloadPersistencePort.class), mock(com.lumie.file.api.FileService.class),
+            fileMetadataRepository,
+            mock(com.lumie.file.application.port.out.FileDownloadPersistencePort.class),
             operationPersistencePort);
     public final FileQueryService fileQueryService;
     public final StorageOperationProcessor storageOperationProcessor;
-    public final TextbookFolderCommandService textbookFolderCommandService =
-            new TextbookFolderCommandService(textbookFolderRepository, fileMetadataRepository, operationPersistencePort);
     public final AtomicReference<FileStorageOperation> operation = new AtomicReference<>();
     public final List<FileStorageOperation> storageOperations = new ArrayList<>();
     public com.lumie.file.api.PreparedTemporaryFile preparedTemporaryFile;
@@ -70,7 +64,7 @@ public class AttachmentLifecycleWorld {
     public UUID requestedRetainedId;
 
     public void preparePromotionCompletedBeforeDelete() {
-        registerReadyAttachment(EntityType.ANNOUNCEMENT, 9L, null);
+        registerReadyAttachment(EntityType.ANNOUNCEMENT, 9L);
         FileStorageOperation promotion = FileStorageOperation.promote(
                 fileId, "tmp/demo/uploads/upload-1/notes.pdf", files.getFirst().getObjectKey(),
                 "etag-1", 10L, "application/pdf", Instant.now().minusSeconds(60));
@@ -154,45 +148,16 @@ public class AttachmentLifecycleWorld {
     }
 
     public void registerReadyAttachment() {
-        registerReadyAttachment(EntityType.ANNOUNCEMENT, 9L, null);
+        registerReadyAttachment(EntityType.ANNOUNCEMENT, 9L);
     }
 
-    public void registerReadyAttachment(EntityType entityType, Long entityId, UUID folderId) {
+    public void registerReadyAttachment(EntityType entityType, Long entityId) {
         String key = "files/demo/" + entityType.getPathSegment() + "/file-1/notes.pdf";
         FileMetadata metadata = FileMetadata.createWithId(fileId, entityType, entityId,
-                "notes.pdf", "application/pdf", 10L, key, folderId);
+                "notes.pdf", "application/pdf", 10L, key, null);
         ReflectionTestUtils.setField(metadata, "tenantId", 42L);
         metadata.markReady();
         files.add(metadata);
-    }
-
-    public void prepareTextbookFolder(UUID folderId) {
-        when(textbookFolderRepository.findById(folderId)).thenReturn(java.util.Optional.of(mock(TextbookFolder.class)));
-        when(textbookFolderRepository.findByParentId(folderId)).thenReturn(List.of());
-    }
-
-    public void preparePartialFolderDeleteFailure() {
-        UUID folderId = UUID.fromString("8f72cc89-7c4e-4f7e-9bd0-99ffdfccbb09");
-        UUID secondFileId = UUID.fromString("cc13408d-e89d-4321-813f-0febfa75ac14");
-        String firstKey = "files/demo/textbook/first.pdf";
-        String secondKey = "files/demo/textbook/second.pdf";
-        registerReadyAttachment(EntityType.TEXTBOOK, null, folderId);
-        FileMetadata second = FileMetadata.createWithId(secondFileId, EntityType.TEXTBOOK, null,
-                "second.pdf", "application/pdf", 10L, secondKey, folderId);
-        second.markReady();
-        ReflectionTestUtils.setField(second, "tenantId", 42L);
-        files.add(second);
-        ReflectionTestUtils.setField(files.getFirst(), "objectKey", firstKey);
-        prepareTextbookFolder(folderId);
-        when(storagePort.objectExists(firstKey)).thenReturn(true, false);
-        when(storagePort.objectExists(secondKey)).thenReturn(true);
-        org.mockito.Mockito.doAnswer(invocation -> {
-            if (secondKey.equals(invocation.getArgument(0))) {
-                throw new com.lumie.common.exception.BusinessException(
-                        com.lumie.file.domain.exception.FileErrorCode.STORAGE_ERROR);
-            }
-            return null;
-        }).when(storagePort).deleteObject(any());
     }
 
     public void prepareAlreadyAbsentDelete() {
@@ -295,17 +260,6 @@ public class AttachmentLifecycleWorld {
                         .filter(file -> java.util.Objects.equals(file.getTenantId(), TenantContextHolder.getRequiredTenantId()))
                         .filter(file -> java.util.Objects.equals(file.getEntityId(), invocation.getArgument(1)))
                         .toList());
-        when(fileMetadataRepository.findByEntityTypeAndFolderId(any(), any()))
-                .thenAnswer(invocation -> files.stream()
-                        .filter(file -> file.getEntityType() == invocation.getArgument(0))
-                        .filter(file -> java.util.Objects.equals(file.getTenantId(), TenantContextHolder.getRequiredTenantId()))
-                        .filter(file -> java.util.Objects.equals(file.getFolderId(), invocation.getArgument(1)))
-                        .toList());
-        when(fileMetadataRepository.findByEntityType(any())).thenAnswer(invocation -> files.stream()
-                .filter(file -> file.getEntityType() == invocation.getArgument(0))
-                .filter(file -> java.util.Objects.equals(file.getTenantId(), TenantContextHolder.getRequiredTenantId()))
-                .toList());
-
         FileMetadataLookupService lookup = new FileMetadataLookupService(
                 fileMetadataRepository, mock(ContentService.class));
         fileQueryService = new FileQueryService(

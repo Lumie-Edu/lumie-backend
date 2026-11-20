@@ -15,7 +15,6 @@ import io.cucumber.java.en.When;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -120,13 +119,7 @@ public class AttachmentLifecycleSteps {
     @Given("^a READY attachment is affected by (.+)$")
     public void aReadyAttachmentIsAffectedBy(String operation) {
         deletionRoute = operation;
-        if ("textbook-folder deletion".equals(operation)) {
-            UUID folderId = UUID.fromString("8f72cc89-7c4e-4f7e-9bd0-99ffdfccbb09");
-            world.registerReadyAttachment(EntityType.TEXTBOOK, null, folderId);
-            world.prepareTextbookFolder(folderId);
-        } else {
-            world.registerReadyAttachment();
-        }
+        world.registerReadyAttachment();
     }
 
     @When("the database change commits")
@@ -136,8 +129,6 @@ public class AttachmentLifecycleSteps {
             case "announcement replacement" -> world.fileServiceAdapter.deleteFilesByEntityAndIds(
                     "announcement", 9L, List.of(world.fileId));
             case "announcement deletion" -> world.fileServiceAdapter.deleteFilesByEntity("announcement", 9L);
-            case "textbook-folder deletion" -> world.textbookFolderCommandService.deleteFolder(
-                    UUID.fromString("8f72cc89-7c4e-4f7e-9bd0-99ffdfccbb09"));
             default -> throw new IllegalArgumentException("Unsupported deletion route: " + deletionRoute);
         }
     }
@@ -196,42 +187,6 @@ public class AttachmentLifecycleSteps {
     @Then("no object outside the announcement is modified")
     public void noObjectOutsideTheAnnouncementIsModified() {
         assertThat(world.files).allSatisfy(file -> assertThat(file.isDeleting()).isFalse());
-    }
-
-    @Given("a nested folder has two READY files and MinIO fails to delete one object transiently")
-    public void aNestedFolderHasTwoReadyFilesAndOneDeleteFails() {
-        world.preparePartialFolderDeleteFailure();
-    }
-
-    @When("Staff deletes the folder and the delete processor handles both intents")
-    public void staffDeletesFolderAndProcessorHandlesBoth() {
-        world.textbookFolderCommandService.deleteFolder(
-                UUID.fromString("8f72cc89-7c4e-4f7e-9bd0-99ffdfccbb09"));
-        assertThat(world.storageOperationProcessor.processDueOperations(10)).isEqualTo(2);
-    }
-
-    @Then("both file records are unavailable")
-    public void bothFileRecordsAreUnavailable() {
-        UUID secondFileId = UUID.fromString("cc13408d-e89d-4321-813f-0febfa75ac14");
-        assertThatThrownBy(() -> world.fileQueryService.getFileMetadata(world.fileId))
-                .isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> world.fileQueryService.getFileMetadata(secondFileId))
-                .isInstanceOf(BusinessException.class);
-    }
-
-    @Then("the successful object deletion completes independently")
-    public void theSuccessfulObjectDeletionCompletesIndependently() {
-        assertThat(world.storageOperations.stream().filter(operation -> operation.getFileId().equals(world.fileId))
-                .findFirst().orElseThrow().getStatus())
-                .isEqualTo(com.lumie.file.domain.vo.FileStorageOperationStatus.COMPLETED);
-    }
-
-    @Then("the failed object's delete intent remains durable and retryable")
-    public void theFailedObjectsIntentRemainsRetryable() {
-        UUID secondFileId = UUID.fromString("cc13408d-e89d-4321-813f-0febfa75ac14");
-        assertThat(world.storageOperations.stream().filter(operation -> operation.getFileId().equals(secondFileId))
-                .findFirst().orElseThrow().getStatus())
-                .isEqualTo(com.lumie.file.domain.vo.FileStorageOperationStatus.RETRY);
     }
 
     @Given("a PENDING attachment nearing its 24-hour temporary-object expiry")

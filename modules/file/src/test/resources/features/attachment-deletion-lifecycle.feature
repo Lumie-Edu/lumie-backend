@@ -19,10 +19,6 @@ Feature: Durable deletion converges for attachment lifecycle changes
       | announcement replacement |
       | announcement deletion |
 
-    @textbook-folder
-    Examples: Nested textbook-folder deletion
-      | operation |
-      | textbook-folder deletion |
 
   @BDD-US2-002 @ATDD-US2-002 @EC-002
   Scenario: Treat an already missing permanent object as deleted
@@ -42,10 +38,3 @@ Feature: Durable deletion converges for attachment lifecycle changes
       | owned by another tenant |
       | owned by another announcement |
 
-  @BDD-US2-004 @ATDD-US2-004 @EC-005
-  Scenario: Keep failed folder-object deletion independently retryable
-    Given a nested folder has two READY files and MinIO fails to delete one object transiently
-    When Staff deletes the folder and the delete processor handles both intents
-    Then both file records are unavailable
-    And the successful object deletion completes independently
-    And the failed object's delete intent remains durable and retryable

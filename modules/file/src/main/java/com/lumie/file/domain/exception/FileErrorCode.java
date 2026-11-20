@@ -13,15 +13,11 @@ public enum FileErrorCode implements ErrorCode {
     INVALID_CONTENT_TYPE("FILE_002", "파일 형식이 올바르지 않습니다.", 400),
     FILE_TOO_LARGE("FILE_003", "파일 크기가 허용 범위를 초과했습니다.", 400),
     INVALID_ENTITY_TYPE("FILE_004", "항목 유형이 올바르지 않습니다.", 400),
-    MAX_DEPTH_EXCEEDED("FILE_005", "폴더를 더 깊게 만들 수 없습니다.", 400),
-    FOLDER_NOT_EMPTY("FILE_006", "폴더가 비어 있지 않습니다.", 400),
 
     // 404 Not Found
     FILE_NOT_FOUND("FILE_101", "파일을 찾을 수 없습니다.", 404),
-    FOLDER_NOT_FOUND("FILE_102", "폴더를 찾을 수 없습니다.", 404),
 
     // 409 Conflict
-    DUPLICATE_FOLDER_NAME("FILE_007", "같은 이름의 폴더가 이미 있습니다.", 409),
     FILE_IN_USE("FILE_008", "다른 자료에서 사용 중인 파일은 처리할 수 없습니다.", 409),
     UPLOAD_SESSION_INVALID("FILE_009", "업로드 세션이 만료되었거나 사용할 수 없습니다.", 409),
 

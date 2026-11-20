@@ -25,7 +25,7 @@ public class UploadSessionReservationService {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         String tenantSlug = TenantContextHolder.getRequiredTenant();
         FileUploadSession session = sessionRepository.save(FileUploadSession.issue(id,
-                UserContextHolder.getRequiredUserId(), request.entityType(), objectKey, request.filename(),
+                UserContextHolder.getRequiredUserId(), request.entityType().toEntityType(), objectKey, request.filename(),
                 request.contentType(), request.fileSize(), uploadUrlExpiresAt, sessionExpiresAt));
         eventPublisher.publishEvent(new UploadSessionCleanupDueEvent(id, tenantId, tenantSlug,
                 sessionExpiresAt.plusSeconds(15 * 60)));

@@ -62,7 +62,7 @@ public class AnnouncementCommandService {
         Announcement saved = announcementRepository.save(announcement);
         List<Long> classIds = replaceClassTargets(saved.getId(), requestedClassIds);
         fileService.attachPreparedFiles("announcement", saved.getId(), preparedFiles);
-        fileService.attachUploadSessions("announcement", saved.getId(), preparedSessions, null);
+        fileService.attachUploadSessions("announcement", saved.getId(), preparedSessions);
         announcementRepository.flush();
         log.info("Announcement created with id: {}", saved.getId());
 
