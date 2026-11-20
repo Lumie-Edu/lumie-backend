@@ -1,6 +1,5 @@
 package com.lumie.file.application.service;
 
-import com.lumie.file.application.dto.response.FileMetadataResponse;
 import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.exception.FileErrorCode;

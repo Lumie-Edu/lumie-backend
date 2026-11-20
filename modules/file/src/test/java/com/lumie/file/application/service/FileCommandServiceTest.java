@@ -10,7 +10,6 @@ import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileStorageOperationType;
 import com.lumie.file.domain.vo.FileUploadStatus;
 import java.util.Optional;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
