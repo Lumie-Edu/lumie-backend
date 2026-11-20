@@ -85,4 +85,38 @@ class UploadSessionServiceTest {
         assertThat(response.objectKey()).endsWith("/notes.pdf");
         assertThat(response.status()).isEqualTo("ISSUED");
     }
+
+    @Test
+    void letsStudentsCreateQuestionUploadSessions() {
+        TenantContextHolder.setTenant("test-tenant");
+        TenantContextHolder.setTenantId(1L);
+        UserContextHolder.setUserRole(Role.STUDENT);
+        given(storage.generatePresignedUploadUrl(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.eq("application/pdf"),
+                org.mockito.ArgumentMatchers.eq(900)))
+                .willReturn("https://objects.example.test/upload");
+
+        var response = service.create(new CreateUploadSessionRequest(
+                UploadableEntityType.QNA, "question.pdf", "application/pdf", 12L));
+
+        assertThat(response.status()).isEqualTo("ISSUED");
+    }
+
+    @Test
+    void letsStaffCreateQuestionUploadSessions() {
+        TenantContextHolder.setTenant("test-tenant");
+        TenantContextHolder.setTenantId(1L);
+        UserContextHolder.setUserRole(Role.OWNER);
+        given(storage.generatePresignedUploadUrl(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.eq("application/pdf"),
+                org.mockito.ArgumentMatchers.eq(900)))
+                .willReturn("https://objects.example.test/upload");
+
+        var response = service.create(new CreateUploadSessionRequest(
+                UploadableEntityType.QNA, "question.pdf", "application/pdf", 12L));
+
+        assertThat(response.status()).isEqualTo("ISSUED");
+    }
 }

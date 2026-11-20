@@ -3,8 +3,11 @@ package com.lumie.file.adapter.in.internal;
 import com.lumie.common.tenant.TenantContextHolder;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.file.api.PreparedTemporaryFile;
+import com.lumie.file.api.PreparedUploadSession;
 import com.lumie.file.application.port.out.FileStorageOperationPersistencePort;
 import com.lumie.file.application.port.out.StoragePort;
+import com.lumie.file.application.service.UploadSessionService;
+import com.lumie.file.application.service.UploadSessionStateService;
 import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
 import com.lumie.file.application.port.out.FileMetadataPersistencePort;
@@ -44,6 +47,8 @@ class FileServiceAdapterTest {
     @Mock private FileMetadataPersistencePort fileMetadataRepository;
     @Mock private StoragePort storagePort;
     @Mock private FileStorageOperationPersistencePort operationPersistencePort;
+    @Mock private UploadSessionService uploadSessionService;
+    @Mock private UploadSessionStateService uploadSessionStateService;
     @InjectMocks private FileServiceAdapter adapter;
 
     @BeforeEach
@@ -148,6 +153,25 @@ class FileServiceAdapterTest {
 
         assertThat(current.isReady()).isTrue();
         verifyNoInteractions(operationPersistencePort, storagePort);
+    }
+
+    @Test
+    void reconciliationClaimsUploadSessionsAndStoresReadyMetadata() {
+        UUID retainedId = UUID.randomUUID();
+        FileMetadata retained = metadata(retainedId, 9L, "files/demo/announcement/retained.pdf");
+        given(fileMetadataRepository.findByEntityTypeAndEntityId(EntityType.ANNOUNCEMENT, 9L))
+                .willReturn(List.of(retained));
+        PreparedUploadSession prepared = new PreparedUploadSession(
+                FILE_ID, "notes.pdf", "application/pdf", 10L, TARGET_KEY, "etag");
+
+        adapter.reconcileUploadSessions("announcement", 9L, List.of(retainedId), List.of(prepared));
+
+        ArgumentCaptor<FileMetadata> metadata = ArgumentCaptor.forClass(FileMetadata.class);
+        verify(uploadSessionStateService).claim(FILE_ID, FILE_ID, EntityType.ANNOUNCEMENT);
+        verify(fileMetadataRepository).save(metadata.capture());
+        assertThat(metadata.getValue().getEntityId()).isEqualTo(9L);
+        assertThat(metadata.getValue().isReady()).isTrue();
+        assertThat(metadata.getValue().getFolderId()).isNull();
     }
 
     private static FileMetadata metadata(UUID id, Long entityId, String objectKey) {
