@@ -23,24 +23,6 @@ public class FileMetadataPersistenceAdapter implements FileMetadataPersistencePo
 
     @Override
     @Transactional(readOnly = true)
-    public List<FileMetadata> findByEntityTypeAndFolderId(EntityType entityType, UUID folderId) {
-        return repository.findByEntityTypeAndFolderId(entityType, folderId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<FileMetadata> findByEntityType(EntityType entityType) {
-        return repository.findByEntityType(entityType);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean existsByFolderId(UUID folderId) {
-        return repository.existsByFolderId(folderId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public Optional<FileMetadata> findById(UUID id) {
         return repository.findById(id);
     }

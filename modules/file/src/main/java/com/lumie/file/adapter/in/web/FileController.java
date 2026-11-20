@@ -11,7 +11,6 @@ import com.lumie.file.application.dto.request.CreateUploadSessionRequest;
 import com.lumie.file.application.service.FileCommandService;
 import com.lumie.file.application.service.FileQueryService;
 import com.lumie.file.application.service.UploadSessionService;
-import com.lumie.file.application.dto.request.RegisterTextbookFilesRequest;
 import com.lumie.file.domain.vo.EntityType;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
@@ -89,14 +88,6 @@ public class FileController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/textbooks")
-    @ApiResponse(responseCode = "201", description = "Created")
-    public ResponseEntity<List<FileMetadataResponse>> registerTextbookFiles(
-            @Valid @RequestBody RegisterTextbookFilesRequest request) {
-        AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
-        return ResponseEntity.status(HttpStatus.CREATED).body(fileCommandService.registerTextbookFiles(request));
-    }
-
     @GetMapping("/{fileId}")
     public ResponseEntity<FileMetadataResponse> getFileMetadata(@PathVariable UUID fileId) {
         FileMetadataResponse response = fileQueryService.getFileMetadata(fileId);
@@ -114,21 +105,8 @@ public class FileController {
     @GetMapping
     public ResponseEntity<List<FileMetadataResponse>> getFilesByEntityType(
             @RequestParam EntityType entityType,
-            @RequestParam(required = false) Long entityId,
-            @RequestParam(required = false) UUID folderId,
-            @RequestParam(required = false, defaultValue = "false") boolean all) {
-        if (entityType == EntityType.TEXTBOOK) {
-            AuthorizationGuard.requireAtLeast(Role.INSTRUCTOR);
-        }
-        List<FileMetadataResponse> response;
-        if (entityType == EntityType.TEXTBOOK && all) {
-            response = fileQueryService.getAllFilesByEntityType(entityType);
-        } else if (entityType == EntityType.TEXTBOOK && (folderId != null || entityId == null)) {
-            response = fileQueryService.getFilesByEntityAndFolder(entityType, folderId);
-        } else {
-            response = fileQueryService.getFilesByEntity(entityType, entityId);
-        }
-        return ResponseEntity.ok(response);
+            @RequestParam Long entityId) {
+        return ResponseEntity.ok(fileQueryService.getFilesByEntity(entityType, entityId));
     }
 
 }

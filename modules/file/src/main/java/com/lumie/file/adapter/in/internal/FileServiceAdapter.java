@@ -101,18 +101,12 @@ public class FileServiceAdapter implements FileService {
     @Override
     @Transactional
     public List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files) {
-        return attachPreparedFiles(entityType, entityId, files, null);
-    }
-
-    @Override
-    @Transactional
-    public List<UUID> attachPreparedFiles(String entityType, Long entityId, List<PreparedTemporaryFile> files, UUID folderId) {
         if (files == null || files.isEmpty()) return List.of();
         EntityType type = parseEntityType(entityType);
         List<UUID> ids = new ArrayList<>();
         for (PreparedTemporaryFile prepared : files) {
             FileMetadata file = FileMetadata.create(type, entityId,
-                    prepared.filename(), prepared.contentType(), prepared.fileSize(), prepared.durableObjectKey(), folderId);
+                    prepared.filename(), prepared.contentType(), prepared.fileSize(), prepared.durableObjectKey(), null);
             FileMetadata saved = fileMetadataRepository.save(file);
             operationPersistencePort.save(FileStorageOperation.promote(saved.getId(),
                     prepared.temporaryObjectKey(), prepared.durableObjectKey(), prepared.sourceEtag(),
@@ -125,14 +119,14 @@ public class FileServiceAdapter implements FileService {
     @Override
     @Transactional
     public List<UUID> attachUploadSessions(String entityType, Long entityId,
-                                           List<PreparedUploadSession> sessions, UUID folderId) {
+                                           List<PreparedUploadSession> sessions) {
         if (sessions == null || sessions.isEmpty()) return List.of();
         EntityType type = parseEntityType(entityType);
         List<UUID> ids = new ArrayList<>();
         for (PreparedUploadSession prepared : sessions) {
             uploadSessionStateService.claim(prepared.sessionId(), prepared.sessionId(), type);
             FileMetadata metadata = FileMetadata.createWithId(prepared.sessionId(), type, entityId,
-                    prepared.filename(), prepared.contentType(), prepared.fileSize(), prepared.objectKey(), folderId);
+                    prepared.filename(), prepared.contentType(), prepared.fileSize(), prepared.objectKey(), null);
             metadata.markReady();
             fileMetadataRepository.save(metadata);
             ids.add(metadata.getId());
@@ -190,7 +184,7 @@ public class FileServiceAdapter implements FileService {
         }
         deleteFilesByEntityAndIds(entityType, entityId,
                 existingIds.stream().filter(id -> !requested.contains(id)).toList());
-        attachUploadSessions(entityType, entityId, sessions, null);
+        attachUploadSessions(entityType, entityId, sessions);
     }
 
     @Override
@@ -220,7 +214,8 @@ public class FileServiceAdapter implements FileService {
         for (UUID id : fileIds) {
             fileMetadataRepository.findById(id).ifPresent(file -> {
                 if (file.getEntityType() == EntityType.TEXTBOOK) {
-                    throw new BusinessException(FileErrorCode.FILE_IN_USE, "Textbook files must be unlinked, not deleted from posts");
+                    throw new BusinessException(FileErrorCode.FILE_IN_USE,
+                            "Archived textbook files must be preserved in their original folders");
                 }
                 enqueueDelete(file);
             });

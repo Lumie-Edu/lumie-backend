@@ -6,13 +6,9 @@ import com.lumie.file.domain.entity.FileMetadata;
 import com.lumie.file.domain.entity.FileStorageOperation;
 import com.lumie.file.application.port.out.FileDownloadPersistencePort;
 import com.lumie.file.application.port.out.FileMetadataPersistencePort;
-import com.lumie.file.application.port.out.TextbookFolderPersistencePort;
 import com.lumie.file.domain.vo.EntityType;
 import com.lumie.file.domain.vo.FileStorageOperationType;
 import com.lumie.file.domain.vo.FileUploadStatus;
-import com.lumie.file.application.dto.request.RegisterTextbookFilesRequest;
-import com.lumie.file.api.PreparedTemporaryFile;
-import com.lumie.file.api.FileService;
 import java.util.Optional;
 import java.util.List;
 import java.util.UUID;
@@ -26,11 +22,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,9 +33,7 @@ class FileCommandServiceTest {
     private static final String OBJECT_KEY = "files/demo/textbook/file-1/notes.pdf";
 
     @Mock private FileMetadataPersistencePort fileMetadataRepository;
-    @Mock private TextbookFolderPersistencePort textbookFolderRepository;
     @Mock private FileDownloadPersistencePort fileDownloadRepository;
-    @Mock private FileService fileService;
     @Mock private FileStorageOperationPersistencePort operationPersistencePort;
     @InjectMocks private FileCommandService commandService;
 
@@ -75,46 +66,6 @@ class FileCommandServiceTest {
         assertThat(operation.getValue().getOperationType()).isEqualTo(FileStorageOperationType.DELETE);
         assertThat(operation.getValue().getTargetObjectKey()).isEqualTo(OBJECT_KEY);
         verify(fileMetadataRepository, never()).delete(org.mockito.ArgumentMatchers.any());
-    }
-
-    @Test
-    void registerTextbookFilesValidatesFolderAndReturnsAttachedMetadata() {
-        when(fileService.prepareTemporaryFiles("textbook", List.of())).thenReturn(List.of());
-        when(fileService.attachPreparedFiles("textbook", null, List.of(), null)).thenReturn(List.of(FILE_ID));
-        when(fileMetadataRepository.findById(FILE_ID)).thenReturn(Optional.of(metadata));
-
-        var response = commandService.registerTextbookFiles(new RegisterTextbookFilesRequest(null, List.of()));
-
-        assertThat(response).hasSize(1);
-        assertThat(response.getFirst().id()).isEqualTo(FILE_ID);
-        verify(fileMetadataRepository).flush();
-    }
-
-    @Test
-    void registerTextbookFilesRejectsUnknownFolderBeforePreparingUploads() {
-        UUID folderId = UUID.randomUUID();
-        when(textbookFolderRepository.findById(folderId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> commandService.registerTextbookFiles(
-                new RegisterTextbookFilesRequest(folderId, List.of())))
-                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
-
-        verifyNoInteractions(fileService);
-    }
-
-    @Test
-    void registerTextbookFilesDiscardsPreparedDescriptorsWhenMetadataCannotBeReloaded() {
-        PreparedTemporaryFile prepared = new PreparedTemporaryFile(
-                FILE_ID, "notes.pdf", "application/pdf", 10L,
-                "tmp/demo/uploads/upload-1/notes.pdf", OBJECT_KEY, null, null);
-        when(fileService.prepareTemporaryFiles("textbook", List.of())).thenReturn(List.of(prepared));
-        when(fileService.attachPreparedFiles("textbook", null, List.of(prepared), null)).thenReturn(List.of(FILE_ID));
-        when(fileMetadataRepository.findById(FILE_ID)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> commandService.registerTextbookFiles(new RegisterTextbookFilesRequest(null, List.of())))
-                .isInstanceOf(com.lumie.common.exception.BusinessException.class);
-
-        verify(fileService).discardPreparedFiles(List.of(prepared));
     }
 
     @Test
