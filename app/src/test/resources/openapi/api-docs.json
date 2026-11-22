@@ -922,17 +922,7 @@
       },
       "CompleteTenantOnboardingRequest" : {
         "properties" : {
-          "hiddenSidebarItemIds" : {
-            "items" : {
-              "maxLength" : 80,
-              "minLength" : 0,
-              "pattern" : "^[a-z0-9][a-z0-9-]*$",
-              "type" : "string"
-            },
-            "maxItems" : 100,
-            "minItems" : 0,
-            "type" : "array"
-          },
+
           "phone" : {
             "maxLength" : 30,
             "minLength" : 0,
@@ -5759,12 +5749,7 @@
             "nullable" : true,
             "type" : "string"
           },
-          "hiddenSidebarItemIds" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          },
+
           "id" : {
             "format" : "int64",
             "type" : "integer"
@@ -5783,6 +5768,10 @@
           "onboardingCompletedAt" : {
             "format" : "date-time",
             "nullable" : true,
+            "type" : "string"
+          },
+          "preferredGradeScale" : {
+            "enum" : [ "NINE_GRADE", "FIVE_GRADE" ],
             "type" : "string"
           },
           "phone" : {
@@ -5811,7 +5800,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "createdAt", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "slug", "status", "subjects", "updatedAt" ],
+        "required" : [ "createdAt", "displayName", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "preferredGradeScale", "slug", "status", "subjects", "updatedAt" ],
         "type" : "object"
       },
       "ToolExecuteRequest" : {
@@ -6424,17 +6413,7 @@
             "minLength" : 0,
             "type" : "string"
           },
-          "hiddenSidebarItemIds" : {
-            "items" : {
-              "maxLength" : 80,
-              "minLength" : 0,
-              "pattern" : "^[a-z0-9][a-z0-9-]*$",
-              "type" : "string"
-            },
-            "maxItems" : 100,
-            "minItems" : 0,
-            "type" : "array"
-          },
+
           "name" : {
             "maxLength" : 100,
             "minLength" : 0,
@@ -6443,6 +6422,10 @@
           "phone" : {
             "maxLength" : 30,
             "minLength" : 0,
+            "type" : "string"
+          },
+          "preferredGradeScale" : {
+            "enum" : [ "NINE_GRADE", "FIVE_GRADE" ],
             "type" : "string"
           }
         },

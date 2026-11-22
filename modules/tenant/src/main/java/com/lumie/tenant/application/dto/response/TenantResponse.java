@@ -1,6 +1,7 @@
 package com.lumie.tenant.application.dto.response;
 
 import com.lumie.tenant.domain.entity.Tenant;
+import com.lumie.tenant.domain.vo.PreferredGradeScale;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.api.TenantStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -21,7 +22,7 @@ public record TenantResponse(
         @Schema(nullable = true) String instituteName,
         @Schema(nullable = true) String logoUrl,
         @Schema(nullable = true) Instant onboardingCompletedAt,
-        List<String> hiddenSidebarItemIds,
+        PreferredGradeScale preferredGradeScale,
         List<String> subjects,
         Instant createdAt,
         Instant updatedAt
@@ -40,7 +41,7 @@ public record TenantResponse(
                 .instituteName(tenant.getInstituteName())
                 .logoUrl(hasLogo ? "/api/v1/tenants/" + tenant.getSlugValue() + "/logo" : null)
                 .onboardingCompletedAt(tenant.getOnboardingCompletedAt())
-                .hiddenSidebarItemIds(tenant.getHiddenSidebarItemIds())
+                .preferredGradeScale(tenant.getPreferredGradeScale())
                 .subjects(tenant.getSubjects())
                 .createdAt(tenant.getCreatedAt())
                 .updatedAt(tenant.getUpdatedAt())

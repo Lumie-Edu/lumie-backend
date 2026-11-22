@@ -41,7 +41,7 @@ public class TenantCommandService {
         Tenant tenant = findTenantOrThrow(slug);
         tenant.updateInfo(request.name(), request.displayName());
         tenant.updateContact(request.phone());
-        tenant.updateHiddenSidebarItemIds(request.hiddenSidebarItemIds());
+        tenant.updatePreferredGradeScale(request.preferredGradeScale());
         Tenant updatedTenant = tenantPersistencePort.save(tenant);
 
         log.info("Tenant updated: {}", slug);
@@ -65,7 +65,6 @@ public class TenantCommandService {
                     "이미 완료된 온보딩입니다.");
         }
         tenant.updateContact(request.phone());
-        tenant.updateHiddenSidebarItemIds(request.hiddenSidebarItemIds());
         tenant.completeOnboarding(Instant.now());
         Tenant updatedTenant = tenantPersistencePort.save(tenant);
 
