@@ -78,7 +78,7 @@ class IdempotencyHeaderInterceptorTest {
 
         /* Most non-billing /v1 domains — replay-safety not required by these flows.
          * Auth (login/refresh/logout): each call must mint fresh state.
-         * Domain APIs (lectures, regular student CRUD, etc): no money-moving mutations today.
+         * Domain APIs (regular student CRUD, etc): no money-moving mutations today.
          * If any future endpoint needs Idempotency-Key, add its prefix to
          * ENFORCED_PATTERNS explicitly. */
 
@@ -103,12 +103,6 @@ class IdempotencyHeaderInterceptorTest {
         @Test
         void v1StudentsPostPasses() {
             assertThat(interceptor.preHandle(req("POST", "/v1/students", null), response, new Object()))
-                    .isTrue();
-        }
-
-        @Test
-        void v1LecturesPatchPasses() {
-            assertThat(interceptor.preHandle(req("PATCH", "/v1/lectures/42", null), response, new Object()))
                     .isTrue();
         }
 

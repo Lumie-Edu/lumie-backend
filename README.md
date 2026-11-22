@@ -70,7 +70,6 @@ Configuration cache is enabled (`org.gradle.configuration-cache=true`) — incre
 | `exam` | Exam creation, delivery, and scoring |
 | `file` | File upload/download via MinIO object storage |
 | `homepage` | Tenant-branded homepage and marketing page data |
-| `lecture` | Lecture scheduling and session records |
 | `notification` | In-app and push notification dispatch |
 | `student` | Student profile, enrollment, and progress tracking |
 | `tenant` | Tenant onboarding and per-tenant configuration |

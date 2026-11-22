@@ -18,7 +18,6 @@ include(
     "modules:content",
     "modules:class",
     "modules:assignment",
-    "modules:lecture",
     "modules:ai",
     "modules:notification",
     "modules:file"

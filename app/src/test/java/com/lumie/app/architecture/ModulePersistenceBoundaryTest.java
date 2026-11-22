@@ -18,15 +18,14 @@ class ModulePersistenceBoundaryTest {
             "content", 7,
             "exam", 7,
             "file", 4,
-            "lecture", 2,
             "staff", 3,
             "student", 1
     );
 
     @Test
-    void allThirtyOneRepositoryInterfacesBelongToOutboundPersistence() {
+    void allTwentyNineRepositoryInterfacesBelongToOutboundPersistence() {
         var classes = new ClassFileImporter().importPackages("com.lumie");
-        assertThat(IN_SCOPE_REPOSITORIES.values().stream().mapToInt(Integer::intValue).sum()).isEqualTo(31);
+        assertThat(IN_SCOPE_REPOSITORIES.values().stream().mapToInt(Integer::intValue).sum()).isEqualTo(29);
 
         IN_SCOPE_REPOSITORIES.forEach((module, expected) -> {
             String root = "com.lumie." + module + ".";
