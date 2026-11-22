@@ -12144,7 +12144,7 @@
           "name" : "thresholdHours",
           "required" : false,
           "schema" : {
-            "default" : 24,
+            "default" : 0,
             "format" : "int64",
             "type" : "integer"
           }
