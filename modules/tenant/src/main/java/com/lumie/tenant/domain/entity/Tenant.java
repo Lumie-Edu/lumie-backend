@@ -69,7 +69,6 @@ public class Tenant extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "preferred_grade_scale", nullable = false, length = 20)
-    @Builder.Default
     private PreferredGradeScale preferredGradeScale = PreferredGradeScale.NINE_GRADE;
 
     @Builder
