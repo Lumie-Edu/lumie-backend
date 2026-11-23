@@ -825,7 +825,6 @@ class MigrationsRlsIntegrationTest {
                 new Link("exam_results", "student_id", "students", "n"),
                 new Link("file_metadata", "folder_id", "textbook_folders", "r"),
                 new Link("invoices", "subscription_id", "subscriptions", "r"),
-                new Link("lectures", "teacher_id", "staff", "n"),
                 new Link("qna_comments", "qna_id", "qna_boards", "c"),
                 new Link("sms_messages", "template_id", "sms_templates", "n"),
                 new Link("sms_messages", "sender_id", "staff", "n"),

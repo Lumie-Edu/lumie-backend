@@ -40,8 +40,8 @@ public class IdempotencyArchitectureTest {
     );
 
     /**
-     * Phase E scope: billing module only. Other modules (lecture,
-     * assignment, etc.) mutate domain state that is not a financial transaction
+     * Phase E scope: billing module only. Other modules (assignment, etc.)
+     * mutate domain state that is not a financial transaction
      * — they may adopt the same pattern later but the urgency that justified
      * Phase E (double-charge / duplicate billing-key issuance) is specific to
      * the billing surface. Widen this rule's package when we extend the

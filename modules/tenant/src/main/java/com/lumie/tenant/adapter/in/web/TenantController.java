@@ -67,7 +67,12 @@ public class TenantController {
     public ResponseEntity<TenantResponse> updateTenant(
             @PathVariable String slug,
             @Valid @RequestBody UpdateTenantRequest request) {
-        requireCurrentOwner(slug);
+        if (isPreferredGradeScaleOnly(request)) {
+            AuthorizationGuard.requireStaff();
+            requireCurrentTenant(slug);
+        } else {
+            requireCurrentOwner(slug);
+        }
         TenantResponse response = tenantCommandService.updateTenant(slug, request);
         return ResponseEntity.ok(response);
     }
@@ -138,6 +143,13 @@ public class TenantController {
     private static void requireCurrentOwner(String slug) {
         AuthorizationGuard.requireOwner();
         requireCurrentTenant(slug);
+    }
+
+    private static boolean isPreferredGradeScaleOnly(UpdateTenantRequest request) {
+        return request.preferredGradeScale() != null
+                && request.name() == null
+                && request.displayName() == null
+                && request.phone() == null;
     }
 
     private static void requireCurrentTenant(String slug) {

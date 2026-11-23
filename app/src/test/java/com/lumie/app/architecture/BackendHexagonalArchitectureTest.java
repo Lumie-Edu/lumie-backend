@@ -18,7 +18,7 @@ class BackendHexagonalArchitectureTest {
 
     private static final Set<String> MODULES = Set.of(
             "ai", "assignment", "auth", "billing", "classroom", "content", "exam",
-            "file", "lecture", "notification", "staff", "student", "tenant");
+            "file", "notification", "staff", "student", "tenant");
 
     private static final Set<String> DEFERRED_REPOSITORIES = Set.of(
             "com.lumie.notification.domain.repository.SmsMessageRepository",
