@@ -20,10 +20,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -154,6 +156,18 @@ class QnaQueryServiceTest {
     @Test
     void qnaAccessWithoutRoleIsDenied() {
         assertThat(queryService.canUserViewQna(1L, null, 100L)).isFalse();
+    }
+
+    @Test
+    @DisplayName("기준 시간이 0이면 모든 미답변 Q&A를 집계한다")
+    void getUnansweredOverdueStatisticsWithNoCutoff() {
+        given(qnaBoardRepository.countByIsAnsweredFalseAndCreatedAtBefore(any(Instant.class)))
+                .willReturn(3L);
+
+        var response = queryService.getUnansweredOverdueStatistics(0);
+
+        assertThat(response.unansweredOverdueCount()).isEqualTo(3L);
+        assertThat(response.thresholdHours()).isZero();
     }
 
     private static QnaBoard qna(Long id, Long userId) {
