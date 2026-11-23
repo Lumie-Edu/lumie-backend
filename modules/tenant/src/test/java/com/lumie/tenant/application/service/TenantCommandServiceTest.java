@@ -9,6 +9,7 @@ import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
+import com.lumie.tenant.domain.vo.PreferredGradeScale;
 import com.lumie.tenant.api.TenantStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -57,6 +58,23 @@ class TenantCommandServiceTest {
 
         assertThat(response.name()).isEqualTo("Updated Academy");
         assertThat(response.displayName()).isEqualTo("업데이트된 학원");
+    }
+
+    @Test
+    @DisplayName("선호 등급 체계 업데이트")
+    void updatePreferredGradeScale() {
+        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null);
+        when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(existingTenant));
+        when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UpdateTenantRequest request = UpdateTenantRequest.builder()
+                .preferredGradeScale(PreferredGradeScale.FIVE_GRADE)
+                .build();
+
+        TenantResponse response = tenantCommandService.updateTenant("test-academy", request);
+
+        assertThat(existingTenant.getPreferredGradeScale()).isEqualTo(PreferredGradeScale.FIVE_GRADE);
+        assertThat(response.preferredGradeScale()).isEqualTo(PreferredGradeScale.FIVE_GRADE);
     }
 
     @Test
