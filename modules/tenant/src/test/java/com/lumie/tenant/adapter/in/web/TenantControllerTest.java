@@ -18,6 +18,7 @@ import com.lumie.tenant.application.service.TenantCommandService;
 import com.lumie.tenant.application.service.TenantLogoService;
 import com.lumie.tenant.application.service.TenantQueryService;
 import com.lumie.tenant.domain.exception.TenantErrorCode;
+import com.lumie.tenant.domain.vo.PreferredGradeScale;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -187,6 +188,49 @@ class TenantControllerTest {
         ArgumentCaptor<UpdateTenantRequest> requestCaptor = ArgumentCaptor.forClass(UpdateTenantRequest.class);
         verify(tenantCommandService).updateTenant(any(), requestCaptor.capture());
         assertThat(requestCaptor.getValue().name()).isEqualTo("Updated Academy");
+    }
+
+    @Test
+    @DisplayName("선호 등급만 갱신하면 교직원이 설정할 수 있고 일반 정보 변경은 owner만 가능하다")
+    void updatePreferredGradeScaleAccess() throws Exception {
+        TenantContextHolder.setTenant("test-academy");
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        when(tenantCommandService.updateTenant(any(), any())).thenReturn(TenantResponse.builder()
+                .slug("test-academy")
+                .name("Test Academy")
+                .status(TenantStatus.ACTIVE)
+                .preferredGradeScale(PreferredGradeScale.FIVE_GRADE)
+                .build());
+
+        mockMvc.perform(patch("/v1/tenants/test-academy")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"preferredGradeScale":"FIVE_GRADE"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.preferredGradeScale").value("FIVE_GRADE"));
+
+        mockMvc.perform(patch("/v1/tenants/test-academy")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Updated Academy","preferredGradeScale":"FIVE_GRADE"}
+                                """))
+                .andExpect(status().isForbidden());
+
+        setOwnerTenantContext();
+        mockMvc.perform(patch("/v1/tenants/test-academy")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"displayName":"Updated","preferredGradeScale":"FIVE_GRADE"}
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/v1/tenants/test-academy")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"phone":"02-1234-5678","preferredGradeScale":"FIVE_GRADE"}
+                                """))
+                .andExpect(status().isOk());
     }
 
     @Test
