@@ -9,7 +9,8 @@ import xml.etree.ElementTree as ET
 
 
 EXPECTED = {
-    *(f"ATDD-US1-001:example-{number:03d}" for number in range(1, 15)),
+    *(f"ATDD-US1-001:example-{number:03d}" for number in range(1, 10)),
+    *(f"ATDD-US1-001:example-{number:03d}" for number in range(11, 15)),
     "ATDD-US1-002:example-001",
     "ATDD-US1-003:example-001",
     "ATDD-US1-004:example-001",

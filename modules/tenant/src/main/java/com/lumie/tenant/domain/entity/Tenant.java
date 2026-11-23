@@ -4,6 +4,7 @@ import com.lumie.common.domain.BaseEntity;
 import com.lumie.common.exception.BusinessException;
 import com.lumie.tenant.domain.exception.InvalidTenantStateException;
 import com.lumie.tenant.domain.exception.TenantErrorCode;
+import com.lumie.tenant.domain.vo.PreferredGradeScale;
 import com.lumie.tenant.domain.vo.TenantPlan;
 import com.lumie.tenant.domain.vo.TenantSlug;
 import com.lumie.tenant.api.TenantStatus;
@@ -18,7 +19,6 @@ import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "tenants")
@@ -67,18 +67,9 @@ public class Tenant extends BaseEntity {
     @Column(name = "onboarding_completed_at")
     private Instant onboardingCompletedAt;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "hidden_sidebar_item_ids", nullable = false)
-    private List<String> hiddenSidebarItemIds = new ArrayList<>();
-
-    private static final Set<String> ALLOWED_SIDEBAR_ITEM_IDS = Set.of(
-            "ai",
-            "students", "employees",
-            "classes", "assignments", "lectures",
-            "grades", "omr-grading", "reports",
-            "announcements", "sms", "resources", "qna",
-            "textbooks", "reviews"
-    );
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preferred_grade_scale", nullable = false, length = 20)
+    private PreferredGradeScale preferredGradeScale = PreferredGradeScale.NINE_GRADE;
 
     @Builder
     private Tenant(TenantSlug slug, String name, String displayName, TenantPlan plan,
@@ -186,20 +177,10 @@ public class Tenant extends BaseEntity {
         }
     }
 
-    public void updateHiddenSidebarItemIds(List<String> itemIds) {
-        if (itemIds == null) {
-            return;
+    public void updatePreferredGradeScale(PreferredGradeScale preferredGradeScale) {
+        if (preferredGradeScale != null) {
+            this.preferredGradeScale = preferredGradeScale;
         }
-        this.hiddenSidebarItemIds = normalizeSidebarItemIds(itemIds);
-    }
-
-    private List<String> normalizeSidebarItemIds(List<String> itemIds) {
-        return itemIds.stream()
-                .filter(id -> id != null && !id.isBlank())
-                .map(String::trim)
-                .map(this::validatedSidebarItemId)
-                .distinct()
-                .toList();
     }
 
     public void completeOnboarding(Instant completedAt) {
@@ -208,18 +189,6 @@ public class Tenant extends BaseEntity {
                     "이미 완료된 온보딩입니다.");
         }
         this.onboardingCompletedAt = completedAt != null ? completedAt : Instant.now();
-    }
-
-    public List<String> getHiddenSidebarItemIds() {
-        return hiddenSidebarItemIds == null ? List.of() : normalizeSidebarItemIds(hiddenSidebarItemIds);
-    }
-
-    private String validatedSidebarItemId(String itemId) {
-        if (!ALLOWED_SIDEBAR_ITEM_IDS.contains(itemId)) {
-            throw new BusinessException(TenantErrorCode.INVALID_SIDEBAR_ITEM_ID,
-                    "지원하지 않는 사이드바 메뉴 ID입니다: " + itemId);
-        }
-        return itemId;
     }
 
     public String getSlugValue() {

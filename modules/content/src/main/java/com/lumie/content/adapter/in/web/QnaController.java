@@ -89,7 +89,7 @@ public class QnaController {
     @GetMapping("/statistics/unanswered-overdue")
     @Operation(description = "Requires a staff role (OWNER, MANAGER, or INSTRUCTOR).")
     public ResponseEntity<QnaUnansweredOverdueResponse> getUnansweredOverdueStatistics(
-            @RequestParam(defaultValue = "24") long thresholdHours) {
+            @RequestParam(defaultValue = "0") long thresholdHours) {
         return ResponseEntity.ok(queryService.getUnansweredOverdueStatistics(thresholdHours));
     }
 

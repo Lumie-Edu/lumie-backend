@@ -18,6 +18,7 @@ import com.lumie.tenant.application.service.TenantCommandService;
 import com.lumie.tenant.application.service.TenantLogoService;
 import com.lumie.tenant.application.service.TenantQueryService;
 import com.lumie.tenant.domain.exception.TenantErrorCode;
+import com.lumie.tenant.domain.vo.PreferredGradeScale;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,6 @@ import org.springframework.validation.beanvalidation.MethodValidationInterceptor
 
 import java.io.ByteArrayInputStream;
 import java.time.Instant;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -164,18 +164,15 @@ class TenantControllerTest {
     }
 
     @Test
-    @DisplayName("PATCH /v1/tenants/{slug} - 숨김 sidebar 항목 저장")
-    void updateTenantHiddenSidebarItemsSuccess() throws Exception {
+    @DisplayName("PATCH /v1/tenants/{slug} - 학원 정보 업데이트")
+    void updateTenantSuccess() throws Exception {
         setOwnerTenantContext();
-        UpdateTenantRequest request = UpdateTenantRequest.builder()
-                .hiddenSidebarItemIds(List.of("classes", "reviews"))
-                .build();
+        UpdateTenantRequest request = UpdateTenantRequest.builder().name("Updated Academy").build();
         TenantResponse response = TenantResponse.builder()
                 .id(1L)
                 .slug("test-academy")
                 .name("Test Academy")
                 .status(TenantStatus.ACTIVE)
-                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -186,38 +183,54 @@ class TenantControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hiddenSidebarItemIds[0]").value("classes"))
-                .andExpect(jsonPath("$.hiddenSidebarItemIds[1]").value("reviews"));
+                .andExpect(jsonPath("$.hiddenSidebarItemIds").doesNotExist());
 
         ArgumentCaptor<UpdateTenantRequest> requestCaptor = ArgumentCaptor.forClass(UpdateTenantRequest.class);
         verify(tenantCommandService).updateTenant(any(), requestCaptor.capture());
-        assertThat(requestCaptor.getValue().hiddenSidebarItemIds()).containsExactly("classes", "reviews");
+        assertThat(requestCaptor.getValue().name()).isEqualTo("Updated Academy");
     }
 
     @Test
-    @DisplayName("PATCH /v1/tenants/{slug} - 잘못된 sidebar 항목 형식")
-    void updateTenantInvalidHiddenSidebarItemFormat() throws Exception {
+    @DisplayName("선호 등급만 갱신하면 교직원이 설정할 수 있고 일반 정보 변경은 owner만 가능하다")
+    void updatePreferredGradeScaleAccess() throws Exception {
+        TenantContextHolder.setTenant("test-academy");
+        UserContextHolder.setUserRole(Role.INSTRUCTOR);
+        when(tenantCommandService.updateTenant(any(), any())).thenReturn(TenantResponse.builder()
+                .slug("test-academy")
+                .name("Test Academy")
+                .status(TenantStatus.ACTIVE)
+                .preferredGradeScale(PreferredGradeScale.FIVE_GRADE)
+                .build());
+
         mockMvc.perform(patch("/v1/tenants/test-academy")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"hiddenSidebarItemIds":["Classes"]}
+                                {"preferredGradeScale":"FIVE_GRADE"}
                                 """))
-                .andExpect(status().isBadRequest());
-    }
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.preferredGradeScale").value("FIVE_GRADE"));
 
-    @Test
-    @DisplayName("PATCH /v1/tenants/{slug} - 지원하지 않는 sidebar 항목")
-    void updateTenantUnsupportedHiddenSidebarItem() throws Exception {
+        mockMvc.perform(patch("/v1/tenants/test-academy")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Updated Academy","preferredGradeScale":"FIVE_GRADE"}
+                                """))
+                .andExpect(status().isForbidden());
+
         setOwnerTenantContext();
-        doThrow(new BusinessException(TenantErrorCode.INVALID_SIDEBAR_ITEM_ID))
-                .when(tenantCommandService).updateTenant(any(), any());
+        mockMvc.perform(patch("/v1/tenants/test-academy")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"displayName":"Updated","preferredGradeScale":"FIVE_GRADE"}
+                                """))
+                .andExpect(status().isOk());
 
         mockMvc.perform(patch("/v1/tenants/test-academy")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"hiddenSidebarItemIds":["not-a-menu"]}
+                                {"phone":"02-1234-5678","preferredGradeScale":"FIVE_GRADE"}
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -225,7 +238,6 @@ class TenantControllerTest {
     void completeOnboardingSuccess() throws Exception {
         CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
                 .phone("02-1234-5678")
-                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .build();
         Instant completedAt = Instant.now();
         TenantResponse response = TenantResponse.builder()
@@ -234,7 +246,6 @@ class TenantControllerTest {
                 .name("Test Academy")
                 .status(TenantStatus.ACTIVE)
                 .phone("02-1234-5678")
-                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .onboardingCompletedAt(completedAt)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -247,13 +258,12 @@ class TenantControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.phone").value("02-1234-5678"))
-                .andExpect(jsonPath("$.hiddenSidebarItemIds[0]").value("classes"))
                 .andExpect(jsonPath("$.onboardingCompletedAt").exists());
 
         ArgumentCaptor<CompleteTenantOnboardingRequest> requestCaptor =
                 ArgumentCaptor.forClass(CompleteTenantOnboardingRequest.class);
         verify(tenantCommandService).completeOnboarding(any(), requestCaptor.capture());
-        assertThat(requestCaptor.getValue().hiddenSidebarItemIds()).containsExactly("classes", "reviews");
+        assertThat(requestCaptor.getValue().phone()).isEqualTo("02-1234-5678");
     }
 
     @Test

@@ -111,7 +111,7 @@ class StaffRouteMatrixTest extends FullContextTestBase {
                 || path.startsWith("/v1/alimtalk/credits")) return "OWNER_ONLY";
         if (path.startsWith("/v1/plans") || path.equals("/v1/billing/config")) return "AUTHENTICATED_CATALOG";
         if (path.startsWith("/v1/tenants/") || path.equals("/v1/tenants")) return "TENANT_POLICY";
-        if (path.startsWith("/v1/classes/me") || path.startsWith("/v1/lectures/student/")
+        if (path.startsWith("/v1/classes/me")
                 || path.startsWith("/v1/students/me/") || path.startsWith("/v1/assignments/me")
                 || path.matches("/v1/assignments/\\{[^/]+}/me.*") || path.startsWith("/v1/qna/me")
                 || (path.equals("/v1/qna") && method.equals("post"))

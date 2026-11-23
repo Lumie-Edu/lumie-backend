@@ -30,7 +30,6 @@ public enum TenantErrorCode implements ErrorCode {
     LOGO_EMPTY("TENANT_009", "로고 파일이 비어 있습니다.", 400),
     LOGO_TOO_LARGE("TENANT_010", "로고 파일은 5MB 이하로 등록해 주세요.", 400),
     LOGO_UNSUPPORTED_CONTENT_TYPE("TENANT_011", "지원하지 않는 로고 파일 형식입니다.", 400),
-    INVALID_SIDEBAR_ITEM_ID("TENANT_017", "사이드바 항목 정보가 올바르지 않습니다.", 400),
 
     // 500 Internal Server Error
     SCHEMA_PROVISIONING_FAILED("TENANT_006", "학원 정보를 준비하지 못했습니다.", 500),

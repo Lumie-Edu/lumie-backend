@@ -9,6 +9,7 @@ import com.lumie.tenant.application.dto.request.UpdateTenantRequest;
 import com.lumie.tenant.application.dto.response.TenantResponse;
 import com.lumie.tenant.application.port.out.TenantPersistencePort;
 import com.lumie.tenant.domain.entity.Tenant;
+import com.lumie.tenant.domain.vo.PreferredGradeScale;
 import com.lumie.tenant.api.TenantStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,14 +52,29 @@ class TenantCommandServiceTest {
         UpdateTenantRequest updateRequest = UpdateTenantRequest.builder()
                 .name("Updated Academy")
                 .displayName("업데이트된 학원")
-                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .build();
 
         TenantResponse response = tenantCommandService.updateTenant("test-academy", updateRequest);
 
         assertThat(response.name()).isEqualTo("Updated Academy");
         assertThat(response.displayName()).isEqualTo("업데이트된 학원");
-        assertThat(response.hiddenSidebarItemIds()).containsExactly("classes", "reviews");
+    }
+
+    @Test
+    @DisplayName("선호 등급 체계 업데이트")
+    void updatePreferredGradeScale() {
+        Tenant existingTenant = Tenant.create("test-academy", "Test Academy", null);
+        when(tenantPersistencePort.findBySlug("test-academy")).thenReturn(Optional.of(existingTenant));
+        when(tenantPersistencePort.save(any(Tenant.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UpdateTenantRequest request = UpdateTenantRequest.builder()
+                .preferredGradeScale(PreferredGradeScale.FIVE_GRADE)
+                .build();
+
+        TenantResponse response = tenantCommandService.updateTenant("test-academy", request);
+
+        assertThat(existingTenant.getPreferredGradeScale()).isEqualTo(PreferredGradeScale.FIVE_GRADE);
+        assertThat(response.preferredGradeScale()).isEqualTo(PreferredGradeScale.FIVE_GRADE);
     }
 
     @Test
@@ -86,13 +101,11 @@ class TenantCommandServiceTest {
 
         CompleteTenantOnboardingRequest request = CompleteTenantOnboardingRequest.builder()
                 .phone("02-1234-5678")
-                .hiddenSidebarItemIds(List.of("classes", "reviews"))
                 .build();
 
         TenantResponse response = tenantCommandService.completeOnboarding("test-academy", request);
 
         assertThat(response.phone()).isEqualTo("02-1234-5678");
-        assertThat(response.hiddenSidebarItemIds()).containsExactly("classes", "reviews");
         assertThat(response.onboardingCompletedAt()).isNotNull();
     }
 

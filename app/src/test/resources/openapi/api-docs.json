@@ -922,17 +922,7 @@
       },
       "CompleteTenantOnboardingRequest" : {
         "properties" : {
-          "hiddenSidebarItemIds" : {
-            "items" : {
-              "maxLength" : 80,
-              "minLength" : 0,
-              "pattern" : "^[a-z0-9][a-z0-9-]*$",
-              "type" : "string"
-            },
-            "maxItems" : 100,
-            "minItems" : 0,
-            "type" : "array"
-          },
+
           "phone" : {
             "maxLength" : 30,
             "minLength" : 0,
@@ -1364,43 +1354,7 @@
         "required" : [ "name", "questionScores", "totalQuestions" ],
         "type" : "object"
       },
-      "CreateLectureRequest" : {
-        "properties" : {
-          "classId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "classIds" : {
-            "items" : {
-              "format" : "int64",
-              "type" : "integer"
-            },
-            "type" : "array"
-          },
-          "description" : {
-            "type" : "string"
-          },
-          "lectureDate" : {
-            "format" : "date",
-            "type" : "string"
-          },
-          "teacherId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "title" : {
-            "type" : "string"
-          },
-          "visibility" : {
-            "type" : "string"
-          },
-          "youtubeUrl" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "title", "youtubeUrl" ],
-        "type" : "object"
-      },
+
       "CreateQnaRequest" : {
         "properties" : {
           "qnaContent" : {
@@ -2563,61 +2517,7 @@
       "JsonNode" : {
         "type" : "object"
       },
-      "LectureResponse" : {
-        "properties" : {
-          "classId" : {
-            "format" : "int64",
-            "nullable" : true,
-            "type" : "integer"
-          },
-          "classIds" : {
-            "items" : {
-              "format" : "int64",
-              "type" : "integer"
-            },
-            "type" : "array"
-          },
-          "createdAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "description" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "id" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "lectureDate" : {
-            "format" : "date",
-            "nullable" : true,
-            "type" : "string"
-          },
-          "teacherId" : {
-            "format" : "int64",
-            "nullable" : true,
-            "type" : "integer"
-          },
-          "title" : {
-            "type" : "string"
-          },
-          "updatedAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "visibility" : {
-            "enum" : [ "TEACHER_ONLY", "STUDENT" ],
-            "type" : "string"
-          },
-          "youtubeUrl" : {
-            "nullable" : true,
-            "type" : "string"
-          }
-        },
-        "required" : [ "classId", "classIds", "createdAt", "description", "id", "lectureDate", "teacherId", "title", "updatedAt", "visibility", "youtubeUrl" ],
-        "type" : "object"
-      },
+
       "LoginRequest" : {
         "properties" : {
           "password" : {
@@ -3380,37 +3280,7 @@
         "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
         "type" : "object"
       },
-      "PageResponseLectureResponse" : {
-        "properties" : {
-          "hasNext" : {
-            "type" : "boolean"
-          },
-          "items" : {
-            "items" : {
-              "$ref" : "#/components/schemas/LectureResponse"
-            },
-            "type" : "array"
-          },
-          "page" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "perPage" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "total" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "totalPages" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "hasNext", "items", "page", "perPage", "total", "totalPages" ],
-        "type" : "object"
-      },
+
       "PageResponseQnaBoardResponse" : {
         "properties" : {
           "hasNext" : {
@@ -5759,12 +5629,7 @@
             "nullable" : true,
             "type" : "string"
           },
-          "hiddenSidebarItemIds" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          },
+
           "id" : {
             "format" : "int64",
             "type" : "integer"
@@ -5783,6 +5648,10 @@
           "onboardingCompletedAt" : {
             "format" : "date-time",
             "nullable" : true,
+            "type" : "string"
+          },
+          "preferredGradeScale" : {
+            "enum" : [ "NINE_GRADE", "FIVE_GRADE" ],
             "type" : "string"
           },
           "phone" : {
@@ -5811,7 +5680,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "createdAt", "displayName", "hiddenSidebarItemIds", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "slug", "status", "subjects", "updatedAt" ],
+        "required" : [ "createdAt", "displayName", "id", "instituteName", "logoUrl", "name", "onboardingCompletedAt", "phone", "plan", "preferredGradeScale", "slug", "status", "subjects", "updatedAt" ],
         "type" : "object"
       },
       "ToolExecuteRequest" : {
@@ -6263,38 +6132,7 @@
         },
         "type" : "object"
       },
-      "UpdateLectureRequest" : {
-        "properties" : {
-          "classId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "classIds" : {
-            "items" : {
-              "format" : "int64",
-              "type" : "integer"
-            },
-            "type" : "array"
-          },
-          "description" : {
-            "type" : "string"
-          },
-          "lectureDate" : {
-            "format" : "date",
-            "type" : "string"
-          },
-          "title" : {
-            "type" : "string"
-          },
-          "visibility" : {
-            "type" : "string"
-          },
-          "youtubeUrl" : {
-            "type" : "string"
-          }
-        },
-        "type" : "object"
-      },
+
       "UpdateOmrSubmissionPhoneRequest" : {
         "properties" : {
           "phoneNumber" : {
@@ -6424,17 +6262,7 @@
             "minLength" : 0,
             "type" : "string"
           },
-          "hiddenSidebarItemIds" : {
-            "items" : {
-              "maxLength" : 80,
-              "minLength" : 0,
-              "pattern" : "^[a-z0-9][a-z0-9-]*$",
-              "type" : "string"
-            },
-            "maxItems" : 100,
-            "minItems" : 0,
-            "type" : "array"
-          },
+
           "name" : {
             "maxLength" : 100,
             "minLength" : 0,
@@ -6443,6 +6271,10 @@
           "phone" : {
             "maxLength" : 30,
             "minLength" : 0,
+            "type" : "string"
+          },
+          "preferredGradeScale" : {
+            "enum" : [ "NINE_GRADE", "FIVE_GRADE" ],
             "type" : "string"
           }
         },
@@ -6579,31 +6411,6 @@
           }
         },
         "required" : [ "avatarSeed", "email", "id", "name", "phone", "role", "tenantId", "tenantOnboardingCompletedAt", "tenantSlug", "userLoginId" ],
-        "type" : "object"
-      },
-      "WatchResponse" : {
-        "properties" : {
-          "description" : {
-            "nullable" : true,
-            "type" : "string"
-          },
-          "lectureId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "title" : {
-            "type" : "string"
-          },
-          "visibility" : {
-            "enum" : [ "TEACHER_ONLY", "STUDENT" ],
-            "type" : "string"
-          },
-          "youtubeUrl" : {
-            "nullable" : true,
-            "type" : "string"
-          }
-        },
-        "required" : [ "description", "lectureId", "title", "visibility", "youtubeUrl" ],
         "type" : "object"
       }
     },
@@ -11138,294 +10945,10 @@
         "tags" : [ "file-controller" ]
       }
     },
-    "/v1/lectures" : {
-      "get" : {
-        "operationId" : "findAll",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "classId",
-          "required" : false,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "teacherId",
-          "required" : false,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "startDate",
-          "required" : false,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "endDate",
-          "required" : false,
-          "schema" : {
-            "format" : "date",
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "search",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "description" : "Zero-based page index (0..N)",
-          "in" : "query",
-          "name" : "page",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "minimum" : 0,
-            "type" : "integer"
-          }
-        }, {
-          "description" : "The size of the page to be returned",
-          "in" : "query",
-          "name" : "size",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "minimum" : 1,
-            "type" : "integer"
-          }
-        }, {
-          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
-          "in" : "query",
-          "name" : "sort",
-          "required" : false,
-          "schema" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PageResponseLectureResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "lecture-controller" ]
-      },
-      "post" : {
-        "operationId" : "create",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CreateLectureRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/LectureResponse"
-                }
-              }
-            },
-            "description" : "Created"
-          }
-        },
-        "tags" : [ "lecture-controller" ]
-      }
-    },
-    "/v1/lectures/student/class/{classId}" : {
-      "get" : {
-        "operationId" : "findByClass",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "classId",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "description" : "Zero-based page index (0..N)",
-          "in" : "query",
-          "name" : "page",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "minimum" : 0,
-            "type" : "integer"
-          }
-        }, {
-          "description" : "The size of the page to be returned",
-          "in" : "query",
-          "name" : "size",
-          "required" : false,
-          "schema" : {
-            "format" : "int32",
-            "minimum" : 1,
-            "type" : "integer"
-          }
-        }, {
-          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
-          "in" : "query",
-          "name" : "sort",
-          "required" : false,
-          "schema" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PageResponseLectureResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "lecture-student-controller" ]
-      }
-    },
-    "/v1/lectures/student/{id}/watch" : {
-      "get" : {
-        "operationId" : "getWatchUrls",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "in" : "query",
-          "name" : "classId",
-          "required" : false,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/WatchResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "lecture-student-controller" ]
-      }
-    },
-    "/v1/lectures/{id}" : {
-      "delete" : {
-        "operationId" : "delete",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          }
-        },
-        "tags" : [ "lecture-controller" ]
-      },
-      "get" : {
-        "operationId" : "findById",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/LectureResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "lecture-controller" ]
-      },
-      "patch" : {
-        "operationId" : "update",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/UpdateLectureRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/LectureResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          }
-        },
-        "tags" : [ "lecture-controller" ]
-      }
-    },
+
+
+
+
     "/v1/login" : {
       "post" : {
         "operationId" : "login",
@@ -12144,7 +11667,7 @@
           "name" : "thresholdHours",
           "required" : false,
           "schema" : {
-            "default" : 24,
+            "default" : 0,
             "format" : "int64",
             "type" : "integer"
           }

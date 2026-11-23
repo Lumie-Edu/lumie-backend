@@ -130,7 +130,7 @@ public class QnaQueryService {
 
     public QnaUnansweredOverdueResponse getUnansweredOverdueStatistics(long thresholdHours) {
         AuthorizationGuard.requireStaff();
-        log.debug("Computing unanswered-overdue Q&A count, thresholdHours={}", thresholdHours);
+        log.debug("Computing unanswered Q&A count, thresholdHours={}", thresholdHours);
         Instant threshold = Instant.now().minusSeconds(thresholdHours * 3600L);
         long count = qnaBoardRepository.countByIsAnsweredFalseAndCreatedAtBefore(threshold);
         return new QnaUnansweredOverdueResponse(count, thresholdHours);
